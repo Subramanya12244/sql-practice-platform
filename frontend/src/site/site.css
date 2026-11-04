@@ -169,3 +169,10 @@ html.dark .prose-site .tok-n { color: #fcd34d; }
 .prose-site h3[id] {
   scroll-margin-top: 5rem;
 }
+
+/* Mermaid diagrams in content */
+.prose-site .mermaid-block { margin: 1rem 0; }
+.prose-site .mermaid-svg { overflow-x: auto; border: 1px solid rgb(var(--color-border)); border-radius: 0.75rem; padding: 0.75rem; background: rgb(var(--color-surface-raised)); }
+.prose-site .mermaid-svg svg { margin: 0 auto; max-width: 100%; height: auto; }
+
+.viz-clause-highlight { background: rgba(99, 102, 241, 0.22); border-radius: 2px; }

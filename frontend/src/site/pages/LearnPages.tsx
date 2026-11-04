@@ -40,7 +40,7 @@ export function LearnPage() {
       name: "Learn SQL from scratch",
       description: "A free, hands-on SQL course: SELECT to window functions, transactions and indexes, with exercises graded in your browser.",
       url: canonical("/learn"),
-      provider: { "@type": "Organization", name: "SQL Practice Lab", sameAs: canonical("/") },
+      provider: { "@type": "Organization", name: "DataForge", sameAs: canonical("/") },
       isAccessibleForFree: true,
       hasCourseInstance: { "@type": "CourseInstance", courseMode: "online", courseWorkload: "PT10H" },
       syllabusSections: lessons.map((l) => ({ "@type": "Syllabus", name: l.title, url: canonical(`/learn/${l.slug}`) })),

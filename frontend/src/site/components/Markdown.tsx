@@ -1,5 +1,5 @@
 import { marked, type Tokens } from "marked";
-import { useMemo, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { sendTo } from "../lib/handoff";
 import { slugifyHeading } from "../lib/learning";
@@ -34,6 +34,9 @@ marked.use({
   breaks: false,
   renderer: {
     code({ text, lang }: Tokens.Code) {
+      if (lang === "mermaid") {
+        return `<div class="mermaid-block"><pre><code class="language-mermaid">${esc(text)}</code></pre></div>`;
+      }
       const isSql = lang === "sql" || lang === "sql-syntax";
       const body = isSql ? highlightSql(text) : esc(text);
       const actions = `<div class="code-actions"><button type="button" data-copy>Copy</button>${
@@ -58,6 +61,10 @@ export function InlineMarkdown({ source }: { source: string }) {
 export function Markdown({ source, className = "" }: { source: string; className?: string }) {
   const html = useMemo(() => marked.parse(source, { async: false }) as string, [source]);
   const navigate = useNavigate();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (ref.current && html.includes("mermaid-block")) void import("../lib/mermaid").then((m) => m.renderMermaidIn(ref.current!));
+  }, [html]);
 
   function onClick(e: MouseEvent<HTMLDivElement>) {
     const btn = (e.target as HTMLElement).closest("button");
@@ -74,5 +81,5 @@ export function Markdown({ source, className = "" }: { source: string; className
     }
   }
 
-  return <div className={`prose-site ${className}`} onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div ref={ref} className={`prose-site ${className}`} onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />;
 }

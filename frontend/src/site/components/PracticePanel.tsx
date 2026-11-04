@@ -23,7 +23,8 @@ export default function PracticePanel({
   onRan,
 }: {
   question: Question;
-  onSolved?: (r: SubmitResult) => void;
+  /** After every submit, with the exact SQL that was submitted. */
+  onSolved?: (r: SubmitResult, sql: string) => void;
   /** Start from the starter query instead of the visitor's saved draft (mock interviews). */
   fresh?: boolean;
   /** Free-form querying: no Submit, nothing graded. */
@@ -130,7 +131,7 @@ export default function PracticePanel({
     }
     setSubmitResult(result);
     setSubmitting(false);
-    onSolved?.(result);
+    onSolved?.(result, sql);
   }, [sql, question, onSolved, lessonKey, dataset]);
 
   return (

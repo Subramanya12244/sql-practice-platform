@@ -130,6 +130,12 @@ export interface PageData {
   scenario?: import("./lib/scenarios").Scenario;
   scenarios?: import("./lib/scenarios").ScenarioMeta[];
   datasets?: import("./lib/datasets").DatasetInfo[];
+  exercise?: import("./lib/pyExercises").PyExercise;
+  exercises?: import("./lib/pyExercises").PyExerciseMeta[];
+  project?: import("./lib/projects").Project;
+  projects?: import("./lib/projects").ProjectMeta[];
+  /** Task lists per project, so the index can derive each status in the browser. */
+  projectTasks?: { slug: string; tasks: import("./lib/tasks").Task[] }[];
   /** Mind maps that link to the current note/pattern. */
   relatedMaps?: import("./lib/learning").MindMapMeta[];
 }

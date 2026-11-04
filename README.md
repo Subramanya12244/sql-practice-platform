@@ -1,4 +1,8 @@
-# SQL Practice Platform
+# DataForge
+
+**Learn. Practice. Build. Master Data.** An integrated learning and development platform for SQL, Python, Data Engineering, Data Analytics and real-world data projects.
+
+_The repository keeps its original name (`sql-practice-platform`) and the deployment URL is unchanged; the product is now called DataForge._
 
 A production-quality **SQL interview practice** application built around your actual ChatGPT SQL-learning history.
 
@@ -242,6 +246,24 @@ npm run preview:site   # http://localhost:4174
 - `/mindmaps`: 10 interactive mind maps.
 
 Site-wide search opens with ⌘K. Notes, patterns, maps and questions all link to each other. The content is Markdown and JSON under `frontend/src/site/content/`, in the format defined in [docs/CONTENT_SPEC.md](docs/CONTENT_SPEC.md). `src/test/siteContent.test.ts` checks that every link resolves and that every runnable SQL example runs in the browser database. The gap analysis and next phases are in [docs/LEARNING_PLATFORM_PLAN.md](docs/LEARNING_PLATFORM_PLAN.md).
+
+**DataForge Phase 3:**
+- `/data-engineering`: 7 learning tracks with 102 topics: Python, ETL/ELT, data warehousing, Spark, Airflow, dbt and cloud. Every topic has notes, an architecture diagram, exercises and interview questions, and each track has a mind map and a flashcard deck. The topic registry is `frontend/src/site/content/tracks.json`.
+- `/practice/python`: 20 Python exercises graded by tests in **Pyodide**, which runs in a sandboxed browser worker:
+  - 10 s limit
+  - in-memory filesystem only
+  - imports of `js`, the network and `micropip` blocked
+  - no server involved
+- `/projects-lab`: 12 projects with 69 tasks. SQL tasks are checked on a dataset in one rolled-back transaction, and Python tasks by tests. Status is derived from the evidence: Completed only when every automated check passes. Manual steps stay Under evaluation.
+- `/data-quality`: rules (NULL, duplicate, PK, FK, type, schema, date, outlier, missing records, reconciliation, row count, business rule) run on any sample or generated dataset, with a score, failing records, CSV/JSON reports and run comparison.
+- **Visualize query** and **History** tabs on every SQL question and scenario:
+  - logical steps with **Executed** rows (built only from your own clauses)
+  - **Parsed** structure from a PostgreSQL AST: CTE data flow and set-operation branches
+  - the **Plan** from EXPLAIN, with EXPLAIN ANALYZE only on request
+  - queries that use `random()`/`now()` and similar get explanations only, never derived rows
+  - sessions are saved per attempt
+- `scripts/check_python_blocks.py` runs every Python example and task. CI runs it too.
+- Supabase migration `003_dataforge.sql` adds tables for visualization sessions, project progress and submissions, and data quality rules and runs, each with RLS. Until an account sync is wired in, the browser keeps this data in local storage.
 
 **SQL intelligence tools:** these all run in the browser on PGlite.
 - `/ai-tutor`: 5-level hints that record when you used help, rule-based query explanations, a schema check, and result checks verified by the database. The AI chat is off unless `VITE_TUTOR_ENDPOINT` points to a server-side proxy; see [docs/INTELLIGENCE_PLAN.md](docs/INTELLIGENCE_PLAN.md).

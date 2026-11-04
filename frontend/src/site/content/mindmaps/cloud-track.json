@@ -1,0 +1,45 @@
+{
+  "slug": "cloud-track",
+  "title": "Cloud Computing for Data Engineers",
+  "description": "AWS, Azure and Google Cloud for data: providers, storage, lakes, warehouses, compute, orchestration, IAM, security, networking, monitoring and cost.",
+  "root": {
+    "id": "cloud",
+    "label": "Cloud for data",
+    "note": "cloud-aws-overview",
+    "children": [
+      { "id": "providers", "label": "Providers", "note": "cloud-aws-overview", "children": [
+        { "id": "aws", "label": "AWS", "note": "cloud-aws-overview", "children": [] },
+        { "id": "azure", "label": "Azure", "note": "cloud-azure-overview", "children": [] },
+        { "id": "gcp", "label": "Google Cloud", "note": "cloud-gcp-overview", "children": [] }
+      ] },
+      { "id": "storage", "label": "Storage", "note": "cloud-object-storage", "prereq": ["providers"], "children": [
+        { "id": "object", "label": "Object storage (S3 / ADLS Gen2 / GCS)", "note": "cloud-object-storage", "children": [
+          { "id": "tiers", "label": "Storage tiers and lifecycle", "note": "cloud-object-storage", "children": [] }
+        ] },
+        { "id": "lakes", "label": "Data lakes", "note": "cloud-data-lakes", "prereq": ["object"], "children": [
+          { "id": "medallion", "label": "Bronze / silver / gold", "note": "cloud-data-lakes", "children": [] },
+          { "id": "formats", "label": "Delta / Iceberg / Hudi", "note": "cloud-data-lakes", "children": [] }
+        ] },
+        { "id": "warehouses", "label": "Warehouses (Redshift / Synapse / BigQuery)", "note": "cloud-data-warehouses", "prereq": ["object"], "children": [
+          { "id": "layout", "label": "Distribution, partitioning, clustering", "note": "cloud-data-warehouses", "children": [] }
+        ] }
+      ] },
+      { "id": "processing", "label": "Processing", "note": "cloud-compute", "prereq": ["storage"], "children": [
+        { "id": "functions", "label": "Functions (Lambda / Functions / Cloud Run)", "note": "cloud-compute", "children": [] },
+        { "id": "spark", "label": "Managed Spark (Glue / Databricks / Dataproc)", "note": "cloud-compute", "children": [] },
+        { "id": "orchestration", "label": "Orchestration (MWAA / ADF / Composer)", "note": "cloud-orchestration", "children": [] }
+      ] },
+      { "id": "secure", "label": "Security", "note": "cloud-security", "children": [
+        { "id": "iam", "label": "IAM: roles, managed identities, service accounts", "note": "cloud-iam", "children": [] },
+        { "id": "encryption", "label": "Encryption and secrets", "note": "cloud-security", "prereq": ["iam"], "children": [] },
+        { "id": "networking", "label": "VPC / VNet and private endpoints", "note": "cloud-networking", "children": [] }
+      ] },
+      { "id": "operations", "label": "Operations", "note": "cloud-monitoring", "prereq": ["processing"], "children": [
+        { "id": "monitoring", "label": "Monitoring and alerts", "note": "cloud-monitoring", "children": [] },
+        { "id": "cost", "label": "Cost management", "note": "cloud-cost-management", "children": [
+          { "id": "commitments", "label": "Reserved / committed use", "note": "cloud-cost-management", "children": [] }
+        ] }
+      ] }
+    ]
+  }
+}

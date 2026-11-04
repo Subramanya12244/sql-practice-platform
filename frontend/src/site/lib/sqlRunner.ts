@@ -49,7 +49,12 @@ export async function runRaw(db: SqlDb, sql: string): Promise<RawResult> {
 }
 
 function stripComments(sql: string): string {
-  return sql.replace(/--.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/'(?:[^']|'')*'/g, "''");
+  // Function bodies ($$ … $$ or $tag$ … $tag$) contain BEGIN/END of their own; they aren't transaction control.
+  return sql
+    .replace(/\$([A-Za-z_]*)\$[\s\S]*?\$\1\$/g, "''")
+    .replace(/--.*$/gm, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/'(?:[^']|'')*'/g, "''");
 }
 
 export async function execute(db: SqlDb, sql: string): Promise<ExecuteResult> {

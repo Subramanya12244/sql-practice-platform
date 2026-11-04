@@ -1,3 +1,4 @@
+import { TRACKS } from "./tracks";
 /**
  * Loaders for the learning library: theory notes, patterns, shortcuts and mind maps.
  * Content is Markdown/JSON under ../content (format: docs/CONTENT_SPEC.md).
@@ -14,6 +15,8 @@ export interface NoteMeta {
   questions: number[];
   patterns: string[];
   guides: string[];
+  /** Projects Lab slugs that apply this topic (data engineering tracks). */
+  projects: string[];
   minutes: number;
   version: number;
 }
@@ -76,15 +79,17 @@ export interface MarkdownPage {
   body: string;
 }
 
-export const NOTE_CATEGORIES: { slug: string; label: string }[] = [
-  { slug: "fundamentals", label: "SQL Fundamentals" },
-  { slug: "joins", label: "JOINs" },
-  { slug: "aggregations", label: "Aggregation" },
-  { slug: "subqueries", label: "Subqueries" },
-  { slug: "ctes", label: "CTEs" },
-  { slug: "window-functions", label: "Window Functions" },
-  { slug: "set-operators", label: "Set Operators" },
-  { slug: "advanced-sql", label: "Advanced SQL" },
+/** `group` separates the SQL library from the data engineering tracks. */
+export const NOTE_CATEGORIES: { slug: string; label: string; group: "sql" | "de" }[] = [
+  { slug: "fundamentals", label: "SQL Fundamentals", group: "sql" },
+  { slug: "joins", label: "JOINs", group: "sql" },
+  { slug: "aggregations", label: "Aggregation", group: "sql" },
+  { slug: "subqueries", label: "Subqueries", group: "sql" },
+  { slug: "ctes", label: "CTEs", group: "sql" },
+  { slug: "window-functions", label: "Window Functions", group: "sql" },
+  { slug: "set-operators", label: "Set Operators", group: "sql" },
+  { slug: "advanced-sql", label: "Advanced SQL", group: "sql" },
+  ...TRACKS.map((t) => ({ slug: t.id, label: t.title, group: "de" as const })),
 ];
 
 export const PATTERN_CATEGORIES: Record<string, string> = {
@@ -140,6 +145,7 @@ export function parseNote(raw: string, fallback: string, folder = ""): Note {
     questions: nums(meta.questions),
     patterns: list(meta.patterns),
     guides: list(meta.guides),
+    projects: list(meta.projects),
     minutes: Number(meta.minutes) || 5,
     version: Number(meta.version) || 1,
     body,

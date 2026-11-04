@@ -1,13 +1,21 @@
 {
-  "name": "SQL Practice Lab",
-  "short_name": "SQL Lab",
-  "description": "Free SQL interview practice on the Northwind database, running in your browser.",
+  "name": "DataForge",
+  "short_name": "DataForge",
+  "description": "Learn. Practice. Build. Master Data. SQL, Python and data engineering practice with real PostgreSQL in your browser.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#4f46e5",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }

@@ -29,6 +29,13 @@ import { SolutionComparisonPage } from "./pages/SolutionComparisonPage";
 import { ReadinessPage } from "./pages/ReadinessPage";
 import { TutorPage } from "./pages/TutorPage";
 import { DataGeneratorPage } from "./pages/DataGeneratorPage";
+import { DataEngineeringPage } from "./pages/DataEngineeringPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { PythonExercisePage, PythonPracticeIndexPage } from "./pages/PythonPracticePages";
+import { loadExercise, loadExerciseIndex } from "./lib/pyExercises";
+import { ProjectPage, ProjectsIndexPage } from "./pages/ProjectsPages";
+import { DataQualityPage } from "./pages/DataQualityPage";
+import { loadAllProjects, loadProject, loadProjectIndex } from "./lib/projects";
 import { ScenarioPage, ScenariosPage } from "./pages/ScenarioPages";
 import { loadScenario, loadScenarioIndex } from "./lib/scenarios";
 import { NORTHWIND_INFO, type DatasetInfo } from "./lib/datasets";
@@ -223,6 +230,43 @@ export const routes: SiteRoute[] = [
     paths: one("/ai-tutor"),
   },
   { path: "/data-generator", element: <DataGeneratorPage />, load: base, paths: one("/data-generator") },
+  {
+    path: "/data-engineering",
+    element: <DataEngineeringPage />,
+    load: async () => ({ ...(await base()), notes: await loadNoteIndex(), mindmaps: await loadMapIndex() }),
+    paths: one("/data-engineering"),
+  },
+  { path: "/settings", element: <SettingsPage />, load: base, paths: one("/settings") },
+  { path: "/data-quality", element: <DataQualityPage />, load: base, paths: one("/data-quality") },
+  {
+    path: "/projects-lab",
+    element: <ProjectsIndexPage />,
+    load: async () => ({
+      ...(await base()),
+      projects: await loadProjectIndex(),
+      projectTasks: (await loadAllProjects()).map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type }) as never) })),
+    }),
+    paths: one("/projects-lab"),
+  },
+  {
+    path: "/projects-lab/:slug",
+    element: <ProjectPage />,
+    load: async ({ slug }) => {
+      const project = await loadProject(slug!);
+      return project ? { ...(await base()), project, notes: await loadNoteIndex() } : null;
+    },
+    paths: async () => (await loadProjectIndex()).map((p) => `/projects-lab/${p.slug}`),
+  },
+  { path: "/practice/python", element: <PythonPracticeIndexPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/practice/python") },
+  {
+    path: "/practice/python/:slug",
+    element: <PythonExercisePage />,
+    load: async ({ slug }) => {
+      const exercise = await loadExercise(slug!);
+      return exercise ? { ...(await base()), exercise, notes: await loadNoteIndex() } : null;
+    },
+    paths: async () => (await loadExerciseIndex()).map((e) => `/practice/python/${e.slug}`),
+  },
   {
     path: "/scenarios",
     element: <ScenariosPage />,

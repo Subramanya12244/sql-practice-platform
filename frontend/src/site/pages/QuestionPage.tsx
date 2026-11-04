@@ -1,6 +1,9 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { sendTo } from "../lib/handoff";
+import { VizView } from "../components/VizView";
+import { addExec, addSession, getExecs, getSessions, highlightInEditor, type ExecRecord, type VizSession } from "../lib/vizHistory";
+import type { ExecuteResult } from "../../types";
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { HintLadder } from "../components/HintLadder";
 import { Comments, CommunitySolutions } from "../components/Community";
@@ -10,11 +13,11 @@ import { Chip, Container, Difficulty, Skeleton } from "../components/ui";
 import { ShareButton } from "../components/ShareButton";
 import { SchemaPanel } from "../components/SchemaPanel";
 import { SITE_NAME, Seo, breadcrumbs, canonical, clip, faqPage } from "../lib/seo";
-import { markRevealed, recordHint, useProgress } from "../lib/progress";
+import { getProgress, markRevealed, recordHint, useProgress } from "../lib/progress";
 
 const PracticePanel = lazy(() => import("../components/PracticePanel"));
 
-type Tab = "description" | "hints" | "solution" | "discuss" | "interview";
+type Tab = "description" | "hints" | "visualize" | "history" | "solution" | "discuss" | "interview";
 
 function Section({ id, title, children, first }: { id: string; title: string; children: React.ReactNode; first?: boolean }) {
   return (
@@ -52,6 +55,24 @@ export function QuestionPage() {
   const [justSolved, setJustSolved] = useState(false);
   const [tab, setTab] = useState<Tab>("description");
   const navigate = useNavigate();
+  const histKey = `q${q.number}`;
+  const [execs, setExecs] = useState<ExecRecord[]>([]);
+  const [sessions, setSessions] = useState<VizSession[]>([]);
+  const [vizSql, setVizSql] = useState<string | null>(null);
+  useEffect(() => {
+    setExecs(getExecs(histKey));
+    setSessions(getSessions(histKey));
+    setVizSql(null);
+  }, [histKey]);
+  const latest = execs[0]?.sql ?? progress.questions[q.number]?.lastSql ?? "";
+  const onRan = useCallback((sql: string, res: ExecuteResult) => {
+    addExec(histKey, { at: new Date().toISOString(), kind: "run", sql, ok: res.success, rows: res.row_count ?? undefined, attempt: getProgress().questions[q.number]?.attempts ?? 0 });
+    setExecs(getExecs(histKey));
+  }, [histKey, q.number]);
+  const visualizeNow = (sql: string) => {
+    setVizSql(sql);
+    setTab("visualize");
+  };
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Load the editor bundle only once its slot is near the viewport, so reading
@@ -113,6 +134,8 @@ export function QuestionPage() {
   const tabs: { id: Tab; label: string }[] = [
     { id: "description", label: "Description" },
     { id: "hints", label: "Hints" },
+    { id: "visualize", label: "Visualize query" },
+    { id: "history", label: "History" },
     { id: "solution", label: "Solution" },
     { id: "discuss", label: "Discuss" },
     ...(q.followups.length ? [{ id: "interview" as Tab, label: "Interview Q&A" }] : []),
@@ -233,6 +256,77 @@ export function QuestionPage() {
               )}
             </Panel>
 
+            <Panel id="visualize" active={tab}>
+              {tab === "visualize" && (
+                !latest.trim() ? (
+                  <p className="text-sm text-ink-muted">Run or submit a query in the editor, then visualize it here: logical steps with real intermediate rows, its parsed structure, and PostgreSQL's plan.</p>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <button type="button" onClick={() => setVizSql(latest)} className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white">
+                        {vizSql ? "Visualize my latest query" : "Visualize my query"}
+                      </button>
+                      <span className="text-xs text-ink-faint">{execs[0] ? `Last ${execs[0].kind} · attempt ${execs[0].attempt} · ${new Date(execs[0].at).toLocaleTimeString()}` : "Your current draft"}</span>
+                    </div>
+                    {vizSql && (
+                      <VizView
+                        key={vizSql}
+                        sql={vizSql}
+                        onClause={(r) => highlightInEditor(vizSql, r)}
+                        onDone={(summary) => {
+                          const attempt = execs.find((e) => e.sql === vizSql)?.attempt ?? getProgress().questions[q.number]?.attempts ?? 0;
+                          addSession(histKey, { sql: vizSql, attempt, dataset: "northwind", ...summary });
+                          setSessions(getSessions(histKey));
+                        }}
+                      />
+                    )}
+                  </div>
+                )
+              )}
+            </Panel>
+
+            <Panel id="history" active={tab}>
+              {tab === "history" && (
+                <div className="space-y-6 text-sm">
+                  <section>
+                    <h2 className="font-display text-lg font-bold text-ink">Execution history</h2>
+                    {!execs.length && <p className="mt-1 text-ink-muted">Nothing yet — runs and submits for this question appear here.</p>}
+                    <ul className="mt-2 space-y-2">
+                      {execs.slice(0, 20).map((e, i) => (
+                        <li key={i} className="rounded-lg border border-surface-border p-2">
+                          <p className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className={e.kind === "submit" ? (e.correct ? "font-semibold text-success" : "font-semibold text-danger") : e.ok ? "text-ink-muted" : "text-danger"}>
+                              {e.kind === "submit" ? (e.correct ? "✓ submit" : "✗ submit") : e.ok ? `run · ${e.rows ?? 0} rows` : "run · error"}
+                            </span>
+                            <span className="text-ink-faint">attempt {e.attempt} · {new Date(e.at).toLocaleString()}</span>
+                            <button type="button" onClick={() => visualizeNow(e.sql)} className="ml-auto text-accent hover:underline">Visualize</button>
+                          </p>
+                          <code className="mt-1 block truncate text-xs text-ink">{e.sql.replace(/\s+/g, " ")}</code>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                  <section>
+                    <h2 className="font-display text-lg font-bold text-ink">Visualizations</h2>
+                    {!sessions.length && <p className="mt-1 text-ink-muted">Visualizations you open are saved here, linked to the attempt they came from.</p>}
+                    <ul className="mt-2 space-y-2">
+                      {sessions.map((s) => (
+                        <li key={s.id} className="rounded-lg border border-surface-border p-2">
+                          <p className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+                            <span className="font-medium text-ink">{s.structure}</span>
+                            <span>attempt {s.attempt} · {new Date(s.at).toLocaleString()}</span>
+                            {s.planRoot && <span>plan: {s.planRoot}{s.planCost !== undefined ? ` (cost ${s.planCost.toFixed(1)})` : ""}</span>}
+                            <button type="button" onClick={() => visualizeNow(s.sql)} className="ml-auto text-accent hover:underline">Reopen</button>
+                          </p>
+                          <code className="mt-1 block truncate text-xs text-ink">{s.sql.replace(/\s+/g, " ")}</code>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                </div>
+              )}
+            </Panel>
+
             <Panel id="solution" active={tab}>
               <Section id="approach" title="Approach" first>
                 <details className="rounded-card border border-surface-border bg-surface p-4">
@@ -312,7 +406,11 @@ export function QuestionPage() {
         <div ref={panelRef} id="editor" className="flex min-h-0 scroll-mt-16 flex-col gap-3 lg:overflow-y-auto">
           {mounted ? (
             <Suspense fallback={<Skeleton className="h-[580px]" />}>
-              <PracticePanel question={q} fill onSolved={(r) => r.correct && setJustSolved(true)} />
+              <PracticePanel question={q} fill onRan={onRan} onSolved={(r, sql) => {
+                if (r.correct) setJustSolved(true);
+                addExec(histKey, { at: new Date().toISOString(), kind: "submit", sql, ok: true, correct: r.correct, rows: r.your_row_count ?? undefined, attempt: getProgress().questions[q.number]?.attempts ?? 0 });
+                setExecs(getExecs(histKey));
+              }} />
             </Suspense>
           ) : (
             <Skeleton className="h-[580px] lg:h-full" />
@@ -320,8 +418,8 @@ export function QuestionPage() {
           <div className="flex shrink-0 flex-wrap gap-2 text-xs">
             <Link to={`/ai-tutor?q=${q.slug}`} className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink">Open in tutor</Link>
             <button type="button" className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink"
-              onClick={() => { sendTo({ tool: "visualizer", a: progress.questions[q.number]?.lastSql || q.solution }); navigate("/query-visualizer"); }}>
-              Visualize {progress.questions[q.number]?.lastSql ? "my query" : "the query"}
+              onClick={() => visualizeNow(latest || q.solution)}>
+              Visualize ↗ tab
             </button>
             {solved && (
               <button type="button" className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink"

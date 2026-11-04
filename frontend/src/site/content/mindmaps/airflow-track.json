@@ -1,0 +1,253 @@
+{
+  "slug": "airflow-track",
+  "title": "Apache Airflow track",
+  "description": "Airflow architecture, DAGs, operators, sensors, scheduling, XCom, retries, failure handling, connections, backfills and monitoring.",
+  "root": {
+    "id": "airflow",
+    "label": "Apache Airflow",
+    "detail": "Orchestrate pipelines as DAGs of tasks.",
+    "note": "airflow-architecture",
+    "prereq": [],
+    "children": [
+      {
+        "id": "arch",
+        "label": "Architecture",
+        "detail": "Scheduler, executor, workers, metadata DB, webserver.",
+        "note": "airflow-architecture",
+        "prereq": [],
+        "children": [
+          {
+            "id": "scheduler",
+            "label": "Scheduler",
+            "detail": "Parses DAGs, creates runs, queues tasks.",
+            "note": "airflow-architecture",
+            "prereq": [],
+            "children": []
+          },
+          {
+            "id": "executor",
+            "label": "Executors and workers",
+            "detail": "Local, Celery, Kubernetes executors run tasks.",
+            "note": "airflow-architecture",
+            "prereq": [],
+            "children": []
+          },
+          {
+            "id": "metadb",
+            "label": "Metadata DB",
+            "detail": "Stores runs, states, XComs, Connections, Variables.",
+            "note": "airflow-architecture",
+            "prereq": [],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "authoring",
+        "label": "Authoring DAGs",
+        "detail": "Python files that declare tasks and dependencies.",
+        "note": "airflow-dags",
+        "prereq": [],
+        "children": [
+          {
+            "id": "dags",
+            "label": "DAGs",
+            "detail": "with DAG(...) or @dag; start_date, schedule, catchup.",
+            "note": "airflow-dags",
+            "prereq": [
+              "arch"
+            ],
+            "children": []
+          },
+          {
+            "id": "tasks",
+            "label": "Tasks",
+            "detail": "Atomic, idempotent units; task instance states.",
+            "note": "airflow-tasks",
+            "prereq": [
+              "dags"
+            ],
+            "children": []
+          },
+          {
+            "id": "operators",
+            "label": "Operators",
+            "detail": "BashOperator, PythonOperator, EmptyOperator, providers.",
+            "note": "airflow-operators",
+            "prereq": [
+              "tasks"
+            ],
+            "children": []
+          },
+          {
+            "id": "sensors",
+            "label": "Sensors",
+            "detail": "Wait for conditions; use mode=\"reschedule\".",
+            "note": "airflow-sensors",
+            "prereq": [
+              "operators"
+            ],
+            "children": []
+          },
+          {
+            "id": "deps",
+            "label": "Dependencies",
+            "detail": "a >> b, fan-out/in, branching, trigger_rule.",
+            "note": "airflow-dependencies",
+            "prereq": [
+              "tasks"
+            ],
+            "children": [
+              {
+                "id": "trigger-rules",
+                "label": "Trigger rules",
+                "detail": "all_success, all_done, one_failed, none_failed_min_one_success.",
+                "note": "airflow-dependencies",
+                "prereq": [],
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "xcom",
+            "label": "XCom",
+            "detail": "Small values between tasks; TaskFlow returns.",
+            "note": "airflow-xcom",
+            "prereq": [
+              "deps"
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "sched",
+        "label": "Scheduling",
+        "detail": "When runs are created and what they cover.",
+        "note": "airflow-scheduling",
+        "prereq": [],
+        "children": [
+          {
+            "id": "intervals",
+            "label": "Data intervals",
+            "detail": "Run for an interval starts after it ends; ds = logical date.",
+            "note": "airflow-scheduling",
+            "prereq": [
+              "dags"
+            ],
+            "children": []
+          },
+          {
+            "id": "catchup",
+            "label": "Catchup",
+            "detail": "Automatic runs for missed intervals.",
+            "note": "airflow-scheduling",
+            "prereq": [],
+            "children": []
+          },
+          {
+            "id": "backfill",
+            "label": "Backfilling",
+            "detail": "airflow dags backfill for past date ranges.",
+            "note": "airflow-backfilling",
+            "prereq": [
+              "intervals"
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "reliability",
+        "label": "Reliability",
+        "detail": "Recover from and react to failures.",
+        "note": "airflow-retries",
+        "prereq": [],
+        "children": [
+          {
+            "id": "retries",
+            "label": "Retries",
+            "detail": "retries, retry_delay, exponential backoff.",
+            "note": "airflow-retries",
+            "prereq": [
+              "tasks"
+            ],
+            "children": []
+          },
+          {
+            "id": "failures",
+            "label": "Failure handling",
+            "detail": "on_failure_callback, timeouts, clearing tasks.",
+            "note": "airflow-failure-handling",
+            "prereq": [
+              "retries"
+            ],
+            "children": []
+          },
+          {
+            "id": "idempotency",
+            "label": "Idempotency",
+            "detail": "Safe reruns via partition overwrites.",
+            "note": "etl-idempotency",
+            "prereq": [],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "config",
+        "label": "Configuration",
+        "detail": "Credentials and settings outside DAG code.",
+        "note": "airflow-connections",
+        "prereq": [],
+        "children": [
+          {
+            "id": "connections",
+            "label": "Connections",
+            "detail": "conn_id, hooks, secrets backends.",
+            "note": "airflow-connections",
+            "prereq": [],
+            "children": []
+          },
+          {
+            "id": "variables",
+            "label": "Variables",
+            "detail": "Global config; never Variable.get at top level.",
+            "note": "airflow-variables",
+            "prereq": [
+              "connections"
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "monitoring",
+        "label": "Monitoring",
+        "detail": "UI, logs, SLAs, metrics, /health.",
+        "note": "airflow-monitoring",
+        "prereq": [],
+        "children": [
+          {
+            "id": "sla",
+            "label": "SLAs and alerts",
+            "detail": "sla= and callbacks in 2.x.",
+            "note": "airflow-monitoring",
+            "prereq": [
+              "failures"
+            ],
+            "children": []
+          },
+          {
+            "id": "metrics",
+            "label": "Metrics and health",
+            "detail": "StatsD/OTel, scheduler heartbeat.",
+            "note": "airflow-monitoring",
+            "prereq": [],
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

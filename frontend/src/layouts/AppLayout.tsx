@@ -145,11 +145,11 @@ export function AppLayout() {
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-white shadow-glow"
               style={{ background: "linear-gradient(135deg, #8b7cf8, #6366f1)" }}
             >
-              SQL
+              DF
             </span>
             {!collapsed && (
               <span className="truncate font-display text-[15px] font-semibold tracking-tight text-ink">
-                SQL Master
+                DataForge
               </span>
             )}
           </NavLink>

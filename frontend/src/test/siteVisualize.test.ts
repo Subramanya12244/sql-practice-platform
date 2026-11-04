@@ -82,3 +82,63 @@ describe("compareSolutions", () => {
     expect(lint("SELECT id FROM t ORDER BY id LIMIT 3")).toEqual([]);
   });
 });
+
+import { analyze, cteFlow, volatileFunctions } from "../site/lib/sqlAst";
+import { addExec, addSession, getExecs, getSessions } from "../site/lib/vizHistory";
+
+describe("AST structure", () => {
+  it("parses CTE dependencies, joins and set-operation branches", async () => {
+    const s = await analyze("WITH a AS (SELECT customer_id FROM orders), b AS (SELECT customer_id FROM a) SELECT c.country FROM customers c JOIN b ON b.customer_id = c.customer_id");
+    expect(s.source).toBe("ast");
+    expect(s.ctes).toEqual([{ name: "a", dependsOn: [], recursive: false }, { name: "b", dependsOn: ["a"], recursive: false }]);
+    expect(s.joins[0]).toMatchObject({ type: "INNER JOIN", table: "b" });
+    expect(cteFlow(s)).toContain("c_a --> c_b");
+    const u = await analyze("SELECT country FROM customers UNION ALL SELECT country FROM suppliers EXCEPT SELECT 'UK'");
+    expect(u.branches.map((b) => b.op)).toEqual(["", "UNION ALL", "EXCEPT"]);
+  });
+  it("counts subqueries and window functions, and flags volatile functions", async () => {
+    const s = await analyze("SELECT product_name, RANK() OVER (ORDER BY unit_price) FROM products WHERE unit_price > (SELECT AVG(unit_price) FROM products)");
+    expect(s.subqueries).toBe(1);
+    expect(s.windows).toBe(1);
+    expect(volatileFunctions("SELECT random(), now(), 'random()' FROM t")).toEqual(["random()", "now()"]);
+  });
+  it("falls back gracefully on syntax it can't parse", async () => {
+    const s = await analyze("SELECT $$x$$ AS a FROM customers");
+    expect(s.source).toBe("clauses");
+    expect(s.parseError).toBeTruthy();
+  });
+});
+
+describe("visualize safety", () => {
+  it("never shows derived rows for queries with volatile functions", async () => {
+    const v = await visualize("SELECT customer_id, random() AS r FROM customers WHERE country = 'Germany'", run);
+    expect(v.volatile).toEqual(["random()"]);
+    expect(v.stages.every((s) => s.source === "parsed" && !s.sample && s.rowsOut === undefined)).toBe(true);
+    expect(v.final!.rowCount).toBeGreaterThan(0); // the user's own query still runs once
+  });
+  it("labels stages computed from the user's clauses as executed", async () => {
+    const v = await visualize("SELECT country, COUNT(*) FROM customers GROUP BY country HAVING COUNT(*) > 3", run);
+    expect(v.stages.filter((s) => s.clause !== "order by").every((s) => s.source === "executed")).toBe(true);
+  });
+  it("handles subqueries and CTE queries without failing", async () => {
+    const a = await visualize("WITH r AS (SELECT customer_id, COUNT(*) n FROM orders GROUP BY 1) SELECT c.company_name, r.n FROM customers c JOIN r ON r.customer_id = c.customer_id WHERE r.n > (SELECT AVG(n) FROM r)", run);
+    expect(a.unsupported).toBeUndefined();
+    expect(a.final!.rowCount).toBeGreaterThan(0);
+    const bad = await visualize("SELEC nope", run);
+    expect(bad.unsupported).toBeTruthy();
+  });
+});
+
+describe("visualization history", () => {
+  it("appends sessions per question without overwriting earlier attempts", () => {
+    const store = new Map<string, string>();
+    globalThis.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) } as Storage;
+    addExec("q25", { at: "1", kind: "run", sql: "select 1", ok: true, attempt: 0 });
+    addExec("q25", { at: "2", kind: "submit", sql: "select 2", ok: true, correct: false, attempt: 1 });
+    addSession("q25", { sql: "select 1", attempt: 0, dataset: "northwind", structure: "SELECT", stages: ["from"] });
+    addSession("q25", { sql: "select 2", attempt: 1, dataset: "northwind", structure: "SELECT", stages: ["from"] });
+    expect(getExecs("q25").map((e) => e.attempt)).toEqual([1, 0]);
+    expect(getSessions("q25").map((s) => s.sql)).toEqual(["select 2", "select 1"]);
+    expect(getSessions("q26")).toEqual([]);
+  });
+});

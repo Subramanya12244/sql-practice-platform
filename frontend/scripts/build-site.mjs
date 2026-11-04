@@ -86,7 +86,7 @@ for (const q of index) {
   const title = wrap(q.title).map((l, i) => `<text x="80" y="${300 + i * 76}" font-size="64" font-weight="700" fill="#0f172a">${esc(l)}</text>`).join("");
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
 <rect width="1200" height="630" fill="#f8fafc"/><rect width="1200" height="12" fill="#4f46e5"/>
-<text x="80" y="130" font-size="34" font-weight="600" fill="#4f46e5">SQL Practice Lab · Q${q.number}</text>
+<text x="80" y="130" font-size="34" font-weight="600" fill="#4f46e5">DataForge · SQL practice · Q${q.number}</text>
 <rect x="80" y="160" rx="20" width="${q.difficulty.length * 20 + 40}" height="44" fill="${diffColor[q.difficulty] ?? "#475569"}"/>
 <text x="100" y="191" font-size="26" font-weight="700" fill="#ffffff">${esc(q.difficulty)}</text>
 <text x="${q.difficulty.length * 20 + 140}" y="191" font-size="28" fill="#475569">${esc(q.topicLabel)}</text>

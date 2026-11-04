@@ -1,4 +1,4 @@
-"""SQL Practice Platform — FastAPI application entrypoint."""
+"""DataForge (formerly SQL Practice Platform) — FastAPI application entrypoint."""
 
 from contextlib import asynccontextmanager
 
@@ -22,7 +22,7 @@ async def lifespan(_app: FastAPI):
 settings = get_settings()
 
 app = FastAPI(
-    title="Practice Platform",
+    title="DataForge API",
     description="SQL interview practice and Git Practice Lab.",
     version="1.1.0",
     lifespan=lifespan,

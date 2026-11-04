@@ -1,0 +1,277 @@
+{
+  "slug": "warehousing-track",
+  "title": "Data Warehousing track",
+  "description": "Dimensional modelling roadmap: OLTP vs OLAP, facts, dimensions, star and snowflake schemas, keys, SCDs, marts and partitioning.",
+  "root": {
+    "id": "warehousing",
+    "label": "Data Warehousing",
+    "detail": "Model data for analytics: facts, dimensions, history.",
+    "note": "dwh-architecture",
+    "children": [
+      {
+        "id": "foundations",
+        "label": "Foundations",
+        "detail": "Why warehouses exist and how they are layered.",
+        "note": "dwh-oltp-vs-olap",
+        "children": [
+          {
+            "id": "oltp-olap",
+            "label": "OLTP vs OLAP",
+            "detail": "Small transactions vs large analytical scans.",
+            "note": "dwh-oltp-vs-olap",
+            "children": []
+          },
+          {
+            "id": "layers",
+            "label": "Warehouse layers",
+            "detail": "Staging, core, marts; bronze, silver, gold.",
+            "note": "dwh-architecture",
+            "children": [],
+            "prereq": [
+              "oltp-olap"
+            ]
+          },
+          {
+            "id": "kimball-inmon",
+            "label": "Kimball vs Inmon",
+            "detail": "Bottom-up marts vs top-down enterprise model.",
+            "note": "dwh-architecture",
+            "children": [],
+            "prereq": [
+              "layers"
+            ]
+          },
+          {
+            "id": "etl-elt",
+            "label": "ETL vs ELT",
+            "detail": "Transform before or after loading.",
+            "note": "dwh-architecture",
+            "children": [],
+            "prereq": [
+              "layers"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dimensional",
+        "label": "Dimensional modelling",
+        "detail": "Process, grain, dimensions, measures.",
+        "note": "dwh-data-modelling",
+        "children": [
+          {
+            "id": "facts",
+            "label": "Fact tables",
+            "detail": "Measures at a declared grain.",
+            "note": "dwh-fact-tables",
+            "children": [
+              {
+                "id": "grain",
+                "label": "Grain",
+                "detail": "What one fact row means.",
+                "note": "dwh-fact-tables",
+                "children": []
+              },
+              {
+                "id": "fact-types",
+                "label": "Fact types",
+                "detail": "Transaction, periodic and accumulating snapshots.",
+                "note": "dwh-fact-tables",
+                "children": [],
+                "prereq": [
+                  "grain"
+                ]
+              },
+              {
+                "id": "additivity",
+                "label": "Additivity",
+                "detail": "Additive, semi-additive, non-additive measures.",
+                "note": "dwh-fact-tables",
+                "children": [],
+                "prereq": [
+                  "grain"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "dims",
+            "label": "Dimension tables",
+            "detail": "Descriptive context for facts.",
+            "note": "dwh-dimension-tables",
+            "children": [
+              {
+                "id": "date-dim",
+                "label": "Date dimension",
+                "detail": "Generated with generate_series.",
+                "note": "dwh-dimension-tables",
+                "children": []
+              },
+              {
+                "id": "conformed",
+                "label": "Conformed dimensions",
+                "detail": "Shared across facts and marts.",
+                "note": "dwh-dimension-tables",
+                "children": []
+              },
+              {
+                "id": "unknown-member",
+                "label": "Unknown member",
+                "detail": "Reserved -1 row instead of NULL keys.",
+                "note": "dwh-surrogate-keys",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "star",
+            "label": "Star schema",
+            "detail": "One fact, denormalised dimensions.",
+            "note": "dwh-star-schema",
+            "children": [],
+            "prereq": [
+              "facts",
+              "dims"
+            ]
+          },
+          {
+            "id": "snowflake",
+            "label": "Snowflake schema",
+            "detail": "Normalised dimension hierarchies.",
+            "note": "dwh-snowflake-schema",
+            "children": [],
+            "prereq": [
+              "star"
+            ]
+          },
+          {
+            "id": "vault",
+            "label": "Data Vault",
+            "detail": "Hubs, links and satellites.",
+            "note": "dwh-data-modelling",
+            "children": []
+          }
+        ],
+        "prereq": [
+          "foundations"
+        ]
+      },
+      {
+        "id": "keys",
+        "label": "Keys",
+        "detail": "How rows are identified.",
+        "note": "dwh-surrogate-keys",
+        "children": [
+          {
+            "id": "natural",
+            "label": "Natural keys",
+            "detail": "Business or source identifiers.",
+            "note": "dwh-natural-keys",
+            "children": []
+          },
+          {
+            "id": "surrogate",
+            "label": "Surrogate keys",
+            "detail": "Identity columns owned by the warehouse.",
+            "note": "dwh-surrogate-keys",
+            "children": [],
+            "prereq": [
+              "natural"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "history",
+        "label": "History",
+        "detail": "Keep and query change over time.",
+        "note": "dwh-historical-data",
+        "children": [
+          {
+            "id": "scd1",
+            "label": "SCD Type 1",
+            "detail": "Overwrite, no history.",
+            "note": "dwh-slowly-changing-dimensions",
+            "children": []
+          },
+          {
+            "id": "scd2",
+            "label": "SCD Type 2",
+            "detail": "New row with valid_from, valid_to, is_current.",
+            "note": "dwh-slowly-changing-dimensions",
+            "children": [],
+            "prereq": [
+              "surrogate"
+            ]
+          },
+          {
+            "id": "scd3",
+            "label": "SCD Type 3",
+            "detail": "Previous-value column.",
+            "note": "dwh-slowly-changing-dimensions",
+            "children": []
+          },
+          {
+            "id": "pit",
+            "label": "Point-in-time joins",
+            "detail": "Join facts to the version valid on the event date.",
+            "note": "dwh-historical-data",
+            "children": [],
+            "prereq": [
+              "scd2"
+            ]
+          },
+          {
+            "id": "snapshots",
+            "label": "Snapshots",
+            "detail": "Capture state the source overwrites.",
+            "note": "dwh-historical-data",
+            "children": []
+          }
+        ],
+        "prereq": [
+          "dimensional",
+          "keys"
+        ]
+      },
+      {
+        "id": "serving",
+        "label": "Serving and scale",
+        "detail": "Marts and physical design.",
+        "note": "dwh-data-marts",
+        "children": [
+          {
+            "id": "marts",
+            "label": "Data marts",
+            "detail": "Subject-focused subsets of the warehouse.",
+            "note": "dwh-data-marts",
+            "children": [],
+            "prereq": [
+              "star"
+            ]
+          },
+          {
+            "id": "partitioning",
+            "label": "Partitioning",
+            "detail": "PARTITION BY RANGE on date with pruning.",
+            "note": "dwh-partitioning",
+            "children": []
+          },
+          {
+            "id": "retention",
+            "label": "Retention",
+            "detail": "Detach and archive old partitions.",
+            "note": "dwh-partitioning",
+            "children": [],
+            "prereq": [
+              "partitioning"
+            ]
+          }
+        ],
+        "prereq": [
+          "dimensional"
+        ]
+      }
+    ]
+  }
+}

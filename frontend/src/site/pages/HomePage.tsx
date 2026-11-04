@@ -6,6 +6,7 @@ import { Container, QuestionCard, Skeleton } from "../components/ui";
 import { SITE_NAME, SITE_URL, Seo } from "../lib/seo";
 import { today, useProgress } from "../lib/progress";
 import { PracticeNext } from "./ReviewPage";
+import { BRAND } from "../../brand";
 
 /** Same question for everyone on a given UTC day. */
 function dailyPick<T>(items: T[], day: string): T | undefined {
@@ -49,14 +50,16 @@ export function HomePage() {
   return (
     <>
       <Seo
-        title={`${SITE_NAME} — Free SQL Interview Practice with Real Postgres`}
-        description={`Practice ${data.index.length} SQL interview questions on Northwind: joins, GROUP BY, CTEs, window functions and dates, graded instantly in your browser. Free, no sign-up.`}
+        title={`${SITE_NAME} — ${BRAND.tagline}`}
+        description={`Free SQL, Python and data engineering practice: ${data.index.length} graded SQL questions, real PostgreSQL in your browser, ETL, warehousing, Spark, Airflow and dbt tracks, and projects.`}
         path="/"
         jsonLd={[
           {
             "@context": "https://schema.org",
             "@type": "WebSite",
             name: SITE_NAME,
+            alternateName: "SQL Practice Lab",
+            description: BRAND.description,
             url: `${SITE_URL}/`,
           },
         ]}
@@ -66,14 +69,14 @@ export function HomePage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_0%,rgb(var(--color-accent)/0.16),transparent)]" aria-hidden />
         <Container className="relative py-16 sm:py-24">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-surface-border bg-surface-raised px-3 py-1 text-xs font-medium text-ink-muted">
-            <Sparkles className="h-3.5 w-3.5 text-accent" aria-hidden /> Real PostgreSQL, running in your browser
+            <Sparkles className="h-3.5 w-3.5 text-accent" aria-hidden /> {BRAND.tagline}
           </p>
           <h1 className="max-w-3xl font-display text-4xl font-bold tracking-tight text-ink sm:text-6xl">
-            Practice SQL interview questions that actually get asked
+            Learn SQL and data engineering by building
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-muted">
-            {data.index.length} business-style problems on the Northwind database, from aggregations and joins to window functions and date analysis.
-            Write a query, run it, and get graded instantly — with the approach, the common traps, and interview follow-ups for every question.
+            {BRAND.description} Real PostgreSQL and Python run in your browser — practice {data.index.length} graded SQL questions, visualize how your queries run,
+            then follow the tracks through ETL, warehousing, Spark, Airflow, dbt and cloud, and prove it with projects that check your work.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -87,6 +90,12 @@ export function HomePage() {
               className="inline-flex items-center gap-2 rounded-xl border border-surface-border bg-surface-raised px-5 py-3 font-semibold text-ink hover:border-accent/40"
             >
               Browse all questions <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+            <Link
+              to="/data-engineering"
+              className="inline-flex items-center gap-2 rounded-xl border border-surface-border bg-surface-raised px-5 py-3 font-semibold text-ink hover:border-accent/40"
+            >
+              Data engineering tracks <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </div>
           <dl className="mt-10 grid max-w-xl grid-cols-3 gap-4 text-center sm:text-left">

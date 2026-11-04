@@ -203,3 +203,23 @@ export function complexity(sql: string) {
     lines: sql.trim().split("\n").length,
   };
 }
+
+/** Split a statement at top-level UNION / INTERSECT / EXCEPT into its branches. */
+export function splitSetOps(input: string): { op: string; sql: string }[] {
+  const sql = stripTrailing(input);
+  const [withPrefix, main, offset] = splitWith(sql);
+  void offset;
+  const ops = scanTopLevel(main, (r) => r.match(/^(union\s+all|union|intersect\s+all|intersect|except\s+all|except)\b/i));
+  if (!ops.length) return [{ op: "", sql: main.trim() }];
+  const out: { op: string; sql: string }[] = [];
+  let last = 0;
+  let op = "";
+  for (const m of ops) {
+    out.push({ op, sql: main.slice(last, m.index).trim() });
+    op = m.match.toUpperCase().replace(/\s+/g, " ");
+    last = m.index + m.match.length;
+  }
+  out.push({ op, sql: main.slice(last).trim() });
+  // CTEs apply to every branch.
+  return withPrefix ? out.map((b) => ({ ...b, sql: `${withPrefix}\n${b.sql}` })) : out;
+}

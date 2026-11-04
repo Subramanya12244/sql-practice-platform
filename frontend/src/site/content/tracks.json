@@ -1,0 +1,537 @@
+{
+  "tracks": [
+    {
+      "id": "python",
+      "title": "Python for Data Engineering",
+      "description": "From Python basics to pandas, APIs and your first ETL pipeline.",
+      "order": 2,
+      "mindmap": "python-track",
+      "topics": [
+        {
+          "slug": "python-fundamentals",
+          "title": "Python fundamentals"
+        },
+        {
+          "slug": "python-variables-data-types",
+          "title": "Variables and data types"
+        },
+        {
+          "slug": "python-collections",
+          "title": "Lists, tuples, sets and dictionaries"
+        },
+        {
+          "slug": "python-conditionals",
+          "title": "Conditional statements"
+        },
+        {
+          "slug": "python-loops",
+          "title": "Loops"
+        },
+        {
+          "slug": "python-functions",
+          "title": "Functions"
+        },
+        {
+          "slug": "python-lambdas",
+          "title": "Lambda functions"
+        },
+        {
+          "slug": "python-comprehensions",
+          "title": "List comprehensions"
+        },
+        {
+          "slug": "python-oop",
+          "title": "Object-oriented programming"
+        },
+        {
+          "slug": "python-exceptions",
+          "title": "Exception handling"
+        },
+        {
+          "slug": "python-file-handling",
+          "title": "File handling"
+        },
+        {
+          "slug": "python-csv-json",
+          "title": "CSV and JSON processing"
+        },
+        {
+          "slug": "python-regex",
+          "title": "Regular expressions"
+        },
+        {
+          "slug": "python-modules-packages",
+          "title": "Modules and packages"
+        },
+        {
+          "slug": "python-virtual-environments",
+          "title": "Virtual environments"
+        },
+        {
+          "slug": "python-logging",
+          "title": "Logging"
+        },
+        {
+          "slug": "python-pandas",
+          "title": "Pandas"
+        },
+        {
+          "slug": "python-numpy",
+          "title": "NumPy"
+        },
+        {
+          "slug": "python-database-connectivity",
+          "title": "Database connectivity"
+        },
+        {
+          "slug": "python-api-integration",
+          "title": "API integration"
+        },
+        {
+          "slug": "python-etl-pipelines",
+          "title": "Python ETL pipelines"
+        }
+      ]
+    },
+    {
+      "id": "etl",
+      "title": "ETL / ELT",
+      "description": "How data moves: extraction, transformation, loading, incremental and CDC patterns, and reliable pipelines.",
+      "order": 3,
+      "mindmap": "etl-track",
+      "topics": [
+        {
+          "slug": "etl-architecture",
+          "title": "ETL architecture"
+        },
+        {
+          "slug": "elt-architecture",
+          "title": "ELT architecture"
+        },
+        {
+          "slug": "etl-extraction",
+          "title": "Data extraction"
+        },
+        {
+          "slug": "etl-transformation",
+          "title": "Data transformation"
+        },
+        {
+          "slug": "etl-loading",
+          "title": "Data loading"
+        },
+        {
+          "slug": "etl-full-load",
+          "title": "Full load"
+        },
+        {
+          "slug": "etl-incremental-load",
+          "title": "Incremental load"
+        },
+        {
+          "slug": "etl-change-data-capture",
+          "title": "Change Data Capture"
+        },
+        {
+          "slug": "etl-batch-processing",
+          "title": "Batch processing"
+        },
+        {
+          "slug": "etl-streaming-fundamentals",
+          "title": "Streaming fundamentals"
+        },
+        {
+          "slug": "etl-data-validation",
+          "title": "Data validation"
+        },
+        {
+          "slug": "etl-error-handling",
+          "title": "Error handling"
+        },
+        {
+          "slug": "etl-retries",
+          "title": "Retry mechanisms"
+        },
+        {
+          "slug": "etl-idempotency",
+          "title": "Idempotency"
+        },
+        {
+          "slug": "etl-pipeline-monitoring",
+          "title": "Pipeline monitoring"
+        }
+      ]
+    },
+    {
+      "id": "warehousing",
+      "title": "Data Warehousing",
+      "description": "Dimensional modelling: facts, dimensions, star and snowflake schemas, SCDs and history.",
+      "order": 4,
+      "mindmap": "warehousing-track",
+      "topics": [
+        {
+          "slug": "dwh-oltp-vs-olap",
+          "title": "OLTP vs OLAP"
+        },
+        {
+          "slug": "dwh-architecture",
+          "title": "Data warehouse architecture"
+        },
+        {
+          "slug": "dwh-fact-tables",
+          "title": "Fact tables"
+        },
+        {
+          "slug": "dwh-dimension-tables",
+          "title": "Dimension tables"
+        },
+        {
+          "slug": "dwh-star-schema",
+          "title": "Star schema"
+        },
+        {
+          "slug": "dwh-snowflake-schema",
+          "title": "Snowflake schema"
+        },
+        {
+          "slug": "dwh-slowly-changing-dimensions",
+          "title": "Slowly Changing Dimensions"
+        },
+        {
+          "slug": "dwh-surrogate-keys",
+          "title": "Surrogate keys"
+        },
+        {
+          "slug": "dwh-natural-keys",
+          "title": "Natural keys"
+        },
+        {
+          "slug": "dwh-data-modelling",
+          "title": "Data modelling"
+        },
+        {
+          "slug": "dwh-data-marts",
+          "title": "Data marts"
+        },
+        {
+          "slug": "dwh-partitioning",
+          "title": "Partitioning"
+        },
+        {
+          "slug": "dwh-historical-data",
+          "title": "Historical data management"
+        }
+      ]
+    },
+    {
+      "id": "spark",
+      "title": "Apache Spark",
+      "description": "Distributed processing with Spark: architecture, DataFrames, lazy evaluation, partitioning and tuning.",
+      "order": 5,
+      "mindmap": "spark-track",
+      "topics": [
+        {
+          "slug": "spark-distributed-computing",
+          "title": "Distributed computing"
+        },
+        {
+          "slug": "spark-architecture",
+          "title": "Spark architecture"
+        },
+        {
+          "slug": "spark-driver-executors",
+          "title": "Driver and executors"
+        },
+        {
+          "slug": "spark-rdd",
+          "title": "RDD fundamentals"
+        },
+        {
+          "slug": "spark-dataframes",
+          "title": "DataFrames"
+        },
+        {
+          "slug": "spark-transformations",
+          "title": "Transformations"
+        },
+        {
+          "slug": "spark-actions",
+          "title": "Actions"
+        },
+        {
+          "slug": "spark-lazy-evaluation",
+          "title": "Lazy evaluation"
+        },
+        {
+          "slug": "spark-sql",
+          "title": "Spark SQL"
+        },
+        {
+          "slug": "spark-joins",
+          "title": "Joins in Spark"
+        },
+        {
+          "slug": "spark-aggregations",
+          "title": "Aggregations in Spark"
+        },
+        {
+          "slug": "spark-partitioning",
+          "title": "Partitioning"
+        },
+        {
+          "slug": "spark-shuffling",
+          "title": "Shuffling"
+        },
+        {
+          "slug": "spark-caching",
+          "title": "Caching and persistence"
+        },
+        {
+          "slug": "spark-performance",
+          "title": "Performance optimization"
+        }
+      ]
+    },
+    {
+      "id": "airflow",
+      "title": "Apache Airflow",
+      "description": "Orchestrating pipelines: DAGs, operators, scheduling, retries, backfills and monitoring.",
+      "order": 6,
+      "mindmap": "airflow-track",
+      "topics": [
+        {
+          "slug": "airflow-architecture",
+          "title": "Airflow architecture"
+        },
+        {
+          "slug": "airflow-dags",
+          "title": "DAGs"
+        },
+        {
+          "slug": "airflow-tasks",
+          "title": "Tasks"
+        },
+        {
+          "slug": "airflow-operators",
+          "title": "Operators"
+        },
+        {
+          "slug": "airflow-sensors",
+          "title": "Sensors"
+        },
+        {
+          "slug": "airflow-dependencies",
+          "title": "Dependencies"
+        },
+        {
+          "slug": "airflow-scheduling",
+          "title": "Scheduling"
+        },
+        {
+          "slug": "airflow-xcom",
+          "title": "XCom"
+        },
+        {
+          "slug": "airflow-retries",
+          "title": "Retries"
+        },
+        {
+          "slug": "airflow-failure-handling",
+          "title": "Task failure handling"
+        },
+        {
+          "slug": "airflow-connections",
+          "title": "Connections"
+        },
+        {
+          "slug": "airflow-variables",
+          "title": "Variables"
+        },
+        {
+          "slug": "airflow-backfilling",
+          "title": "Backfilling"
+        },
+        {
+          "slug": "airflow-monitoring",
+          "title": "Monitoring"
+        }
+      ]
+    },
+    {
+      "id": "dbt",
+      "title": "dbt",
+      "description": "Transformations as code: models, sources, tests, snapshots, macros and incremental models.",
+      "order": 7,
+      "mindmap": "dbt-track",
+      "topics": [
+        {
+          "slug": "dbt-fundamentals",
+          "title": "dbt fundamentals"
+        },
+        {
+          "slug": "dbt-models",
+          "title": "Models"
+        },
+        {
+          "slug": "dbt-sources",
+          "title": "Sources"
+        },
+        {
+          "slug": "dbt-seeds",
+          "title": "Seeds"
+        },
+        {
+          "slug": "dbt-tests",
+          "title": "Tests"
+        },
+        {
+          "slug": "dbt-snapshots",
+          "title": "Snapshots"
+        },
+        {
+          "slug": "dbt-macros",
+          "title": "Macros"
+        },
+        {
+          "slug": "dbt-jinja",
+          "title": "Jinja"
+        },
+        {
+          "slug": "dbt-incremental-models",
+          "title": "Incremental models"
+        },
+        {
+          "slug": "dbt-documentation",
+          "title": "Documentation"
+        },
+        {
+          "slug": "dbt-deployment",
+          "title": "Deployment"
+        }
+      ]
+    },
+    {
+      "id": "cloud",
+      "title": "Cloud Computing",
+      "description": "Data on AWS, Azure and Google Cloud: storage, lakes, warehouses, compute, orchestration, security and cost.",
+      "order": 8,
+      "mindmap": "cloud-track",
+      "topics": [
+        {
+          "slug": "cloud-aws-overview",
+          "title": "AWS for data engineers"
+        },
+        {
+          "slug": "cloud-azure-overview",
+          "title": "Microsoft Azure for data engineers"
+        },
+        {
+          "slug": "cloud-gcp-overview",
+          "title": "Google Cloud for data engineers"
+        },
+        {
+          "slug": "cloud-object-storage",
+          "title": "Object storage"
+        },
+        {
+          "slug": "cloud-data-lakes",
+          "title": "Data lakes"
+        },
+        {
+          "slug": "cloud-data-warehouses",
+          "title": "Cloud data warehouses"
+        },
+        {
+          "slug": "cloud-compute",
+          "title": "Compute services"
+        },
+        {
+          "slug": "cloud-orchestration",
+          "title": "Data orchestration services"
+        },
+        {
+          "slug": "cloud-security",
+          "title": "Cloud security"
+        },
+        {
+          "slug": "cloud-iam",
+          "title": "IAM fundamentals"
+        },
+        {
+          "slug": "cloud-networking",
+          "title": "Networking fundamentals"
+        },
+        {
+          "slug": "cloud-monitoring",
+          "title": "Monitoring"
+        },
+        {
+          "slug": "cloud-cost-management",
+          "title": "Cost management"
+        }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "slug": "csv-to-postgres-etl",
+      "title": "CSV to PostgreSQL ETL pipeline",
+      "level": "Beginner"
+    },
+    {
+      "slug": "python-data-cleaning",
+      "title": "Python data cleaning pipeline",
+      "level": "Beginner"
+    },
+    {
+      "slug": "hr-analytics-warehouse",
+      "title": "HR analytics warehouse",
+      "level": "Beginner"
+    },
+    {
+      "slug": "sales-analytics-pipeline",
+      "title": "Sales analytics pipeline",
+      "level": "Beginner"
+    },
+    {
+      "slug": "incremental-loading",
+      "title": "Incremental data loading",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "star-schema-warehouse",
+      "title": "Star schema data warehouse",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "rest-api-to-postgres",
+      "title": "REST API to PostgreSQL",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "data-validation-pipeline",
+      "title": "Data validation pipeline",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "airflow-etl-pipeline",
+      "title": "Apache Airflow ETL pipeline",
+      "level": "Advanced"
+    },
+    {
+      "slug": "pyspark-transformation",
+      "title": "PySpark data transformation",
+      "level": "Advanced"
+    },
+    {
+      "slug": "dbt-analytics-project",
+      "title": "dbt analytics project",
+      "level": "Advanced"
+    },
+    {
+      "slug": "end-to-end-pipeline",
+      "title": "End-to-end data engineering pipeline",
+      "level": "Advanced"
+    }
+  ]
+}

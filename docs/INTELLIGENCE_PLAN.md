@@ -81,3 +81,23 @@ To enable one, deploy an endpoint that accepts `{context, messages}` and returns
 2. **Phase 3, data engineering.** Tracks as `content/tracks/<track>/*.md` using the notes renderer, plus a projects lab (validation through PGlite for SQL steps, with a checklist for steps outside the browser) and a data quality lab built on the generator.
 3. **Phase 4, career.** Company prep with provenance labels, answer practice (rubric now, AI scoring once a provider exists), a planner on top of readiness, and a portfolio from verified activity only.
 4. **Phase 5, maturity.** Version history of attempts, achievements tied to independent evidence, a content CMS for admins, and a rate-limited public API.
+
+
+## Phase 3 (DataForge): what shipped
+
+| Spec item | Status |
+|---|---|
+| Rebrand to DataForge | Done. `src/brand.ts` holds the name, tagline and description, and `BrandMark` is the logo. Favicon, PWA icons, social card, manifest, titles and JSON-LD are updated, and the local app header and FastAPI title too. The URL, routes, database names and storage keys are unchanged. |
+| Navigation | Done. `lib/navigation.ts` defines Overview · Learn · Practice · Data Engineering · Projects · Data Quality · AI & Intelligence · Assessments · Progress, plus Settings. It shows dropdowns on desktop and an accordion on mobile. Portfolio is not built yet, so it isn't in the nav. |
+| Learning hub and tracks | Done. 102 topic notes reuse the notes renderer, plus 7 track mind maps (React Flow), flashcard decks built from each note's interview questions, and mermaid architecture diagrams. |
+| Integrated query visualizer | Done on every question and scenario: Visualize and History tabs, provenance labels, an AST (`pgsql-ast-parser`) with a clause-splitter fallback, CTE dependency graphs, set-op branches, EXPLAIN and optional ANALYZE, a volatile-function gate, clause highlighting in the editor, and per-attempt sessions (local, see migration 003). |
+| Python practice | Done. Pyodide 0.29.5 in a Worker with the safety limits listed above. 20 exercises. |
+| Projects lab | Done. 12 projects with 38 SQL, 23 Python and 8 checklist tasks. Every SQL task is verified in tests (the solution passes, the starter fails), and every Python task in CI. |
+| Data quality lab | Done. 12 rule types with identifier validation, suggestions from the schema, a score, reports and run comparison. |
+| Database changes | `supabase/migrations/003_dataforge.sql`, plus `tests/rls_test_003.sql`. |
+
+**Known limits:**
+- **Sync:** visualization sessions, project progress and data quality runs are stored in this browser. The account sync for them is the next step, and the tables are ready.
+- **Project review:** submitted projects with manual steps have no reviewer UI yet. They stay Under evaluation.
+- **CDN dependency:** Pyodide loads from jsDelivr, so the first Python run needs that CDN.
+- **Parser gaps:** `pgsql-ast-parser` doesn't support INTERSECT/EXCEPT or `$$` strings, so those queries use the clause analyser fallback, which is labelled as such.

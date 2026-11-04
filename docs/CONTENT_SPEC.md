@@ -139,3 +139,115 @@ Two more Markdown pages sit alongside the JSON files:
 - `note` is a note slug and `pattern` a pattern slug; both are optional.
 - `questions` holds question numbers, and `prereq` holds other node ids in the same map.
 - Keep each map to 15–45 nodes and at most 4 levels deep.
+
+---
+
+# Data engineering content (DataForge Phase 3)
+
+The registry of tracks, topic slugs and project slugs is `frontend/src/site/content/tracks.json`. Use those slugs exactly, and only link to slugs that are in it (or to the existing SQL notes and patterns).
+
+## Track notes: `content/notes/<track>/<slug>.md` → `/notes/<slug>`
+
+The track ids are `python`, `etl`, `warehousing`, `spark`, `airflow`, `dbt` and `cloud`. The frontmatter is the same as for SQL notes, with these differences:
+- `category` must equal the track id.
+- `questions` is usually empty.
+- There is one extra field, `projects: [project slugs]`.
+
+Use exactly these `##` headings, in this order:
+1. `## Introduction`
+2. `## Definition`
+3. `## Why it matters`
+4. `## How it works`
+5. `## Syntax and configuration`: code or config blocks
+6. `## Examples`
+7. `## Architecture`: at least one ```mermaid block
+8. `## Practical example`
+9. `## Exercises`: 2–4 numbered exercises, each with a short answer in a `<details>` element
+10. `## Common mistakes`
+11. `## Performance and best practices`
+12. `## Interview questions`: 3–5 items, each a `### Question?` followed by its answer. These become flashcards automatically.
+13. `## Quick revision`: 4–8 bullets
+
+### Code blocks
+
+| Tag | Rule |
+|---|---|
+| `python` | Must run as-is with Python 3.9+ using only the standard library plus pandas and numpy, finish in under 5 seconds, and need no network or files outside a temp directory. CI runs every one (`scripts/check_python_blocks.py`). |
+| `python-syntax` | Not executed. For Spark, Airflow, boto3, requests and similar. |
+| `sql` | Must run on Northwind, under the same rules as the SQL notes. |
+| `sql-syntax` | Not executed. |
+| `yaml`, `bash`, `jinja`, `json`, `text` | Not executed. |
+
+### Mermaid diagrams
+
+Keep ```mermaid diagrams small:
+- use `flowchart LR` or `flowchart TD`
+- write node ids as plain words, with labels in `["…"]`
+- no styling or HTML, and no `click` directives
+
+Every diagram must also be understandable from the text around it.
+
+## Track mind maps: `content/mindmaps/<track>-track.json`
+
+Use the same format as the other mind maps. Each node's `note` must be a topic slug from that track (or an existing note), and maps have 15–45 nodes.
+
+## Projects: `content/projects/<slug>.md` → `/projects-lab/<slug>`
+
+```yaml
+---
+title: CSV to PostgreSQL ETL pipeline
+slug: csv-to-postgres-etl
+level: Beginner            # Beginner | Intermediate | Advanced
+description: ≤155 chars
+technologies: [Python, PostgreSQL]
+dataset: sales             # dataset used by the sql tasks: northwind | hr | sales | ecommerce | banking | inventory
+prerequisites: [python-csv-json, etl-loading]   # note slugs
+minutes: 90
+---
+```
+
+The body uses these headings, in order:
+1. `## Business problem`
+2. `## Learning objectives`
+3. `## Architecture`: a mermaid block
+4. `## Technologies`
+5. `## Dataset`
+6. `## Tasks`: an intro, then task blocks
+7. `## Expected output`
+8. `## Common mistakes`
+9. `## Interview discussion questions`: `### Q` followed by its answer
+10. `## Summary`
+
+### Task blocks
+
+Each task is a fenced block tagged `task` that contains one JSON object:
+
+```json
+{"id": "stage-orders", "title": "Load orders into a staging table", "type": "sql",
+ "instructions": "Markdown. What to build and the exact names to use.",
+ "starter": "-- SQL the learner starts from",
+ "solution": "-- reference SQL that passes",
+ "check": "SELECT (COUNT(*) = 500) AS ok, 'staging_orders should have 500 rows' AS message FROM staging_orders"}
+```
+
+There are three task types:
+- **`sql`**:
+  - The learner's SQL runs, then the `check` runs, all inside one rolled-back transaction on `dataset`.
+  - The check must return exactly one row with a boolean `ok` and a text `message`.
+  - `solution` must pass and `starter` must fail.
+- **`python`**:
+  - `starter`, `solution` and `tests` are Python source.
+  - The tests are `assert` statements that run after the learner's code in the same namespace.
+  - Inputs come from inline strings or `io.StringIO`, never from real files or the network.
+  - The standard library, pandas and numpy are allowed.
+  - `solution` must pass the tests and `starter` must fail them.
+- **`checklist`**:
+  - `"items": ["…"]` lists manual steps that can't be verified in the browser (for example, running Airflow locally).
+  - A project with checklist tasks can reach **Submitted**, but never **Completed**, on checklist ticks alone.
+
+## Python exercises: `content/python/<slug>.md` → `/practice/python/<slug>`
+
+Frontmatter fields are `title`, `slug`, `difficulty`, `description`, `topic` (a python-track note slug) and `minutes`. The body has three sections, then a single python `task` block:
+- `## Problem`
+- `## Examples`: input/output examples
+- `## Hints`: 2–3 bullets

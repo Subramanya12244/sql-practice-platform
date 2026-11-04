@@ -9,6 +9,7 @@ import { execute, type SqlDb } from "../site/lib/sqlRunner";
 import { NOTE_CATEGORIES, countNodes, parseNote, parsePattern, splitFrontmatter, walkNodes, type MapNode, type MindMap, type ShortcutCategory } from "../site/lib/learning";
 import { layoutTree } from "../site/components/MindMapCanvas";
 import { search, type SearchDoc } from "../site/lib/searchIndex";
+import registryJson from "../site/content/tracks.json";
 
 const raw = (g: Record<string, string>) => Object.entries(g);
 const noteFiles = raw(import.meta.glob<string>("../site/content/notes/*/*.md", { eager: true, query: "?raw", import: "default" }));
@@ -24,8 +25,14 @@ const patterns = patternFiles.map(([p, r]) => ({ path: p, ...parsePattern(r, fil
 const noteSlugs = new Set(notes.map((n) => n.slug));
 const patternSlugs = new Set(patterns.map((p) => p.slug));
 const guideSlugs = new Set(guideFiles.map(([p]) => fileSlug(p)));
+const projectSlugs = new Set(registryJson.projects.map((p: { slug: string }) => p.slug));
 const questionNums = new Set((indexJson as { number: number }[]).map((q) => q.number));
 
+const DE_HEADINGS = [
+  "Introduction", "Definition", "Why it matters", "How it works", "Syntax and configuration", "Examples", "Architecture",
+  "Practical example", "Exercises", "Common mistakes", "Performance and best practices", "Interview questions", "Quick revision",
+];
+const DE_TRACKS = new Set(["python", "etl", "warehousing", "spark", "airflow", "dbt", "cloud"]);
 const NOTE_HEADINGS = [
   "Introduction", "Definition", "Why it matters", "How it works", "Syntax", "Simple examples", "Intermediate examples",
   "Advanced examples", "Real-world scenarios", "PostgreSQL specifics", "Visual explanation", "Common mistakes",
@@ -43,13 +50,13 @@ const isSubsequence = (got: string[], want: string[]) => {
 
 describe("notes", () => {
   it("exist and have unique slugs in known categories", () => {
-    expect(notes.length).toBeGreaterThan(50);
+    expect(notes.length).toBeGreaterThan(160);
     expect(noteSlugs.size).toBe(notes.length);
     const cats = new Set(NOTE_CATEGORIES.map((c) => c.slug));
     expect(notes.filter((n) => !cats.has(n.category)).map((n) => n.path)).toEqual([]);
   });
   it("use the spec's section headings in order", () => {
-    expect(notes.filter((n) => !isSubsequence(h2(n.body), NOTE_HEADINGS)).map((n) => `${n.slug}: ${h2(n.body).join(" | ")}`)).toEqual([]);
+    expect(notes.filter((n) => !isSubsequence(h2(n.body), DE_TRACKS.has(n.category) ? DE_HEADINGS : NOTE_HEADINGS)).map((n) => `${n.slug}: ${h2(n.body).join(" | ")}`)).toEqual([]);
   });
   it("only reference things that exist", () => {
     const bad: string[] = [];
@@ -59,6 +66,7 @@ describe("notes", () => {
       for (const s of n.guides) if (!guideSlugs.has(s)) bad.push(`${n.slug} → guide ${s}`);
       for (const q of n.questions) if (!questionNums.has(q)) bad.push(`${n.slug} → Q${q}`);
       if (n.description.length > 160) bad.push(`${n.slug}: description ${n.description.length} chars`);
+      for (const p of n.projects) if (!projectSlugs.has(p)) bad.push(`${n.slug} → project ${p}`);
     }
     expect(bad).toEqual([]);
   });
@@ -88,7 +96,7 @@ describe("shortcuts and mind maps", () => {
     for (const [, r] of shortcutPages) expect(splitFrontmatter(r).meta.title).toBeTruthy();
   });
   it("mind maps are valid trees whose links resolve", () => {
-    expect(mapFiles.length).toBe(10);
+    expect(mapFiles.length).toBe(17);
     const bad: string[] = [];
     for (const m of mapFiles) {
       const ids = new Set<string>();
@@ -156,4 +164,23 @@ describe("runnable SQL", () => {
     }
     expect(bad).toEqual([]);
   }, 300_000);
+});
+
+describe("data engineering tracks", () => {
+  it("every registered topic has a note in its track folder, and each track has a mind map", () => {
+    const missing: string[] = [];
+    for (const t of registryJson.tracks) {
+      for (const topic of t.topics) {
+        const n = notes.find((x) => x.slug === topic.slug);
+        if (!n) missing.push(topic.slug);
+        else if (n.category !== t.id) missing.push(`${topic.slug} (category ${n.category})`);
+      }
+      if (!mapFiles.some((m) => m.slug === t.mindmap)) missing.push(`map ${t.mindmap}`);
+    }
+    expect(missing).toEqual([]);
+  });
+  it("every note has an Architecture mermaid diagram and FAQ items", () => {
+    const bad = notes.filter((n) => DE_TRACKS.has(n.category)).filter((n) => !/```mermaid\n/.test(n.body) || !/## Interview questions\s*\n+###/.test(n.body)).map((n) => n.slug);
+    expect(bad).toEqual([]);
+  });
 });

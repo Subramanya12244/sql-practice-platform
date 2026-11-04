@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Markdown } from "../components/Markdown";
+import { guideFaq } from "../lib/frontmatter";
+import { NOTE_CATEGORIES, loadAllNotes } from "../lib/learning";
+import { TRACKS } from "../lib/tracks";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Container, Difficulty, PageHeader } from "../components/ui";
@@ -9,7 +13,122 @@ import type { QuestionSummary } from "../types";
 
 type Mode = "due" | "traps" | "all";
 
+interface ConceptCard {
+  key: string;
+  front: string;
+  back: string;
+  note: { slug: string; title: string };
+}
+
+/** Decks: SQL questions (default), SQL concept cards, or one per data engineering track. */
+const DECKS = [
+  { id: "questions", label: "SQL questions" },
+  { id: "sql-concepts", label: "SQL concepts" },
+  ...TRACKS.map((t) => ({ id: t.id, label: t.title })),
+];
+
+function DeckTabs({ deck }: { deck: string }) {
+  const navigate = useNavigate();
+  return (
+    <div className="mb-6 flex flex-wrap gap-1.5" role="tablist" aria-label="Deck">
+      {DECKS.map((d) => (
+        <button key={d.id} type="button" role="tab" aria-selected={deck === d.id} onClick={() => navigate(d.id === "questions" ? "/flashcards" : `/flashcards?deck=${d.id}`)}
+          className={`rounded-full px-3 py-1.5 text-sm ${deck === d.id ? "bg-accent text-white" : "border border-surface-border text-ink-muted hover:text-ink"}`}>
+          {d.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Cards built from the "Interview questions" of every note in a deck; same Leitner schedule. */
+function ConceptDeck({ deck }: { deck: string }) {
+  const progress = useProgress();
+  const [cards, setCards] = useState<ConceptCard[] | null>(null);
+  const [flipped, setFlipped] = useState(false);
+  const [done, setDone] = useState<Set<string>>(new Set());
+  const [onlyDue, setOnlyDue] = useState(true);
+
+  useEffect(() => {
+    setCards(null);
+    setDone(new Set());
+    const sqlCats = new Set(NOTE_CATEGORIES.filter((c) => c.group === "sql").map((c) => c.slug));
+    loadAllNotes().then((notes) =>
+      setCards(
+        notes
+          .filter((n) => (deck === "sql-concepts" ? sqlCats.has(n.category) : n.category === deck))
+          .flatMap((n) => guideFaq(n.body).map((f, i) => ({ key: `n:${n.slug}#${i}`, front: f.question, back: f.answer, note: { slug: n.slug, title: n.title } }))),
+      ),
+    );
+  }, [deck]);
+
+  const now = today();
+  const pool = (cards ?? []).filter((c) => !onlyDue || (progress.cards[c.key]?.due ?? "") <= now);
+  const remaining = pool.filter((c) => !done.has(c.key)).sort((a, b) => (progress.cards[a.key]?.box ?? 0) - (progress.cards[b.key]?.box ?? 0));
+  const card = remaining[0];
+  const answer = (knewIt: boolean) => {
+    if (!card) return;
+    reviewCard(card.key, knewIt);
+    setDone((d) => new Set(d).add(card.key));
+    setFlipped(false);
+  };
+
+  if (!cards) return <p className="text-sm text-ink-muted">Loading cards…</p>;
+  return (
+    <>
+      <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
+        <label className="flex items-center gap-2 text-ink-muted"><input type="checkbox" checked={onlyDue} onChange={(e) => setOnlyDue(e.target.checked)} /> Due only</label>
+        <span className="text-ink-muted" aria-live="polite">{remaining.length} of {pool.length} left · {cards.length} cards in this deck</span>
+      </div>
+      {card ? (
+        <div className="rounded-card border border-surface-border bg-surface-raised p-6 shadow-panel">
+          <p className="text-xs text-ink-faint">From <Link to={`/notes/${card.note.slug}`} className="text-accent hover:underline">{card.note.title}</Link></p>
+          <p className="mt-2 font-display text-xl font-bold text-ink">{card.front}</p>
+          {flipped ? (
+            <>
+              <Markdown source={card.back} className="mt-4 text-sm" />
+              <div className="mt-5 flex gap-3">
+                <button type="button" onClick={() => answer(false)} className="rounded-lg border border-surface-border px-4 py-2 text-sm text-ink">Needs revision</button>
+                <button type="button" onClick={() => answer(true)} className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white">I knew it</button>
+              </div>
+            </>
+          ) : (
+            <button type="button" onClick={() => setFlipped(true)} className="mt-5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white">Show answer</button>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-card border border-dashed border-surface-border p-10 text-center">
+          <p className="font-semibold text-ink">{pool.length ? "Session complete." : cards.length ? "Nothing due right now." : "No cards in this deck yet."}</p>
+          {cards.length > 0 && <button type="button" onClick={() => { setOnlyDue(false); setDone(new Set()); }} className="mt-3 text-sm font-medium text-accent hover:underline">Review all cards</button>}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function FlashcardsPage() {
+  const { search } = useLocation();
+  const [deck, setDeck] = useState("questions");
+  // Read ?deck= after hydration (the prerendered page has no query string).
+  useEffect(() => {
+    const want = new URLSearchParams(search).get("deck") ?? "questions";
+    setDeck(DECKS.some((d) => d.id === want) ? want : "questions");
+  }, [search]);
+  if (deck !== "questions") {
+    const label = DECKS.find((d) => d.id === deck)?.label ?? deck;
+    return (
+      <Container>
+        <Seo title="Flashcards" description="Spaced-repetition flashcards." path="/flashcards" noindex />
+        <PageHeader eyebrow="Revise" title={`${label} flashcards`} intro="Built from the interview questions in each note. Cards you miss come back tomorrow; cards you know move further out." />
+        <DeckTabs deck={deck} />
+        <ConceptDeck deck={deck} />
+      </Container>
+    );
+  }
+  return <QuestionFlashcards />;
+}
+
+function QuestionFlashcards() {
   const { data } = usePage();
   const progress = useProgress();
   const [mode, setMode] = useState<Mode>("due");
@@ -77,6 +196,7 @@ export function FlashcardsPage() {
         title="SQL flashcards"
         intro="Recall the approach before you flip. Cards you miss come back tomorrow; cards you know move further out. Questions with real recorded mistakes come first."
       />
+      <DeckTabs deck="questions" />
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
         {(["due", "traps", "all"] as Mode[]).map((m) => (

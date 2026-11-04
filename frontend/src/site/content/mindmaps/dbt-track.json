@@ -1,0 +1,54 @@
+{
+  "slug": "dbt-track",
+  "title": "dbt track",
+  "description": "dbt from fundamentals to deployment: models, sources, seeds, tests, snapshots, Jinja, macros, incremental models, docs and slim CI.",
+  "root": {
+    "id": "dbt",
+    "label": "dbt",
+    "note": "dbt-fundamentals",
+    "children": [
+      { "id": "fundamentals", "label": "Fundamentals", "note": "dbt-fundamentals", "prereq": [], "children": [
+        { "id": "project", "label": "dbt_project.yml and profiles", "note": "dbt-fundamentals", "prereq": [], "children": [] },
+        { "id": "dag", "label": "ref() and the DAG", "note": "dbt-fundamentals", "prereq": ["project"], "children": [] },
+        { "id": "commands", "label": "run, test, build", "note": "dbt-fundamentals", "prereq": ["dag"], "children": [] }
+      ] },
+      { "id": "inputs", "label": "Inputs", "note": "dbt-sources", "prereq": ["fundamentals"], "children": [
+        { "id": "sources", "label": "Sources", "note": "dbt-sources", "prereq": [], "children": [
+          { "id": "freshness", "label": "Source freshness", "note": "dbt-sources", "prereq": ["sources"], "children": [] }
+        ] },
+        { "id": "seeds", "label": "Seeds", "note": "dbt-seeds", "prereq": [], "children": [] }
+      ] },
+      { "id": "models", "label": "Models", "note": "dbt-models", "prereq": ["fundamentals"], "children": [
+        { "id": "materializations", "label": "Materializations", "note": "dbt-models", "prereq": [], "children": [
+          { "id": "view-table", "label": "View vs table", "note": "dbt-models", "prereq": [], "children": [] },
+          { "id": "ephemeral", "label": "Ephemeral", "note": "dbt-models", "prereq": [], "children": [] }
+        ] },
+        { "id": "layers", "label": "Staging, intermediate, marts", "note": "dbt-models", "prereq": [], "children": [] },
+        { "id": "incremental", "label": "Incremental models", "note": "dbt-incremental-models", "prereq": ["materializations", "jinja"], "children": [
+          { "id": "unique-key", "label": "unique_key and strategies", "note": "dbt-incremental-models", "prereq": [], "children": [] },
+          { "id": "late-data", "label": "Lookback for late data", "note": "dbt-incremental-models", "prereq": ["unique-key"], "children": [] }
+        ] }
+      ] },
+      { "id": "templating", "label": "Templating", "note": "dbt-jinja", "prereq": ["models"], "children": [
+        { "id": "jinja", "label": "Jinja", "note": "dbt-jinja", "prereq": [], "children": [] },
+        { "id": "macros", "label": "Macros", "note": "dbt-macros", "prereq": ["jinja"], "children": [
+          { "id": "packages", "label": "Packages and dbt_utils", "note": "dbt-macros", "prereq": [], "children": [] }
+        ] }
+      ] },
+      { "id": "quality", "label": "Quality", "note": "dbt-tests", "prereq": ["models"], "children": [
+        { "id": "generic-tests", "label": "Generic tests", "note": "dbt-tests", "prereq": [], "children": [] },
+        { "id": "singular-tests", "label": "Singular tests", "note": "dbt-tests", "prereq": [], "children": [] },
+        { "id": "docs", "label": "Documentation", "note": "dbt-documentation", "prereq": [], "children": [] }
+      ] },
+      { "id": "history", "label": "History", "note": "dbt-snapshots", "prereq": ["inputs"], "children": [
+        { "id": "snapshots", "label": "Snapshots", "note": "dbt-snapshots", "prereq": [], "children": [] },
+        { "id": "scd2", "label": "SCD type 2", "note": "dbt-snapshots", "prereq": ["snapshots"], "children": [] }
+      ] },
+      { "id": "deployment", "label": "Deployment", "note": "dbt-deployment", "prereq": ["quality"], "children": [
+        { "id": "targets", "label": "Targets and environments", "note": "dbt-deployment", "prereq": [], "children": [] },
+        { "id": "selectors", "label": "Selectors", "note": "dbt-deployment", "prereq": [], "children": [] },
+        { "id": "slim-ci", "label": "Slim CI with state and defer", "note": "dbt-deployment", "prereq": ["selectors"], "children": [] }
+      ] }
+    ]
+  }
+}

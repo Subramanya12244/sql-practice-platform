@@ -1,38 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, Database, Github, Menu, Search, Shield, UserRound, X } from "lucide-react";
+import { ChevronDown, Github, Menu, Search, Settings, Shield, UserRound, X } from "lucide-react";
+import { BrandMark } from "../../components/BrandMark";
+import { BRAND } from "../../brand";
+import { NAV_GROUPS, activeGroup } from "../lib/navigation";
 import { SearchDialog } from "./SearchDialog";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { SITE_NAME } from "../lib/seo";
 import { Container } from "./ui";
 import { useAuth } from "../lib/auth";
-
-const NAV = [
-  { to: "/learn", label: "Learn" },
-  { to: "/notes", label: "Notes" },
-  { to: "/patterns", label: "Patterns" },
-  { to: "/mindmaps", label: "Mind maps" },
-  { to: "/questions", label: "Practice" },
-  { to: "/interview", label: "Interview" },
-  { to: "/progress", label: "Progress" },
-];
-
-const MORE = [
-  { to: "/scenarios", label: "Business scenarios" },
-  { to: "/data-generator", label: "Data generator" },
-  { to: "/ai-tutor", label: "SQL tutor" },
-  { to: "/query-visualizer", label: "Query visualizer" },
-  { to: "/solution-comparison", label: "Compare solutions" },
-  { to: "/readiness", label: "Interview readiness" },
-  { to: "/mock-interview", label: "Mock interview" },
-  { to: "/review", label: "Revision queue" },
-  { to: "/flashcards", label: "Flashcards" },
-  { to: "/shortcuts", label: "Shortcuts" },
-  { to: "/concepts", label: "Concept guides" },
-  { to: "/playground", label: "Playground" },
-  { to: "/schema", label: "Schema" },
-  { to: "/challenge", label: "Weekly challenge" },
-];
 
 const REPO_URL = "https://github.com/Subramanya12244/northwind-sql-practice";
 
@@ -40,11 +16,13 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [mobileGroup, setMobileGroup] = useState<string | null>(null);
   useEffect(() => {
     setOpen(false);
-    setMoreOpen(false);
-  }, [location.pathname]);
+    setOpenGroup(null);
+  }, [location.pathname, location.hash]);
+  const current = activeGroup(location.pathname);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -98,37 +76,39 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
         Skip to content
       </a>
       <header className="sticky top-0 z-40 border-b border-surface-border bg-surface/85 backdrop-blur">
-        <Container className="flex h-14 items-center gap-4">
+        <Container wide className="flex h-14 items-center gap-3">
           <Link to="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap font-display text-base font-bold text-ink">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-white">
-              <Database className="h-4 w-4" aria-hidden />
-            </span>
+            <BrandMark size={28} />
             {SITE_NAME}
           </Link>
-          <nav className="ml-4 hidden items-center gap-1 whitespace-nowrap xl:flex" aria-label="Main">
-            {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} className={linkClass}>
-                {n.label}
-              </NavLink>
-            ))}
-            <div className="relative" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setMoreOpen(false)}>
-              <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-haspopup="true"
-                className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-hover/5 hover:text-ink">
-                More <ChevronDown className="h-3.5 w-3.5" aria-hidden />
-              </button>
-              {moreOpen && (
-                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-card border border-surface-border bg-surface-raised p-1 shadow-panel">
-                  {MORE.map((n) => (
-                    <NavLink key={n.to} to={n.to} className="block rounded-lg px-3 py-2 text-sm text-ink-muted hover:bg-hover/5 hover:text-ink">{n.label}</NavLink>
-                  ))}
+          <nav className="ml-2 hidden items-center gap-0.5 whitespace-nowrap xl:flex" aria-label="Main">
+            {NAV_GROUPS.map((g) =>
+              g.to ? (
+                <NavLink key={g.id} to={g.to} end={g.to === "/"} className={linkClass}>{g.label}</NavLink>
+              ) : (
+                <div key={g.id} className="relative" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpenGroup(null)}>
+                  <button type="button" onClick={() => setOpenGroup((v) => (v === g.id ? null : g.id))} aria-expanded={openGroup === g.id} aria-haspopup="true"
+                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium ${current === g.id ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"}`}>
+                    {g.short ?? g.label} <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                  {openGroup === g.id && (
+                    <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-card border border-surface-border bg-surface-raised p-1 shadow-panel" role="menu" aria-label={g.label}>
+                      {g.items!.map((n) => (
+                        <Link key={n.to} to={n.to} role="menuitem" className="block rounded-lg px-3 py-2 hover:bg-hover/5">
+                          <span className="block text-sm text-ink">{n.label}</span>
+                          {n.desc && <span className="block text-xs text-ink-faint">{n.desc}</span>}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              ),
+            )}
           </nav>
           <div className="ml-auto hidden items-center gap-2 xl:flex">
             {searchButton}
             {account}
-            <ThemeToggle compact />
+            <NavLink to="/settings" aria-label="Settings" title="Settings" className="rounded-lg p-2 text-ink-muted hover:bg-hover/5 hover:text-ink"><Settings className="h-4 w-4" /></NavLink>
           </div>
           <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search" className="ml-auto rounded-lg p-2 text-ink-muted hover:bg-hover/5 xl:hidden">
             <Search className="h-5 w-5" />
@@ -147,11 +127,24 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
           <nav className="border-t border-surface-border xl:hidden" aria-label="Mobile">
             <Container className="flex flex-col gap-1 py-3">
               <div className="pb-1">{searchButton}</div>
-              {[...NAV, ...MORE].map((n) => (
-                <NavLink key={n.to} to={n.to} className={linkClass}>
-                  {n.label}
-                </NavLink>
-              ))}
+              {NAV_GROUPS.map((g) =>
+                g.to ? (
+                  <NavLink key={g.id} to={g.to} end={g.to === "/"} className={linkClass}>{g.label}</NavLink>
+                ) : (
+                  <div key={g.id}>
+                    <button type="button" onClick={() => setMobileGroup((v) => (v === g.id ? null : g.id))} aria-expanded={mobileGroup === g.id}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-hover/5">
+                      {g.label} <ChevronDown className={`h-4 w-4 transition-transform ${mobileGroup === g.id ? "rotate-180" : ""}`} aria-hidden />
+                    </button>
+                    {mobileGroup === g.id && (
+                      <div className="ml-3 flex flex-col border-l border-surface-border pl-2">
+                        {g.items!.map((n) => <Link key={n.to} to={n.to} className="rounded-lg px-3 py-1.5 text-sm text-ink-muted hover:text-ink">{n.label}</Link>)}
+                      </div>
+                    )}
+                  </div>
+                ),
+              )}
+              <NavLink to="/settings" className={linkClass}>Settings</NavLink>
               <div className="flex items-center gap-2 pt-2">
                 {account}
                 <ThemeToggle />
@@ -179,7 +172,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
           <div>
             <p className="font-semibold text-ink">{SITE_NAME}</p>
             <p className="mt-2 max-w-xs">
-              Free SQL interview practice on the Northwind database. Queries run in your browser — sign-up optional.
+              {BRAND.tagline} SQL, Python and data engineering practice with real PostgreSQL and Python in your browser — sign-up optional.
             </p>
           </div>
           <div>

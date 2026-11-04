@@ -35,6 +35,12 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npx vitest run
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check Python examples and tasks
+        working-directory: .
+        run: pip install --quiet pandas numpy && python scripts/check_python_blocks.py
       - run: npm run build:site
       - name: Deploy to Cloudflare
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}

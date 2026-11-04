@@ -1,0 +1,50 @@
+{
+  "slug": "spark-track",
+  "title": "Apache Spark",
+  "description": "Spark from distributed computing basics to architecture, DataFrames, lazy evaluation, joins, shuffles, partitioning, caching and tuning.",
+  "root": {
+    "id": "spark",
+    "label": "Apache Spark",
+    "note": "spark-distributed-computing",
+    "children": [
+      { "id": "foundations", "label": "Foundations", "note": "spark-distributed-computing", "children": [
+        { "id": "distributed", "label": "Distributed computing", "note": "spark-distributed-computing", "prereq": [], "children": [] },
+        { "id": "architecture", "label": "Spark architecture", "note": "spark-architecture", "prereq": ["distributed"], "children": [
+          { "id": "driver-executors", "label": "Driver and executors", "note": "spark-driver-executors", "prereq": ["architecture"], "children": [] },
+          { "id": "jobs-stages-tasks", "label": "Jobs, stages, tasks", "note": "spark-architecture", "prereq": ["architecture"], "children": [] }
+        ] }
+      ] },
+      { "id": "apis", "label": "APIs", "note": "spark-dataframes", "children": [
+        { "id": "rdd", "label": "RDD fundamentals", "note": "spark-rdd", "prereq": ["architecture"], "children": [] },
+        { "id": "dataframes", "label": "DataFrames", "note": "spark-dataframes", "prereq": ["architecture"], "children": [] },
+        { "id": "sparksql", "label": "Spark SQL", "note": "spark-sql", "prereq": ["dataframes"], "children": [] }
+      ] },
+      { "id": "execution", "label": "Execution model", "note": "spark-lazy-evaluation", "children": [
+        { "id": "transformations", "label": "Transformations", "note": "spark-transformations", "prereq": ["dataframes"], "children": [
+          { "id": "narrow-wide", "label": "Narrow vs wide", "note": "spark-transformations", "prereq": ["transformations"], "children": [] }
+        ] },
+        { "id": "actions", "label": "Actions", "note": "spark-actions", "prereq": ["transformations"], "children": [] },
+        { "id": "lazy", "label": "Lazy evaluation", "note": "spark-lazy-evaluation", "prereq": ["actions"], "children": [
+          { "id": "catalyst", "label": "Catalyst and Tungsten", "note": "spark-lazy-evaluation", "prereq": ["lazy"], "children": [] }
+        ] }
+      ] },
+      { "id": "operations", "label": "Data operations", "note": "spark-joins", "children": [
+        { "id": "joins", "label": "Joins in Spark", "note": "spark-joins", "prereq": ["dataframes", "shuffling"], "children": [
+          { "id": "broadcast", "label": "Broadcast joins", "note": "spark-joins", "prereq": ["joins"], "children": [] }
+        ] },
+        { "id": "aggregations", "label": "Aggregations", "note": "spark-aggregations", "prereq": ["transformations"], "children": [] }
+      ] },
+      { "id": "data-movement", "label": "Data movement", "note": "spark-shuffling", "children": [
+        { "id": "partitioning", "label": "Partitioning", "note": "spark-partitioning", "prereq": ["transformations"], "children": [] },
+        { "id": "shuffling", "label": "Shuffling", "note": "spark-shuffling", "prereq": ["partitioning"], "children": [] }
+      ] },
+      { "id": "tuning", "label": "Tuning", "note": "spark-performance", "children": [
+        { "id": "caching", "label": "Caching and persistence", "note": "spark-caching", "prereq": ["actions"], "children": [] },
+        { "id": "performance", "label": "Performance optimization", "note": "spark-performance", "prereq": ["shuffling", "joins", "caching"], "children": [
+          { "id": "aqe", "label": "AQE", "note": "spark-performance", "prereq": ["performance"], "children": [] },
+          { "id": "skew", "label": "Skew handling", "note": "spark-performance", "prereq": ["performance"], "children": [] }
+        ] }
+      ] }
+    ]
+  }
+}

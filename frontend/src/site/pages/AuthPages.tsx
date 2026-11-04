@@ -225,7 +225,7 @@ export function AccountPage() {
 
   return (
     <Card title="Account">
-      <Seo title="Account" description="Manage your SQL Practice Lab account." path="/account" noindex />
+      <Seo title="Account" description="Manage your DataForge account." path="/account" noindex />
       {!enabled ? <Disabled /> : !profile ? <p className="mt-4 text-sm text-ink-muted">Loading…</p> : (
         <>
           <p className="mt-2 text-sm text-ink-muted">

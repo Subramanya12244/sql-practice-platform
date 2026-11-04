@@ -1,0 +1,44 @@
+{
+  "slug": "python-track",
+  "title": "Python for Data Engineering",
+  "description": "Python roadmap for data engineers: core language, files and formats, tooling, pandas and NumPy, databases, APIs and ETL pipelines.",
+  "root": {
+    "id": "python",
+    "label": "Python for DE",
+    "note": "python-fundamentals",
+    "children": [
+      { "id": "core", "label": "Core language", "note": "python-fundamentals", "prereq": [], "children": [
+        { "id": "types", "label": "Variables and data types", "note": "python-variables-data-types", "prereq": [], "children": [] },
+        { "id": "collections", "label": "Collections", "note": "python-collections", "prereq": ["types"], "children": [] },
+        { "id": "conditionals", "label": "Conditionals", "note": "python-conditionals", "prereq": ["types"], "children": [] },
+        { "id": "loops", "label": "Loops", "note": "python-loops", "prereq": ["collections"], "children": [] }
+      ]},
+      { "id": "functional", "label": "Functions and style", "note": "python-functions", "prereq": ["core"], "children": [
+        { "id": "functions", "label": "Functions", "note": "python-functions", "prereq": ["loops"], "children": [] },
+        { "id": "lambdas", "label": "Lambdas", "note": "python-lambdas", "prereq": ["functions"], "children": [] },
+        { "id": "comprehensions", "label": "Comprehensions", "note": "python-comprehensions", "prereq": ["loops"], "children": [] },
+        { "id": "oop", "label": "OOP", "note": "python-oop", "prereq": ["functions"], "children": [] },
+        { "id": "exceptions", "label": "Exceptions", "note": "python-exceptions", "prereq": ["functions"], "children": [] }
+      ]},
+      { "id": "io", "label": "Files and formats", "note": "python-file-handling", "prereq": ["functional"], "children": [
+        { "id": "files", "label": "File handling", "note": "python-file-handling", "prereq": ["exceptions"], "children": [] },
+        { "id": "csvjson", "label": "CSV and JSON", "note": "python-csv-json", "prereq": ["files"], "children": [] },
+        { "id": "regex", "label": "Regular expressions", "note": "python-regex", "prereq": [], "children": [] }
+      ]},
+      { "id": "tooling", "label": "Tooling", "note": "python-modules-packages", "prereq": ["core"], "children": [
+        { "id": "modules", "label": "Modules and packages", "note": "python-modules-packages", "prereq": [], "children": [] },
+        { "id": "venv", "label": "Virtual environments", "note": "python-virtual-environments", "prereq": ["modules"], "children": [] },
+        { "id": "logging", "label": "Logging", "note": "python-logging", "prereq": ["modules"], "children": [] }
+      ]},
+      { "id": "data", "label": "Data libraries", "note": "python-pandas", "prereq": ["io"], "children": [
+        { "id": "numpy", "label": "NumPy", "note": "python-numpy", "prereq": [], "children": [] },
+        { "id": "pandas", "label": "Pandas", "note": "python-pandas", "prereq": ["numpy", "csvjson"], "children": [] }
+      ]},
+      { "id": "integration", "label": "Integration", "note": "python-database-connectivity", "prereq": ["data"], "children": [
+        { "id": "db", "label": "Database connectivity", "note": "python-database-connectivity", "prereq": ["pandas"], "children": [] },
+        { "id": "api", "label": "API integration", "note": "python-api-integration", "prereq": ["csvjson", "exceptions"], "children": [] },
+        { "id": "etl", "label": "ETL pipelines", "note": "python-etl-pipelines", "prereq": ["db", "api", "logging"], "children": [] }
+      ]}
+    ]
+  }
+}

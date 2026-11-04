@@ -55,7 +55,7 @@ ORDER BY avg_price DESC;
 
 The same in pandas:
 
-```python
+```python-syntax
 df = products.merge(categories, on="category_id")
 out = (
     df[~df.discontinued]

@@ -8,6 +8,8 @@ import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { useProgress } from "../lib/progress";
 import { registerDataset } from "../lib/browserDb";
 import { AFTER_SOLVE } from "../lib/scenarios";
+import { VizView } from "../components/VizView";
+import { addSession } from "../lib/vizHistory";
 import type { Question } from "../types";
 import type { SubmitResult } from "../../types";
 
@@ -67,6 +69,8 @@ export function ScenarioPage() {
   const ds = data.datasets?.find((d) => d.id === s.dataset);
   const [ready, setReady] = useState(false);
   const [justSolved, setJustSolved] = useState(false);
+  const [lastSql, setLastSql] = useState("");
+  const [vizSql, setVizSql] = useState<string | null>(null);
   const completed = Boolean(progress.lessons?.[key(s.slug)]) || justSolved;
   const path = `/scenarios/${s.slug}`;
 
@@ -152,9 +156,16 @@ export function ScenarioPage() {
           {ready ? (
             <Suspense fallback={<Skeleton className="h-[580px]" />}>
               <PracticePanel key={s.slug} question={question} lessonKey={key(s.slug)} fresh dataset={s.dataset} datasetLabel={ds?.title ?? s.dataset}
-                onSolved={(r: SubmitResult) => r.correct && setJustSolved(true)} />
+                onRan={(sql) => setLastSql(sql)}
+                onSolved={(r: SubmitResult, sql: string) => { setLastSql(sql); if (r.correct) setJustSolved(true); }} />
             </Suspense>
           ) : <Skeleton className="h-[580px]" />}
+          {lastSql && (
+            <div className="mt-3 rounded-card border border-surface-border bg-surface-raised p-3">
+              <button type="button" onClick={() => setVizSql(lastSql)} className="rounded-lg border border-surface-border px-3 py-1.5 text-sm text-ink-muted hover:text-ink">Visualize my query</button>
+              {vizSql && <div className="mt-3"><VizView key={vizSql} sql={vizSql} dataset={s.dataset} onDone={(sum) => addSession(`s:${s.slug}`, { sql: vizSql, attempt: 0, dataset: s.dataset, ...sum })} /></div>}
+            </div>
+          )}
           <p className="mt-2 text-xs text-ink-faint">Graded by comparing your result with the requirement, not by matching SQL text{s.orderBy ? "; row order is checked" : "; row order doesn't matter"}.</p>
         </div>
       </div>

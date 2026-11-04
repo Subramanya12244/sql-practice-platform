@@ -26,7 +26,16 @@ export interface JoinStep {
   resultRows?: number;
 }
 
+/**
+ * Where a stage's information comes from:
+ * - executed: real rows/counts from running a valid query built only from the user's own clauses
+ *   (e.g. FROM + WHERE). It shows what that logical stage produces — not how PostgreSQL ran it.
+ * - parsed: explanation from the query text only; nothing was run for this stage.
+ */
+export type Provenance = "executed" | "parsed";
+
 export interface Stage {
+  source?: Provenance;
   clause: "from" | "where" | "group by" | "having" | "window" | "select" | "distinct" | "order by" | "limit";
   title: string;
   explanation: string;
@@ -42,6 +51,8 @@ export interface Stage {
 }
 
 export interface Visualization {
+  /** Volatile functions found; when present, no derived stage queries were run. */
+  volatile?: string[];
   parsed: ParsedQuery;
   stages: Stage[];
   final?: Sample & { rowCount: number };
@@ -103,8 +114,15 @@ function joinExplanation(kind: string): string {
  * query. This is the *logical* order the standard defines; PostgreSQL's planner may physically
  * execute things differently (see the execution plan).
  */
-export async function visualize(sql: string, run: Run): Promise<Visualization> {
+export async function visualize(sql: string, realRun: Run): Promise<Visualization> {
   const p = parseSelect(sql);
+  // Derived stage queries re-run parts of the query. With random()/now()/nextval() etc. those
+  // re-runs would produce different rows than the user's query, so only explain, don't execute.
+  const { volatileFunctions } = await import("./sqlAst");
+  const volatile = volatileFunctions(sql);
+  const run: Run = volatile.length
+    ? async () => ({ success: false, columns: [], rows: [], message: "not executed" })
+    : realRun;
   if (p.unsupported) return { parsed: p, stages: [], unsupported: p.unsupported };
   const c = p.clauses;
   const stages: Stage[] = [];
@@ -272,8 +290,23 @@ export async function visualize(sql: string, run: Run): Promise<Visualization> {
     });
   }
 
-  const f = await run(sql.replace(/;\s*$/, ""));
+  for (const s of stages) {
+    const executed = !volatile.length && !s.error && (s.rowsOut !== undefined || Boolean(s.sample?.columns.length) || Boolean(s.joins?.length) || Boolean(s.partitions));
+    s.source = executed ? "executed" : "parsed";
+    if (volatile.length) {
+      s.error = undefined;
+      s.sample = undefined;
+      s.removed = undefined;
+      s.rowsIn = undefined;
+      s.rowsOut = undefined;
+      s.joins = s.joins?.map((j) => ({ kind: j.kind, left: j.left, right: j.right, on: j.on }));
+      s.partitions = undefined;
+    }
+  }
+
+  // The final result always comes from running exactly the user's query, once.
+  const f = await realRun(sql.replace(/;\s*$/, ""));
   const final = f.success ? { columns: f.columns, rows: f.rows.slice(0, SAMPLE), rowCount: f.row_count ?? f.rows.length } : undefined;
   if (!f.success) stages.push({ clause: "select", title: "Your query has an error", explanation: f.message ?? "", error: f.message ?? "error" });
-  return { parsed: p, stages, final };
+  return { parsed: p, stages, final, volatile: volatile.length ? volatile : undefined };
 }

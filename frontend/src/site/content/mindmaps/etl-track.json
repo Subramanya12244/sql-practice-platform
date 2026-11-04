@@ -1,0 +1,69 @@
+{
+  "slug": "etl-track",
+  "title": "ETL / ELT track",
+  "description": "Map of the ETL track: architectures, extract-transform-load steps, load strategies, CDC, batch and streaming, and pipeline reliability.",
+  "root": {
+    "id": "etl",
+    "label": "ETL / ELT",
+    "note": "etl-architecture",
+    "children": [
+      {
+        "id": "architectures", "label": "Architectures", "note": "etl-architecture", "prereq": [],
+        "children": [
+          { "id": "etl-arch", "label": "ETL", "note": "etl-architecture", "prereq": [], "children": [] },
+          { "id": "elt-arch", "label": "ELT", "note": "elt-architecture", "prereq": ["etl-arch"], "children": [] }
+        ]
+      },
+      {
+        "id": "stages", "label": "Pipeline stages", "note": "etl-extraction", "prereq": ["architectures"],
+        "children": [
+          { "id": "extract", "label": "Extraction", "note": "etl-extraction", "prereq": [], "children": [] },
+          { "id": "transform", "label": "Transformation", "note": "etl-transformation", "prereq": ["extract"], "children": [] },
+          { "id": "load", "label": "Loading", "note": "etl-loading", "prereq": ["transform"],
+            "children": [
+              { "id": "upsert", "label": "Upsert (ON CONFLICT / MERGE)", "note": "etl-loading", "prereq": [], "children": [] }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "strategies", "label": "Load strategies", "note": "etl-incremental-load", "prereq": ["load"],
+        "children": [
+          { "id": "full", "label": "Full load", "note": "etl-full-load", "prereq": [], "children": [] },
+          { "id": "incremental", "label": "Incremental load", "note": "etl-incremental-load", "prereq": ["full"],
+            "children": [
+              { "id": "watermark", "label": "High watermarks", "note": "etl-incremental-load", "prereq": [], "children": [] }
+            ]
+          },
+          { "id": "cdc", "label": "Change Data Capture", "note": "etl-change-data-capture", "prereq": ["incremental"],
+            "children": [
+              { "id": "cdc-log", "label": "Log-based CDC", "note": "etl-change-data-capture", "prereq": [], "children": [] },
+              { "id": "cdc-trigger", "label": "Trigger-based CDC", "note": "etl-change-data-capture", "prereq": [], "children": [] }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "processing", "label": "Processing models", "note": "etl-batch-processing", "prereq": ["stages"],
+        "children": [
+          { "id": "batch", "label": "Batch processing", "note": "etl-batch-processing", "prereq": [], "children": [] },
+          { "id": "streaming", "label": "Streaming", "note": "etl-streaming-fundamentals", "prereq": ["batch", "cdc"], "children": [] }
+        ]
+      },
+      {
+        "id": "reliability", "label": "Reliability", "note": "etl-idempotency", "prereq": ["strategies"],
+        "children": [
+          { "id": "validation", "label": "Data validation", "note": "etl-data-validation", "prereq": [], "children": [] },
+          { "id": "errors", "label": "Error handling", "note": "etl-error-handling", "prereq": ["validation"],
+            "children": [
+              { "id": "dlq", "label": "Dead-letter tables", "note": "etl-error-handling", "prereq": [], "children": [] }
+            ]
+          },
+          { "id": "retries", "label": "Retries with backoff", "note": "etl-retries", "prereq": ["errors", "idempotency"], "children": [] },
+          { "id": "idempotency", "label": "Idempotency", "note": "etl-idempotency", "prereq": ["upsert"], "children": [] },
+          { "id": "monitoring", "label": "Pipeline monitoring", "note": "etl-pipeline-monitoring", "prereq": ["errors"], "children": [] }
+        ]
+      }
+    ]
+  }
+}

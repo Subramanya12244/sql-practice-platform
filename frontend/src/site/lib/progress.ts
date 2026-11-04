@@ -172,7 +172,8 @@ export function markRevealed(num: number) {
 
 const BOX_DAYS = [0, 1, 2, 4, 8, 16];
 
-export function reviewCard(num: number, knewIt: boolean) {
+/** `num` is a question number, or a string key such as "n:left-join#0" for note-based cards. */
+export function reviewCard(num: number | string, knewIt: boolean) {
   const p = read();
   const prevBox = p.cards[num]?.box ?? 1;
   const box = knewIt ? Math.min(5, prevBox + 1) : 1;
