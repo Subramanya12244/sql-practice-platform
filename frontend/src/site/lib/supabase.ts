@@ -6,6 +6,14 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 /** Accounts are optional: without these env vars the site runs anonymously on localStorage. */
 export const accountsEnabled = Boolean(URL && ANON_KEY);
 
+/**
+ * Start a request without waiting for it. supabase-js builders are lazy: nothing is sent until
+ * they are awaited or `.then` is called, so `void sb.from(...).insert(...)` silently does nothing.
+ */
+export function send(q: PromiseLike<unknown>): void {
+  Promise.resolve(q).catch(() => undefined);
+}
+
 let client: Promise<SupabaseClient> | null = null;
 
 /** Lazily load supabase-js so anonymous visitors and the prerender never pay for it. */

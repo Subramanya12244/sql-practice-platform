@@ -5,6 +5,7 @@
  * each new write. Signed-out visitors never load this path.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { send } from "./supabase";
 import type { VizSession } from "./vizHistory";
 import type { ProjectProgress, ReviewStatus } from "./projects";
 import type { QualityRun, Rule } from "./dataQuality";
@@ -191,18 +192,18 @@ export async function startDataSync(sb: SupabaseClient, userId: string) {
 
   setDataSink({
     viz(key, s) {
-      void sb.from("query_visualization_sessions").insert({ ...vizToRow(key, s), user_id: userId });
+      send(sb.from("query_visualization_sessions").insert({ ...vizToRow(key, s), user_id: userId }));
     },
     project(slug, p, submitted) {
       const out = projectToRows(slug, p);
-      if (out.length) void sb.from("project_progress").upsert(out.map((r) => ({ ...r, user_id: userId })));
-      if (submitted && p.submission) void insertSubmission(sb, userId, slug, p, p.submission.at);
+      if (out.length) send(sb.from("project_progress").upsert(out.map((r) => ({ ...r, user_id: userId }))));
+      if (submitted && p.submission) send(insertSubmission(sb, userId, slug, p, p.submission.at));
     },
     rules(d, list) {
-      void replaceRules(sb, userId, d, list);
+      send(replaceRules(sb, userId, d, list));
     },
     run(_d, run) {
-      void sb.from("data_quality_runs").insert({ ...runToRow(run), user_id: userId });
+      send(sb.from("data_quality_runs").insert({ ...runToRow(run), user_id: userId }));
     },
   });
 }

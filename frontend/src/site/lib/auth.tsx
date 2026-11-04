@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
-import { accountsEnabled, getSupabase } from "./supabase";
+import { accountsEnabled, getSupabase, send } from "./supabase";
 import { clearLocalData, setDataSink, startDataSync } from "./dataSync";
 import { looksLikeEmail, mergeProgress, progressToRows, usernameToEmail, type MockRow, type ProgressRow, type RemoteState } from "./account";
 import { getProgress, replaceProgress, resetProgress, setProgressSink, type Progress } from "./progress";
@@ -76,24 +76,24 @@ async function startSync(sb: SupabaseClient, userId: string) {
   ]);
 
   const log = (action: string, detail: Record<string, unknown>) =>
-    void sb.from("audit_log").insert({ user_id: userId, action, detail });
+    send(sb.from("audit_log").insert({ user_id: userId, action, detail }));
   setProgressSink({
     question(num, q, solvedNow) {
-      void sb.from("progress").upsert({
+      send(sb.from("progress").upsert({
         user_id: userId, question_number: num, attempts: q.attempts,
         solved_at: q.solvedAt ?? null, revealed: Boolean(q.revealed), updated_at: new Date().toISOString(),
         review_box: q.reviewBox ?? null, review_due: q.reviewDue ?? null,
-      });
+      }));
       log(solvedNow ? "solve" : "submit", { question: num, attempts: q.attempts });
     },
     mock(m) {
-      void sb.from("mock_sessions").insert({
+      send(sb.from("mock_sessions").insert({
         user_id: userId, solved: m.solved, total: m.total, used_sec: m.usedSec, duration_min: m.durationMin, created_at: m.date,
-      });
+      }));
       log("mock_finish", { solved: m.solved, total: m.total });
     },
     state(p) {
-      void sb.from("profiles").update({ state: remoteState(p) }).eq("id", userId);
+      send(sb.from("profiles").update({ state: remoteState(p) }).eq("id", userId));
     },
   });
 }
@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setReady(true);
       const sub = sb.auth.onAuthStateChange((event, s) => {
         if (event === "SIGNED_IN" && s && s.user.id !== activeUser) {
-          void sb.from("audit_log").insert({ user_id: s.user.id, action: "login", detail: { provider: s.user.app_metadata?.provider } });
+          send(sb.from("audit_log").insert({ user_id: s.user.id, action: "login", detail: { provider: s.user.app_metadata?.provider } }));
         }
         void onSession(s);
       });

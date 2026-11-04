@@ -45,10 +45,16 @@ function fakeClient(tables: Record<string, unknown[]>, missing: string[] = []) {
     const q: Record<string, unknown> = {};
     for (const m of ["select", "eq", "order", "limit"]) q[m] = () => q;
     q.then = (res: (v: unknown) => void) => res(result);
+    // Like supabase-js, a write is sent only when the builder is awaited / then-ed.
     for (const op of ["insert", "upsert", "delete"]) {
       q[op] = (rows?: unknown) => {
-        writes.push({ table, op, rows });
-        return q;
+        const w: Record<string, unknown> = {};
+        for (const m of ["select", "eq", "order", "limit"]) w[m] = () => w;
+        w.then = (res: (v: unknown) => void) => {
+          writes.push({ table, op, rows });
+          res({ data: null, error: null });
+        };
+        return w;
       };
     }
     return q;
@@ -98,6 +104,7 @@ describe("sign-in sync", () => {
     const { sb, writes } = fakeClient({});
     await startDataSync(sb, "u1");
     addSession("q2", { sql: "select 3", attempt: 1, dataset: "northwind", structure: "SELECT", stages: [] });
+    await new Promise((r) => setTimeout(r, 0));
     expect(writes.filter((w) => w.table === "query_visualization_sessions")).toHaveLength(1);
     clearLocalData();
     expect(getSessions("q2")).toEqual([]);

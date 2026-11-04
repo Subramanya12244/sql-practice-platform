@@ -1,4 +1,4 @@
-import { getSupabase } from "./supabase";
+import { getSupabase, send } from "./supabase";
 
 export interface CommentRow {
   id: number;
@@ -56,7 +56,7 @@ export const publicProfile = (u: string) => rpc<PublicProfile | null>("public_pr
 export async function addComment(userId: string, q: number, body: string) {
   const sb = await getSupabase();
   mustOk(await sb.from("comments").insert({ user_id: userId, question_number: q, body: body.trim() }));
-  void sb.from("audit_log").insert({ user_id: userId, action: "comment", detail: { question: q } });
+  send(sb.from("audit_log").insert({ user_id: userId, action: "comment", detail: { question: q } }));
 }
 
 export async function deleteComment(id: number) {
@@ -73,7 +73,7 @@ export async function setHidden(table: "comments" | "solutions", id: number, hid
 export async function shareSolution(userId: string, q: number, sql: string, note: string) {
   const sb = await getSupabase();
   mustOk(await sb.from("solutions").upsert({ user_id: userId, question_number: q, sql, note: note.trim() || null }, { onConflict: "user_id,question_number" }));
-  void sb.from("audit_log").insert({ user_id: userId, action: "solution_share", detail: { question: q } });
+  send(sb.from("audit_log").insert({ user_id: userId, action: "solution_share", detail: { question: q } }));
 }
 
 export async function toggleLike(userId: string, solutionId: number, liked: boolean) {
