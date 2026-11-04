@@ -92,3 +92,20 @@ describe("renumber migration", () => {
     expect(migrateProgress(m)).toBe(m);
   });
 });
+
+describe("auth page helpers", () => {
+  it("rates password strength and only follows same-site next paths", async () => {
+    const { passwordStrength, safeNext } = await import("../site/pages/AuthPages");
+    const { friendlyAuthError } = await import("../site/lib/auth");
+    expect(passwordStrength("short").score).toBe(0);
+    expect(passwordStrength("abcdefgh").label).toBe("Weak");
+    expect(passwordStrength("Abcdefgh1!xyz").label).toBe("Strong");
+    expect(safeNext("?next=/projects-lab/x")).toBe("/projects-lab/x");
+    expect(safeNext("?next=//evil.example")).toBeNull();
+    expect(safeNext("?next=https://evil.example")).toBeNull();
+    expect(safeNext("?next=/login")).toBeNull();
+    expect(friendlyAuthError("Invalid login credentials")).toBe("Wrong username or password.");
+    expect(friendlyAuthError("User already registered")).toBe("That username or email is already taken.");
+    expect(friendlyAuthError("Something else")).toBe("Something else");
+  });
+});

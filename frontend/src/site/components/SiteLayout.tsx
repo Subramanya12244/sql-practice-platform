@@ -62,7 +62,8 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
       </NavLink>
     </span>
   ) : (
-    <Link to="/login" className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white">Sign in</Link>
+    <Link to={["/", "/login", "/signup", "/reset-password"].includes(location.pathname) ? "/login" : `/login?next=${encodeURIComponent(location.pathname)}`}
+      className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white">Sign in</Link>
   );
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>

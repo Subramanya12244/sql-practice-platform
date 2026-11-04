@@ -16,7 +16,7 @@ import { NotFoundPage } from "./pages/NotFoundPage";
 import { SchemaPage } from "./pages/SchemaPage";
 import { MockInterviewPage } from "./pages/MockInterviewPage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
-import { AccountPage, LoginPage, SignupPage } from "./pages/AuthPages";
+import { AccountPage, LoginPage, ResetPasswordPage, SignupPage } from "./pages/AuthPages";
 import { AdminPage } from "./pages/AdminPage";
 import { LearnPage, LessonPage } from "./pages/LearnPages";
 import { ReviewPage } from "./pages/ReviewPage";
@@ -311,6 +311,7 @@ export const routes: SiteRoute[] = [
   { path: "/login", element: <LoginPage />, load: base, paths: one("/login") },
   { path: "/signup", element: <SignupPage />, load: base, paths: one("/signup") },
   { path: "/account", element: <AccountPage />, load: base, paths: one("/account") },
+  { path: "/reset-password", element: <ResetPasswordPage />, load: base, paths: one("/reset-password") },
   { path: "/admin", element: <AdminPage />, load: base, paths: one("/admin") },
 ];
 

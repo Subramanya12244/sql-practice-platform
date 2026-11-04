@@ -12,6 +12,7 @@ export interface Profile {
   must_change_password: boolean;
   /** Added by migration 002; absent before it is applied. */
   public_profile?: boolean;
+  created_at?: string;
 }
 
 interface AuthState {
@@ -22,10 +23,23 @@ interface AuthState {
   profile: Profile | null;
   signIn(login: string, password: string): Promise<void>;
   signUp(username: string, password: string, email?: string): Promise<{ needsConfirm: boolean }>;
-  signInWithGoogle(): Promise<void>;
+  /** Emails a reset link; only works for accounts that signed up with a real email. */
+  resetPassword(email: string): Promise<void>;
   signOut(): Promise<void>;
   changePassword(password: string): Promise<void>;
   audit(action: string, detail?: Record<string, unknown>): void;
+}
+
+/** Supabase Auth messages, reworded for people. Unknown messages pass through unchanged. */
+export function friendlyAuthError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("invalid login credentials")) return "Wrong username or password.";
+  if (m.includes("user already registered") || m.includes("already been registered")) return "That username or email is already taken.";
+  if (m.includes("rate limit") || m.includes("too many")) return "Too many attempts. Wait a minute and try again.";
+  if (m.includes("should be different")) return "Choose a password different from your current one.";
+  if (m.includes("password should be at least")) return "Use at least 8 characters.";
+  if (m.includes("failed to fetch") || m.includes("network")) return "Can't reach the server. Check your connection and try again.";
+  return msg;
 }
 
 const AuthCtx = createContext<AuthState | null>(null);
@@ -146,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email = (data as string | null) ?? usernameToEmail(email);
     }
     const { error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message === "Invalid login credentials" ? "Wrong username or password." : error.message);
+    if (error) throw new Error(friendlyAuthError(error.message));
   }, []);
 
   const signUp = useCallback(async (username: string, password: string, email?: string) => {
@@ -156,14 +170,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: { data: { username: username.trim() }, emailRedirectTo: `${window.location.origin}/account` },
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyAuthError(error.message));
     return { needsConfirm: !data.session };
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
+  const resetPassword = useCallback(async (email: string) => {
     const sb = await getSupabase();
-    const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/progress` } });
-    if (error) throw new Error(error.message);
+    const { error } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/account?reset=1` });
+    if (error) throw new Error(friendlyAuthError(error.message));
   }, []);
 
   const signOut = useCallback(async () => {
@@ -180,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const changePassword = useCallback(async (password: string) => {
     const sb = await getSupabase();
     const { error } = await sb.auth.updateUser({ password });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyAuthError(error.message));
     if (session) {
       await sb.from("profiles").update({ must_change_password: false }).eq("id", session.user.id);
       await sb.from("audit_log").insert({ user_id: session.user.id, action: "password_change", detail: {} });
@@ -194,8 +208,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const value = useMemo<AuthState>(
-    () => ({ enabled: accountsEnabled, ready, session, profile, signIn, signUp, signInWithGoogle, signOut, changePassword, audit }),
-    [ready, session, profile, signIn, signUp, signInWithGoogle, signOut, changePassword, audit],
+    () => ({ enabled: accountsEnabled, ready, session, profile, signIn, signUp, resetPassword, signOut, changePassword, audit }),
+    [ready, session, profile, signIn, signUp, resetPassword, signOut, changePassword, audit],
   );
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }
