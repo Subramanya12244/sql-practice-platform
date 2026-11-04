@@ -287,7 +287,7 @@ don't need the question repo. Concept guides live in `frontend/src/site/content/
 
 ### Deploy on Cloudflare (free)
 
-Live: https://sql-practice-lab.sql-practice-frontend.workers.dev. To deploy by hand: `cd frontend && npm run build:site && npx wrangler deploy -c wrangler.jsonc`.
+Live: https://dataforge.dataforge-learn.workers.dev. To deploy by hand: `cd frontend && npm run build:site && npx wrangler deploy -c wrangler.jsonc`.
 
 Alternatively, Cloudflare Pages (`*.pages.dev`):
 

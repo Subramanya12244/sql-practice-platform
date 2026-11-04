@@ -19,7 +19,7 @@ jobs:
       run:
         working-directory: frontend
     env:
-      VITE_SITE_URL: https://sql-practice-lab.sql-practice-frontend.workers.dev
+      VITE_SITE_URL: https://dataforge.dataforge-learn.workers.dev
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       VITE_GSC_TOKEN: ${{ vars.VITE_GSC_TOKEN }}

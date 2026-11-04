@@ -10,7 +10,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "dist-site");
 const ssrOut = join(root, "dist-site-server");
 const config = join(root, "vite.site.config.ts");
-const siteUrl = (process.env.VITE_SITE_URL || "https://sql-practice-lab.sql-practice-frontend.workers.dev").replace(/\/$/, "");
+const siteUrl = (process.env.VITE_SITE_URL || "https://dataforge.dataforge-learn.workers.dev").replace(/\/$/, "");
 const attr = (v) => String(v).replace(/[^A-Za-z0-9_\-.:=]/g, "");
 // Search Console ownership tag and Cloudflare Web Analytics (cookie-free), both optional.
 const extraHead = process.env.VITE_GSC_TOKEN

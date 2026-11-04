@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect } from "react";
 
-export const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://sql-practice-lab.sql-practice-frontend.workers.dev").replace(/\/$/, "");
+export const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://dataforge.dataforge-learn.workers.dev").replace(/\/$/, "");
 import { BRAND } from "../../brand";
 
 export const SITE_NAME = BRAND.name;

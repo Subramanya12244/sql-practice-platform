@@ -1,7 +1,7 @@
 // Static hosting for the public site (Cloudflare Workers static assets, free tier).
-// Deploy: VITE_SITE_URL=https://sql-practice-lab.sql-practice-frontend.workers.dev npm run build:site && npx wrangler deploy
+// Deploy: VITE_SITE_URL=https://dataforge.dataforge-learn.workers.dev npm run build:site && npx wrangler deploy
 {
-  "name": "sql-practice-lab",
+  "name": "dataforge",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./dist-site",
