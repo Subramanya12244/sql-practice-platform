@@ -1,5 +1,6 @@
 import { splitFrontmatter } from "./learning";
 import { extractTasks, type Task } from "./tasks";
+import { dataSink } from "./dataSync";
 
 export interface Project {
   slug: string;
@@ -70,12 +71,14 @@ export function getProjectProgress(slug: string): ProjectProgress {
     return { tasks: {}, checklist: {} };
   }
 }
-export function saveProjectProgress(slug: string, p: ProjectProgress) {
+/** `submitted` marks a new submission, which is recorded once on the account. */
+export function saveProjectProgress(slug: string, p: ProjectProgress, submitted = false) {
   try {
     localStorage.setItem(KEY(slug), JSON.stringify(p));
   } catch {
     /* ignore */
   }
+  dataSink()?.project(slug, p, submitted);
 }
 
 /**

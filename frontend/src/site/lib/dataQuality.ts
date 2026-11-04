@@ -4,6 +4,7 @@
  */
 import type { ExecuteResult } from "../../types";
 import type { SchemaTable } from "../types";
+import { dataSink } from "./dataSync";
 
 export type RuleType =
   | "not_null" | "unique" | "primary_key" | "foreign_key" | "data_type" | "schema"
@@ -229,11 +230,17 @@ const write = (k: string, v: unknown) => {
   }
 };
 export const getRules = (d: string) => read<Rule[] | null>(RULES(d), null);
-export const saveRules = (d: string, rules: Rule[]) => write(RULES(d), rules);
+const RULES_AT = (d: string) => `sqlp.dq.rulesAt.${d}`;
+export function saveRules(d: string, rules: Rule[]) {
+  write(RULES(d), rules);
+  write(RULES_AT(d), new Date().toISOString());
+  dataSink()?.rules(d, rules);
+}
 export const getRuns = (d: string) => read<QualityRun[]>(RUNS(d), []);
 /** Runs are kept without sample rows to stay small. */
 export function saveRun(d: string, run: QualityRun) {
   write(RUNS(d), [{ ...run, results: run.results.map(({ sample: _s, ...r }) => r) }, ...getRuns(d)].slice(0, 20));
+  dataSink()?.run(d, run);
 }
 
 /** Per-rule change in failed records between two runs (negative = improvement). */

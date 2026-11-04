@@ -2,6 +2,8 @@
  * Visualization sessions and executed queries, saved per question (or scenario) in this browser.
  * Each record is appended — earlier attempts are never overwritten.
  */
+import { dataSink } from "./dataSync";
+
 export interface ExecRecord {
   at: string;
   kind: "run" | "submit";
@@ -51,6 +53,7 @@ export const getSessions = (k: string) => read<VizSession>(VIZ(k));
 export function addSession(k: string, s: Omit<VizSession, "id" | "at">): VizSession {
   const full = { ...s, id: crypto.randomUUID(), at: new Date().toISOString() };
   write(VIZ(k), [full, ...getSessions(k)].slice(0, 30));
+  dataSink()?.viz(k, full);
   return full;
 }
 

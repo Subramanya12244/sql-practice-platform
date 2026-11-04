@@ -194,9 +194,9 @@ export function ProjectPage() {
     setMounted(true);
   }, [project.slug, project.dataset]);
 
-  const update = (p: ProjectProgress) => {
+  const update = (p: ProjectProgress, submitted = false) => {
     setProgress(p);
-    saveProjectProgress(project.slug, p);
+    saveProjectProgress(project.slug, p, submitted);
   };
   const status = projectStatus(project, progress);
   const automated = project.tasks.filter((t) => t.type !== "checklist");
@@ -207,7 +207,7 @@ export function ProjectPage() {
   function submit() {
     if (url && !isRepoUrl(url)) return setErr("Use an https link to a GitHub, GitLab or Bitbucket repository.");
     setErr(null);
-    update({ ...progress, submission: { url: url || undefined, notes: notes.trim() || undefined, at: new Date().toISOString() } });
+    update({ ...progress, submission: { url: url || undefined, notes: notes.trim() || undefined, at: new Date().toISOString() } }, true);
   }
 
   return (

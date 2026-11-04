@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { accountsEnabled, getSupabase } from "./supabase";
+import { clearLocalData, setDataSink, startDataSync } from "./dataSync";
 import { looksLikeEmail, mergeProgress, progressToRows, usernameToEmail, type MockRow, type ProgressRow, type RemoteState } from "./account";
 import { getProgress, replaceProgress, resetProgress, setProgressSink, type Progress } from "./progress";
 
@@ -114,11 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!uid) {
           setProfile(null);
           setProgressSink(null);
+          setDataSink(null);
           return;
         }
         const { data } = await sb.from("profiles").select("*").eq("id", uid).single();
         setProfile((data as Profile) ?? null);
         await startSync(sb, uid).catch(() => undefined);
+        await startDataSync(sb, uid).catch(() => undefined);
       };
       const { data } = await sb.auth.getSession();
       await onSession(data.session);
@@ -166,9 +169,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const sb = await getSupabase();
     if (session) await sb.from("audit_log").insert({ user_id: session.user.id, action: "logout", detail: {} });
     setProgressSink(null);
+    setDataSink(null);
     await sb.auth.signOut();
     // Account progress lives on the server; don't leave it in a shared browser.
     resetProgress();
+    clearLocalData();
   }, [session]);
 
   const changePassword = useCallback(async (password: string) => {
