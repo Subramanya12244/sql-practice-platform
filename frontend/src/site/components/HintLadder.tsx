@@ -35,9 +35,11 @@ export function HintLadder({ q }: { q: Question }) {
           <li>
             <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">{LEVELS[0]}</p>
             <p className="mt-1 text-ink-muted">
-              Use {q.tables.map((t) => `\`${t}\``).join(", ") || "the Northwind tables"}
-              {q.concepts.length ? ` with ${q.concepts.slice(0, 3).join(", ")}` : ""}.{" "}
-              {q.watchOutFor && <InlineMarkdown source={`Watch out: ${q.watchOutFor}`} />}
+              <InlineMarkdown
+                source={`Use ${q.tables.map((t) => `\`${t}\``).join(", ") || "the Northwind tables"}${
+                  q.concepts.length ? ` with ${q.concepts.slice(0, 3).join(", ")}` : ""
+                }. ${q.watchOutFor ? `Watch out: ${q.watchOutFor}` : ""}`}
+              />
             </p>
           </li>
         )}

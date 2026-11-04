@@ -27,8 +27,8 @@ export function Chip({ children }: { children: ReactNode }) {
   );
 }
 
-export function Container({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`mx-auto w-full max-w-6xl px-4 sm:px-6 ${className}`}>{children}</div>;
+export function Container({ children, className = "", wide = false }: { children: ReactNode; className?: string; wide?: boolean }) {
+  return <div className={`mx-auto w-full ${wide ? "max-w-[1600px]" : "max-w-6xl"} px-4 sm:px-6 ${className}`}>{children}</div>;
 }
 
 export function PageHeader({ eyebrow, title, intro }: { eyebrow?: string; title: string; intro?: ReactNode }) {

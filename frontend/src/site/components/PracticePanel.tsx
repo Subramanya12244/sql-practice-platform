@@ -17,6 +17,7 @@ export default function PracticePanel({
   fresh = false,
   playground = false,
   lessonKey,
+  fill = false,
 }: {
   question: Question;
   onSolved?: (r: SubmitResult) => void;
@@ -26,6 +27,8 @@ export default function PracticePanel({
   playground?: boolean;
   /** Learning-path exercise: graded, but tracked under this key instead of a question number. */
   lessonKey?: string;
+  /** Stretch to the parent's height (question workspace) instead of fixed heights. */
+  fill?: boolean;
 }) {
   const progress = useProgress();
   const saved = lessonKey ? undefined : progress.questions[question.number];
@@ -119,7 +122,7 @@ export default function PracticePanel({
 
   return (
     <div
-      className="flex flex-col overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel"
+      className={`flex flex-col overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel ${fill ? "lg:min-h-full lg:shrink-0" : ""}`}
       onPointerDownCapture={() => setWantDb(true)}
       onFocusCapture={() => setWantDb(true)}
     >
@@ -151,7 +154,7 @@ export default function PracticePanel({
           </span>
         )}
       </div>
-      <div className="h-[320px] sm:h-[360px]">
+      <div className={fill ? "h-[320px] sm:h-[360px] lg:h-[46vh] lg:min-h-[260px]" : "h-[320px] sm:h-[360px]"}>
         <SqlEditor
           value={sql}
           onChange={onChange}
