@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { clearLocalData, dataSink, mergeById, mergeProject, pickRules, projectToRows, setDataSink, startDataSync, type ProjectRow } from "../site/lib/dataSync";
 import { addSession, getSessions } from "../site/lib/vizHistory";
-import { getProjectProgress } from "../site/lib/projects";
+import { getProjectProgress, projectStatus } from "../site/lib/projects";
+import { checklistCompletion, matchesSearch } from "../site/pages/AdminSubmissions";
 import { getRules, getRuns, saveRun } from "../site/lib/dataQuality";
 
 describe("merge rules", () => {
@@ -100,5 +101,51 @@ describe("sign-in sync", () => {
     expect(writes.filter((w) => w.table === "query_visualization_sessions")).toHaveLength(1);
     clearLocalData();
     expect(getSessions("q2")).toEqual([]);
+  });
+});
+
+describe("submission review on the learner side", () => {
+  const tasks = [{ id: "load", type: "sql" }, { id: "review", type: "checklist" }] as Parameters<typeof projectStatus>[0]["tasks"];
+  const passedAll = { load: { passed: true, at: "2026-01-01" } };
+
+  it("checklist rows never become tasks, so they cannot count as passed", () => {
+    const m = mergeProject({ tasks: {}, checklist: {} }, [
+      { project_slug: "p", task_id: "checklist:review", passed: false, code: "[true]", message: null, updated_at: "2026-01-01" },
+    ], []);
+    expect(Object.keys(m.tasks)).toEqual([]);
+    expect(projectStatus({ tasks }, m)).toBe("In progress");
+  });
+
+  it("only a reviewer decision completes a project with manual steps", () => {
+    const sub = (status?: "Submitted" | "Completed" | "Changes requested" | "Rejected", comment?: string) =>
+      mergeProject({ tasks: passedAll, checklist: { review: [true] } }, [], [
+        { project_slug: "p", repo_url: null, notes: null, checklist: {}, created_at: "2026-02-01T10:00:00.000+00:00", status, review_comment: comment ?? null, reviewed_at: null },
+      ]);
+    expect(projectStatus({ tasks }, sub("Submitted"))).toBe("Under evaluation");
+    expect(projectStatus({ tasks }, sub("Changes requested", "Add tests"))).toBe("Changes requested");
+    expect(sub("Changes requested", "Add tests").submission?.review?.comment).toBe("Add tests");
+    expect(projectStatus({ tasks }, sub("Rejected"))).toBe("Rejected");
+    expect(projectStatus({ tasks }, sub("Completed"))).toBe("Completed");
+  });
+
+  it("matches the same submission across timestamp formats instead of duplicating it", async () => {
+    localStorage.clear();
+    localStorage.setItem("sqlp.project.p", JSON.stringify({ tasks: passedAll, checklist: {}, submission: { at: "2026-02-01T10:00:00.000Z" } }));
+    const { sb, writes } = fakeClient({
+      project_submissions: [{ project_slug: "p", repo_url: null, notes: null, checklist: {}, created_at: "2026-02-01T10:00:00+00:00", status: "Completed", review_comment: "ok", reviewed_at: null }],
+    });
+    await startDataSync(sb, "u1");
+    expect(writes.some((w) => w.table === "project_submissions")).toBe(false);
+    expect(getProjectProgress("p").submission?.review?.status).toBe("Completed");
+  });
+});
+
+describe("admin review helpers", () => {
+  const row = { id: 1, user_id: "u", project_slug: "csv-etl", repo_url: "https://github.com/a/b", notes: "used dbt", checklist: { a: [true, false], b: [true] }, status: "Submitted" as const, review_comment: null, reviewed_by: null, reviewed_at: null, created_at: "" };
+  it("counts checklist completion and searches every word", () => {
+    expect(checklistCompletion(row.checklist)).toEqual({ done: 2, total: 3 });
+    expect(checklistCompletion(null)).toEqual({ done: 0, total: 0 });
+    expect(matchesSearch(row, "learner_a", "CSV to Postgres", "learner dbt")).toBe(true);
+    expect(matchesSearch(row, "learner_a", "CSV to Postgres", "learner spark")).toBe(false);
   });
 });

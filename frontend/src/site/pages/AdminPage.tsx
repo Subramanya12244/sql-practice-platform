@@ -5,6 +5,7 @@ import { Seo } from "../lib/seo";
 import { useAuth } from "../lib/auth";
 import { getSupabase } from "../lib/supabase";
 import { setChallenge, setHidden, weekStart } from "../lib/community";
+import { AdminSubmissions } from "./AdminSubmissions";
 
 interface CommentAdminRow {
   id: number;
@@ -104,7 +105,7 @@ interface AuditRow {
   created_at: string;
 }
 
-const ACTIONS = ["", "signup", "login", "logout", "submit", "solve", "mock_finish", "password_change", "role_change", "progress_import", "solution_share", "comment", "comment_hide"];
+const ACTIONS = ["", "signup", "login", "logout", "submit", "solve", "mock_finish", "password_change", "role_change", "progress_import", "solution_share", "comment", "comment_hide", "submission_review"];
 const PAGE = 50;
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const th = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-ink-faint";
@@ -247,6 +248,7 @@ export function AdminPage() {
           <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="rounded-lg border border-surface-border px-3 py-1.5 disabled:opacity-50">Newer</button>
           <button type="button" disabled={!hasMore} onClick={() => setPage((p) => p + 1)} className="rounded-lg border border-surface-border px-3 py-1.5 disabled:opacity-50">Older</button>
         </div>
+        <AdminSubmissions name={name} users={users} onChange={() => void loadAudit()} />
         <Moderation name={name} onChange={() => void loadAudit()} />
       </>
     );

@@ -263,7 +263,7 @@ Site-wide search opens with ⌘K. Notes, patterns, maps and questions all link t
   - queries that use `random()`/`now()` and similar get explanations only, never derived rows
   - sessions are saved per attempt
 - `scripts/check_python_blocks.py` runs every Python example and task. CI runs it too.
-- Supabase migration `003_dataforge.sql` adds tables for visualization sessions, project progress and submissions, and data quality rules and runs, each with RLS. Until an account sync is wired in, the browser keeps this data in local storage.
+- Supabase migration `003_dataforge.sql` adds tables for visualization sessions, project progress and submissions, and data quality rules and runs, each with RLS. When signed in, this data syncs to the account. Migration `004_submission_review.sql` adds admin review of submissions; see [docs/SUPABASE.md](docs/SUPABASE.md).
 
 **SQL intelligence tools:** these all run in the browser on PGlite.
 - `/ai-tutor`: 5-level hints that record when you used help, rule-based query explanations, a schema check, and result checks verified by the database. The AI chat is off unless `VITE_TUTOR_ENDPOINT` points to a server-side proxy; see [docs/INTELLIGENCE_PLAN.md](docs/INTELLIGENCE_PLAN.md).
@@ -330,6 +330,7 @@ The schema and RLS policies are in `supabase/migrations/001_accounts.sql`:
    - comments, with a limit of 20 per hour; admins can hide them, which is logged in the audit log
    - the weekly challenge, set from `/admin`
    - public profiles (opt-in on `/account`) and the `/leaderboard`
+8. **DataForge sync and submission review:** run `003_dataforge.sql`, then `004_submission_review.sql`. Setup, roles and the two-browser test are in [docs/SUPABASE.md](docs/SUPABASE.md).
 
 You can test the RLS policies locally against plain Postgres:
 ```bash
@@ -337,6 +338,7 @@ createdb authtest && psql -d authtest -f supabase/tests/auth_stub.sql \
   && psql -d authtest -f supabase/migrations/001_accounts.sql && psql -d authtest -f supabase/migrations/002_community.sql \
   && psql -d authtest -f supabase/tests/rls_test.sql && psql -d authtest -f supabase/tests/rls_test_002.sql
 ```
+Without Postgres installed, `cd frontend && npx vitest run src/test/supabaseRls.test.ts` applies 001–004 on PGlite and checks RLS, isolation and the review workflow.
 
 ### Automatic deploys (GitHub Actions)
 

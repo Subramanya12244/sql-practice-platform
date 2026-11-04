@@ -55,12 +55,14 @@ export const loadProjectIndex = async (): Promise<ProjectMeta[]> =>
 export const loadProject = async (slug: string) => (await loadAllProjects()).find((p) => p.slug === slug);
 
 // ── Progress (this browser) ────────────────────────────────────────────────
-export type ProjectStatus = "Not started" | "In progress" | "Submitted" | "Under evaluation" | "Completed";
+export type ProjectStatus = "Not started" | "In progress" | "Submitted" | "Under evaluation" | "Completed" | "Changes requested" | "Rejected";
+/** Set only by an admin review on the account (migration 004); never set in the browser. */
+export type ReviewStatus = "Submitted" | "Under evaluation" | "Completed" | "Changes requested" | "Rejected";
 
 export interface ProjectProgress {
   tasks: Record<string, { passed: boolean; code?: string; at: string; message?: string }>;
   checklist: Record<string, boolean[]>;
-  submission?: { url?: string; notes?: string; at: string };
+  submission?: { url?: string; notes?: string; at: string; review?: { status: ReviewStatus; comment?: string; at?: string } };
 }
 
 const KEY = (slug: string) => `sqlp.project.${slug}`;
@@ -87,11 +89,14 @@ export function saveProjectProgress(slug: string, p: ProjectProgress, submitted 
  * - Under evaluation: submitted, all automated tasks pass, but manual steps need a reviewer.
  * - Submitted: the learner submitted before every automated task passed.
  * - In progress: anything attempted. Opening a project changes nothing.
+ * A reviewer's decision on the latest submission (Completed / Changes requested / Rejected) takes precedence.
  */
 export function projectStatus(project: Pick<Project, "tasks">, p: ProjectProgress): ProjectStatus {
   const automated = project.tasks.filter((t) => t.type !== "checklist");
   const manual = project.tasks.filter((t) => t.type === "checklist");
   const allPassed = automated.length > 0 && automated.every((t) => p.tasks[t.id]?.passed);
+  const reviewed = p.submission?.review?.status;
+  if (reviewed === "Completed" || reviewed === "Changes requested" || reviewed === "Rejected") return reviewed;
   if (allPassed && manual.length === 0) return "Completed";
   if (p.submission) return allPassed ? "Under evaluation" : "Submitted";
   const touched = Object.keys(p.tasks).length > 0 || Object.values(p.checklist).some((c) => c.some(Boolean));

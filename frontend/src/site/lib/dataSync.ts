@@ -6,7 +6,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { VizSession } from "./vizHistory";
-import type { ProjectProgress } from "./projects";
+import type { ProjectProgress, ReviewStatus } from "./projects";
 import type { QualityRun, Rule } from "./dataQuality";
 
 export interface DataSink {
@@ -27,7 +27,11 @@ export interface VizRow {
   volatile: string[] | null; created_at: string;
 }
 export interface ProjectRow { project_slug: string; task_id: string; passed: boolean; code: string | null; message: string | null; updated_at: string }
-export interface SubmissionRow { project_slug: string; repo_url: string | null; notes: string | null; checklist: Record<string, boolean[]>; created_at: string }
+export interface SubmissionRow {
+  project_slug: string; repo_url: string | null; notes: string | null; checklist: Record<string, boolean[]>; created_at: string;
+  /** Review fields exist from migration 004 on. */
+  status?: ReviewStatus; review_comment?: string | null; reviewed_at?: string | null;
+}
 export interface RuleRow { dataset: string; rule: Rule; created_at: string }
 export interface RunRow { id: string; dataset: string; score: number | null; results: QualityRun["results"]; created_at: string }
 
@@ -81,9 +85,14 @@ export function mergeProject(local: ProjectProgress, rows: ProjectRow[], subs: S
     else if (theirs.passed && !mine.passed) out.tasks[r.task_id] = theirs;
     else if (theirs.passed === mine.passed && theirs.at > mine.at) out.tasks[r.task_id] = theirs;
   }
-  const latest = [...subs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-  if (latest && (!out.submission || latest.created_at > out.submission.at)) {
-    out.submission = { url: latest.repo_url ?? undefined, notes: latest.notes ?? undefined, at: latest.created_at };
+  // Postgres and the browser format timestamps differently, so compare as times.
+  const ms = (s: string) => new Date(s).getTime();
+  const latest = [...subs].sort((a, b) => ms(b.created_at) - ms(a.created_at))[0];
+  if (latest && (!out.submission || ms(latest.created_at) >= ms(out.submission.at))) {
+    out.submission = {
+      url: latest.repo_url ?? undefined, notes: latest.notes ?? undefined, at: latest.created_at,
+      review: latest.status ? { status: latest.status, comment: latest.review_comment ?? undefined, at: latest.reviewed_at ?? undefined } : undefined,
+    };
   }
   return out;
 }
@@ -119,7 +128,7 @@ export async function startDataSync(sb: SupabaseClient, userId: string) {
   const [viz, prog, subs, rules, runs] = await Promise.all([
     sb.from("query_visualization_sessions").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(1000),
     sb.from("project_progress").select("project_slug, task_id, passed, code, message, updated_at").eq("user_id", userId),
-    sb.from("project_submissions").select("project_slug, repo_url, notes, checklist, created_at").eq("user_id", userId),
+    selectSubmissions(sb, userId),
     sb.from("data_quality_rules").select("dataset, rule, created_at").eq("user_id", userId),
     sb.from("data_quality_runs").select("id, dataset, score, results, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(500),
   ]);
@@ -149,8 +158,8 @@ export async function startDataSync(sb: SupabaseClient, userId: string) {
       writeJson(KEYS.project + slug, merged);
       const out = projectToRows(slug, merged);
       if (out.length) pushes.push(sb.from("project_progress").upsert(out.map((r) => ({ ...r, user_id: userId }))));
-      const remoteSubAts = new Set(subRows.filter((s) => s.project_slug === slug).map((s) => s.created_at.slice(0, 19)));
-      if (local.submission && !remoteSubAts.has(local.submission.at.slice(0, 19))) pushes.push(insertSubmission(sb, userId, slug, merged, local.submission.at));
+      const remoteSubAts = new Set(subRows.filter((s) => s.project_slug === slug).map((s) => new Date(s.created_at).getTime()));
+      if (local.submission && !remoteSubAts.has(new Date(local.submission.at).getTime())) pushes.push(insertSubmission(sb, userId, slug, merged, local.submission.at));
     }
   }
 
@@ -196,6 +205,13 @@ export async function startDataSync(sb: SupabaseClient, userId: string) {
       void sb.from("data_quality_runs").insert({ ...runToRow(run), user_id: userId });
     },
   });
+}
+
+/** Review columns arrive with migration 004; fall back to the 003 columns before it is applied. */
+async function selectSubmissions(sb: SupabaseClient, userId: string) {
+  const base = "project_slug, repo_url, notes, checklist, created_at";
+  const full = await sb.from("project_submissions").select(`${base}, status, review_comment, reviewed_at`).eq("user_id", userId);
+  return full.error ? sb.from("project_submissions").select(base).eq("user_id", userId) : full;
 }
 
 const runToRow = (x: QualityRun): RunRow => ({

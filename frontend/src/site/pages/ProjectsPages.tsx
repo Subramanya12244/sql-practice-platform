@@ -21,6 +21,8 @@ const STATUS_TONE: Record<ProjectStatus, string> = {
   Submitted: "bg-warn-dim text-warn",
   "Under evaluation": "bg-warn-dim text-warn",
   Completed: "bg-success-dim text-success",
+  "Changes requested": "bg-warn-dim text-warn",
+  Rejected: "bg-danger-dim text-danger",
 };
 function StatusChip({ s }: { s: ProjectStatus }) {
   return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_TONE[s]}`}>{s}</span>;
@@ -269,6 +271,11 @@ export function ProjectPage() {
         {err && <p role="alert" className="mt-2 text-sm text-danger">{err}</p>}
         <button type="button" onClick={submit} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white"><Send className="h-4 w-4" aria-hidden /> {progress.submission ? "Update submission" : "Submit"}</button>
         {progress.submission && <p className="mt-2 text-xs text-ink-faint">Submitted {new Date(progress.submission.at).toLocaleString()}.</p>}
+        {progress.submission?.review?.comment && (
+          <p className="mt-2 rounded-lg border border-surface-border bg-surface-raised px-3 py-2 text-sm text-ink">
+            <span className="font-semibold">Reviewer ({progress.submission.review.status}):</span> {progress.submission.review.comment}
+          </p>
+        )}
       </section>
     </Container>
   );
