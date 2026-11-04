@@ -4,6 +4,76 @@ import { Container, PageHeader } from "../components/ui";
 import { Seo } from "../lib/seo";
 import { useAuth } from "../lib/auth";
 import { getSupabase } from "../lib/supabase";
+import { setChallenge, setHidden, weekStart } from "../lib/community";
+
+interface CommentAdminRow {
+  id: number;
+  question_number: number;
+  user_id: string;
+  body: string;
+  hidden: boolean;
+  created_at: string;
+}
+
+/** Recent comments with hide/unhide, plus this week's challenge questions. */
+function Moderation({ name, onChange }: { name: (id: string | null) => string; onChange: () => void }) {
+  const [rows, setRows] = useState<CommentAdminRow[]>([]);
+  const [nums, setNums] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    const sb = await getSupabase();
+    const { data } = await sb.from("comments").select("id, question_number, user_id, body, hidden, created_at").order("created_at", { ascending: false }).limit(50);
+    setRows((data ?? []) as CommentAdminRow[]);
+  }, []);
+  useEffect(() => void load(), [load]);
+
+  return (
+    <>
+      <h2 className="mt-10 font-display text-xl font-bold text-ink">Comments</h2>
+      <div className="mt-3 overflow-x-auto rounded-card border border-surface-border">
+        <table className="w-full min-w-[560px]">
+          <thead className="bg-surface-raised"><tr><th className={th}>Time</th><th className={th}>User</th><th className={th}>Q</th><th className={th}>Comment</th><th className={th} /></tr></thead>
+          <tbody className="divide-y divide-surface-border">
+            {rows.map((c) => (
+              <tr key={c.id} className={c.hidden ? "opacity-60" : ""}>
+                <td className={td}>{fmt(c.created_at)}</td>
+                <td className={td}>{name(c.user_id)}</td>
+                <td className={td}>Q{c.question_number}</td>
+                <td className={`${td} max-w-md truncate`} title={c.body}>{c.body}</td>
+                <td className={td}>
+                  <button type="button" className="text-xs underline" onClick={() => setHidden("comments", c.id, !c.hidden).then(() => { void load(); onChange(); })}>
+                    {c.hidden ? "Unhide" : "Hide"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {!rows.length && <tr><td className={td} colSpan={5}>No comments yet.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="mt-10 font-display text-xl font-bold text-ink">Weekly challenge</h2>
+      <form
+        className="mt-3 flex flex-wrap items-center gap-2 text-sm"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const list = nums.split(/[\s,]+/).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+          try {
+            await setChallenge(weekStart(), list);
+            setMsg(`Set week of ${weekStart()} to Q${list.join(", Q")}.`);
+          } catch (ex) {
+            setMsg((ex as Error).message);
+          }
+        }}
+      >
+        <input value={nums} onChange={(e) => setNums(e.target.value)} placeholder="Question numbers, e.g. 14, 64, 101" aria-label="Challenge question numbers"
+          className="rounded-lg border border-surface-border bg-surface px-3 py-1.5 text-ink" />
+        <button className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white">Set this week</button>
+        {msg && <span className="text-ink-muted">{msg}</span>}
+      </form>
+    </>
+  );
+}
 
 interface Stats {
   users: number;
@@ -34,7 +104,7 @@ interface AuditRow {
   created_at: string;
 }
 
-const ACTIONS = ["", "signup", "login", "logout", "submit", "solve", "mock_finish", "password_change", "role_change", "progress_import"];
+const ACTIONS = ["", "signup", "login", "logout", "submit", "solve", "mock_finish", "password_change", "role_change", "progress_import", "solution_share", "comment", "comment_hide"];
 const PAGE = 50;
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const th = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-ink-faint";
@@ -177,6 +247,7 @@ export function AdminPage() {
           <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="rounded-lg border border-surface-border px-3 py-1.5 disabled:opacity-50">Newer</button>
           <button type="button" disabled={!hasMore} onClick={() => setPage((p) => p + 1)} className="rounded-lg border border-surface-border px-3 py-1.5 disabled:opacity-50">Older</button>
         </div>
+        <Moderation name={name} onChange={() => void loadAudit()} />
       </>
     );
 

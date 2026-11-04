@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect } from "react";
 
-export const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://sql-practice.pages.dev").replace(/\/$/, "");
+export const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://sql-practice-lab.sql-practice-frontend.workers.dev").replace(/\/$/, "");
 export const SITE_NAME = "SQL Practice Lab";
 
 export interface HeadData {
@@ -10,6 +10,8 @@ export interface HeadData {
   type?: "website" | "article";
   noindex?: boolean;
   jsonLd?: object[];
+  /** Site-relative social preview image; defaults to the generic card. */
+  image?: string;
 }
 
 /** During prerender, pages write their head data here; the script injects it into the HTML. */
@@ -41,7 +43,7 @@ export function renderHeadTags(h: HeadData): string {
     `<meta property="og:title" content="${escapeAttr(title)}" />`,
     `<meta property="og:description" content="${escapeAttr(h.description)}" />`,
     `<meta property="og:url" content="${url}" />`,
-    `<meta property="og:image" content="${SITE_URL}/og-image.png" />`,
+    `<meta property="og:image" content="${SITE_URL}${h.image ?? "/og-image.png"}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${escapeAttr(title)}" />`,
     `<meta name="twitter:description" content="${escapeAttr(h.description)}" />`,

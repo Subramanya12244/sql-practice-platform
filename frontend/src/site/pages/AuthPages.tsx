@@ -4,6 +4,32 @@ import { Container } from "../components/ui";
 import { Seo } from "../lib/seo";
 import { useAuth } from "../lib/auth";
 import { USERNAME_RE } from "../lib/account";
+import { setPublicProfile } from "../lib/community";
+
+function PublicToggle() {
+  const { session, profile } = useAuth();
+  const [on, setOn] = useState(Boolean(profile?.public_profile));
+  const [err, setErr] = useState<string | null>(null);
+  if (!session || profile?.public_profile === undefined) return null;
+  return (
+    <div className="mt-6 border-t border-surface-border pt-4 text-sm">
+      <label className="flex items-center gap-2 text-ink">
+        <input
+          type="checkbox"
+          checked={on}
+          onChange={(e) => {
+            const next = e.target.checked;
+            setOn(next);
+            setPublicProfile(session.user.id, next).catch((ex: Error) => { setOn(!next); setErr(ex.message); });
+          }}
+        />
+        Public profile (appear on the leaderboard)
+      </label>
+      {on && <Link className="mt-1 block text-accent underline" to={`/profile?u=${encodeURIComponent(profile.username)}`}>View my public profile</Link>}
+      {err && <p role="alert" className="text-danger">{err}</p>}
+    </div>
+  );
+}
 
 const input =
   "mt-1 w-full rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30";
@@ -223,6 +249,7 @@ export function AccountPage() {
             {msg && <p role={msg.ok ? "status" : "alert"} className={`text-sm ${msg.ok ? "text-accent" : "text-danger"}`}>{msg.text}</p>}
             <button className={primary}>Change password</button>
           </form>
+          <PublicToggle />
           <button type="button" onClick={() => signOut().then(() => navigate("/"))} className="mt-6 text-sm text-ink-muted underline hover:text-ink">
             Sign out
           </button>

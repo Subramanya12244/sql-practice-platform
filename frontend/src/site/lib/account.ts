@@ -16,6 +16,8 @@ export interface ProgressRow {
   attempts: number;
   solved_at: string | null;
   revealed: boolean;
+  review_box?: number | null;
+  review_due?: string | null;
 }
 
 export interface MockRow {
@@ -40,6 +42,10 @@ function mergeQuestion(local: QuestionProgress | undefined, row: ProgressRow): Q
     attempts: Math.max(local?.attempts ?? 0, row.attempts),
     solvedAt: earliest(local?.solvedAt, row.solved_at ?? undefined),
     revealed: Boolean(local?.revealed || row.revealed) || undefined,
+    // Keep whichever schedule has progressed further.
+    ...((row.review_box ?? 0) > (local?.reviewBox ?? 0)
+      ? { reviewBox: row.review_box ?? undefined, reviewDue: row.review_due ?? undefined }
+      : {}),
   };
 }
 
@@ -87,5 +93,7 @@ export function progressToRows(p: Progress): ProgressRow[] {
       attempts: q.attempts,
       solved_at: q.solvedAt ?? null,
       revealed: Boolean(q.revealed),
+      review_box: q.reviewBox ?? null,
+      review_due: q.reviewDue ?? null,
     }));
 }

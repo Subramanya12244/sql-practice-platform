@@ -7,6 +7,9 @@ export interface QuestionProgress {
   solvedAt?: string;
   lastSql?: string;
   revealed?: boolean;
+  /** Re-solve schedule for the review queue (Leitner box 1–5, next due day). */
+  reviewBox?: number;
+  reviewDue?: string;
 }
 
 export interface Progress {
@@ -115,6 +118,18 @@ export function reviewCard(num: number, knewIt: boolean) {
     activeDays: addDay(p.activeDays, today()),
   });
   sink?.state(current);
+}
+
+/** Re-solving a solved question from the review queue moves it up a box; a miss sends it back to box 1. */
+export function reviewQuestion(num: number, correct: boolean) {
+  const p = read();
+  const prev = p.questions[num];
+  if (!prev?.solvedAt) return;
+  const box = correct ? Math.min(5, (prev.reviewBox ?? 1) + 1) : 1;
+  const due = new Date(Date.now() + BOX_DAYS[box] * 86_400_000).toISOString().slice(0, 10);
+  const q = { ...prev, reviewBox: box, reviewDue: due };
+  write({ ...p, questions: { ...p.questions, [num]: q }, activeDays: addDay(p.activeDays, today()) });
+  sink?.question(num, q, false);
 }
 
 export function recordMock(entry: { solved: number; total: number; usedSec: number; durationMin: number }) {

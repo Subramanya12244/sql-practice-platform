@@ -41,3 +41,8 @@ if (embedded) {
     createRoot(root).render(app({ path: window.location.pathname, data, notFound }));
   });
 }
+
+// Offline support for production builds only; dev keeps fresh modules.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => undefined));
+}

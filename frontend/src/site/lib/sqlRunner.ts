@@ -1,5 +1,5 @@
 import type { ExecuteResult, SubmitResult } from "../../types";
-import { compareResults, type OrderKey } from "./resultCompare";
+import { compareResults, rowDiff, type OrderKey } from "./resultCompare";
 
 /** The subset of PGlite / PGliteWorker this module uses. */
 export interface SqlDb {
@@ -108,5 +108,9 @@ export async function submit(
     your_row_count: cmp.yourRowCount,
     expected_row_count: cmp.expectedRowCount,
     level_changed: false,
+    diff:
+      !cmp.match && user.columns.length === expected.columns.length
+        ? { columns: expected.columns, ...rowDiff(user.rows, expected.rows) }
+        : null,
   };
 }

@@ -2,7 +2,7 @@ import { matchPath, type Params } from "react-router-dom";
 import type { ReactElement } from "react";
 import type { PageData } from "./types";
 import { loadIndex, loadQuestion, loadSchema, loadTopics } from "./lib/data";
-import { guideSlugs, loadAllGuides, loadCheatsheet, loadGuide, loadLesson, loadLessonSummaries } from "./lib/content";
+import { guideSlugs, loadAllGuides, loadCheatsheet, loadGuide, loadLesson, loadLessonSummaries, loadAllSets } from "./lib/content";
 import { HomePage } from "./pages/HomePage";
 import { QuestionsPage } from "./pages/QuestionsPage";
 import { TopicPage } from "./pages/TopicPage";
@@ -19,6 +19,9 @@ import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { AccountPage, LoginPage, SignupPage } from "./pages/AuthPages";
 import { AdminPage } from "./pages/AdminPage";
 import { LearnPage, LessonPage } from "./pages/LearnPages";
+import { ReviewPage } from "./pages/ReviewPage";
+import { ChallengePage, LeaderboardPage, ProfilePage } from "./pages/CommunityPages";
+import { InterviewSetPage, InterviewSetsPage } from "./pages/InterviewSetPages";
 
 export interface SiteRoute {
   path: string;
@@ -85,6 +88,10 @@ export const routes: SiteRoute[] = [
     paths: one("/cheatsheet"),
   },
   { path: "/progress", element: <ProgressPage />, load: base, paths: one("/progress") },
+  { path: "/review", element: <ReviewPage />, load: base, paths: one("/review") },
+  { path: "/challenge", element: <ChallengePage />, load: base, paths: one("/challenge") },
+  { path: "/leaderboard", element: <LeaderboardPage />, load: base, paths: one("/leaderboard") },
+  { path: "/profile", element: <ProfilePage />, load: base, paths: one("/profile") },
   {
     path: "/schema",
     element: <SchemaPage />,
@@ -117,6 +124,21 @@ export const routes: SiteRoute[] = [
       return lesson ? { ...(await base()), lesson, lessons: await loadLessonSummaries() } : null;
     },
     paths: async () => (await loadLessonSummaries()).map((l) => `/learn/${l.slug}`),
+  },
+  {
+    path: "/interview",
+    element: <InterviewSetsPage />,
+    load: async () => ({ ...(await base()), sets: (await loadAllSets()).map(({ slug, title, description }) => ({ slug, title, description })) }),
+    paths: one("/interview"),
+  },
+  {
+    path: "/interview/:slug",
+    element: <InterviewSetPage />,
+    load: async ({ slug }) => {
+      const set = (await loadAllSets()).find((s) => s.slug === slug);
+      return set ? { ...(await base()), set } : null;
+    },
+    paths: async () => (await loadAllSets()).map((s) => `/interview/${s.slug}`),
   },
   // Account pages render a shell at build time; everything else happens in the browser.
   { path: "/login", element: <LoginPage />, load: base, paths: one("/login") },

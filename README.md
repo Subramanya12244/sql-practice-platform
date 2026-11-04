@@ -238,7 +238,11 @@ npm run preview:site   # http://localhost:4174
 one `q/<slug>.json` per question, `northwind.sql`). Commit that folder so hosting builds
 don't need the question repo. Concept guides live in `frontend/src/site/content/*.md`.
 
-### Deploy on Cloudflare Pages (free `*.pages.dev`)
+### Deploy on Cloudflare (free)
+
+Live: https://sql-practice-lab.sql-practice-frontend.workers.dev. To deploy by hand: `cd frontend && npm run build:site && npx wrangler deploy -c wrangler.jsonc`.
+
+Alternatively, Cloudflare Pages (`*.pages.dev`):
 
 1. Push this repo to GitHub (`.env` is git-ignored; check `git status` before the first commit).
 2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → pick the repo.
@@ -281,11 +285,31 @@ The schema and RLS policies are in `supabase/migrations/001_accounts.sql`:
 
    The anon key is public by design, and RLS protects the data. Never put the service-role key in a `VITE_` variable.
 
+7. **Community features:** run `supabase/migrations/002_community.sql` as well. It adds:
+   - shared solutions (visible only to people who solved the question) and likes
+   - comments, with a limit of 20 per hour; admins can hide them, which is logged in the audit log
+   - the weekly challenge, set from `/admin`
+   - public profiles (opt-in on `/account`) and the `/leaderboard`
+
 You can test the RLS policies locally against plain Postgres:
 ```bash
 createdb authtest && psql -d authtest -f supabase/tests/auth_stub.sql \
-  && psql -d authtest -f supabase/migrations/001_accounts.sql && psql -d authtest -f supabase/tests/rls_test.sql
+  && psql -d authtest -f supabase/migrations/001_accounts.sql && psql -d authtest -f supabase/migrations/002_community.sql \
+  && psql -d authtest -f supabase/tests/rls_test.sql && psql -d authtest -f supabase/tests/rls_test_002.sql
 ```
+
+### Automatic deploys (GitHub Actions)
+
+`.github/workflows/deploy.yml` runs on every push to `main`: it tests, prerenders, and then deploys with `wrangler deploy -c frontend/wrangler.jsonc`. To set it up, go to the repo's **Settings → Secrets and variables → Actions**:
+- **Secrets:**
+  - `CLOUDFLARE_API_TOKEN`: create it in Cloudflare → My Profile → API Tokens, from the "Edit Cloudflare Workers" template.
+  - `CLOUDFLARE_ACCOUNT_ID`
+- **Variables (optional):**
+  - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+  - `VITE_GSC_TOKEN`: the Search Console HTML-tag verification code
+  - `VITE_CF_BEACON`: the Cloudflare Web Analytics token, which is cookie-free
+
+If the token secret is missing, the workflow still tests and builds, and skips the deploy.
 
 ---
 

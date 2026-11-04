@@ -12,3 +12,9 @@
 
 /*.wasm
   Content-Type: application/wasm
+
+/sw.js
+  Cache-Control: no-cache
+
+/og/*
+  Cache-Control: public, max-age=86400

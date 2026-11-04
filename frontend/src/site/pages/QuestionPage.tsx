@@ -1,6 +1,8 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, ArrowRight, Lightbulb } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight } from "lucide-react";
+import { HintLadder } from "../components/HintLadder";
+import { Comments, CommunitySolutions } from "../components/Community";
 import { usePage } from "../SiteApp";
 import { InlineMarkdown, Markdown } from "../components/Markdown";
 import { Chip, Container, Difficulty, Skeleton } from "../components/ui";
@@ -89,6 +91,7 @@ export function QuestionPage() {
         path={path}
         type="article"
         jsonLd={jsonLd}
+        image={`/og/${q.slug}.png`}
       />
 
       <nav aria-label="Breadcrumb" className="text-sm text-ink-faint">
@@ -132,12 +135,9 @@ export function QuestionPage() {
             </div>
           )}
 
-          <details className="mt-6 rounded-card border border-surface-border bg-surface-raised p-4">
-            <summary className="flex cursor-pointer items-center gap-2 font-semibold text-ink">
-              <Lightbulb className="h-4 w-4 text-warn" aria-hidden /> Hint: what to watch out for
-            </summary>
-            <p className="mt-3 text-sm text-ink-muted"><InlineMarkdown source={q.watchOutFor} /></p>
-          </details>
+          <div className="mt-6">
+            <HintLadder q={q} />
+          </div>
 
           {data.schema && (
             <div className="mt-6">
@@ -199,6 +199,9 @@ export function QuestionPage() {
             </div>
           </Section>
         )}
+
+        <CommunitySolutions number={q.number} />
+        <Comments number={q.number} />
 
         {q.pitfalls.length > 0 && (
           <Section id="pitfalls" title="Common pitfalls">

@@ -64,6 +64,14 @@ export interface ConceptGuide {
   body: string;
 }
 
+export interface InterviewSet {
+  slug: string;
+  title: string;
+  description: string;
+  questions: string[];
+  body: string;
+}
+
 export interface LessonExercise {
   index: number;
   prompt: string;
@@ -109,4 +117,6 @@ export interface PageData {
   schema?: SchemaTable[];
   lesson?: Lesson;
   lessons?: LessonSummary[];
+  set?: InterviewSet;
+  sets?: Pick<InterviewSet, "slug" | "title" | "description">[];
 }

@@ -160,3 +160,30 @@ export function compareResults(
 
   return { ...base, match: true, message: CORRECT, feedback: [] };
 }
+
+/**
+ * Multiset difference between two results with the same column count: rows the
+ * expected result has that yours lacks, and rows you return that it doesn't.
+ */
+export function rowDiff(userRows: unknown[][], expectedRows: unknown[][], sample = 5) {
+  const counts = new Map<string, number>();
+  for (const r of expectedRows) counts.set(rowKey(r), (counts.get(rowKey(r)) ?? 0) + 1);
+  const extra: unknown[][] = [];
+  for (const r of userRows) {
+    const k = rowKey(r);
+    const n = counts.get(k) ?? 0;
+    if (n > 0) counts.set(k, n - 1);
+    else extra.push(r);
+  }
+  const missing: unknown[][] = [];
+  const left = new Map(counts);
+  for (const r of expectedRows) {
+    const k = rowKey(r);
+    const n = left.get(k) ?? 0;
+    if (n > 0) {
+      missing.push(r);
+      left.set(k, n - 1);
+    }
+  }
+  return { missing: missing.slice(0, sample), extra: extra.slice(0, sample), missingCount: missing.length, extraCount: extra.length };
+}

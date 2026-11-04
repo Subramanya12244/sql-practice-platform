@@ -9,6 +9,8 @@ export interface Profile {
   username: string;
   role: "user" | "admin";
   must_change_password: boolean;
+  /** Added by migration 002; absent before it is applied. */
+  public_profile?: boolean;
 }
 
 interface AuthState {
@@ -38,7 +40,7 @@ const remoteState = (p: Progress): RemoteState => ({ activeDays: p.activeDays, c
 /** Pull account progress, merge with this browser, push the union back, then mirror changes live. */
 async function startSync(sb: SupabaseClient, userId: string) {
   const [rows, prof, mocks] = await Promise.all([
-    sb.from("progress").select("question_number, attempts, solved_at, revealed").eq("user_id", userId),
+    sb.from("progress").select("question_number, attempts, solved_at, revealed, review_box, review_due").eq("user_id", userId),
     sb.from("profiles").select("state").eq("id", userId).single(),
     sb.from("mock_sessions").select("created_at, solved, total, used_sec, duration_min").eq("user_id", userId),
   ]);
@@ -70,6 +72,7 @@ async function startSync(sb: SupabaseClient, userId: string) {
       void sb.from("progress").upsert({
         user_id: userId, question_number: num, attempts: q.attempts,
         solved_at: q.solvedAt ?? null, revealed: Boolean(q.revealed), updated_at: new Date().toISOString(),
+        review_box: q.reviewBox ?? null, review_due: q.reviewDue ?? null,
       });
       log(solvedNow ? "solve" : "submit", { question: num, attempts: q.attempts });
     },
@@ -105,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProgressSink(null);
           return;
         }
-        const { data } = await sb.from("profiles").select("id, username, role, must_change_password").eq("id", uid).single();
+        const { data } = await sb.from("profiles").select("*").eq("id", uid).single();
         setProfile((data as Profile) ?? null);
         await startSync(sb, uid).catch(() => undefined);
       };

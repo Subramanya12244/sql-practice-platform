@@ -5,6 +5,7 @@ import { usePage } from "../SiteApp";
 import { Container, QuestionCard, Skeleton } from "../components/ui";
 import { SITE_NAME, SITE_URL, Seo } from "../lib/seo";
 import { today, useProgress } from "../lib/progress";
+import { PracticeNext } from "./ReviewPage";
 
 /** Same question for everyone on a given UTC day. */
 function dailyPick<T>(items: T[], day: string): T | undefined {
@@ -117,6 +118,10 @@ export function HomePage() {
             Start a mock interview <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>
+      </Container>
+
+      <Container>
+        <PracticeNext onlyIfStarted />
       </Container>
 
       <Container className="py-14">

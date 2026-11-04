@@ -70,6 +70,8 @@ export interface SubmitResult {
   consecutive_correct?: number | null;
   suggested_difficulty?: string | null;
   level_changed: boolean;
+  /** Sample of rows only in your result / only in the expected one (public site). */
+  diff?: { columns: string[]; missing: unknown[][]; extra: unknown[][]; missingCount: number; extraCount: number } | null;
 }
 
 export interface ResultTab {

@@ -1,4 +1,4 @@
-import type { ConceptGuide, Lesson, LessonSummary } from "../types";
+import type { ConceptGuide, InterviewSet, Lesson, LessonSummary } from "../types";
 import { parseGuide, parseLesson } from "./frontmatter";
 
 // Each guide becomes its own lazy chunk; only the page that needs it loads it.
@@ -54,4 +54,21 @@ export async function loadLessonSummaries(): Promise<LessonSummary[]> {
 
 export async function loadLesson(slug: string): Promise<Lesson | undefined> {
   return (await loadAllLessons()).find((l) => l.slug === slug);
+}
+
+const setFiles = import.meta.glob("../content/sets/*.md", {
+  query: "?raw",
+  import: "default",
+}) as Record<string, () => Promise<string>>;
+
+export async function loadAllSets(): Promise<InterviewSet[]> {
+  const all = await Promise.all(
+    Object.entries(setFiles).map(async ([p, load]) => {
+      const raw = await load();
+      const g = parseGuide(raw, slugOf(p));
+      const list = raw.match(/^questions:\s*\[([^\]]*)\]/m)?.[1] ?? "";
+      return { slug: g.slug, title: g.title, description: g.description, body: g.body, questions: list.split(",").map((s) => s.trim()).filter(Boolean) };
+    }),
+  );
+  return all.sort((a, b) => a.title.localeCompare(b.title));
 }

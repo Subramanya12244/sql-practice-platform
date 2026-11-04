@@ -9,6 +9,7 @@ import { useAuth } from "../lib/auth";
 const NAV = [
   { to: "/learn", label: "Learn" },
   { to: "/questions", label: "Practice" },
+  { to: "/interview", label: "Interview sets" },
   { to: "/mock-interview", label: "Mock interview" },
   { to: "/concepts", label: "Concepts" },
   { to: "/flashcards", label: "Flashcards" },
@@ -56,26 +57,26 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
       </a>
       <header className="sticky top-0 z-40 border-b border-surface-border bg-surface/85 backdrop-blur">
         <Container className="flex h-14 items-center gap-4">
-          <Link to="/" className="flex items-center gap-2 font-display text-base font-bold text-ink">
+          <Link to="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap font-display text-base font-bold text-ink">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-white">
               <Database className="h-4 w-4" aria-hidden />
             </span>
             {SITE_NAME}
           </Link>
-          <nav className="ml-4 hidden items-center gap-1 lg:flex" aria-label="Main">
+          <nav className="ml-4 hidden items-center gap-1 whitespace-nowrap xl:flex" aria-label="Main">
             {NAV.map((n) => (
               <NavLink key={n.to} to={n.to} className={linkClass}>
                 {n.label}
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto hidden items-center gap-2 lg:flex">
+          <div className="ml-auto hidden items-center gap-2 xl:flex">
             {account}
             <ThemeToggle compact />
           </div>
           <button
             type="button"
-            className="ml-auto rounded-lg p-2 text-ink-muted hover:bg-hover/5 lg:hidden"
+            className="ml-auto rounded-lg p-2 text-ink-muted hover:bg-hover/5 xl:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
@@ -84,7 +85,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
           </button>
         </Container>
         {open && (
-          <nav className="border-t border-surface-border lg:hidden" aria-label="Mobile">
+          <nav className="border-t border-surface-border xl:hidden" aria-label="Mobile">
             <Container className="flex flex-col gap-1 py-3">
               {NAV.map((n) => (
                 <NavLink key={n.to} to={n.to} className={linkClass}>
@@ -125,7 +126,11 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
             <ul className="mt-2 space-y-1.5">
               <li><Link className="hover:text-ink" to="/learn">Learn SQL (free course)</Link></li>
               <li><Link className="hover:text-ink" to="/questions">All practice questions</Link></li>
+              <li><Link className="hover:text-ink" to="/interview">SQL interview sets by role</Link></li>
               <li><Link className="hover:text-ink" to="/mock-interview">SQL mock interview</Link></li>
+              <li><Link className="hover:text-ink" to="/review">Review queue</Link></li>
+              <li><Link className="hover:text-ink" to="/challenge">Weekly SQL challenge</Link></li>
+              <li><Link className="hover:text-ink" to="/leaderboard">Leaderboard</Link></li>
               <li><Link className="hover:text-ink" to="/concepts">SQL concept guides</Link></li>
               <li><Link className="hover:text-ink" to="/cheatsheet">SQL cheat sheet</Link></li>
               <li><Link className="hover:text-ink" to="/flashcards">Flashcards</Link></li>

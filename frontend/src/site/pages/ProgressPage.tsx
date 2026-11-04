@@ -4,6 +4,7 @@ import { Download, Flame, Trophy, Upload } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Container, PageHeader } from "../components/ui";
 import { ShareButton } from "../components/ShareButton";
+import { PracticeNext } from "./ReviewPage";
 import { Seo } from "../lib/seo";
 import { exportProgress, importProgress, resetProgress, streak, useProgress } from "../lib/progress";
 
@@ -42,7 +43,7 @@ export function ProgressPage() {
   return (
     <Container>
       <Seo title="Your SQL Practice Progress" description="Track solved SQL questions, streaks and revision progress. Stored only in your browser." path="/progress" noindex />
-      <PageHeader eyebrow="You" title="Your progress" intro="Saved in this browser only — export it to move to another device." />
+      <PageHeader eyebrow="You" title="Your progress" intro="Saved in this browser — sign in to sync it across devices, or export it." />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
@@ -57,7 +58,10 @@ export function ProgressPage() {
 
       <div className="mt-4">
         <ShareButton kind="progress" solved={solvedNums.size} total={data.index.length} streak={days} />
+        <Link to="/review" className="ml-3 text-sm font-semibold text-accent hover:underline">Open review queue →</Link>
       </div>
+
+      <PracticeNext />
 
       {(progress.mocks?.length ?? 0) > 0 && (
         <>
