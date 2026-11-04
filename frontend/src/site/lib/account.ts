@@ -36,12 +36,16 @@ export interface RemoteState {
   read?: Progress["read"];
   dailyGoal?: Progress["dailyGoal"];
   dayCounts?: Progress["dayCounts"];
+  /** Per-question evidence that has no column on the progress table. */
+  qmeta?: Record<string, Pick<QuestionProgress, "practiced" | "imported" | "hintLevel" | "assisted" | "startedAt" | "solveSec" | "errorKinds">>;
 }
 
 const earliest = (a?: string, b?: string) => (!a ? b : !b ? a : a < b ? a : b);
 
 function mergeQuestion(local: QuestionProgress | undefined, row: ProgressRow): QuestionProgress {
   return {
+    // Rows only on the server (e.g. imported from the repo) are not practice evidence.
+    ...(local ? {} : { imported: true }),
     ...local,
     attempts: Math.max(local?.attempts ?? 0, row.attempts),
     solvedAt: earliest(local?.solvedAt, row.solved_at ?? undefined),
@@ -60,6 +64,18 @@ function mergeQuestion(local: QuestionProgress | undefined, row: ProgressRow): Q
 export function mergeProgress(local: Progress, rows: ProgressRow[], state: RemoteState, mocks: MockRow[]): Progress {
   const questions = { ...local.questions };
   for (const row of rows) questions[row.question_number] = mergeQuestion(questions[row.question_number], row);
+  for (const [k, meta] of Object.entries(state.qmeta ?? {})) {
+    const q = questions[k];
+    if (!q) continue;
+    questions[k] = {
+      ...meta,
+      ...q,
+      practiced: Boolean(q.practiced || meta.practiced) || undefined,
+      imported: q.practiced || meta.practiced ? undefined : q.imported ?? meta.imported,
+      hintLevel: Math.max(q.hintLevel ?? 0, meta.hintLevel ?? 0) || undefined,
+      assisted: q.solvedAt === undefined ? meta.assisted : q.assisted ?? meta.assisted,
+    };
+  }
 
   const cards = { ...(state.cards ?? {}) };
   for (const [k, v] of Object.entries(local.cards)) {

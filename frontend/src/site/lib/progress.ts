@@ -10,6 +10,19 @@ export interface QuestionProgress {
   /** Re-solve schedule for the review queue (Leitner box 1–5, next due day). */
   reviewBox?: number;
   reviewDue?: string;
+  /** Submitted in the editor at least once (evidence). Repo/account imports don't set this. */
+  practiced?: boolean;
+  /** Came from an import (e.g. solved in the GitHub repo), not from practice here. */
+  imported?: boolean;
+  /** Highest assistance level used: 1 concept … 5 full solution. */
+  hintLevel?: number;
+  /** The first solve happened after hints ≥ 2 or a revealed solution. Never counts as independent. */
+  assisted?: boolean;
+  /** First interaction time, and seconds from it to the first solve. */
+  startedAt?: string;
+  solveSec?: number;
+  /** Counts of classified errors on failed submits ("Column not grouped", "Wrong result", …). */
+  errorKinds?: Record<string, number>;
 }
 
 export interface Progress {
@@ -33,6 +46,8 @@ export interface Progress {
   dailyGoal?: number;
   /** Learning actions per day, for the goal meter. */
   dayCounts?: Record<string, number>;
+  /** Tutor behaviour: the highest assistance level it may show, and whether level 5 asks first. */
+  tutor?: { maxLevel: number; confirmSolution: boolean };
   /** One-off data migrations already applied to this record. */
   migrations?: string[];
 }
@@ -100,14 +115,26 @@ function addDay(days: string[], day: string): string[] {
   return days.includes(day) ? days : [...days, day].sort().slice(-400);
 }
 
-export function recordAttempt(num: number, sql: string, correct: boolean) {
+export function recordAttempt(num: number, sql: string, correct: boolean, errorKind?: string) {
   const p = read();
   const prev = p.questions[num] ?? { attempts: 0 };
+  const now = new Date();
+  const firstSolve = correct && !prev.solvedAt;
+  const startedAt = prev.startedAt ?? now.toISOString();
   const q: QuestionProgress = {
     ...prev,
     attempts: prev.attempts + 1,
     lastSql: sql,
-    solvedAt: prev.solvedAt ?? (correct ? new Date().toISOString() : undefined),
+    practiced: true,
+    startedAt,
+    solvedAt: prev.solvedAt ?? (correct ? now.toISOString() : undefined),
+    ...(firstSolve
+      ? {
+          assisted: (prev.hintLevel ?? 0) >= 2 || Boolean(prev.revealed),
+          solveSec: Math.max(1, Math.round((now.getTime() - Date.parse(startedAt)) / 1000)),
+        }
+      : {}),
+    ...(!correct && errorKind ? { errorKinds: { ...prev.errorKinds, [errorKind]: (prev.errorKinds?.[errorKind] ?? 0) + 1 } } : {}),
   };
   write({
     ...p,
@@ -121,7 +148,18 @@ export function recordAttempt(num: number, sql: string, correct: boolean) {
 export function saveDraft(num: number, sql: string) {
   const p = read();
   const prev = p.questions[num] ?? { attempts: 0 };
-  write({ ...p, questions: { ...p.questions, [num]: { ...prev, lastSql: sql } } });
+  write({ ...p, questions: { ...p.questions, [num]: { ...prev, lastSql: sql, startedAt: prev.startedAt ?? new Date().toISOString() } } });
+}
+
+/** Record that assistance level `level` (1–5) was opened for a question. */
+export function recordHint(num: number, level: number) {
+  const p = read();
+  const prev = p.questions[num] ?? { attempts: 0 };
+  if ((prev.hintLevel ?? 0) >= level) return;
+  const q = { ...prev, hintLevel: level, startedAt: prev.startedAt ?? new Date().toISOString(), revealed: prev.revealed || level >= 5 || undefined };
+  write({ ...p, questions: { ...p.questions, [num]: q } });
+  sink?.question(num, q, false);
+  sink?.state(current);
 }
 
 export function markRevealed(num: number) {
@@ -204,6 +242,11 @@ export function markNoteRead(slug: string, isRead = true) {
     write({ ...p, read: next });
   }
   sink?.state(current);
+}
+
+export function setTutorSettings(t: NonNullable<Progress["tutor"]>) {
+  const p = read();
+  write({ ...p, tutor: { maxLevel: Math.max(1, Math.min(5, t.maxLevel)), confirmSolution: t.confirmSolution } });
 }
 
 export function setDailyGoal(n: number) {

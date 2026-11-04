@@ -18,6 +18,10 @@ const NAV = [
 ];
 
 const MORE = [
+  { to: "/ai-tutor", label: "SQL tutor" },
+  { to: "/query-visualizer", label: "Query visualizer" },
+  { to: "/solution-comparison", label: "Compare solutions" },
+  { to: "/readiness", label: "Interview readiness" },
   { to: "/mock-interview", label: "Mock interview" },
   { to: "/review", label: "Revision queue" },
   { to: "/flashcards", label: "Flashcards" },
@@ -184,6 +188,8 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
               <li><Link className="hover:text-ink" to="/patterns">SQL patterns</Link></li>
               <li><Link className="hover:text-ink" to="/mindmaps">SQL mind maps</Link></li>
               <li><Link className="hover:text-ink" to="/shortcuts">SQL shortcuts</Link></li>
+              <li><Link className="hover:text-ink" to="/query-visualizer">SQL query visualizer</Link></li>
+              <li><Link className="hover:text-ink" to="/solution-comparison">Compare SQL solutions</Link></li>
               <li><Link className="hover:text-ink" to="/questions">All practice questions</Link></li>
               <li><Link className="hover:text-ink" to="/interview">SQL interview sets by role</Link></li>
               <li><Link className="hover:text-ink" to="/mock-interview">SQL mock interview</Link></li>

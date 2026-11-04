@@ -24,6 +24,10 @@ import { NotePage, NotesIndexPage } from "./pages/NotesPages";
 import { PatternPage, PatternsIndexPage } from "./pages/PatternsPages";
 import { ShortcutDocPage, ShortcutsPage } from "./pages/ShortcutsPages";
 import { MindMapPage, MindMapsIndexPage } from "./pages/MindMapPages";
+import { QueryVisualizerPage } from "./pages/QueryVisualizerPage";
+import { SolutionComparisonPage } from "./pages/SolutionComparisonPage";
+import { ReadinessPage } from "./pages/ReadinessPage";
+import { TutorPage } from "./pages/TutorPage";
 import {
   loadMap, loadMapIndex, loadNote, loadNoteIndex, loadPattern, loadPatternIndex, loadShortcutPage, loadShortcuts, mapsLinking,
 } from "./lib/learning";
@@ -200,6 +204,15 @@ export const routes: SiteRoute[] = [
       return mindmap ? { ...(await base()), ...(await library()), mindmap } : null;
     },
     paths: async () => (await loadMapIndex()).map((m) => `/mindmaps/${m.slug}`),
+  },
+  { path: "/query-visualizer", element: <QueryVisualizerPage />, load: base, paths: one("/query-visualizer") },
+  { path: "/solution-comparison", element: <SolutionComparisonPage />, load: base, paths: one("/solution-comparison") },
+  { path: "/readiness", element: <ReadinessPage />, load: async () => ({ ...(await base()), notes: await loadNoteIndex() }), paths: one("/readiness") },
+  {
+    path: "/ai-tutor",
+    element: <TutorPage />,
+    load: async () => ({ ...(await base()), notes: await loadNoteIndex(), schema: await loadSchema() }),
+    paths: one("/ai-tutor"),
   },
   // Account pages render a shell at build time; everything else happens in the browser.
   { path: "/login", element: <LoginPage />, load: base, paths: one("/login") },

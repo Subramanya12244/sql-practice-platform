@@ -114,7 +114,11 @@ export default function PracticePanel({
     const result = await submitQuery(sql, question.referenceQuery, question.sortRequired, question.orderBy ?? null);
     if (lessonKey) {
       if (result.correct) completeExercise(lessonKey);
-    } else recordAttempt(question.number, sql, result.correct);
+    } else {
+      // Classify the failure deterministically for the mistake log.
+      const kind = result.correct ? undefined : explainError(result.feedback[0])?.title ?? (result.diff ? "Wrong result" : "SQL error");
+      recordAttempt(question.number, sql, result.correct, kind);
+    }
     setSubmitResult(result);
     setSubmitting(false);
     onSolved?.(result);

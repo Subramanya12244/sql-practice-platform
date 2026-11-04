@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { sendTo } from "../lib/handoff";
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { HintLadder } from "../components/HintLadder";
 import { Comments, CommunitySolutions } from "../components/Community";
@@ -9,7 +10,7 @@ import { Chip, Container, Difficulty, Skeleton } from "../components/ui";
 import { ShareButton } from "../components/ShareButton";
 import { SchemaPanel } from "../components/SchemaPanel";
 import { SITE_NAME, Seo, breadcrumbs, canonical, clip, faqPage } from "../lib/seo";
-import { markRevealed, useProgress } from "../lib/progress";
+import { markRevealed, recordHint, useProgress } from "../lib/progress";
 
 const PracticePanel = lazy(() => import("../components/PracticePanel"));
 
@@ -50,6 +51,7 @@ export function QuestionPage() {
   const [mounted, setMounted] = useState(false);
   const [justSolved, setJustSolved] = useState(false);
   const [tab, setTab] = useState<Tab>("description");
+  const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Load the editor bundle only once its slot is near the viewport, so reading
@@ -221,7 +223,7 @@ export function QuestionPage() {
             </Panel>
 
             <Panel id="hints" active={tab}>
-              <HintLadder q={q} />
+              <HintLadder q={q} notes={data.notes ?? []} />
               {q.pitfalls.length > 0 && (
                 <Section id="pitfalls" title="Common pitfalls">
                   <ul className="list-disc space-y-2 pl-5 text-sm text-ink-muted">
@@ -241,7 +243,12 @@ export function QuestionPage() {
               <Section id="solution-sql" title="Solution">
                 <details
                   className="rounded-card border border-surface-border bg-surface p-4"
-                  onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && markRevealed(q.number)}
+                  onToggle={(e) => {
+                    if ((e.currentTarget as HTMLDetailsElement).open) {
+                      markRevealed(q.number);
+                      recordHint(q.number, 5);
+                    }
+                  }}
                 >
                   <summary className="cursor-pointer font-medium text-ink">Reveal the solution</summary>
                   <Markdown source={"```sql\n" + q.solution + "\n```"} className="mt-3 text-sm" />
@@ -310,6 +317,19 @@ export function QuestionPage() {
           ) : (
             <Skeleton className="h-[580px] lg:h-full" />
           )}
+          <div className="flex shrink-0 flex-wrap gap-2 text-xs">
+            <Link to={`/ai-tutor?q=${q.slug}`} className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink">Open in tutor</Link>
+            <button type="button" className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink"
+              onClick={() => { sendTo({ tool: "visualizer", a: progress.questions[q.number]?.lastSql || q.solution }); navigate("/query-visualizer"); }}>
+              Visualize {progress.questions[q.number]?.lastSql ? "my query" : "the query"}
+            </button>
+            {solved && (
+              <button type="button" className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink"
+                onClick={() => { sendTo({ tool: "compare", a: progress.questions[q.number]?.lastSql ?? "", b: q.solution, labelA: "Your query", labelB: "Reference solution" }); navigate("/solution-comparison"); }}>
+                Compare with the reference
+              </button>
+            )}
+          </div>
           {(justSolved || solved) && (
             <div className="flex shrink-0 flex-wrap items-center gap-3 rounded-card border border-success/30 bg-success-dim px-4 py-3 text-sm text-ink">
               <span className="font-semibold text-success">{justSolved ? "Nice — solved!" : "You solved this one."}</span>

@@ -243,6 +243,12 @@ npm run preview:site   # http://localhost:4174
 
 Site-wide search opens with ⌘K. Notes, patterns, maps and questions all link to each other. The content is Markdown and JSON under `frontend/src/site/content/`, in the format defined in [docs/CONTENT_SPEC.md](docs/CONTENT_SPEC.md). `src/test/siteContent.test.ts` checks that every link resolves and that every runnable SQL example runs in the browser database. The gap analysis and next phases are in [docs/LEARNING_PLATFORM_PLAN.md](docs/LEARNING_PLATFORM_PLAN.md).
 
+**SQL intelligence tools:** these all run in the browser on PGlite.
+- `/ai-tutor`: 5-level hints that record when you used help, rule-based query explanations, a schema check, and result checks verified by the database. The AI chat is off unless `VITE_TUTOR_ENDPOINT` points to a server-side proxy; see [docs/INTELLIGENCE_PLAN.md](docs/INTELLIGENCE_PLAN.md).
+- `/query-visualizer`: steps through the logical processing order with real intermediate rows.
+- `/solution-comparison`: compares two queries side by side for equivalence, plans and timing.
+- `/readiness`: an evidence-based readiness estimate.
+
 `scripts/build_public_data.py` writes `frontend/public/data/` (`index.json`, `topics.json`,
 one `q/<slug>.json` per question, `northwind.sql`). Commit that folder so hosting builds
 don't need the question repo. Concept guides live in `frontend/src/site/content/*.md`.

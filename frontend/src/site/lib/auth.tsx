@@ -38,6 +38,11 @@ export function useAuth(): AuthState {
 const remoteState = (p: Progress): RemoteState => ({
   activeDays: p.activeDays, cards: p.cards, lessons: p.lessons,
   bookmarks: p.bookmarks, read: p.read, dailyGoal: p.dailyGoal, dayCounts: p.dayCounts,
+  qmeta: Object.fromEntries(
+    Object.entries(p.questions)
+      .filter(([, q]) => q.practiced || q.imported || q.hintLevel || q.errorKinds)
+      .map(([k, q]) => [k, { practiced: q.practiced, imported: q.imported, hintLevel: q.hintLevel, assisted: q.assisted, startedAt: q.startedAt, solveSec: q.solveSec, errorKinds: q.errorKinds }]),
+  ),
 });
 
 /** Pull account progress, merge with this browser, push the union back, then mirror changes live. */
