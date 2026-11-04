@@ -107,8 +107,9 @@ export function AdminSubmissions({ name, users, onChange }: { name: (id: string 
     const { data, error } = await sb.from("project_submissions").update({ status: next, review_comment: comment.trim() || null }).eq("id", open.id).select().single();
     setBusy(false);
     if (error) return setMsg(error.message);
-    setMsg(`Saved: ${next}.`);
+    // load() clears messages, so confirm after it finishes.
     await Promise.all([load(), openRow(data as SubmissionAdminRow)]);
+    setMsg(`Saved: ${next}.`);
     onChange();
   }
 
