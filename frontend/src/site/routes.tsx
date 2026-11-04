@@ -44,6 +44,8 @@ import {
 } from "./lib/learning";
 import { ChallengePage, LeaderboardPage, ProfilePage } from "./pages/CommunityPages";
 import { InterviewSetPage, InterviewSetsPage } from "./pages/InterviewSetPages";
+import { AnswerPracticePage, CareerPage, CompanyPrepPage, PlannerPage, PortfolioPage } from "./pages/CareerPages";
+import { COMPANY_TYPES } from "./lib/career";
 
 export interface SiteRoute {
   path: string;
@@ -62,6 +64,18 @@ const guideLinks = async () => (await loadAllGuides()).map(({ slug, title, descr
 /** Summaries every learning page needs for cross-links. */
 const library = async () => ({ notes: await loadNoteIndex(), patterns: await loadPatternIndex(), mindmaps: await loadMapIndex() });
 const one = (p: string) => async () => [p];
+/** Notes, sets, scenarios, exercises and projects: everything the career pages link to or plan with. */
+const careerData = async (): Promise<PageData> => {
+  const [b, notes, sets, scenarios, exercises, projects, all] = await Promise.all([
+    base(), loadNoteIndex(), loadAllSets(), loadScenarioIndex(), loadExerciseIndex(), loadProjectIndex(), loadAllProjects(),
+  ]);
+  return {
+    ...b, notes, scenarios, exercises, projects,
+    sets: sets.map(({ slug, title, description }) => ({ slug, title, description })),
+    planSets: sets.map(({ slug, questions }) => ({ slug, questions })),
+    projectTasks: all.map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type }) as never) })),
+  };
+};
 
 export const routes: SiteRoute[] = [
   { path: "/", element: <HomePage />, load: base, paths: one("/") },
@@ -236,6 +250,17 @@ export const routes: SiteRoute[] = [
     load: async () => ({ ...(await base()), notes: await loadNoteIndex(), mindmaps: await loadMapIndex() }),
     paths: one("/data-engineering"),
   },
+  { path: "/career", element: <CareerPage />, load: base, paths: one("/career") },
+  { path: "/career/planner", element: <PlannerPage />, load: careerData, paths: one("/career/planner") },
+  { path: "/career/companies", element: <CompanyPrepPage />, load: careerData, paths: one("/career/companies") },
+  {
+    path: "/career/companies/:id",
+    element: <CompanyPrepPage />,
+    load: async ({ id }) => (COMPANY_TYPES.some((c) => c.id === id) ? careerData() : null),
+    paths: async () => COMPANY_TYPES.map((c) => `/career/companies/${c.id}`),
+  },
+  { path: "/career/answers", element: <AnswerPracticePage />, load: base, paths: one("/career/answers") },
+  { path: "/portfolio", element: <PortfolioPage />, load: careerData, paths: one("/portfolio") },
   { path: "/settings", element: <SettingsPage />, load: base, paths: one("/settings") },
   { path: "/data-quality", element: <DataQualityPage />, load: base, paths: one("/data-quality") },
   {

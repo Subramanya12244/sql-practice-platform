@@ -136,6 +136,8 @@ export interface PageData {
   projects?: import("./lib/projects").ProjectMeta[];
   /** Task lists per project, so the index can derive each status in the browser. */
   projectTasks?: { slug: string; tasks: import("./lib/tasks").Task[] }[];
+  /** Interview sets with their question slugs (study planner). */
+  planSets?: Pick<InterviewSet, "slug" | "questions">[];
   /** Mind maps that link to the current note/pattern. */
   relatedMaps?: import("./lib/learning").MindMapMeta[];
 }

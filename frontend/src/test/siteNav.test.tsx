@@ -29,6 +29,6 @@ describe("navigation", () => {
     const overview = html.match(/<a[^>]*href="\/"[^>]*>Overview<\/a>/)![0];
     expect(overview).not.toContain("aria-current");
     expect(html).toMatch(/aria-expanded="false" aria-haspopup="true" class="[^"]*bg-accent-dim[^"]*">Learn/);
-    expect(NAV_GROUPS.map((g) => g.label)).toEqual(["Overview", "Learn", "Practice", "Data Engineering", "Projects", "Data Quality", "AI & Intelligence", "Assessments", "Progress"]);
+    expect(NAV_GROUPS.map((g) => g.label)).toEqual(["Overview", "Learn", "Practice", "Data Engineering", "Projects", "Data Quality", "AI & Intelligence", "Assessments", "Career", "Progress"]);
   });
 });

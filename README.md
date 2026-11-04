@@ -265,6 +265,13 @@ Site-wide search opens with ⌘K. Notes, patterns, maps and questions all link t
 - `scripts/check_python_blocks.py` runs every Python example and task. CI runs it too.
 - Supabase migration `003_dataforge.sql` adds tables for visualization sessions, project progress and submissions, and data quality rules and runs, each with RLS. When signed in, this data syncs to the account. Migration `004_submission_review.sql` adds admin review of submissions; see [docs/SUPABASE.md](docs/SUPABASE.md).
 
+**Career tools (Phase 4):** these are all built from existing content and your own records.
+- `/career/planner`: a week-by-week plan for the data analyst, data engineer or analytics engineer role. It fits your weekly hours, and items tick off from evidence (note read, question solved, project completed).
+- `/career/companies`: what interviews at product companies, startups, services firms, banks and retailers tend to focus on, linked to notes, sets, scenarios and projects. This is general guidance, with no company named.
+- `/career/answers`: more than 400 interview questions taken from the notes. You answer first, then compare with the model answer and a key-term check, and rate yourself. Missed questions come back sooner.
+- `/portfolio`: your verified record (independent and assisted solves, imported solves listed separately, projects with reviewer approval, checks). Export it as Markdown or print it.
+- Plan, answer ratings and portfolio name sync through the account's profile state. Answer text stays on the device.
+
 **SQL intelligence tools:** these all run in the browser on PGlite.
 - `/ai-tutor`: 5-level hints that record when you used help, rule-based query explanations, a schema check, and result checks verified by the database. The AI chat is off unless `VITE_TUTOR_ENDPOINT` points to a server-side proxy; see [docs/INTELLIGENCE_PLAN.md](docs/INTELLIGENCE_PLAN.md).
 - `/query-visualizer`: steps through the logical processing order with real intermediate rows.

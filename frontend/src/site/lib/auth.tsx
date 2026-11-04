@@ -39,6 +39,7 @@ export function useAuth(): AuthState {
 const remoteState = (p: Progress): RemoteState => ({
   activeDays: p.activeDays, cards: p.cards, lessons: p.lessons,
   bookmarks: p.bookmarks, read: p.read, dailyGoal: p.dailyGoal, dayCounts: p.dayCounts,
+  plan: p.plan, answers: p.answers, portfolio: p.portfolio,
   qmeta: Object.fromEntries(
     Object.entries(p.questions)
       .filter(([, q]) => q.practiced || q.imported || q.hintLevel || q.errorKinds)

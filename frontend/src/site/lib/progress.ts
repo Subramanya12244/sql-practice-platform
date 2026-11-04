@@ -48,6 +48,12 @@ export interface Progress {
   dayCounts?: Record<string, number>;
   /** Tutor behaviour: the highest assistance level it may show, and whether level 5 asks first. */
   tutor?: { maxLevel: number; confirmSolution: boolean };
+  /** Study planner settings (career planner). Progress is read from evidence, not stored here. */
+  plan?: import("./career").PlanSettings;
+  /** Interview answer practice: Leitner box per "note-slug#index". Answer text stays on this device. */
+  answers?: Record<string, import("./career").AnswerState>;
+  /** Name and headline shown on the portfolio. */
+  portfolio?: { name: string; headline: string };
   /** One-off data migrations already applied to this record. */
   migrations?: string[];
 }
@@ -253,6 +259,22 @@ export function setTutorSettings(t: NonNullable<Progress["tutor"]>) {
 export function setDailyGoal(n: number) {
   const p = read();
   write({ ...p, dailyGoal: Math.max(1, Math.min(20, Math.round(n))) });
+  sink?.state(current);
+}
+
+export function setPlan(plan: Progress["plan"]) {
+  write({ ...read(), plan });
+  sink?.state(current);
+}
+
+export function recordAnswer(key: string, state: import("./career").AnswerState) {
+  const p = read();
+  write({ ...p, answers: { ...(p.answers ?? {}), [key]: state }, ...bump(p) });
+  sink?.state(current);
+}
+
+export function setPortfolioInfo(info: NonNullable<Progress["portfolio"]>) {
+  write({ ...read(), portfolio: { name: info.name.slice(0, 80), headline: info.headline.slice(0, 200) } });
   sink?.state(current);
 }
 

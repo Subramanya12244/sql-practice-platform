@@ -36,6 +36,9 @@ export interface RemoteState {
   read?: Progress["read"];
   dailyGoal?: Progress["dailyGoal"];
   dayCounts?: Progress["dayCounts"];
+  plan?: Progress["plan"];
+  answers?: Progress["answers"];
+  portfolio?: Progress["portfolio"];
   /** Per-question evidence that has no column on the progress table. */
   qmeta?: Record<string, Pick<QuestionProgress, "practiced" | "imported" | "hintLevel" | "assisted" | "startedAt" | "solveSec" | "errorKinds">>;
 }
@@ -105,7 +108,20 @@ export function mergeProgress(local: Progress, rows: ProgressRow[], state: Remot
     read: { ...(state.read ?? {}), ...(local.read ?? {}) },
     dailyGoal: local.dailyGoal ?? state.dailyGoal,
     dayCounts: mergeCounts(local.dayCounts, state.dayCounts),
+    plan: local.plan ?? state.plan,
+    answers: mergeAnswers(local.answers, state.answers),
+    portfolio: local.portfolio ?? state.portfolio,
   };
+}
+
+/** Per card, keep the record with more attempts (the later one on a tie). */
+function mergeAnswers(a: Progress["answers"] = {}, b: Progress["answers"] = {}) {
+  const out = { ...b };
+  for (const [k, v] of Object.entries(a)) {
+    const o = out[k];
+    if (!o || v.attempts > o.attempts || (v.attempts === o.attempts && v.at > o.at)) out[k] = v;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 function mergeCounts(a: Record<string, number> = {}, b: Record<string, number> = {}) {

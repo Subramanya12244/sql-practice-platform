@@ -89,6 +89,16 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/review", label: "Revision queue" },
     ],
   },
+  {
+    id: "career",
+    label: "Career",
+    items: [
+      { to: "/career/planner", label: "Study planner", desc: "Week-by-week plan by role" },
+      { to: "/career/companies", label: "Prep by company type" },
+      { to: "/career/answers", label: "Answer practice", desc: "Model answers, spaced review" },
+      { to: "/portfolio", label: "Portfolio", desc: "Export your verified work" },
+    ],
+  },
   { id: "progress", label: "Progress", to: "/progress" },
 ];
 

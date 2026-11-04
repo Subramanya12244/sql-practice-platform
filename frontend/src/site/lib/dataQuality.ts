@@ -243,6 +243,15 @@ export function saveRun(d: string, run: QualityRun) {
   dataSink()?.run(d, run);
 }
 
+/** Datasets that have saved runs in this browser. */
+export function runDatasets(): string[] {
+  try {
+    return Object.keys(localStorage).filter((k) => k.startsWith("sqlp.dq.runs.")).map((k) => k.slice("sqlp.dq.runs.".length));
+  } catch {
+    return [];
+  }
+}
+
 /** Per-rule change in failed records between two runs (negative = improvement). */
 export function compareRuns(older: QualityRun, newer: QualityRun) {
   return newer.results.map((r) => {
