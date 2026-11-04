@@ -5,7 +5,7 @@ import { usePage } from "../SiteApp";
 import { Markdown, highlightSql } from "../components/Markdown";
 import { Container, PageHeader } from "../components/ui";
 import { Seo, breadcrumbs } from "../lib/seo";
-import { saveDraft } from "../lib/progress";
+import { sendTo } from "../lib/handoff";
 import type { ShortcutItem } from "../lib/learning";
 
 function Item({ it, noteTitle }: { it: ShortcutItem; noteTitle: (s: string) => string | undefined }) {
@@ -24,7 +24,7 @@ function Item({ it, noteTitle }: { it: ShortcutItem; noteTitle: (s: string) => s
             {copied ? <span className="px-1 text-[11px]">Copied</span> : <Copy className="h-3.5 w-3.5" />}
           </button>
           <button type="button" aria-label="Run example in playground" title="Run in playground" className="rounded border border-surface-border bg-surface-raised p-1 text-ink-muted hover:text-ink"
-            onClick={() => { saveDraft(0, it.example); navigate("/playground"); }}>
+            onClick={() => { sendTo({ tool: "playground", a: it.example }); navigate("/playground"); }}>
             <Play className="h-3.5 w-3.5" />
           </button>
         </div>

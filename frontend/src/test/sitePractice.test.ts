@@ -95,3 +95,19 @@ describe("interview sets", () => {
     expect(bad).toEqual([]);
   });
 });
+
+import { diagnose } from "../site/lib/resultCompare";
+describe("result diagnosis", () => {
+  const E = [[1, 10.5], [2, 0], [3, 7]];
+  it("names concrete causes", () => {
+    expect(diagnose(["id", "v"], [[1, 10.5], [1, 10.5], [2, 0], [3, 7]], ["id", "v"], E)[0]).toMatch(/duplicate row/);
+    expect(diagnose(["id", "v"], [[1, 10.5]], ["id", "v"], E)[0]).toMatch(/2 expected row\(s\) are missing/);
+    expect(diagnose(["id", "v"], [...E, [4, 1]], ["id", "v"], E)[0]).toMatch(/plus 1 extra/);
+    expect(diagnose(["id", "v"], [[1, 10.504], [2, null], [3, 7]], ["id", "v"], E)).toEqual([
+      "1 row(s) differ only by rounding — check ROUND(…::numeric, 2) and where you round (before or after aggregating).",
+      "1 row(s) differ only by NULL vs 0 — COALESCE(…, 0) turns a missing aggregate into 0 (or the other way round).",
+    ]);
+    expect(diagnose(["v", "id"], [], ["id", "v"], E)[0]).toMatch(/different order/);
+    expect(diagnose(["id", "value"], [], ["id", "v"], E)[0]).toBe("Rename column(s): value → v (use AS).");
+  });
+});

@@ -248,6 +248,9 @@ Site-wide search opens with ⌘K. Notes, patterns, maps and questions all link t
 - `/query-visualizer`: steps through the logical processing order with real intermediate rows.
 - `/solution-comparison`: compares two queries side by side for equivalence, plans and timing.
 - `/readiness`: an evidence-based readiness estimate.
+- `/playground`: six practice databases (Northwind, HR, Sales, E-commerce, Banking, Inventory), each isolated in its own instance. It has a schema explorer, ER diagram, history, saved queries and export. Regenerate the datasets with `python3 scripts/build_datasets.py`.
+- `/data-generator`: builds reproducible practice datasets with controllable NULLs, duplicates, orphans and invalid values.
+- `/scenarios`: 16 business scenarios, graded by result.
 
 `scripts/build_public_data.py` writes `frontend/public/data/` (`index.json`, `topics.json`,
 one `q/<slug>.json` per question, `northwind.sql`). Commit that folder so hosting builds

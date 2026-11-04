@@ -1,0 +1,137 @@
+[
+  {
+    "id": "hr",
+    "title": "HR & Employees",
+    "description": "Departments, locations, jobs and employees with a manager hierarchy, salary history and performance reviews.",
+    "tables": [
+      "locations",
+      "departments",
+      "jobs",
+      "employees",
+      "salary_history",
+      "performance_reviews"
+    ],
+    "rows": 1136,
+    "edgeCases": [
+      "CEO (employee 1) and one contractor have NULL manager_id",
+      "Self-referencing hierarchy employees.manager_id (CEO > heads > managers > staff)",
+      "Research department has no employees; Legal budget is NULL; Research location_id NULL",
+      "One employee has NULL department_id",
+      "Salaries rounded to 1000s: many ties within departments",
+      "commission_pct only set for Sales; NULL elsewhere",
+      "Some emails and phones are NULL; two different employees named Michael Chen",
+      "Terminated employees: is_active = FALSE with termination_date",
+      "Some employees have no performance reviews; some ratings NULL (in progress)",
+      "salary_history includes a few demotions (new_salary < old_salary); hire rows have NULL old_salary",
+      "Two locations have NULL postal_code"
+    ]
+  },
+  {
+    "id": "sales",
+    "title": "Sales Pipeline",
+    "description": "B2B sales: regions, sales reps, customers, products, orders, order lines and quarterly quotas.",
+    "tables": [
+      "regions",
+      "sales_reps",
+      "customers",
+      "products",
+      "orders",
+      "order_items",
+      "sales_targets"
+    ],
+    "rows": 2606,
+    "edgeCases": [
+      "16 customers never ordered (all ids ending in 3, plus one by chance)",
+      "Products 9, 22, 38, 40 were never sold; products 12 and 33 are discontinued",
+      "Some customers have NULL rep_id (unassigned) so their orders have NULL rep_id",
+      "NULL contact_email and NULL industry for some customers",
+      "Orders 621-623 duplicate orders 5, 77, 300 (same customer, date, lines) with new ids",
+      "ship_date NULL for pending and cancelled orders",
+      "Status values: pending, shipped, delivered, cancelled, returned",
+      "Reps 7 and 19 inactive; reps 24 and 25 have no sales_targets",
+      "Fixed price points create ties in unit_price and order totals",
+      "order_items.unit_price may differ from current products.unit_price after discounts"
+    ]
+  },
+  {
+    "id": "ecommerce",
+    "title": "E-commerce Store",
+    "description": "Online store: users, nested categories, products, orders, order items, payments and product reviews.",
+    "tables": [
+      "users",
+      "categories",
+      "products",
+      "orders",
+      "order_items",
+      "payments",
+      "reviews"
+    ],
+    "rows": 3274,
+    "edgeCases": [
+      "Self-referencing categories.parent_id up to 3 levels (Electronics > Computers > Laptops)",
+      "Smart Home and Garden have no products; top-level parents hold only subcategories",
+      "Every 5th user (user_id % 5 = 0) has no orders",
+      "Soft-deleted users: is_deleted = TRUE with deleted_at; some still have orders",
+      "Products with product_id % 12 = 7 were never ordered; some inactive or stock = 0",
+      "Pending orders have no payment; some orders have a failed then a successful payment",
+      "Orders 53 and 384 have duplicate success payments (double charge) with different ids",
+      "Refunded orders have a 'refunded' payment row in addition to 'success'",
+      "NULL full_name, country, shipping_country, coupon_code, review title/body",
+      "Many products share price points (ties); many products have no reviews",
+      "User 5 reviewed a product without ever ordering"
+    ]
+  },
+  {
+    "id": "banking",
+    "title": "Retail Banking",
+    "description": "Bank branches, customers, accounts, debit/credit transactions and loans.",
+    "tables": [
+      "branches",
+      "customers",
+      "accounts",
+      "transactions",
+      "loans"
+    ],
+    "rows": 2885,
+    "edgeCases": [
+      "Customers with customer_id % 12 = 0 have no accounts (some still have loans)",
+      "Branch 8 has no accounts (it may still have loans)",
+      "Accounts with account_id % 25 = 0 are dormant: no transactions",
+      "Amounts always positive; sign comes from direction 'C' (credit) / 'D' (debit)",
+      "4 duplicate postings: identical account/time/amount with different transaction_id",
+      "Customer 201 duplicates customer 10 (same name/DOB) with NULL email",
+      "Closed accounts have closed_date and balance 0; frozen accounts exist",
+      "Round withdrawal amounts and fixed fees (12/35) create many ties",
+      "NULL email/phone for some customers; NULL description and counterparty on many transactions",
+      "kyc_status and loan status values (pending, rejected, defaulted, paid_off)"
+    ]
+  },
+  {
+    "id": "inventory",
+    "title": "Warehouse Inventory",
+    "description": "Warehouses, suppliers, product categories, stock levels, purchase orders and stock movements.",
+    "tables": [
+      "warehouses",
+      "suppliers",
+      "categories",
+      "products",
+      "stock_levels",
+      "purchase_orders",
+      "stock_movements"
+    ],
+    "rows": 2294,
+    "edgeCases": [
+      "Self-referencing categories.parent_id (Hardware > Fasteners > Screws)",
+      "Warehouse 6 'Old Annex' inactive: no stock, POs or movements",
+      "Suppliers 18-20 supply no products; 4 suppliers have no purchase orders",
+      "Products with product_id % 17 = 0 have NULL supplier_id; % 29 = 0 have NULL category_id",
+      "Products with product_id % 31 = 0 have no stock_levels rows anywhere",
+      "Some stock_levels have quantity_on_hand = 0 (below reorder_level); NULL last_counted",
+      "Signed stock_movements.quantity: receipts positive, shipments negative",
+      "Two duplicate movement rows (same warehouse/product/time/qty) with new ids",
+      "PO status draft/ordered/received/cancelled; received_date NULL unless received",
+      "NULL supplier contact_email and rating; discontinued products",
+      "Repeated unit costs and PO quantities produce ties"
+    ]
+  }
+]

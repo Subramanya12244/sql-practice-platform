@@ -1,7 +1,7 @@
 import { matchPath, type Params } from "react-router-dom";
 import type { ReactElement } from "react";
 import type { PageData } from "./types";
-import { loadIndex, loadQuestion, loadSchema, loadTopics } from "./lib/data";
+import { getJSON, loadIndex, loadQuestion, loadSchema, loadTopics } from "./lib/data";
 import { guideSlugs, loadAllGuides, loadCheatsheet, loadGuide, loadLesson, loadLessonSummaries, loadAllSets } from "./lib/content";
 import { HomePage } from "./pages/HomePage";
 import { QuestionsPage } from "./pages/QuestionsPage";
@@ -28,6 +28,10 @@ import { QueryVisualizerPage } from "./pages/QueryVisualizerPage";
 import { SolutionComparisonPage } from "./pages/SolutionComparisonPage";
 import { ReadinessPage } from "./pages/ReadinessPage";
 import { TutorPage } from "./pages/TutorPage";
+import { DataGeneratorPage } from "./pages/DataGeneratorPage";
+import { ScenarioPage, ScenariosPage } from "./pages/ScenarioPages";
+import { loadScenario, loadScenarioIndex } from "./lib/scenarios";
+import { NORTHWIND_INFO, type DatasetInfo } from "./lib/datasets";
 import {
   loadMap, loadMapIndex, loadNote, loadNoteIndex, loadPattern, loadPatternIndex, loadShortcutPage, loadShortcuts, mapsLinking,
 } from "./lib/learning";
@@ -43,6 +47,10 @@ export interface SiteRoute {
 }
 
 const base = async (): Promise<PageData> => ({ index: await loadIndex(), topics: await loadTopics() });
+const datasetList = async (): Promise<DatasetInfo[]> => [
+  NORTHWIND_INFO,
+  ...(await getJSON<Omit<DatasetInfo, "kind">[]>("/data/datasets/index.json")).map((d) => ({ ...d, kind: "builtin" as const })),
+];
 const guideLinks = async () => (await loadAllGuides()).map(({ slug, title, description }) => ({ slug, title, description }));
 /** Summaries every learning page needs for cross-links. */
 const library = async () => ({ notes: await loadNoteIndex(), patterns: await loadPatternIndex(), mindmaps: await loadMapIndex() });
@@ -213,6 +221,22 @@ export const routes: SiteRoute[] = [
     element: <TutorPage />,
     load: async () => ({ ...(await base()), notes: await loadNoteIndex(), schema: await loadSchema() }),
     paths: one("/ai-tutor"),
+  },
+  { path: "/data-generator", element: <DataGeneratorPage />, load: base, paths: one("/data-generator") },
+  {
+    path: "/scenarios",
+    element: <ScenariosPage />,
+    load: async () => ({ ...(await base()), scenarios: await loadScenarioIndex(), datasets: await datasetList() }),
+    paths: one("/scenarios"),
+  },
+  {
+    path: "/scenarios/:slug",
+    element: <ScenarioPage />,
+    load: async ({ slug }) => {
+      const scenario = await loadScenario(slug!);
+      return scenario ? { ...(await base()), scenario, datasets: await datasetList(), notes: await loadNoteIndex() } : null;
+    },
+    paths: async () => (await loadScenarioIndex()).map((s) => `/scenarios/${s.slug}`),
   },
   // Account pages render a shell at build time; everything else happens in the browser.
   { path: "/login", element: <LoginPage />, load: base, paths: one("/login") },

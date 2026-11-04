@@ -2,7 +2,9 @@
 const KEY = "sqlp.handoff";
 
 export interface Handoff {
-  tool: "visualizer" | "compare" | "tutor";
+  tool: "visualizer" | "compare" | "tutor" | "playground";
+  /** Dataset to open (playground). */
+  db?: string;
   a?: string;
   b?: string;
   labelA?: string;

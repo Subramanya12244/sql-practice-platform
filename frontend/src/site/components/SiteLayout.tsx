@@ -18,6 +18,8 @@ const NAV = [
 ];
 
 const MORE = [
+  { to: "/scenarios", label: "Business scenarios" },
+  { to: "/data-generator", label: "Data generator" },
   { to: "/ai-tutor", label: "SQL tutor" },
   { to: "/query-visualizer", label: "Query visualizer" },
   { to: "/solution-comparison", label: "Compare solutions" },
@@ -188,6 +190,8 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
               <li><Link className="hover:text-ink" to="/patterns">SQL patterns</Link></li>
               <li><Link className="hover:text-ink" to="/mindmaps">SQL mind maps</Link></li>
               <li><Link className="hover:text-ink" to="/shortcuts">SQL shortcuts</Link></li>
+              <li><Link className="hover:text-ink" to="/scenarios">Business SQL scenarios</Link></li>
+              <li><Link className="hover:text-ink" to="/data-generator">SQL data generator</Link></li>
               <li><Link className="hover:text-ink" to="/query-visualizer">SQL query visualizer</Link></li>
               <li><Link className="hover:text-ink" to="/solution-comparison">Compare SQL solutions</Link></li>
               <li><Link className="hover:text-ink" to="/questions">All practice questions</Link></li>

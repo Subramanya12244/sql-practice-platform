@@ -127,6 +127,9 @@ export interface PageData {
   shortcutPage?: import("./lib/learning").MarkdownPage;
   mindmap?: import("./lib/learning").MindMap;
   mindmaps?: import("./lib/learning").MindMapMeta[];
+  scenario?: import("./lib/scenarios").Scenario;
+  scenarios?: import("./lib/scenarios").ScenarioMeta[];
+  datasets?: import("./lib/datasets").DatasetInfo[];
   /** Mind maps that link to the current note/pattern. */
   relatedMaps?: import("./lib/learning").MindMapMeta[];
 }

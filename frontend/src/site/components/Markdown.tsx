@@ -1,7 +1,7 @@
 import { marked, type Tokens } from "marked";
 import { useMemo, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { saveDraft } from "../lib/progress";
+import { sendTo } from "../lib/handoff";
 import { slugifyHeading } from "../lib/learning";
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -69,7 +69,7 @@ export function Markdown({ source, className = "" }: { source: string; className
         setTimeout(() => (btn.textContent = "Copy"), 1200);
       });
     } else if (btn.hasAttribute("data-run")) {
-      saveDraft(0, code);
+      sendTo({ tool: "playground", a: code });
       navigate("/playground");
     }
   }

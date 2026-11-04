@@ -18,6 +18,9 @@ export default function PracticePanel({
   playground = false,
   lessonKey,
   fill = false,
+  dataset = "northwind",
+  datasetLabel = "Northwind",
+  onRan,
 }: {
   question: Question;
   onSolved?: (r: SubmitResult) => void;
@@ -29,6 +32,11 @@ export default function PracticePanel({
   lessonKey?: string;
   /** Stretch to the parent's height (question workspace) instead of fixed heights. */
   fill?: boolean;
+  /** Which isolated database to run against (default Northwind). */
+  dataset?: string;
+  datasetLabel?: string;
+  /** Called after every Run with the SQL and its result (playground history/export). */
+  onRan?: (sql: string, result: import("../../types").ExecuteResult) => void;
 }) {
   const progress = useProgress();
   const saved = lessonKey ? undefined : progress.questions[question.number];
@@ -60,8 +68,8 @@ export default function PracticePanel({
     if (!wantDb) return;
     let alive = true;
     setReady("loading");
-    getDb()
-      .then(() => getSchemas())
+    getDb(dataset)
+      .then(() => getSchemas(dataset))
       .then((s) => {
         if (!alive) return;
         setSchemas(s);
@@ -71,7 +79,7 @@ export default function PracticePanel({
     return () => {
       alive = false;
     };
-  }, [wantDb]);
+  }, [wantDb, dataset]);
 
   const onChange = useCallback(
     (next: string) => {
@@ -86,7 +94,8 @@ export default function PracticePanel({
     async ({ sql: text, scope }: RunRequest) => {
       setRunning(true);
       setSubmitResult(null);
-      const result = await runQuery(text);
+      const result = await runQuery(text, dataset);
+      onRan?.(text, result);
       const reuseId = target === "same" ? (tabs.find((t) => t.id === activeTab) ?? tabs[tabs.length - 1])?.id : undefined;
       if (reuseId) {
         setTabs(tabs.map((t) => (t.id === reuseId ? { ...t, sql: text, scope, result } : t)));
@@ -98,20 +107,20 @@ export default function PracticePanel({
       }
       setRunning(false);
     },
-    [tabs, target, activeTab],
+    [tabs, target, activeTab, dataset, onRan],
   );
 
   const onExplain = useCallback(async () => {
     const body = sql.replace(/--.*$/gm, "").trim().replace(/;\s*$/, "");
     if (!body) return;
     if (body.includes(";")) return setPlan({ node: null, error: "EXPLAIN works on a single statement." });
-    const res = await runQuery(`EXPLAIN (FORMAT JSON) ${body}`);
+    const res = await runQuery(`EXPLAIN (FORMAT JSON) ${body}`, dataset);
     setPlan(res.success ? { node: parsePlan(res.rows[0]?.[0]) } : { node: null, error: res.message ?? "Could not explain this query." });
-  }, [sql]);
+  }, [sql, dataset]);
 
   const onSubmit = useCallback(async () => {
     setSubmitting(true);
-    const result = await submitQuery(sql, question.referenceQuery, question.sortRequired, question.orderBy ?? null);
+    const result = await submitQuery(sql, question.referenceQuery, question.sortRequired, question.orderBy ?? null, dataset);
     if (lessonKey) {
       if (result.correct) completeExercise(lessonKey);
     } else {
@@ -122,7 +131,7 @@ export default function PracticePanel({
     setSubmitResult(result);
     setSubmitting(false);
     onSolved?.(result);
-  }, [sql, question, onSolved, lessonKey]);
+  }, [sql, question, onSolved, lessonKey, dataset]);
 
   return (
     <div
@@ -143,7 +152,7 @@ export default function PracticePanel({
         )}
         {ready === "ready" && (
           <>
-            <span className="h-2 w-2 rounded-full bg-success" aria-hidden /> PostgreSQL ready · Northwind loaded
+            <span className="h-2 w-2 rounded-full bg-success" aria-hidden /> PostgreSQL ready · {datasetLabel} loaded
           </>
         )}
         {ready === "error" && <span className="text-danger">Could not start the database. Reload the page to try again.</span>}

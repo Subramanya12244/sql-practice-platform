@@ -187,3 +187,61 @@ export function rowDiff(userRows: unknown[][], expectedRows: unknown[][], sample
   }
   return { missing: missing.slice(0, sample), extra: extra.slice(0, sample), missingCount: missing.length, extraCount: extra.length };
 }
+
+/**
+ * Explain *why* two results differ, in terms a learner can act on. Every statement is
+ * derived from the two result sets; nothing is guessed about the SQL itself.
+ */
+export function diagnose(userColumns: string[], userRows: unknown[][], expectedColumns: string[], expectedRows: unknown[][]): string[] {
+  const out: string[] = [];
+  const u = normalizeColumns(userColumns);
+  const e = normalizeColumns(expectedColumns);
+  if (u.join() !== e.join()) {
+    if (u.length === e.length && [...u].sort().join() === [...e].sort().join()) {
+      out.push(`Same columns, different order — expected: ${expectedColumns.join(", ")}.`);
+    } else if (u.length === e.length) {
+      const renames = e.map((c, i) => (u[i] !== c ? `${userColumns[i]} → ${expectedColumns[i]}` : null)).filter(Boolean);
+      out.push(`Rename column(s): ${renames.join(", ")} (use AS).`);
+    } else {
+      const missing = e.filter((c) => !u.includes(c));
+      const extra = u.filter((c) => !e.includes(c));
+      if (missing.length) out.push(`Missing column(s): ${missing.join(", ")}.`);
+      if (extra.length) out.push(`Unexpected column(s): ${extra.join(", ")}.`);
+    }
+    return out;
+  }
+
+  const ukeys = userRows.map(rowKey);
+  const ekeys = new Set(expectedRows.map(rowKey));
+  const udistinct = new Set(ukeys).size;
+  if (udistinct < ukeys.length && udistinct === expectedRows.length && ukeys.every((k) => ekeys.has(k))) {
+    out.push(`Your result has ${ukeys.length - udistinct} duplicate row(s) but otherwise the right rows — a join may be multiplying rows (fan-out), or DISTINCT/GROUP BY is missing.`);
+    return out;
+  }
+  const d = rowDiff(userRows, expectedRows, 1000);
+  if (d.extraCount && !d.missingCount) out.push(`You return every expected row plus ${d.extraCount} extra — a filter is missing or too loose.`);
+  if (d.missingCount && !d.extraCount) {
+    out.push(`${d.missingCount} expected row(s) are missing — a filter may be too strict, or an INNER JOIN is dropping rows without a match (LEFT JOIN keeps them).`);
+  }
+  if (d.missingCount && d.extraCount) {
+    // Pair rows that agree on every column but one, to name the exact difference.
+    let rounding = 0;
+    let nullVsZero = 0;
+    const cols = expectedColumns.length;
+    for (const m of d.missing) {
+      for (const x of d.extra) {
+        const diffAt = [...Array(cols).keys()].filter((i) => JSON.stringify(normalizeValue(m[i])) !== JSON.stringify(normalizeValue(x[i])));
+        if (diffAt.length !== 1) continue;
+        const a = normalizeValue(m[diffAt[0]]);
+        const b = normalizeValue(x[diffAt[0]]);
+        if (typeof a === "number" && typeof b === "number" && Math.abs(a - b) <= Math.max(0.011, Math.abs(a) * 1e-4)) rounding++;
+        else if ((a === 0 && b === null) || (a === null && b === 0)) nullVsZero++;
+        break;
+      }
+    }
+    if (rounding) out.push(`${rounding} row(s) differ only by rounding — check ROUND(…::numeric, 2) and where you round (before or after aggregating).`);
+    if (nullVsZero) out.push(`${nullVsZero} row(s) differ only by NULL vs 0 — COALESCE(…, 0) turns a missing aggregate into 0 (or the other way round).`);
+    if (!rounding && !nullVsZero) out.push(`${d.missingCount} expected row(s) are missing and ${d.extraCount} unexpected row(s) appear — compare the samples below.`);
+  }
+  return out;
+}

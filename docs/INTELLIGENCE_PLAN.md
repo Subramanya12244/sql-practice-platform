@@ -16,10 +16,10 @@ This document checks the "Advanced Intelligence, Data Engineering & Career Devel
 | 4. Query visualizer `/query-visualizer` | Missing (only the EXPLAIN tree in the editor) | **Done.**<br>• Logical-order stepper: FROM/JOIN → WHERE → GROUP BY → HAVING → window → SELECT → DISTINCT → ORDER BY → LIMIT.<br>• Real intermediate rows (capped at 20) and exact counts from derived queries.<br>• JOIN cards: left and right rows, matching pairs, unmatched rows with samples.<br>• Rows removed by WHERE and HAVING, with partition sizes for window functions.<br>• Clause highlighting, back and next.<br>• A separate **physical plan** tab.<br>Unsupported shapes (set operations, multiple statements, non-SELECT) are reported rather than guessed. |
 | 5. Solution comparison `/solution-comparison` | Missing | **Done.** Side-by-side editors showing:<br>• equivalence (ordered or unordered) and a row diff<br>• detected approaches and structural complexity<br>• median of 5 timed runs after a warm-up, with the per-run times<br>• plan cost and plan tree<br>• rule-based notes on NULL, duplicate and determinism traps<br>• recorded conditions: engine version, row count and indexes per table<br>It never declares a winner. |
 | 6. Readiness `/readiness` | Weak-topic scoring (`lib/insights.ts`) | **Done.**<br>• Each topic is scored on five dimensions: application, independence, efficiency, knowledge and retention.<br>• A topic needs at least 3 practiced questions, and an overall estimate needs at least 3 assessed topics.<br>• Repo or imported solves are shown but **never scored**, and assisted solves never count as independent.<br>• Shows recommendations, revision and the next check date, labelled as an estimate. |
-| 7. Multi-database playground | Northwind only (public); project DBs in the local app | Phase 2 |
+| 7. Multi-database playground | Northwind only (public); project DBs in the local app | **Done (Phase 2).**<br>• Northwind plus HR, Sales, E-commerce, Banking and Inventory (`scripts/build_datasets.py`, deterministic), plus your own generated datasets.<br>• **Each dataset runs in its own PGlite worker**, so a query can't see another database.<br>• Schema explorer reads keys from the live catalog, with row counts, a table preview and an ER diagram.<br>• Per-dataset history and saved queries.<br>• CSV/JSON export and a reset (a fresh instance).<br>Local-app project databases are unchanged. |
 | 8–9. Data engineering hub, projects lab | Missing | Phase 3 (reuse the notes, mind map and content infrastructure) |
-| 10. Scenario simulator | Partial: lessons, interview sets | Phase 2 |
-| 11. Data generator | Missing (the local app has dataset upload) | Phase 2 |
+| 10. Scenario simulator | Partial: lessons, interview sets | **Done (Phase 2).**<br>• 16 business scenarios across the six datasets (`content/scenarios/*.md`).<br>• Each has context, requirement, success criteria with exact output columns, a reference and ≥ 1 alternative solution.<br>• Graded by result, so any correct query passes; every alternative is tested to grade correct.<br>• The explanation, alternatives and follow-ups unlock after solving. |
+| 11. Data generator | Missing (the local app has dataset upload) | **Done (Phase 2).** `/data-generator`:<br>• Tables and columns (13 kinds), PKs and FKs.<br>• NULL, invalid and orphan percentages, and duplicate rows; clean, realistic and messy presets.<br>• A seeded RNG, so the same settings always give the same data.<br>• Validation, preview, ER diagram, SQL/CSV export, and opening the dataset in the playground (stored in this browser, isolated instance). |
 | 12. Data quality lab | Missing | Phase 3 |
 | 13. Company prep | Partial: role-based interview sets | Phase 4 (verified / user-contributed / AI-generated labels are needed) |
 | 14. Answer practice | Missing | Phase 4 (needs an AI provider for scoring; a rubric self-check is possible without one) |
@@ -60,9 +60,21 @@ To enable one, deploy an endpoint that accepts `{context, messages}` and returns
 - `siteTutor.test.ts`: disabled provider, schema check, explanation order, context contents.
 - `siteReadiness.test.ts`: evidence thresholds, imported vs practiced, independent vs assisted, tracking.
 
+## Phase 2 additions to evaluation
+
+- `diagnose()` in `lib/resultCompare.ts` explains a wrong result from the two result sets:
+  - wrong column order, or a column that needs renaming
+  - duplicate rows (join fan-out)
+  - extra rows (a filter is too loose)
+  - missing rows (a filter is too strict, or an INNER JOIN drops unmatched rows)
+  - rounding-only differences
+  - NULL vs 0
+- These run on every submit, before the generic checklist.
+
 ## Next phases
 
-1. **Phase 2, practical SQL environment.**
+1. ~~Phase 2, practical SQL environment.~~ Shipped (see above).
+   Original plan:
    - Multi-database playground: ship extra datasets (HR, sales, e-commerce, banking, inventory) as SQL files loaded into separate PGlite instances, with query history and saved queries.
    - Data generator: client-side and exportable.
    - Scenario simulator: reuse lesson exercises and result grading.

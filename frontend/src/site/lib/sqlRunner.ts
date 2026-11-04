@@ -1,5 +1,5 @@
 import type { ExecuteResult, SubmitResult } from "../../types";
-import { compareResults, rowDiff, type OrderKey } from "./resultCompare";
+import { compareResults, diagnose, rowDiff, type OrderKey } from "./resultCompare";
 
 /** The subset of PGlite / PGliteWorker this module uses. */
 export interface SqlDb {
@@ -105,7 +105,8 @@ export async function submit(
   return {
     correct: cmp.match,
     message: cmp.message,
-    feedback: cmp.feedback,
+    // Specific, result-derived reasons first; the generic checklist after.
+    feedback: cmp.match ? cmp.feedback : [...diagnose(user.columns, user.rows, expected.columns, expected.rows), ...cmp.feedback],
     your_row_count: cmp.yourRowCount,
     expected_row_count: cmp.expectedRowCount,
     level_changed: false,
