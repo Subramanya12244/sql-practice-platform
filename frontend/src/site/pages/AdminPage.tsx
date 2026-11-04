@@ -6,6 +6,8 @@ import { useAuth } from "../lib/auth";
 import { getSupabase } from "../lib/supabase";
 import { setChallenge, setHidden, weekStart } from "../lib/community";
 import { AdminSubmissions } from "./AdminSubmissions";
+import { AdminUserDetail } from "./AdminUserDetail";
+import { downloadCsv, toCsv } from "../lib/csv";
 
 interface CommentAdminRow {
   id: number;
@@ -121,6 +123,7 @@ export function AdminPage() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [selected, setSelected] = useState<UserRow | null>(null);
   const isAdmin = profile?.role === "admin";
 
   const loadOverview = useCallback(async () => {
@@ -158,6 +161,18 @@ export function AdminPage() {
     await Promise.all([loadOverview(), loadAudit()]);
   }
 
+  /** Up to 5,000 audit rows matching the current filters. */
+  async function exportAudit() {
+    const sb = await getSupabase();
+    let q = sb.from("audit_log").select("created_at, user_id, action, detail").order("created_at", { ascending: false }).limit(5000);
+    if (filterUser) q = q.eq("user_id", filterUser);
+    if (filterAction) q = q.eq("action", filterAction);
+    const { data, error } = await q;
+    if (error) return setErr(error.message);
+    const rows = (data ?? []).map((r) => ({ ...r, user: name(r.user_id as string | null) }));
+    downloadCsv("dataforge-audit.csv", toCsv(rows as Record<string, string>[], ["created_at", "user", "action", "detail"]));
+  }
+
   const name = (id: string | null) => users.find((u) => u.id === id)?.username ?? (id ? id.slice(0, 8) : "—");
 
   let body;
@@ -187,7 +202,11 @@ export function AdminPage() {
           </div>
         )}
 
-        <h2 className="mt-10 font-display text-xl font-bold text-ink">Users ({users.length})</h2>
+        <div className="mt-10 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-display text-xl font-bold text-ink">Users ({users.length})</h2>
+          <button type="button" className="rounded-lg border border-surface-border px-3 py-1.5 text-sm" onClick={() => downloadCsv("dataforge-users.csv", toCsv(users as unknown as Record<string, string>[], ["username", "role", "solved", "attempts", "mocks", "created_at", "last_seen_at"]))}>Export CSV</button>
+        </div>
+        <p className="mt-1 text-xs text-ink-faint">Click a username for that learner's details.</p>
         <div className="mt-3 overflow-x-auto rounded-card border border-surface-border">
           <table className="w-full min-w-[640px]">
             <thead className="bg-surface-raised">
@@ -197,7 +216,7 @@ export function AdminPage() {
               {users.map((u) => (
                 <tr key={u.id}>
                   <td className={td}>
-                    <button type="button" className="text-accent hover:underline" onClick={() => { setFilterUser(u.id); setPage(0); }}>{u.username}</button>
+                    <button type="button" className="text-accent hover:underline" onClick={() => { setSelected(u); setFilterUser(u.id); setPage(0); }}>{u.username}</button>
                   </td>
                   <td className={td}>{u.role}</td>
                   <td className={td}>{u.solved}</td>
@@ -216,6 +235,8 @@ export function AdminPage() {
           </table>
         </div>
 
+        {selected && <AdminUserDetail key={selected.id} userId={selected.id} username={selected.username} onClose={() => setSelected(null)} />}
+
         <h2 className="mt-10 font-display text-xl font-bold text-ink">Audit log</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
           <select aria-label="Filter by user" value={filterUser} onChange={(e) => { setFilterUser(e.target.value); setPage(0); }} className="rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-ink">
@@ -225,6 +246,7 @@ export function AdminPage() {
           <select aria-label="Filter by action" value={filterAction} onChange={(e) => { setFilterAction(e.target.value); setPage(0); }} className="rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-ink">
             {ACTIONS.map((a) => <option key={a} value={a}>{a || "All actions"}</option>)}
           </select>
+          <button type="button" className="rounded-lg border border-surface-border px-3 py-1.5" onClick={() => void exportAudit()}>Export CSV</button>
         </div>
         <div className="mt-3 overflow-x-auto rounded-card border border-surface-border">
           <table className="w-full min-w-[560px]">

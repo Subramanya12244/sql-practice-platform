@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getSupabase } from "../lib/supabase";
 import { loadProjectIndex } from "../lib/projects";
+import { downloadCsv, toCsv } from "../lib/csv";
 import type { ReviewStatus } from "../lib/projects";
 
 export interface SubmissionAdminRow {
@@ -33,6 +34,7 @@ const ACTIONS: { label: string; status: ReviewStatus; tone: string }[] = [
   { label: "Reject", status: "Rejected", tone: "bg-danger text-white" },
   { label: "Mark under evaluation", status: "Under evaluation", tone: "border border-surface-border text-ink" },
 ];
+const PAGE = 50;
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const th = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-ink-faint";
 const td = "px-3 py-2 text-sm text-ink";
@@ -68,6 +70,8 @@ export function AdminSubmissions({ name, users, onChange }: { name: (id: string 
   const [comment, setComment] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     void loadProjectIndex().then((list) => setTitles(Object.fromEntries(list.map((p) => [p.slug, p.title]))));
@@ -77,7 +81,7 @@ export function AdminSubmissions({ name, users, onChange }: { name: (id: string 
     const sb = await getSupabase();
     let q = sb.from("project_submissions")
       .select("id, user_id, project_slug, repo_url, notes, checklist, status, review_comment, reviewed_by, reviewed_at, created_at")
-      .order("created_at", { ascending: false }).limit(200);
+      .order("created_at", { ascending: false }).range(page * PAGE, page * PAGE + PAGE);
     if (user) q = q.eq("user_id", user);
     if (project) q = q.eq("project_slug", project);
     if (status) q = q.eq("status", status);
@@ -86,8 +90,10 @@ export function AdminSubmissions({ name, users, onChange }: { name: (id: string 
     const { data, error } = await q;
     if (error) return setMsg(error.message.includes("review_comment") ? "Apply supabase/migrations/004_submission_review.sql to enable reviews." : error.message);
     setMsg(null);
-    setRows((data ?? []) as SubmissionAdminRow[]);
-  }, [user, project, status, from, to]);
+    setHasMore((data ?? []).length > PAGE);
+    setRows(((data ?? []) as SubmissionAdminRow[]).slice(0, PAGE));
+  }, [user, project, status, from, to, page]);
+  useEffect(() => setPage(0), [user, project, status, from, to]);
   useEffect(() => void load(), [load]);
 
   const openRow = async (r: SubmissionAdminRow) => {
@@ -134,6 +140,10 @@ export function AdminSubmissions({ name, users, onChange }: { name: (id: string 
           {STATUSES.map((s) => <option key={s}>{s}</option>)}
         </select>
         <label className="flex items-center gap-1 text-ink-muted">From <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={input} /></label>
+        <button type="button" className="rounded-lg border border-surface-border px-3 py-1.5"
+          onClick={() => downloadCsv("dataforge-submissions.csv", toCsv(shown.map((r) => ({ ...r, user: name(r.user_id), project: titles[r.project_slug] ?? r.project_slug, checklist_done: `${checklistCompletion(r.checklist).done}/${checklistCompletion(r.checklist).total}`, reviewer: r.reviewed_by ? name(r.reviewed_by) : "" })), ["created_at", "user", "project", "status", "repo_url", "checklist_done", "review_comment", "reviewer", "reviewed_at"]))}>
+          Export CSV
+        </button>
         <label className="flex items-center gap-1 text-ink-muted">To <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={input} /></label>
       </div>
       {msg && <p role="status" className="mt-2 text-sm text-ink-muted">{msg}</p>}
@@ -159,6 +169,11 @@ export function AdminSubmissions({ name, users, onChange }: { name: (id: string 
             {!shown.length && <tr><td className={td} colSpan={7}>No submissions match.</td></tr>}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-3 flex gap-3 text-sm">
+        <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="rounded-lg border border-surface-border px-3 py-1.5 disabled:opacity-50">Newer</button>
+        <button type="button" disabled={!hasMore} onClick={() => setPage((p) => p + 1)} className="rounded-lg border border-surface-border px-3 py-1.5 disabled:opacity-50">Older</button>
       </div>
 
       {open && (

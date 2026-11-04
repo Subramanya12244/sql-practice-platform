@@ -312,7 +312,7 @@ export const routes: SiteRoute[] = [
   { path: "/signup", element: <SignupPage />, load: base, paths: one("/signup") },
   { path: "/account", element: <AccountPage />, load: base, paths: one("/account") },
   { path: "/reset-password", element: <ResetPasswordPage />, load: base, paths: one("/reset-password") },
-  { path: "/admin", element: <AdminPage />, load: base, paths: one("/admin") },
+  { path: "/admin", element: <AdminPage />, load: async () => ({ ...(await base()), projects: await loadProjectIndex() }), paths: one("/admin") },
 ];
 
 export const notFoundRoute: SiteRoute = {

@@ -76,7 +76,7 @@ Without Supabase the site works anonymously. With it:
 - **Password reset.** `/reset-password` emails a reset link. It works only for accounts created with an email; username-only accounts need an admin.
 - **Review notifications.** When an admin reviews a project submission, the learner sees a badge in the header and the decision with its comment on `/account`.
 - **Public profile.** Opt in on `/account`. `/profile?u=<username>` then shows solved counts, activity, the portfolio name and reviewer-approved projects, never the email. The same profile is listed on `/leaderboard`.
-- **Admin dashboard.** `/admin` shows users, activity, roles, the audit log, comment moderation, the weekly challenge and project submission review (approve, request changes, reject, with history).
+- **Admin dashboard.** `/admin` shows users, activity, roles, the audit log, comment moderation, the weekly challenge and project submission review (approve, request changes, reject, with history). Click a username to see that learner's solves by topic, project checks, submissions and recent activity. Users, the audit log and submissions export to CSV.
 
 The database enforces every rule through row-level security (RLS). The frontend only hides what a visitor can't use.
 
