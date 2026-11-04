@@ -55,6 +55,9 @@ function Disabled() {
   );
 }
 
+/** Google sign-in stays hidden until the provider is enabled in Supabase and VITE_GOOGLE_AUTH=1 is set. */
+const googleEnabled = import.meta.env.VITE_GOOGLE_AUTH === "1";
+
 function GoogleButton() {
   const { signInWithGoogle } = useAuth();
   const [err, setErr] = useState<string | null>(null);
@@ -114,7 +117,7 @@ export function LoginPage() {
       <Seo title="Sign in" description="Sign in to sync your SQL practice progress." path="/login" noindex />
       {!enabled ? <Disabled /> : (
         <>
-          <GoogleButton />
+          {googleEnabled && <GoogleButton />}
           <form onSubmit={submit} className="space-y-3">
             <label className="block text-sm font-medium text-ink">
               Username or email
@@ -172,7 +175,7 @@ export function SignupPage() {
       <Seo title="Create account" description="Create a free account to sync SQL practice progress." path="/signup" noindex />
       {!enabled ? <Disabled /> : (
         <>
-          <GoogleButton />
+          {googleEnabled && <GoogleButton />}
           <form onSubmit={submit} className="space-y-3">
             <label className="block text-sm font-medium text-ink">
               Username
