@@ -1,0 +1,118 @@
+{
+  "category": "postgresql",
+  "title": "PostgreSQL",
+  "order": 12,
+  "items": [
+    {
+      "id": "cast-shorthand",
+      "operation": "Cast with ::",
+      "syntax": "expr::type",
+      "explanation": "PostgreSQL shorthand for CAST(expr AS type).",
+      "example": "SELECT '42'::int + 1 AS n, order_date::text FROM orders LIMIT 1;",
+      "expected": "One row: 43 and a date string.",
+      "notes": [
+        "select"
+      ]
+    },
+    {
+      "id": "distinct-on",
+      "operation": "First row per group",
+      "syntax": "SELECT DISTINCT ON (k) … ORDER BY k, col DESC",
+      "explanation": "Keeps the first row of each k after sorting (PostgreSQL-only).",
+      "example": "SELECT DISTINCT ON (customer_id) customer_id, order_id, order_date FROM orders ORDER BY customer_id, order_date DESC;",
+      "expected": "Latest order per customer.",
+      "notes": [
+        "row-number"
+      ]
+    },
+    {
+      "id": "returning",
+      "operation": "Get changed rows back",
+      "syntax": "INSERT/UPDATE/DELETE … RETURNING cols",
+      "explanation": "Returns the affected rows without a second query.",
+      "example": "UPDATE products SET unit_price = unit_price * 1.1 WHERE category_id = 1 RETURNING product_id, unit_price;",
+      "expected": "Updated category-1 products (rolled back).",
+      "notes": [
+        "transactions"
+      ]
+    },
+    {
+      "id": "on-conflict",
+      "operation": "Upsert",
+      "syntax": "INSERT … ON CONFLICT (key) DO UPDATE SET col = EXCLUDED.col",
+      "explanation": "Inserts or updates on unique-key conflict.",
+      "example": "INSERT INTO shippers (shipper_id, company_name) VALUES (1, 'Renamed') ON CONFLICT (shipper_id) DO UPDATE SET company_name = EXCLUDED.company_name RETURNING *;",
+      "expected": "Shipper 1 renamed (rolled back).",
+      "notes": [
+        "constraints",
+        "primary-foreign-keys"
+      ]
+    },
+    {
+      "id": "generate-series",
+      "operation": "Number or date series",
+      "syntax": "generate_series(1, 10)",
+      "explanation": "Set-returning function for sequences and calendars.",
+      "example": "SELECT n FROM generate_series(1, 5) AS n;",
+      "expected": "Rows 1 to 5.",
+      "notes": [
+        "date-time-functions"
+      ]
+    },
+    {
+      "id": "lateral",
+      "operation": "Per-row subquery",
+      "syntax": "FROM a CROSS JOIN LATERAL (SELECT … WHERE b.k = a.k LIMIT n)",
+      "explanation": "A LATERAL subquery can reference earlier FROM items.",
+      "example": "SELECT c.category_name, p.product_name FROM categories c CROSS JOIN LATERAL (SELECT product_name FROM products p WHERE p.category_id = c.category_id ORDER BY unit_price DESC LIMIT 1) p;",
+      "expected": "Most expensive product per category.",
+      "notes": [
+        "correlated-subqueries"
+      ]
+    },
+    {
+      "id": "array-agg",
+      "operation": "Aggregate into an array",
+      "syntax": "ARRAY_AGG(col ORDER BY col)",
+      "explanation": "Collects values into an array; unnest() reverses it.",
+      "example": "SELECT category_id, ARRAY_AGG(product_id ORDER BY product_id) AS ids FROM products GROUP BY category_id ORDER BY category_id;",
+      "expected": "Array of product ids per category.",
+      "notes": [
+        "group-by"
+      ]
+    },
+    {
+      "id": "jsonb-build",
+      "operation": "Build JSON",
+      "syntax": "jsonb_build_object('k', v), jsonb_agg(…)",
+      "explanation": "Produce JSON documents directly in SQL.",
+      "example": "SELECT jsonb_build_object('id', shipper_id, 'name', company_name) AS doc FROM shippers;",
+      "expected": "One JSON object per shipper.",
+      "notes": [
+        "jsonb"
+      ]
+    },
+    {
+      "id": "filter-clause",
+      "operation": "Aggregate FILTER",
+      "syntax": "agg(…) FILTER (WHERE cond)",
+      "explanation": "Cleaner conditional aggregation.",
+      "example": "SELECT COUNT(*) FILTER (WHERE discontinued) AS discontinued, COUNT(*) AS total FROM products;",
+      "expected": "One row: discontinued and total products.",
+      "notes": [
+        "filter-clause"
+      ]
+    },
+    {
+      "id": "ilike",
+      "operation": "Case-insensitive LIKE",
+      "syntax": "col ILIKE 'pattern'",
+      "explanation": "PostgreSQL-specific.",
+      "example": "SELECT company_name FROM suppliers WHERE company_name ILIKE '%ltd%';",
+      "expected": "Suppliers with 'ltd' in any case.",
+      "notes": [
+        "string-functions"
+      ]
+    }
+  ]
+}

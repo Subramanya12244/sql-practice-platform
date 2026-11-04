@@ -1,0 +1,291 @@
+{
+  "slug": "postgresql-fundamentals",
+  "title": "PostgreSQL Fundamentals",
+  "description": "Core PostgreSQL concepts: data types, MVCC, transactions, roles, schemas, sequences, JSONB, extensions and EXPLAIN.",
+  "root": {
+    "id": "pg",
+    "label": "PostgreSQL",
+    "detail": "Open-source object-relational database.",
+    "note": "intro-to-sql",
+    "children": [
+      {
+        "id": "types",
+        "label": "Data types",
+        "detail": "Pick precise types.",
+        "note": "database-design",
+        "children": [
+          {
+            "id": "t-num",
+            "label": "Numeric types",
+            "detail": "integer, bigint, numeric (exact), double (inexact).",
+            "note": "database-design",
+            "questions": [
+              57,
+              1
+            ],
+            "children": []
+          },
+          {
+            "id": "t-text",
+            "label": "text / varchar",
+            "detail": "text has no perf penalty vs varchar(n).",
+            "note": "string-functions",
+            "questions": [
+              120
+            ],
+            "children": []
+          },
+          {
+            "id": "t-time",
+            "label": "date / timestamptz",
+            "detail": "Prefer timestamptz; interval for durations.",
+            "note": "date-time-functions",
+            "questions": [
+              115,
+              114
+            ],
+            "children": []
+          },
+          {
+            "id": "t-cast",
+            "label": "Casting ::",
+            "detail": "x::numeric, CAST(x AS type).",
+            "note": "select",
+            "questions": [
+              110
+            ],
+            "children": []
+          },
+          {
+            "id": "t-bool",
+            "label": "boolean & arrays",
+            "detail": "Native boolean, arrays of any type.",
+            "note": "database-design",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "jsonb",
+        "label": "JSONB",
+        "detail": "Binary JSON, indexable.",
+        "note": "jsonb",
+        "children": [
+          {
+            "id": "j-ops",
+            "label": "-> ->> #> @>",
+            "detail": "Get object, get text, path, containment.",
+            "note": "jsonb",
+            "children": []
+          },
+          {
+            "id": "j-gin",
+            "label": "GIN index on JSONB",
+            "detail": "Speeds @> and key-exists ?.",
+            "note": "indexes",
+            "prereq": [
+              "j-ops"
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "seq",
+        "label": "Sequences & identity",
+        "detail": "Auto-increment keys.",
+        "note": "primary-foreign-keys",
+        "children": [
+          {
+            "id": "s-serial",
+            "label": "SERIAL vs IDENTITY",
+            "detail": "Prefer GENERATED ... AS IDENTITY.",
+            "note": "primary-foreign-keys",
+            "questions": [
+              135
+            ],
+            "children": []
+          },
+          {
+            "id": "s-gaps",
+            "label": "Gaps are normal",
+            "detail": "nextval() is not rolled back.",
+            "note": "transactions",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "mvcc",
+        "label": "MVCC",
+        "detail": "Readers don't block writers.",
+        "note": "transactions",
+        "children": [
+          {
+            "id": "m-tuples",
+            "label": "Row versions",
+            "detail": "UPDATE writes a new tuple; xmin/xmax.",
+            "note": "transactions",
+            "questions": [
+              139
+            ],
+            "children": []
+          },
+          {
+            "id": "m-vacuum",
+            "label": "VACUUM",
+            "detail": "Reclaims dead tuples; autovacuum.",
+            "note": "query-optimization",
+            "prereq": [
+              "m-tuples"
+            ],
+            "children": []
+          },
+          {
+            "id": "m-iso",
+            "label": "Isolation levels",
+            "detail": "Read Committed default; Repeatable Read, Serializable.",
+            "note": "transactions",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "dml",
+        "label": "DML extras",
+        "detail": "Postgres-specific write features.",
+        "note": "transactions",
+        "children": [
+          {
+            "id": "d-returning",
+            "label": "RETURNING",
+            "detail": "Get rows back from INSERT/UPDATE/DELETE.",
+            "note": "transactions",
+            "questions": [
+              135,
+              136
+            ],
+            "children": []
+          },
+          {
+            "id": "d-upsert",
+            "label": "ON CONFLICT",
+            "detail": "Upsert using EXCLUDED.",
+            "note": "constraints",
+            "pattern": "remove-duplicates",
+            "questions": [
+              139
+            ],
+            "children": []
+          },
+          {
+            "id": "d-from",
+            "label": "UPDATE ... FROM",
+            "detail": "Update using a join.",
+            "note": "multiple-joins",
+            "questions": [
+              137
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "objects",
+        "label": "Schemas & objects",
+        "detail": "Organize the database.",
+        "note": "database-design",
+        "children": [
+          {
+            "id": "o-schema",
+            "label": "Schemas",
+            "detail": "Namespaces; search_path decides lookup.",
+            "note": "database-design",
+            "children": []
+          },
+          {
+            "id": "o-views",
+            "label": "Views & mat. views",
+            "detail": "Saved query vs stored result (REFRESH).",
+            "note": "views",
+            "children": []
+          },
+          {
+            "id": "o-temp",
+            "label": "Temporary tables",
+            "detail": "Session-scoped tables.",
+            "note": "temporary-tables",
+            "questions": [
+              141
+            ],
+            "children": []
+          },
+          {
+            "id": "o-cons",
+            "label": "Constraints",
+            "detail": "PK, FK, UNIQUE, CHECK, NOT NULL.",
+            "note": "constraints",
+            "questions": [
+              142
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "roles",
+        "label": "Roles & privileges",
+        "detail": "Users and groups are both roles.",
+        "note": "database-design",
+        "children": [
+          {
+            "id": "r-grant",
+            "label": "GRANT / REVOKE",
+            "detail": "Privileges on schemas, tables, columns.",
+            "note": "database-design",
+            "children": []
+          },
+          {
+            "id": "r-rls",
+            "label": "Row-level security",
+            "detail": "Policies filter rows per role.",
+            "note": "database-design",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "ext",
+        "label": "Extensions",
+        "detail": "CREATE EXTENSION pg_trgm, pg_stat_statements...",
+        "note": "indexes",
+        "children": []
+      },
+      {
+        "id": "explain",
+        "label": "EXPLAIN",
+        "detail": "Show the query plan.",
+        "note": "query-optimization",
+        "children": [
+          {
+            "id": "e-analyze",
+            "label": "EXPLAIN ANALYZE",
+            "detail": "Runs query; actual times and rows.",
+            "note": "query-optimization",
+            "children": []
+          },
+          {
+            "id": "e-buffers",
+            "label": "BUFFERS option",
+            "detail": "Shared hit vs read pages.",
+            "note": "query-optimization",
+            "prereq": [
+              "e-analyze"
+            ],
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

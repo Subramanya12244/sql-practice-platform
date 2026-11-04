@@ -199,6 +199,15 @@ export function QuestionPage() {
                   <Markdown source={q.expectedOutput} className="text-sm" />
                 </div>
               )}
+              {((data.notes?.length ?? 0) > 0 || (data.patterns?.length ?? 0) > 0) && (
+                <div className="mt-6 rounded-lg border border-surface-border bg-surface px-4 py-3 text-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Learn the concepts</p>
+                  <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                    {data.notes?.map((n) => <Link key={n.slug} to={`/notes/${n.slug}`} className="text-accent hover:underline">{n.title}</Link>)}
+                    {data.patterns?.map((p) => <Link key={p.slug} to={`/patterns/${p.slug}`} className="text-accent hover:underline">Pattern: {p.title}</Link>)}
+                  </p>
+                </div>
+              )}
               {data.schema && (
                 <div className="mt-6">
                   <SchemaPanel schema={data.schema} highlight={q.tables} />

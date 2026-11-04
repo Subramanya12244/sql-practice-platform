@@ -1,0 +1,122 @@
+{
+  "category": "optimization",
+  "title": "Optimization",
+  "order": 13,
+  "items": [
+    {
+      "id": "explain",
+      "operation": "See the plan",
+      "syntax": "EXPLAIN SELECT …",
+      "explanation": "Shows the planner's chosen plan and estimated costs without running.",
+      "example": "EXPLAIN SELECT * FROM orders WHERE customer_id = 'ALFKI';",
+      "expected": "Plan lines (e.g. Seq Scan or Index Scan).",
+      "notes": [
+        "query-optimization"
+      ]
+    },
+    {
+      "id": "explain-analyze",
+      "operation": "Measure real execution",
+      "syntax": "EXPLAIN (ANALYZE, BUFFERS) SELECT …",
+      "explanation": "Runs the query and reports actual rows and timing; wrap writes in a transaction.",
+      "example": "EXPLAIN (ANALYZE, BUFFERS) SELECT COUNT(*) FROM order_details WHERE quantity > 10;",
+      "expected": "Plan lines with actual time and rows.",
+      "notes": [
+        "query-optimization"
+      ]
+    },
+    {
+      "id": "create-index",
+      "operation": "Index a filter column",
+      "syntax": "CREATE INDEX name ON t (col)",
+      "explanation": "Speeds up selective WHERE, JOIN and ORDER BY on col; costs space and write time.",
+      "example": "CREATE INDEX tmp_orders_customer ON orders (customer_id); SELECT indexname FROM pg_indexes WHERE tablename = 'orders';",
+      "expected": "Index list for orders including tmp_orders_customer (rolled back).",
+      "notes": [
+        "indexes"
+      ]
+    },
+    {
+      "id": "composite-index",
+      "operation": "Multi-column index",
+      "syntax": "CREATE INDEX ON t (a, b)",
+      "explanation": "Usable for filters on a, or a and b; leading column matters.",
+      "example": "CREATE INDEX tmp_od_prod_qty ON order_details (product_id, quantity); EXPLAIN SELECT * FROM order_details WHERE product_id = 11 AND quantity > 5;",
+      "expected": "Plan for the query (may still choose a seq scan on tiny tables).",
+      "notes": [
+        "indexes"
+      ]
+    },
+    {
+      "id": "sargable",
+      "operation": "Keep predicates index-friendly",
+      "syntax": "WHERE d >= x AND d < y  (not WHERE f(d) = …)",
+      "explanation": "Functions on the column block plain indexes; rewrite as a range or use an expression index.",
+      "example": "SELECT COUNT(*) FROM orders WHERE order_date >= (SELECT MIN(order_date) FROM orders) AND order_date < (SELECT MIN(order_date) FROM orders) + interval '1 year';",
+      "expected": "One row: orders in the first year of data.",
+      "notes": [
+        "indexes",
+        "query-optimization"
+      ]
+    },
+    {
+      "id": "exists-over-count",
+      "operation": "EXISTS instead of COUNT",
+      "syntax": "WHERE EXISTS (…) not WHERE (SELECT COUNT(*) …) > 0",
+      "explanation": "EXISTS stops at the first match.",
+      "example": "SELECT c.customer_id FROM customers c WHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id AND o.freight > 100) LIMIT 5;",
+      "expected": "Customers with at least one high-freight order.",
+      "notes": [
+        "exists-not-exists",
+        "query-optimization"
+      ]
+    },
+    {
+      "id": "select-needed-columns",
+      "operation": "Select only needed columns",
+      "syntax": "SELECT a, b instead of SELECT *",
+      "explanation": "Less I/O, enables index-only scans.",
+      "example": "SELECT order_id, order_date FROM orders ORDER BY order_date DESC LIMIT 5;",
+      "expected": "5 latest orders, two columns.",
+      "notes": [
+        "select",
+        "query-optimization"
+      ]
+    },
+    {
+      "id": "aggregate-before-join",
+      "operation": "Aggregate before joining",
+      "syntax": "JOIN (SELECT k, SUM(x) … GROUP BY k) t",
+      "explanation": "Shrinks rows before an expensive join and avoids fan-out.",
+      "example": "SELECT c.company_name, t.orders FROM customers c JOIN (SELECT customer_id, COUNT(*) AS orders FROM orders GROUP BY customer_id) t USING (customer_id) ORDER BY t.orders DESC LIMIT 5;",
+      "expected": "Top 5 customers by order count.",
+      "notes": [
+        "join-cardinality",
+        "query-optimization"
+      ]
+    },
+    {
+      "id": "analyze-stats",
+      "operation": "Refresh statistics",
+      "syntax": "ANALYZE table",
+      "explanation": "Updates planner statistics after big data changes.",
+      "example": "ANALYZE orders; SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE relname = 'orders';",
+      "expected": "Row with live tuple count for orders.",
+      "notes": [
+        "query-optimization"
+      ]
+    },
+    {
+      "id": "keyset-pagination",
+      "operation": "Paginate by key",
+      "syntax": "WHERE id > :last_id ORDER BY id LIMIT n",
+      "explanation": "Avoids scanning skipped rows that OFFSET still reads.",
+      "example": "SELECT order_id, order_date FROM orders WHERE order_id > 50 ORDER BY order_id LIMIT 5;",
+      "expected": "5 orders after id 50.",
+      "notes": [
+        "limit-offset",
+        "indexes"
+      ]
+    }
+  ]
+}

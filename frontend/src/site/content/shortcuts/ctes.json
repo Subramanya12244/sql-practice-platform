@@ -1,0 +1,87 @@
+{
+  "category": "ctes",
+  "title": "CTEs",
+  "order": 6,
+  "items": [
+    {
+      "id": "basic-cte",
+      "operation": "Name a subquery",
+      "syntax": "WITH name AS (SELECT …) SELECT … FROM name",
+      "explanation": "Makes multi-step logic readable top to bottom.",
+      "example": "WITH big AS (SELECT order_id, freight FROM orders WHERE freight > 100) SELECT COUNT(*) AS big_orders FROM big;",
+      "expected": "One row: number of orders with freight over 100.",
+      "notes": [
+        "cte"
+      ]
+    },
+    {
+      "id": "multiple-ctes",
+      "operation": "Chain steps",
+      "syntax": "WITH a AS (…), b AS (SELECT … FROM a) SELECT …",
+      "explanation": "Later CTEs can read earlier ones.",
+      "example": "WITH rev AS (SELECT customer_id, SUM(freight) AS f FROM orders GROUP BY customer_id), avg_rev AS (SELECT AVG(f) AS a FROM rev) SELECT r.customer_id, r.f FROM rev r, avg_rev WHERE r.f > avg_rev.a ORDER BY r.f DESC;",
+      "expected": "Customers whose total freight exceeds the average.",
+      "notes": [
+        "multiple-ctes"
+      ]
+    },
+    {
+      "id": "cte-aggregate-join",
+      "operation": "Aggregate then join",
+      "syntax": "WITH totals AS (… GROUP BY k) SELECT … FROM t JOIN totals USING (k)",
+      "explanation": "Aggregate before joining to avoid fan-out.",
+      "example": "WITH n AS (SELECT category_id, COUNT(*) AS products FROM products GROUP BY category_id) SELECT c.category_name, n.products FROM categories c JOIN n USING (category_id) ORDER BY n.products DESC;",
+      "expected": "Product count per category name.",
+      "notes": [
+        "cte",
+        "join-cardinality"
+      ]
+    },
+    {
+      "id": "recursive-series",
+      "operation": "Generate numbers",
+      "syntax": "WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 5) SELECT n FROM s",
+      "explanation": "Anchor plus recursive step; stops when the step returns nothing.",
+      "example": "WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < 5) SELECT n FROM s;",
+      "expected": "Rows 1 to 5.",
+      "notes": [
+        "recursive-cte"
+      ]
+    },
+    {
+      "id": "recursive-hierarchy",
+      "operation": "Walk a hierarchy",
+      "syntax": "WITH RECURSIVE t AS (anchor UNION ALL SELECT … JOIN t ON …)",
+      "explanation": "Follows parent/child links to any depth.",
+      "example": "WITH RECURSIVE org AS (SELECT employee_id, first_name, 1 AS level FROM employees WHERE reports_to IS NULL UNION ALL SELECT e.employee_id, e.first_name, org.level + 1 FROM employees e JOIN org ON e.reports_to = org.employee_id) SELECT * FROM org ORDER BY level;",
+      "expected": "Every employee with their org-chart level.",
+      "notes": [
+        "recursive-cte"
+      ]
+    },
+    {
+      "id": "cte-materialized",
+      "operation": "Control inlining",
+      "syntax": "WITH x AS MATERIALIZED (…)",
+      "explanation": "PostgreSQL 12+ inlines single-use CTEs; MATERIALIZED forces one evaluation, NOT MATERIALIZED forces inlining.",
+      "example": "WITH x AS MATERIALIZED (SELECT * FROM orders WHERE freight > 50) SELECT COUNT(*) FROM x;",
+      "expected": "One row: count of orders with freight over 50.",
+      "notes": [
+        "cte",
+        "query-optimization"
+      ]
+    },
+    {
+      "id": "data-modifying-cte",
+      "operation": "Write and read in one statement",
+      "syntax": "WITH d AS (DELETE … RETURNING *) SELECT … FROM d",
+      "explanation": "PostgreSQL-specific: INSERT/UPDATE/DELETE inside WITH, consumed by the outer query.",
+      "example": "WITH d AS (DELETE FROM order_details WHERE quantity < 5 RETURNING order_id, quantity) SELECT COUNT(*) AS deleted_lines, SUM(quantity) AS units FROM d;",
+      "expected": "One row: deleted line count and units (rolled back).",
+      "notes": [
+        "cte",
+        "transactions"
+      ]
+    }
+  ]
+}

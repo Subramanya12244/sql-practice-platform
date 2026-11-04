@@ -1,0 +1,111 @@
+{
+  "category": "aggregations",
+  "title": "Aggregations",
+  "order": 4,
+  "items": [
+    {
+      "id": "group-by-count",
+      "operation": "Count per group",
+      "syntax": "SELECT key, COUNT(*) FROM t GROUP BY key",
+      "explanation": "One output row per distinct key.",
+      "example": "SELECT country, COUNT(*) AS customers FROM customers GROUP BY country ORDER BY customers DESC;",
+      "expected": "Customer count per country.",
+      "notes": [
+        "group-by",
+        "count"
+      ]
+    },
+    {
+      "id": "sum-avg",
+      "operation": "Totals and averages",
+      "syntax": "SUM(col), AVG(col)",
+      "explanation": "Both ignore NULLs. AVG of an integer column returns numeric in PostgreSQL.",
+      "example": "SELECT category_id, SUM(units_in_stock) AS stock, ROUND(AVG(unit_price), 2) AS avg_price FROM products GROUP BY category_id ORDER BY category_id;",
+      "expected": "Stock and average price per category.",
+      "notes": [
+        "sum",
+        "avg"
+      ]
+    },
+    {
+      "id": "min-max",
+      "operation": "Smallest and largest",
+      "syntax": "MIN(col), MAX(col)",
+      "explanation": "Work on numbers, dates and text.",
+      "example": "SELECT MIN(order_date) AS first_order, MAX(order_date) AS last_order FROM orders;",
+      "expected": "One row with the first and last order date.",
+      "notes": [
+        "min-max"
+      ]
+    },
+    {
+      "id": "having-filter",
+      "operation": "Filter groups",
+      "syntax": "GROUP BY key HAVING COUNT(*) > n",
+      "explanation": "HAVING filters after aggregation; WHERE filters rows before.",
+      "example": "SELECT customer_id, COUNT(*) AS orders FROM orders GROUP BY customer_id HAVING COUNT(*) >= 3 ORDER BY orders DESC;",
+      "expected": "Customers with 3 or more orders.",
+      "notes": [
+        "having"
+      ]
+    },
+    {
+      "id": "count-distinct",
+      "operation": "Count unique values",
+      "syntax": "COUNT(DISTINCT col)",
+      "explanation": "Counts distinct non-NULL values.",
+      "example": "SELECT employee_id, COUNT(DISTINCT customer_id) AS customers FROM orders GROUP BY employee_id ORDER BY customers DESC;",
+      "expected": "Distinct customers served per employee.",
+      "notes": [
+        "count"
+      ]
+    },
+    {
+      "id": "count-filter",
+      "operation": "Conditional count",
+      "syntax": "COUNT(*) FILTER (WHERE cond)",
+      "explanation": "PostgreSQL FILTER clause; portable form is SUM(CASE WHEN cond THEN 1 ELSE 0 END).",
+      "example": "SELECT employee_id, COUNT(*) FILTER (WHERE shipped_date IS NULL) AS unshipped, COUNT(*) AS total FROM orders GROUP BY employee_id;",
+      "expected": "Unshipped and total orders per employee.",
+      "notes": [
+        "filter-clause",
+        "conditional-aggregation"
+      ]
+    },
+    {
+      "id": "sum-case",
+      "operation": "Conditional sum",
+      "syntax": "SUM(CASE WHEN cond THEN x ELSE 0 END)",
+      "explanation": "Several filtered totals in one pass.",
+      "example": "SELECT ship_country, SUM(CASE WHEN freight > 50 THEN 1 ELSE 0 END) AS heavy, COUNT(*) AS orders FROM orders GROUP BY ship_country ORDER BY heavy DESC LIMIT 5;",
+      "expected": "Heavy-freight count per country.",
+      "notes": [
+        "count-case-when"
+      ]
+    },
+    {
+      "id": "string-agg",
+      "operation": "Concatenate a group",
+      "syntax": "STRING_AGG(col, ', ' ORDER BY col)",
+      "explanation": "Joins values into one string per group (PostgreSQL; MySQL uses GROUP_CONCAT).",
+      "example": "SELECT category_id, STRING_AGG(product_name, ', ' ORDER BY product_name) AS products FROM products GROUP BY category_id ORDER BY category_id;",
+      "expected": "One comma-separated product list per category.",
+      "notes": [
+        "group-by",
+        "string-functions"
+      ]
+    },
+    {
+      "id": "group-by-expression",
+      "operation": "Group by a computed value",
+      "syntax": "GROUP BY date_trunc('month', d)",
+      "explanation": "Any expression can be a grouping key; repeat it or use the column position.",
+      "example": "SELECT date_trunc('month', order_date)::date AS month, COUNT(*) AS orders FROM orders GROUP BY 1 ORDER BY 1 LIMIT 6;",
+      "expected": "Orders per month for the first 6 months.",
+      "notes": [
+        "group-by",
+        "date-time-functions"
+      ]
+    }
+  ]
+}

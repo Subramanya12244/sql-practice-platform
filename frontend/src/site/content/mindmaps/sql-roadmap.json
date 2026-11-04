@@ -1,0 +1,457 @@
+{
+  "slug": "sql-roadmap",
+  "title": "SQL Learning Roadmap",
+  "description": "A beginner-to-expert path through SQL and PostgreSQL, with prerequisites linking each stage to what you should learn first.",
+  "root": {
+    "id": "roadmap",
+    "label": "SQL Roadmap",
+    "detail": "From first SELECT to query tuning in PostgreSQL.",
+    "note": "intro-to-sql",
+    "children": [
+      {
+        "id": "basics",
+        "label": "1. Basics",
+        "detail": "Read rows from a single table.",
+        "note": "intro-to-sql",
+        "children": [
+          {
+            "id": "select",
+            "label": "SELECT & FROM",
+            "detail": "Pick columns and expressions from a table.",
+            "note": "select",
+            "questions": [
+              122
+            ],
+            "children": []
+          },
+          {
+            "id": "where",
+            "label": "WHERE filtering",
+            "detail": "Keep rows matching a boolean condition.",
+            "note": "where",
+            "questions": [
+              112
+            ],
+            "prereq": [
+              "select"
+            ],
+            "children": []
+          },
+          {
+            "id": "logic",
+            "label": "AND / OR / NOT",
+            "detail": "Combine predicates; mind precedence and NULL logic.",
+            "note": "logical-operators",
+            "questions": [
+              121
+            ],
+            "prereq": [
+              "where"
+            ],
+            "children": []
+          },
+          {
+            "id": "sort",
+            "label": "ORDER BY & LIMIT",
+            "detail": "Sort results and take the first N rows.",
+            "note": "order-by",
+            "questions": [
+              3
+            ],
+            "prereq": [
+              "select"
+            ],
+            "children": []
+          },
+          {
+            "id": "distinct",
+            "label": "DISTINCT",
+            "detail": "Remove duplicate result rows.",
+            "note": "distinct",
+            "prereq": [
+              "select"
+            ],
+            "children": []
+          },
+          {
+            "id": "nulls",
+            "label": "NULL handling",
+            "detail": "Three-valued logic; IS NULL, COALESCE, NULLIF.",
+            "note": "null-handling",
+            "questions": [
+              133
+            ],
+            "prereq": [
+              "where"
+            ],
+            "children": []
+          },
+          {
+            "id": "case",
+            "label": "CASE expressions",
+            "detail": "Conditional values inside any expression.",
+            "note": "case",
+            "questions": [
+              128
+            ],
+            "prereq": [
+              "select"
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "joins",
+        "label": "2. Joins",
+        "detail": "Combine rows from related tables.",
+        "note": "inner-join",
+        "prereq": [
+          "basics"
+        ],
+        "children": [
+          {
+            "id": "inner",
+            "label": "INNER JOIN",
+            "detail": "Only rows with a match on both sides.",
+            "note": "inner-join",
+            "questions": [
+              1,
+              2
+            ],
+            "children": []
+          },
+          {
+            "id": "outer",
+            "label": "LEFT / RIGHT / FULL",
+            "detail": "Keep unmatched rows, padding with NULLs.",
+            "note": "left-join",
+            "questions": [
+              25,
+              51
+            ],
+            "prereq": [
+              "inner"
+            ],
+            "children": []
+          },
+          {
+            "id": "self",
+            "label": "Self join",
+            "detail": "Join a table to itself via aliases.",
+            "note": "self-join",
+            "questions": [
+              61,
+              63
+            ],
+            "prereq": [
+              "inner"
+            ],
+            "children": []
+          },
+          {
+            "id": "cross",
+            "label": "CROSS JOIN",
+            "detail": "Cartesian product of two inputs.",
+            "note": "cross-join",
+            "questions": [
+              71
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "agg",
+        "label": "3. Aggregation",
+        "detail": "Summarize many rows into one per group.",
+        "note": "group-by",
+        "prereq": [
+          "basics"
+        ],
+        "children": [
+          {
+            "id": "aggfn",
+            "label": "COUNT/SUM/AVG/MIN/MAX",
+            "detail": "Aggregate functions ignore NULLs (except COUNT(*)).",
+            "note": "count",
+            "questions": [
+              5,
+              1
+            ],
+            "children": []
+          },
+          {
+            "id": "groupby",
+            "label": "GROUP BY",
+            "detail": "One output row per distinct group key.",
+            "note": "group-by",
+            "questions": [
+              2
+            ],
+            "prereq": [
+              "aggfn"
+            ],
+            "children": []
+          },
+          {
+            "id": "having",
+            "label": "HAVING",
+            "detail": "Filter groups after aggregation.",
+            "note": "having",
+            "questions": [
+              15
+            ],
+            "prereq": [
+              "groupby"
+            ],
+            "children": []
+          },
+          {
+            "id": "condagg",
+            "label": "Conditional aggregation",
+            "detail": "SUM(CASE ...) or agg FILTER (WHERE ...).",
+            "note": "conditional-aggregation",
+            "questions": [
+              130
+            ],
+            "prereq": [
+              "groupby",
+              "case"
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "subq",
+        "label": "4. Subqueries & CTEs",
+        "detail": "Compose queries from other queries.",
+        "note": "scalar-subqueries",
+        "prereq": [
+          "joins",
+          "agg"
+        ],
+        "children": [
+          {
+            "id": "scalar",
+            "label": "Scalar subqueries",
+            "detail": "Subquery returning one value.",
+            "note": "scalar-subqueries",
+            "questions": [
+              6
+            ],
+            "children": []
+          },
+          {
+            "id": "corr",
+            "label": "Correlated subqueries",
+            "detail": "Inner query references the outer row.",
+            "note": "correlated-subqueries",
+            "questions": [
+              18
+            ],
+            "prereq": [
+              "scalar"
+            ],
+            "children": []
+          },
+          {
+            "id": "exists",
+            "label": "EXISTS / IN",
+            "detail": "Semi- and anti-joins via subqueries.",
+            "note": "exists-not-exists",
+            "questions": [
+              28
+            ],
+            "children": []
+          },
+          {
+            "id": "cte",
+            "label": "CTEs (WITH)",
+            "detail": "Named, readable query steps.",
+            "note": "cte",
+            "questions": [
+              20,
+              22
+            ],
+            "children": []
+          },
+          {
+            "id": "rcte",
+            "label": "Recursive CTEs",
+            "detail": "Walk hierarchies and generate series.",
+            "note": "recursive-cte",
+            "prereq": [
+              "cte"
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "win",
+        "label": "5. Window functions",
+        "detail": "Per-row calculations over related rows.",
+        "note": "over",
+        "prereq": [
+          "agg",
+          "subq"
+        ],
+        "children": [
+          {
+            "id": "rank",
+            "label": "Ranking",
+            "detail": "ROW_NUMBER, RANK, DENSE_RANK.",
+            "note": "row-number",
+            "questions": [
+              98,
+              99
+            ],
+            "children": []
+          },
+          {
+            "id": "offset",
+            "label": "LAG / LEAD",
+            "detail": "Access previous or next rows.",
+            "note": "lag",
+            "questions": [
+              103,
+              104
+            ],
+            "children": []
+          },
+          {
+            "id": "frames",
+            "label": "Running & moving aggs",
+            "detail": "SUM/AVG OVER with ROWS frames.",
+            "note": "running-totals",
+            "questions": [
+              101,
+              102
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "sets",
+        "label": "6. Set operators",
+        "detail": "UNION, INTERSECT, EXCEPT.",
+        "note": "union",
+        "questions": [
+          79,
+          86
+        ],
+        "prereq": [
+          "basics"
+        ],
+        "children": []
+      },
+      {
+        "id": "funcs",
+        "label": "7. Built-in functions",
+        "detail": "Dates, strings, JSONB.",
+        "note": "date-time-functions",
+        "prereq": [
+          "basics"
+        ],
+        "children": [
+          {
+            "id": "dates",
+            "label": "Date/time",
+            "detail": "DATE_TRUNC, EXTRACT, intervals.",
+            "note": "date-time-functions",
+            "questions": [
+              110,
+              115
+            ],
+            "children": []
+          },
+          {
+            "id": "strings",
+            "label": "Strings",
+            "detail": "CONCAT, SPLIT_PART, LIKE, regex.",
+            "note": "string-functions",
+            "questions": [
+              120,
+              123
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "design",
+        "label": "8. Design & DML",
+        "detail": "Model data and change it safely.",
+        "note": "database-design",
+        "prereq": [
+          "joins"
+        ],
+        "children": [
+          {
+            "id": "keys",
+            "label": "Keys & constraints",
+            "detail": "PRIMARY KEY, FOREIGN KEY, CHECK, UNIQUE.",
+            "note": "constraints",
+            "questions": [
+              142
+            ],
+            "children": []
+          },
+          {
+            "id": "norm",
+            "label": "Normalization",
+            "detail": "Remove redundancy; 1NF-3NF.",
+            "note": "normalization",
+            "prereq": [
+              "keys"
+            ],
+            "children": []
+          },
+          {
+            "id": "txn",
+            "label": "Transactions",
+            "detail": "BEGIN/COMMIT, isolation, atomic DML.",
+            "note": "transactions",
+            "questions": [
+              139,
+              140
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "perf",
+        "label": "9. Performance",
+        "detail": "Make queries fast.",
+        "note": "query-optimization",
+        "prereq": [
+          "win",
+          "design"
+        ],
+        "children": [
+          {
+            "id": "idx",
+            "label": "Indexes",
+            "detail": "B-tree, GIN, partial, expression.",
+            "note": "indexes",
+            "children": []
+          },
+          {
+            "id": "explain",
+            "label": "EXPLAIN ANALYZE",
+            "detail": "Read plans, find slow nodes.",
+            "note": "query-optimization",
+            "prereq": [
+              "idx"
+            ],
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

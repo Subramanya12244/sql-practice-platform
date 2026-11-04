@@ -18,6 +18,8 @@
     "@monaco-editor/react": "^4.6.0",
     "@supabase/supabase-js": "2.118.0",
     "@tanstack/react-query": "^5.62.8",
+    "@xyflow/react": "12.12.0",
+    "html-to-image": "1.11.13",
     "lucide-react": "^0.468.0",
     "marked": "18.1.1",
     "mermaid": "^11.16.1",

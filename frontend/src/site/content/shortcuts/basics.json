@@ -1,0 +1,95 @@
+{
+  "category": "basics",
+  "title": "Basics",
+  "order": 1,
+  "items": [
+    {
+      "id": "select-columns",
+      "operation": "Select specific columns",
+      "syntax": "SELECT col1, col2 FROM t",
+      "explanation": "List only the columns you need; avoid SELECT * in production queries.",
+      "example": "SELECT product_name, unit_price FROM products LIMIT 5;",
+      "expected": "5 rows with product name and price.",
+      "notes": [
+        "select"
+      ]
+    },
+    {
+      "id": "column-alias",
+      "operation": "Rename an output column",
+      "syntax": "SELECT expr AS alias FROM t",
+      "explanation": "AS names a computed column. Use double quotes for spaces or capitals.",
+      "example": "SELECT product_name AS name, unit_price * 1.1 AS price_with_tax FROM products LIMIT 5;",
+      "expected": "5 rows with columns name and price_with_tax.",
+      "notes": [
+        "select"
+      ]
+    },
+    {
+      "id": "distinct-values",
+      "operation": "Unique values",
+      "syntax": "SELECT DISTINCT col FROM t",
+      "explanation": "Removes duplicate rows from the result, across all selected columns.",
+      "example": "SELECT DISTINCT country FROM customers ORDER BY country;",
+      "expected": "One row per customer country.",
+      "notes": [
+        "distinct"
+      ]
+    },
+    {
+      "id": "order-by-multi",
+      "operation": "Sort by several columns",
+      "syntax": "ORDER BY a ASC, b DESC",
+      "explanation": "Sorts by a, then by b inside ties of a.",
+      "example": "SELECT country, city, customer_id FROM customers ORDER BY country, city DESC LIMIT 10;",
+      "expected": "10 customers sorted by country, then city descending.",
+      "notes": [
+        "order-by"
+      ]
+    },
+    {
+      "id": "limit-offset",
+      "operation": "Page through rows",
+      "syntax": "LIMIT n OFFSET m",
+      "explanation": "Skips m rows then returns n. Always pair with ORDER BY for stable pages.",
+      "example": "SELECT order_id, order_date FROM orders ORDER BY order_id LIMIT 5 OFFSET 10;",
+      "expected": "Orders 11th to 15th by order_id.",
+      "notes": [
+        "limit-offset"
+      ]
+    },
+    {
+      "id": "case-expression",
+      "operation": "If/else in a column",
+      "syntax": "CASE WHEN cond THEN x ELSE y END",
+      "explanation": "Returns the first matching branch; NULL when nothing matches and there is no ELSE.",
+      "example": "SELECT product_name, CASE WHEN unit_price >= 50 THEN 'premium' WHEN unit_price >= 20 THEN 'mid' ELSE 'budget' END AS band FROM products LIMIT 8;",
+      "expected": "8 products with a price band label.",
+      "notes": [
+        "case"
+      ]
+    },
+    {
+      "id": "computed-column",
+      "operation": "Arithmetic in SELECT",
+      "syntax": "SELECT a * b AS total FROM t",
+      "explanation": "Expressions are evaluated per row. Cast to numeric before division to avoid integer division.",
+      "example": "SELECT order_id, product_id, unit_price * quantity * (1 - discount) AS line_total FROM order_details LIMIT 5;",
+      "expected": "5 order lines with their revenue.",
+      "notes": [
+        "select"
+      ]
+    },
+    {
+      "id": "count-rows",
+      "operation": "Count rows in a table",
+      "syntax": "SELECT COUNT(*) FROM t",
+      "explanation": "COUNT(*) counts all rows, including rows with NULLs.",
+      "example": "SELECT COUNT(*) AS orders FROM orders;",
+      "expected": "One row: the number of orders.",
+      "notes": [
+        "count"
+      ]
+    }
+  ]
+}

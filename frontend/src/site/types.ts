@@ -119,4 +119,14 @@ export interface PageData {
   lessons?: LessonSummary[];
   set?: InterviewSet;
   sets?: Pick<InterviewSet, "slug" | "title" | "description">[];
+  note?: import("./lib/learning").Note;
+  notes?: import("./lib/learning").NoteMeta[];
+  pattern?: import("./lib/learning").Pattern;
+  patterns?: import("./lib/learning").PatternMeta[];
+  shortcuts?: import("./lib/learning").ShortcutCategory[];
+  shortcutPage?: import("./lib/learning").MarkdownPage;
+  mindmap?: import("./lib/learning").MindMap;
+  mindmaps?: import("./lib/learning").MindMapMeta[];
+  /** Mind maps that link to the current note/pattern. */
+  relatedMaps?: import("./lib/learning").MindMapMeta[];
 }

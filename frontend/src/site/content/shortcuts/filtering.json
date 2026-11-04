@@ -1,0 +1,97 @@
+{
+  "category": "filtering",
+  "title": "Filtering",
+  "order": 2,
+  "items": [
+    {
+      "id": "where-equals",
+      "operation": "Filter by equality",
+      "syntax": "WHERE col = value",
+      "explanation": "Keeps rows where the condition is true. Strings use single quotes.",
+      "example": "SELECT customer_id, company_name FROM customers WHERE country = 'Germany';",
+      "expected": "German customers.",
+      "notes": [
+        "where",
+        "comparison-operators"
+      ]
+    },
+    {
+      "id": "and-or-parentheses",
+      "operation": "Combine conditions",
+      "syntax": "WHERE a AND (b OR c)",
+      "explanation": "AND binds tighter than OR; add parentheses to make intent explicit.",
+      "example": "SELECT product_name, unit_price, category_id FROM products WHERE unit_price > 20 AND (category_id = 1 OR category_id = 2);",
+      "expected": "Products over 20 in categories 1 or 2.",
+      "notes": [
+        "logical-operators"
+      ]
+    },
+    {
+      "id": "in-list",
+      "operation": "Match any value in a list",
+      "syntax": "WHERE col IN (v1, v2)",
+      "explanation": "Shorthand for several OR equality tests.",
+      "example": "SELECT customer_id, country FROM customers WHERE country IN ('France', 'Spain', 'Italy') ORDER BY country;",
+      "expected": "Customers in France, Spain or Italy.",
+      "notes": [
+        "in-not-in"
+      ]
+    },
+    {
+      "id": "between-range",
+      "operation": "Inclusive range",
+      "syntax": "WHERE col BETWEEN lo AND hi",
+      "explanation": "Includes both ends. For timestamps prefer >= lo AND < hi.",
+      "example": "SELECT product_name, unit_price FROM products WHERE unit_price BETWEEN 10 AND 20 ORDER BY unit_price;",
+      "expected": "Products priced 10 to 20 inclusive.",
+      "notes": [
+        "comparison-operators"
+      ]
+    },
+    {
+      "id": "like-pattern",
+      "operation": "Pattern match",
+      "syntax": "WHERE col LIKE 'A%'",
+      "explanation": "% matches any run of characters, _ exactly one. LIKE is case-sensitive.",
+      "example": "SELECT company_name FROM customers WHERE company_name LIKE 'A%';",
+      "expected": "Customers whose name starts with A.",
+      "notes": [
+        "where",
+        "string-functions"
+      ]
+    },
+    {
+      "id": "ilike-case-insensitive",
+      "operation": "Case-insensitive match",
+      "syntax": "WHERE col ILIKE '%text%'",
+      "explanation": "ILIKE is PostgreSQL-specific. Portable form: LOWER(col) LIKE '%text%'.",
+      "example": "SELECT product_name FROM products WHERE product_name ILIKE '%chef%';",
+      "expected": "Products containing 'chef' in any case.",
+      "notes": [
+        "string-functions"
+      ]
+    },
+    {
+      "id": "is-null-filter",
+      "operation": "Filter NULLs",
+      "syntax": "WHERE col IS NULL",
+      "explanation": "= NULL never matches; use IS NULL / IS NOT NULL.",
+      "example": "SELECT order_id, shipped_date FROM orders WHERE shipped_date IS NULL;",
+      "expected": "Orders not yet shipped.",
+      "notes": [
+        "null-handling"
+      ]
+    },
+    {
+      "id": "not-condition",
+      "operation": "Negate a condition",
+      "syntax": "WHERE NOT (cond)",
+      "explanation": "NOT of NULL is still NULL, so rows with NULLs in cond are excluded either way.",
+      "example": "SELECT product_name, discontinued FROM products WHERE NOT discontinued LIMIT 5;",
+      "expected": "5 products that are not discontinued.",
+      "notes": [
+        "logical-operators"
+      ]
+    }
+  ]
+}

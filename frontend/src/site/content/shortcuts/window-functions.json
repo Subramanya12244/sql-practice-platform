@@ -1,0 +1,123 @@
+{
+  "category": "window-functions",
+  "title": "Window functions",
+  "order": 7,
+  "items": [
+    {
+      "id": "row-number",
+      "operation": "Number rows",
+      "syntax": "ROW_NUMBER() OVER (ORDER BY col)",
+      "explanation": "Unique sequential numbers; ties get different numbers.",
+      "example": "SELECT product_name, unit_price, ROW_NUMBER() OVER (ORDER BY unit_price DESC) AS rn FROM products LIMIT 5;",
+      "expected": "Top 5 products numbered 1 to 5.",
+      "notes": [
+        "row-number"
+      ]
+    },
+    {
+      "id": "rank-dense-rank",
+      "operation": "Rank with ties",
+      "syntax": "RANK() / DENSE_RANK() OVER (ORDER BY col)",
+      "explanation": "RANK leaves gaps after ties, DENSE_RANK does not.",
+      "example": "SELECT product_name, unit_price, RANK() OVER w AS rnk, DENSE_RANK() OVER w AS dense FROM products WINDOW w AS (ORDER BY unit_price DESC) LIMIT 10;",
+      "expected": "Top 10 products with both rankings.",
+      "notes": [
+        "rank",
+        "dense-rank"
+      ]
+    },
+    {
+      "id": "partition-by",
+      "operation": "Restart per group",
+      "syntax": "fn() OVER (PARTITION BY g ORDER BY col)",
+      "explanation": "Computes the window separately for each group, keeping every row.",
+      "example": "SELECT category_id, product_name, unit_price, RANK() OVER (PARTITION BY category_id ORDER BY unit_price DESC) AS rank_in_cat FROM products ORDER BY category_id, rank_in_cat LIMIT 10;",
+      "expected": "Products ranked within their category.",
+      "notes": [
+        "partition-by",
+        "ranking-within-groups"
+      ]
+    },
+    {
+      "id": "running-sum",
+      "operation": "Running total",
+      "syntax": "SUM(col) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING)",
+      "explanation": "Cumulative sum up to the current row.",
+      "example": "SELECT order_id, freight, SUM(freight) OVER (ORDER BY order_id ROWS UNBOUNDED PRECEDING) AS running FROM orders LIMIT 5;",
+      "expected": "First 5 orders with cumulative freight.",
+      "notes": [
+        "running-totals"
+      ]
+    },
+    {
+      "id": "moving-avg",
+      "operation": "Moving average",
+      "syntax": "AVG(col) OVER (ORDER BY k ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)",
+      "explanation": "Average of the current and previous two rows.",
+      "example": "SELECT order_id, freight, ROUND(AVG(freight) OVER (ORDER BY order_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg3 FROM orders LIMIT 5;",
+      "expected": "First 5 orders with a 3-row moving average.",
+      "notes": [
+        "moving-averages"
+      ]
+    },
+    {
+      "id": "lag-lead",
+      "operation": "Previous / next row",
+      "syntax": "LAG(col) OVER (ORDER BY k), LEAD(col) OVER (…)",
+      "explanation": "Reads a neighbouring row; NULL (or a default) at the edges.",
+      "example": "SELECT order_id, order_date, LAG(order_date) OVER (ORDER BY order_id) AS prev_date, LEAD(order_date) OVER (ORDER BY order_id) AS next_date FROM orders LIMIT 5;",
+      "expected": "Orders with the previous and next order date.",
+      "notes": [
+        "lag",
+        "lead"
+      ]
+    },
+    {
+      "id": "first-last-value",
+      "operation": "First/last in window",
+      "syntax": "FIRST_VALUE(col) OVER w, LAST_VALUE(col) OVER (… ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)",
+      "explanation": "LAST_VALUE needs a full frame; the default frame ends at the current row.",
+      "example": "SELECT DISTINCT category_id, FIRST_VALUE(product_name) OVER w AS cheapest, LAST_VALUE(product_name) OVER w AS priciest FROM products WINDOW w AS (PARTITION BY category_id ORDER BY unit_price ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) ORDER BY category_id;",
+      "expected": "Cheapest and priciest product per category.",
+      "notes": [
+        "first-value",
+        "last-value"
+      ]
+    },
+    {
+      "id": "percent-of-total",
+      "operation": "Share of total",
+      "syntax": "col / SUM(col) OVER ()",
+      "explanation": "An empty OVER () spans all rows.",
+      "example": "SELECT ship_country, SUM(freight) AS f, ROUND(100 * SUM(freight) / SUM(SUM(freight)) OVER (), 1) AS pct FROM orders GROUP BY ship_country ORDER BY pct DESC LIMIT 5;",
+      "expected": "Top 5 countries by share of freight.",
+      "notes": [
+        "over"
+      ]
+    },
+    {
+      "id": "ntile",
+      "operation": "Split into buckets",
+      "syntax": "NTILE(4) OVER (ORDER BY col)",
+      "explanation": "Assigns quartiles (or any n buckets) of near-equal size.",
+      "example": "SELECT product_name, unit_price, NTILE(4) OVER (ORDER BY unit_price) AS quartile FROM products LIMIT 8;",
+      "expected": "8 cheapest products with their price quartile.",
+      "notes": [
+        "over",
+        "window-order-by"
+      ]
+    },
+    {
+      "id": "top-n-per-group",
+      "operation": "Top N per group",
+      "syntax": "WHERE rn <= N on ROW_NUMBER() OVER (PARTITION BY g ORDER BY …)",
+      "explanation": "Filter window results in an outer query; WHERE cannot see them directly.",
+      "example": "SELECT * FROM (SELECT category_id, product_name, unit_price, ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_price DESC) AS rn FROM products) t WHERE rn <= 2;",
+      "expected": "Two most expensive products per category.",
+      "notes": [
+        "row-number",
+        "ranking-within-groups"
+      ]
+    }
+  ]
+}

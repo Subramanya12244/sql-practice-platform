@@ -101,6 +101,7 @@ describe("transaction guard", () => {
   it("allows savepoints and CASE … END", async () => {
     await expect(runRaw(db, "SAVEPOINT a; DELETE FROM t; ROLLBACK TO SAVEPOINT a; SELECT 1;")).resolves.toBeTruthy();
     await expect(runRaw(db, "SELECT CASE WHEN 1=1 THEN 1 END;")).resolves.toBeTruthy();
+    await expect(runRaw(db, "CREATE TEMP TABLE t (x int) ON COMMIT DROP; SELECT 1;")).resolves.toBeTruthy();
   });
   it("blocks statements that end the wrapper transaction", async () => {
     for (const sql of ["COMMIT;", "ROLLBACK;", "SELECT 1; END;", "BEGIN; SELECT 1;"]) {

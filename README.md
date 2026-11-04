@@ -234,6 +234,15 @@ VITE_SITE_URL=https://<your-name>.pages.dev npm run build:site
 npm run preview:site   # http://localhost:4174
 ```
 
+**Learning library:** the public site has a set of connected learning modules:
+- `/learn`: a dashboard with your daily goal, revision queue, recommendations, bookmarks and progress by concept.
+- `/notes`: 65 theory notes.
+- `/patterns`: 22 problem-solving patterns.
+- `/shortcuts`: a searchable quick reference, side-by-side comparisons and an interview revision page.
+- `/mindmaps`: 10 interactive mind maps.
+
+Site-wide search opens with ⌘K. Notes, patterns, maps and questions all link to each other. The content is Markdown and JSON under `frontend/src/site/content/`, in the format defined in [docs/CONTENT_SPEC.md](docs/CONTENT_SPEC.md). `src/test/siteContent.test.ts` checks that every link resolves and that every runnable SQL example runs in the browser database. The gap analysis and next phases are in [docs/LEARNING_PLATFORM_PLAN.md](docs/LEARNING_PLATFORM_PLAN.md).
+
 `scripts/build_public_data.py` writes `frontend/public/data/` (`index.json`, `topics.json`,
 one `q/<slug>.json` per question, `northwind.sql`). Commit that folder so hosting builds
 don't need the question repo. Concept guides live in `frontend/src/site/content/*.md`.

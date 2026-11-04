@@ -1,0 +1,119 @@
+{
+  "category": "joins",
+  "title": "JOINs",
+  "order": 3,
+  "items": [
+    {
+      "id": "inner-join-match",
+      "operation": "Only matching rows",
+      "syntax": "SELECT … FROM a JOIN b ON b.key = a.key",
+      "explanation": "Returns pairs that match; rows without a partner disappear.",
+      "example": "SELECT o.order_id, c.company_name FROM orders o JOIN customers c ON c.customer_id = o.customer_id LIMIT 5;",
+      "expected": "5 orders with their customer name.",
+      "notes": [
+        "inner-join"
+      ]
+    },
+    {
+      "id": "left-join-keep-all",
+      "operation": "Keep every left row",
+      "syntax": "SELECT … FROM a LEFT JOIN b ON b.key = a.key",
+      "explanation": "Rows from a without a match get NULLs for b's columns.",
+      "example": "SELECT c.customer_id, o.order_id FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id ORDER BY o.order_id NULLS FIRST LIMIT 5;",
+      "expected": "Customers with their orders; FISSA and PARIS first with NULL order_id.",
+      "notes": [
+        "left-join"
+      ]
+    },
+    {
+      "id": "left-join-anti",
+      "operation": "Rows with no match",
+      "syntax": "LEFT JOIN b ON … WHERE b.key IS NULL",
+      "explanation": "Anti-join: keeps left rows that found no partner.",
+      "example": "SELECT p.product_id, p.product_name FROM products p LEFT JOIN order_details od ON od.product_id = p.product_id WHERE od.product_id IS NULL;",
+      "expected": "Products 9 and 17.",
+      "notes": [
+        "left-join",
+        "exists-not-exists"
+      ]
+    },
+    {
+      "id": "right-join",
+      "operation": "Keep every right row",
+      "syntax": "FROM a RIGHT JOIN b ON …",
+      "explanation": "Mirror of LEFT JOIN; usually rewritten as LEFT JOIN with tables swapped.",
+      "example": "SELECT o.order_id, e.first_name FROM orders o RIGHT JOIN employees e ON e.employee_id = o.employee_id LIMIT 5;",
+      "expected": "Employees with their orders.",
+      "notes": [
+        "right-join"
+      ]
+    },
+    {
+      "id": "full-outer-join",
+      "operation": "Keep both sides",
+      "syntax": "FROM a FULL JOIN b ON …",
+      "explanation": "Matched pairs plus unmatched rows from each side, padded with NULLs.",
+      "example": "SELECT e.employee_id, o.order_id FROM employees e FULL JOIN orders o ON o.employee_id = e.employee_id WHERE e.employee_id IS NULL OR o.order_id IS NULL;",
+      "expected": "The order with no employee (and any employee with no orders).",
+      "notes": [
+        "full-outer-join"
+      ]
+    },
+    {
+      "id": "cross-join",
+      "operation": "Every combination",
+      "syntax": "FROM a CROSS JOIN b",
+      "explanation": "Cartesian product: rows(a) × rows(b). No ON clause.",
+      "example": "SELECT s.company_name AS shipper, c.category_name FROM shippers s CROSS JOIN categories c LIMIT 6;",
+      "expected": "Shipper/category pairs.",
+      "notes": [
+        "cross-join"
+      ]
+    },
+    {
+      "id": "self-join",
+      "operation": "Join a table to itself",
+      "syntax": "FROM t a JOIN t b ON b.parent = a.id",
+      "explanation": "Two aliases give the table two roles, e.g. employee and manager.",
+      "example": "SELECT e.first_name AS employee, m.first_name AS manager FROM employees e LEFT JOIN employees m ON m.employee_id = e.reports_to;",
+      "expected": "Each employee with their manager's first name.",
+      "notes": [
+        "self-join"
+      ]
+    },
+    {
+      "id": "multi-join",
+      "operation": "Chain several tables",
+      "syntax": "FROM a JOIN b ON … JOIN c ON …",
+      "explanation": "Each JOIN adds one table; follow foreign keys step by step.",
+      "example": "SELECT c.category_name, p.product_name, od.quantity FROM order_details od JOIN products p ON p.product_id = od.product_id JOIN categories c ON c.category_id = p.category_id LIMIT 5;",
+      "expected": "5 order lines with product and category names.",
+      "notes": [
+        "multiple-joins"
+      ]
+    },
+    {
+      "id": "join-using",
+      "operation": "Join on same-named column",
+      "syntax": "FROM a JOIN b USING (key)",
+      "explanation": "USING merges the key into one output column.",
+      "example": "SELECT order_id, product_id, quantity, product_name FROM order_details JOIN products USING (product_id) LIMIT 5;",
+      "expected": "5 order lines with product names.",
+      "notes": [
+        "inner-join"
+      ]
+    },
+    {
+      "id": "join-filter-in-on",
+      "operation": "Filter the optional side",
+      "syntax": "LEFT JOIN b ON b.key = a.key AND b.col = x",
+      "explanation": "Conditions on the right table belong in ON; in WHERE they turn the LEFT JOIN into an inner join.",
+      "example": "SELECT c.customer_id, COUNT(o.order_id) AS heavy_orders FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id AND o.freight > 100 GROUP BY c.customer_id ORDER BY heavy_orders LIMIT 5;",
+      "expected": "Customers with their count of high-freight orders, zeros included.",
+      "notes": [
+        "left-join",
+        "join-cardinality"
+      ]
+    }
+  ]
+}

@@ -21,8 +21,9 @@ interface RawResult {
  * DELETE or DROP never damages the visitor's in-browser copy of Northwind.
  */
 export async function runRaw(db: SqlDb, sql: string): Promise<RawResult> {
-  // Savepoints are fine inside the wrapper; anything that would end it is not.
-  if (/\b(commit|begin|start\s+transaction|abort)\b|(^|;)\s*end\s*(;|$)|\brollback\b(?!\s+(transaction\s+|work\s+)?to\b)/i.test(stripComments(sql))) {
+  // Savepoints are fine inside the wrapper; a statement that would end it is not.
+  // Only statement starts count, so ON COMMIT DROP or a column named "end" is fine.
+  if (/(^|;)\s*(commit|begin|start\s+transaction|abort|end|rollback(?!\s+(transaction\s+|work\s+)?to\b))\b/i.test(stripComments(sql))) {
     throw new Error("Transaction control statements are not allowed here.");
   }
   // Sequences ignore ROLLBACK; snapshot them so an INSERT doesn't shift ids for the next run.

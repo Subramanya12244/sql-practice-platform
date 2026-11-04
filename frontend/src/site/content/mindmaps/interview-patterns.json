@@ -1,0 +1,303 @@
+{
+  "slug": "interview-patterns",
+  "title": "SQL Interview Patterns",
+  "description": "The recurring SQL interview problems — duplicates, top-N, gaps, growth, anti-joins, pivots — and the technique behind each.",
+  "root": {
+    "id": "ip",
+    "label": "Interview Patterns",
+    "detail": "Recognize the shape, reuse the solution.",
+    "note": "query-optimization",
+    "children": [
+      {
+        "id": "rank",
+        "label": "Ranking problems",
+        "detail": "Order then pick.",
+        "note": "ranking-within-groups",
+        "children": [
+          {
+            "id": "second",
+            "label": "Second highest",
+            "detail": "DENSE_RANK = 2 or MAX below MAX.",
+            "note": "dense-rank",
+            "pattern": "second-highest",
+            "questions": [
+              99
+            ],
+            "children": []
+          },
+          {
+            "id": "nth",
+            "label": "Nth highest",
+            "detail": "DENSE_RANK handles ties.",
+            "note": "dense-rank",
+            "pattern": "nth-highest",
+            "questions": [
+              100
+            ],
+            "children": []
+          },
+          {
+            "id": "topn",
+            "label": "Top N per group",
+            "detail": "Rank in partition, filter <= N.",
+            "note": "ranking-within-groups",
+            "pattern": "top-n-per-group",
+            "questions": [
+              100,
+              14
+            ],
+            "children": []
+          },
+          {
+            "id": "latest",
+            "label": "Latest per group",
+            "detail": "ROW_NUMBER = 1 or DISTINCT ON.",
+            "note": "row-number",
+            "pattern": "latest-record-per-group",
+            "questions": [
+              98,
+              26
+            ],
+            "children": []
+          },
+          {
+            "id": "firstlast",
+            "label": "First & last event",
+            "detail": "FIRST_VALUE / LAST_VALUE or MIN/MAX.",
+            "note": "first-value",
+            "pattern": "earliest-latest-transactions",
+            "questions": [
+              107
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "dups",
+        "label": "Duplicates",
+        "detail": "Find and remove.",
+        "note": "group-by",
+        "children": [
+          {
+            "id": "finddup",
+            "label": "Find duplicates",
+            "detail": "GROUP BY key HAVING COUNT(*) > 1.",
+            "note": "having",
+            "pattern": "find-duplicates",
+            "questions": [
+              62
+            ],
+            "children": []
+          },
+          {
+            "id": "rmdup",
+            "label": "Remove duplicates",
+            "detail": "DELETE where ROW_NUMBER > 1 by ctid/id.",
+            "note": "row-number",
+            "pattern": "remove-duplicates",
+            "questions": [
+              138
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "missing",
+        "label": "Missing data",
+        "detail": "Rows without a match.",
+        "note": "exists-not-exists",
+        "children": [
+          {
+            "id": "anti",
+            "label": "Anti-join",
+            "detail": "NOT EXISTS or LEFT JOIN IS NULL.",
+            "note": "exists-not-exists",
+            "pattern": "anti-join",
+            "questions": [
+              29,
+              61
+            ],
+            "children": []
+          },
+          {
+            "id": "noorders",
+            "label": "Customers w/o orders",
+            "detail": "Classic LEFT JOIN anti-join.",
+            "note": "left-join",
+            "pattern": "customers-without-orders",
+            "questions": [
+              28
+            ],
+            "children": []
+          },
+          {
+            "id": "inactive",
+            "label": "Inactive customers",
+            "detail": "MAX(order_date) < cutoff, or none.",
+            "note": "left-join",
+            "pattern": "inactive-customers",
+            "questions": [
+              118
+            ],
+            "children": []
+          },
+          {
+            "id": "unmatched",
+            "label": "Unmatched both sides",
+            "detail": "FULL OUTER JOIN where one side NULL.",
+            "note": "full-outer-join",
+            "pattern": "unmatched-records",
+            "questions": [
+              51,
+              54
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "time",
+        "label": "Time series",
+        "detail": "Compare rows over time.",
+        "note": "lag",
+        "children": [
+          {
+            "id": "running",
+            "label": "Running total",
+            "detail": "SUM OVER (ORDER BY month).",
+            "note": "running-totals",
+            "pattern": "running-total",
+            "questions": [
+              101
+            ],
+            "children": []
+          },
+          {
+            "id": "moving",
+            "label": "Moving average",
+            "detail": "AVG OVER ROWS 2 PRECEDING.",
+            "note": "moving-averages",
+            "pattern": "moving-average",
+            "questions": [
+              102
+            ],
+            "children": []
+          },
+          {
+            "id": "mom",
+            "label": "Month-over-month",
+            "detail": "(x - LAG(x)) / NULLIF(LAG(x),0).",
+            "note": "lag",
+            "pattern": "month-over-month-growth",
+            "questions": [
+              103
+            ],
+            "children": []
+          },
+          {
+            "id": "yoy",
+            "label": "Year-over-year",
+            "detail": "LAG over yearly totals.",
+            "note": "lag",
+            "pattern": "year-over-year-growth",
+            "questions": [
+              117
+            ],
+            "children": []
+          },
+          {
+            "id": "consec",
+            "label": "Consecutive dates",
+            "detail": "date - ROW_NUMBER days = group key.",
+            "note": "row-number",
+            "pattern": "consecutive-dates",
+            "children": []
+          },
+          {
+            "id": "islands",
+            "label": "Gaps and islands",
+            "detail": "Detect breaks with LAG, group runs.",
+            "note": "lag",
+            "pattern": "gaps-and-islands",
+            "questions": [
+              109
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "report",
+        "label": "Reporting",
+        "detail": "Reshape and summarize.",
+        "note": "conditional-aggregation",
+        "children": [
+          {
+            "id": "condagg",
+            "label": "Conditional counts",
+            "detail": "COUNT(*) FILTER (WHERE ...).",
+            "note": "filter-clause",
+            "pattern": "conditional-aggregation",
+            "questions": [
+              130,
+              92
+            ],
+            "children": []
+          },
+          {
+            "id": "pivot",
+            "label": "Pivot report",
+            "detail": "One aggregate per column value.",
+            "note": "conditional-aggregation",
+            "pattern": "pivot-report",
+            "questions": [
+              131
+            ],
+            "children": []
+          },
+          {
+            "id": "above",
+            "label": "Above average",
+            "detail": "Compare to scalar or peer avg.",
+            "note": "scalar-subqueries",
+            "questions": [
+              6,
+              13
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "hier",
+        "label": "Hierarchies",
+        "detail": "Self-referencing tables.",
+        "note": "self-join",
+        "children": [
+          {
+            "id": "selfref",
+            "label": "Self-join one level",
+            "detail": "Employee with manager name.",
+            "note": "self-join",
+            "pattern": "self-referencing",
+            "questions": [
+              61,
+              63
+            ],
+            "children": []
+          },
+          {
+            "id": "rec",
+            "label": "Recursive tree walk",
+            "detail": "WITH RECURSIVE for any depth.",
+            "note": "recursive-cte",
+            "pattern": "hierarchical-queries",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -32,6 +32,10 @@ export interface RemoteState {
   activeDays?: string[];
   cards?: Progress["cards"];
   lessons?: Progress["lessons"];
+  bookmarks?: Progress["bookmarks"];
+  read?: Progress["read"];
+  dailyGoal?: Progress["dailyGoal"];
+  dayCounts?: Progress["dayCounts"];
 }
 
 const earliest = (a?: string, b?: string) => (!a ? b : !b ? a : a < b ? a : b);
@@ -81,7 +85,17 @@ export function mergeProgress(local: Progress, rows: ProgressRow[], state: Remot
     activeDays: [...new Set([...local.activeDays, ...(state.activeDays ?? [])])].sort().slice(-400),
     mocks: allMocks,
     lessons: { ...(state.lessons ?? {}), ...(local.lessons ?? {}) },
+    bookmarks: [...new Set([...(local.bookmarks ?? []), ...(state.bookmarks ?? [])])],
+    read: { ...(state.read ?? {}), ...(local.read ?? {}) },
+    dailyGoal: local.dailyGoal ?? state.dailyGoal,
+    dayCounts: mergeCounts(local.dayCounts, state.dayCounts),
   };
+}
+
+function mergeCounts(a: Record<string, number> = {}, b: Record<string, number> = {}) {
+  const out: Record<string, number> = { ...b };
+  for (const [k, v] of Object.entries(a)) out[k] = Math.max(v, out[k] ?? 0);
+  return out;
 }
 
 /** Rows to upload so the account holds everything this browser knows. */

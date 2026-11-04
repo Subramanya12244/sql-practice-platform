@@ -1,0 +1,294 @@
+{
+  "slug": "indexing-optimization",
+  "title": "Indexing and Optimization",
+  "description": "PostgreSQL index types, scan methods, join strategies, planner statistics and how to read EXPLAIN to speed up queries.",
+  "root": {
+    "id": "io",
+    "label": "Indexing & Optimization",
+    "detail": "Help the planner pick a cheap plan.",
+    "note": "query-optimization",
+    "children": [
+      {
+        "id": "types",
+        "label": "Index types",
+        "detail": "Choose by operator.",
+        "note": "indexes",
+        "children": [
+          {
+            "id": "btree",
+            "label": "B-tree",
+            "detail": "Default; =, <, >, BETWEEN, ORDER BY, LIKE 'abc%' (C collation).",
+            "note": "indexes",
+            "children": []
+          },
+          {
+            "id": "hash",
+            "label": "Hash",
+            "detail": "Equality only; WAL-logged since PG10.",
+            "note": "indexes",
+            "children": []
+          },
+          {
+            "id": "gin",
+            "label": "GIN",
+            "detail": "Multi-value: JSONB, arrays, full text, pg_trgm.",
+            "note": "jsonb",
+            "children": []
+          },
+          {
+            "id": "gist",
+            "label": "GiST / BRIN",
+            "detail": "GiST: geometric/range; BRIN: huge naturally ordered tables.",
+            "note": "indexes",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "design",
+        "label": "Index design",
+        "detail": "Shape indexes to queries.",
+        "note": "indexes",
+        "prereq": [
+          "types"
+        ],
+        "children": [
+          {
+            "id": "multi",
+            "label": "Multicolumn order",
+            "detail": "Leftmost columns usable alone; equality first.",
+            "note": "indexes",
+            "children": []
+          },
+          {
+            "id": "partial",
+            "label": "Partial index",
+            "detail": "CREATE INDEX ... WHERE shipped_date IS NULL.",
+            "note": "indexes",
+            "questions": [
+              114
+            ],
+            "children": []
+          },
+          {
+            "id": "expr",
+            "label": "Expression index",
+            "detail": "ON lower(email); query must match expression.",
+            "note": "indexes",
+            "questions": [
+              121
+            ],
+            "children": []
+          },
+          {
+            "id": "covering",
+            "label": "Covering (INCLUDE)",
+            "detail": "Enables index-only scans.",
+            "note": "indexes",
+            "children": []
+          },
+          {
+            "id": "fkidx",
+            "label": "Index foreign keys",
+            "detail": "Postgres does not auto-index FK columns.",
+            "note": "primary-foreign-keys",
+            "children": []
+          },
+          {
+            "id": "cost",
+            "label": "Write cost",
+            "detail": "Each index slows INSERT/UPDATE and blocks HOT updates.",
+            "note": "indexes",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "scans",
+        "label": "Scan methods",
+        "detail": "How rows are read.",
+        "note": "query-optimization",
+        "prereq": [
+          "types"
+        ],
+        "children": [
+          {
+            "id": "seq",
+            "label": "Seq Scan",
+            "detail": "Reads whole table; best for large fractions.",
+            "note": "query-optimization",
+            "children": []
+          },
+          {
+            "id": "idxscan",
+            "label": "Index Scan",
+            "detail": "Few rows; random heap access.",
+            "note": "indexes",
+            "children": []
+          },
+          {
+            "id": "ios",
+            "label": "Index Only Scan",
+            "detail": "No heap visit if visibility map is set.",
+            "note": "indexes",
+            "prereq": [
+              "covering"
+            ],
+            "children": []
+          },
+          {
+            "id": "bitmap",
+            "label": "Bitmap Heap Scan",
+            "detail": "Middle ground; combines indexes with AND/OR.",
+            "note": "indexes",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "joinalg",
+        "label": "Join strategies",
+        "detail": "Physical join algorithms.",
+        "note": "multiple-joins",
+        "children": [
+          {
+            "id": "nl",
+            "label": "Nested Loop",
+            "detail": "Small outer + indexed inner; only option for some non-equi joins.",
+            "note": "inner-join",
+            "questions": [
+              21
+            ],
+            "children": []
+          },
+          {
+            "id": "hj",
+            "label": "Hash Join",
+            "detail": "Build hash on smaller input; equi-joins, no order needed.",
+            "note": "inner-join",
+            "questions": [
+              1
+            ],
+            "children": []
+          },
+          {
+            "id": "mj",
+            "label": "Merge Join",
+            "detail": "Both inputs sorted on key; good for large sorted sets.",
+            "note": "inner-join",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "stats",
+        "label": "Statistics",
+        "detail": "Planner estimates from pg_statistic.",
+        "note": "query-optimization",
+        "children": [
+          {
+            "id": "analyze",
+            "label": "ANALYZE",
+            "detail": "Samples tables; autovacuum runs it.",
+            "note": "query-optimization",
+            "children": []
+          },
+          {
+            "id": "target",
+            "label": "Statistics target",
+            "detail": "ALTER COLUMN SET STATISTICS for skewed columns.",
+            "note": "query-optimization",
+            "prereq": [
+              "analyze"
+            ],
+            "children": []
+          },
+          {
+            "id": "extstats",
+            "label": "Extended statistics",
+            "detail": "CREATE STATISTICS for correlated columns.",
+            "note": "query-optimization",
+            "prereq": [
+              "analyze"
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "explain",
+        "label": "Reading EXPLAIN",
+        "detail": "Plan tree, costs, rows.",
+        "note": "query-optimization",
+        "prereq": [
+          "scans",
+          "joinalg"
+        ],
+        "children": [
+          {
+            "id": "est",
+            "label": "Estimated vs actual",
+            "detail": "Big row mismatch means bad stats.",
+            "note": "query-optimization",
+            "prereq": [
+              "stats"
+            ],
+            "children": []
+          },
+          {
+            "id": "buffers",
+            "label": "BUFFERS",
+            "detail": "Shared hit vs read shows I/O.",
+            "note": "query-optimization",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "rewrite",
+        "label": "Query rewrites",
+        "detail": "Sargable, set-based SQL.",
+        "note": "query-optimization",
+        "children": [
+          {
+            "id": "sarg",
+            "label": "Sargable predicates",
+            "detail": "No function on indexed column; use ranges for dates.",
+            "note": "where",
+            "questions": [
+              111
+            ],
+            "children": []
+          },
+          {
+            "id": "exists",
+            "label": "EXISTS over IN/DISTINCT",
+            "detail": "Semi-join stops at first match.",
+            "note": "exists-not-exists",
+            "questions": [
+              28
+            ],
+            "children": []
+          },
+          {
+            "id": "preagg",
+            "label": "Aggregate early",
+            "detail": "Shrink rows before joining.",
+            "note": "cte",
+            "questions": [
+              40
+            ],
+            "children": []
+          },
+          {
+            "id": "keyset",
+            "label": "Keyset pagination",
+            "detail": "WHERE id > last LIMIT n beats large OFFSET.",
+            "note": "limit-offset",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

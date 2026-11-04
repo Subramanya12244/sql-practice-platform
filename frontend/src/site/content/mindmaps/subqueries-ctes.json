@@ -1,0 +1,250 @@
+{
+  "slug": "subqueries-ctes",
+  "title": "Subqueries and CTEs",
+  "description": "Scalar, correlated, EXISTS and IN subqueries, plus CTEs, recursive CTEs and data-modifying CTEs in PostgreSQL.",
+  "root": {
+    "id": "sq",
+    "label": "Subqueries & CTEs",
+    "detail": "Queries nested inside or before other queries.",
+    "note": "scalar-subqueries",
+    "children": [
+      {
+        "id": "scalar",
+        "label": "Scalar subqueries",
+        "detail": "Must return at most one row and column.",
+        "note": "scalar-subqueries",
+        "children": [
+          {
+            "id": "sc-avg",
+            "label": "Compare to overall avg",
+            "detail": "WHERE x > (SELECT AVG(x) ...).",
+            "note": "scalar-subqueries",
+            "questions": [
+              6,
+              7
+            ],
+            "children": []
+          },
+          {
+            "id": "sc-having",
+            "label": "In HAVING",
+            "detail": "Compare group total to a global value.",
+            "note": "having",
+            "questions": [
+              15,
+              17
+            ],
+            "children": []
+          },
+          {
+            "id": "sc-err",
+            "label": "More than one row",
+            "detail": "Raises an error at runtime.",
+            "note": "scalar-subqueries",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "corr",
+        "label": "Correlated subqueries",
+        "detail": "Re-evaluated per outer row (logically).",
+        "note": "correlated-subqueries",
+        "prereq": [
+          "scalar"
+        ],
+        "children": [
+          {
+            "id": "co-peer",
+            "label": "Compare to peer group",
+            "detail": "Avg of the same employee/category.",
+            "note": "correlated-subqueries",
+            "questions": [
+              18,
+              13
+            ],
+            "children": []
+          },
+          {
+            "id": "co-cost",
+            "label": "Cost & rewrites",
+            "detail": "Often rewritten as join or window.",
+            "note": "join-vs-subquery",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "exists",
+        "label": "EXISTS / NOT EXISTS",
+        "detail": "True if subquery returns any row.",
+        "note": "exists-not-exists",
+        "prereq": [
+          "corr"
+        ],
+        "children": [
+          {
+            "id": "ex-semi",
+            "label": "Semi-join",
+            "detail": "Rows that have a match, no duplicates.",
+            "note": "exists-not-exists",
+            "children": []
+          },
+          {
+            "id": "ex-anti",
+            "label": "Anti-join",
+            "detail": "Rows with no match; NULL-safe.",
+            "note": "exists-not-exists",
+            "pattern": "anti-join",
+            "questions": [
+              28,
+              29
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "in",
+        "label": "IN / NOT IN",
+        "detail": "Membership in a subquery list.",
+        "note": "in-not-in",
+        "children": [
+          {
+            "id": "in-basic",
+            "label": "IN (subquery)",
+            "detail": "Equivalent to a semi-join.",
+            "note": "in-not-in",
+            "children": []
+          },
+          {
+            "id": "in-null",
+            "label": "NOT IN with NULLs",
+            "detail": "One NULL makes every test unknown.",
+            "note": "in-not-in",
+            "pattern": "missing-records",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "derived",
+        "label": "Derived tables",
+        "detail": "Subquery in FROM needs an alias.",
+        "note": "scalar-subqueries",
+        "questions": [
+          96
+        ],
+        "children": []
+      },
+      {
+        "id": "cte",
+        "label": "CTEs (WITH)",
+        "detail": "Named subqueries for readability.",
+        "note": "cte",
+        "children": [
+          {
+            "id": "cte-basic",
+            "label": "Single CTE",
+            "detail": "Compute once, query after.",
+            "note": "cte",
+            "questions": [
+              20,
+              8
+            ],
+            "children": []
+          },
+          {
+            "id": "cte-multi",
+            "label": "Multiple / chained",
+            "detail": "Each CTE can use earlier ones.",
+            "note": "multiple-ctes",
+            "questions": [
+              19,
+              22
+            ],
+            "children": []
+          },
+          {
+            "id": "cte-mat",
+            "label": "MATERIALIZED hint",
+            "detail": "PG12+ inlines single-use CTEs; force with MATERIALIZED.",
+            "note": "cte-vs-subquery",
+            "children": []
+          },
+          {
+            "id": "cte-dml",
+            "label": "Data-modifying CTEs",
+            "detail": "INSERT/UPDATE/DELETE ... RETURNING in WITH.",
+            "note": "cte",
+            "questions": [
+              138,
+              140
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "rec",
+        "label": "Recursive CTEs",
+        "detail": "Anchor UNION ALL recursive term.",
+        "note": "recursive-cte",
+        "prereq": [
+          "cte"
+        ],
+        "children": [
+          {
+            "id": "rec-hier",
+            "label": "Org charts / trees",
+            "detail": "Walk reports_to chains to any depth.",
+            "note": "recursive-cte",
+            "pattern": "hierarchical-queries",
+            "children": []
+          },
+          {
+            "id": "rec-series",
+            "label": "Generate series",
+            "detail": "Fill date gaps; or use generate_series().",
+            "note": "recursive-cte",
+            "pattern": "consecutive-dates",
+            "children": []
+          },
+          {
+            "id": "rec-cycle",
+            "label": "Cycle protection",
+            "detail": "CYCLE clause (PG14+) or path arrays.",
+            "note": "recursive-cte",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "choose",
+        "label": "Which to use?",
+        "detail": "Readability vs performance.",
+        "note": "cte-vs-subquery",
+        "children": [
+          {
+            "id": "ch-cte",
+            "label": "CTE vs subquery",
+            "detail": "Usually same plan once inlined.",
+            "note": "cte-vs-subquery",
+            "questions": [
+              16,
+              19
+            ],
+            "children": []
+          },
+          {
+            "id": "ch-join",
+            "label": "Subquery vs join",
+            "detail": "Joins return columns; EXISTS avoids duplicates.",
+            "note": "join-vs-subquery",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -6,7 +6,12 @@ import { Markdown } from "../components/Markdown";
 import { InlineMarkdown } from "../components/Markdown";
 import { Chip, Container, PageHeader, QuestionCard, Skeleton } from "../components/ui";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
-import { useProgress } from "../lib/progress";
+import { setDailyGoal, today, useProgress } from "../lib/progress";
+import { dueQuestions } from "../lib/insights";
+import { NOTE_CATEGORIES } from "../lib/learning";
+import { PracticeNext } from "./ReviewPage";
+import { BookOpen, Bookmark, Brain, Network, Puzzle, Repeat, Target, Zap } from "lucide-react";
+import { useEffect } from "react";
 import type { Lesson, LessonExercise, Question } from "../types";
 
 const PracticePanel = lazy(() => import("../components/PracticePanel"));
@@ -53,8 +58,11 @@ export function LearnPage() {
       <PageHeader
         eyebrow="Learning path"
         title="Learn SQL, start to finish"
-        intro={`${lessons.length} lessons and ${totalEx} graded exercises on the Northwind database. You have passed ${doneEx} of ${totalEx}.`}
+        intro={`Theory, visual maps, patterns, practice and revision in one place. ${lessons.length} lessons and ${totalEx} graded exercises — you've passed ${doneEx}.`}
       />
+      <LearnDashboard />
+      <h2 className="mt-12 font-display text-2xl font-bold text-ink" id="roadmap">Learning roadmap</h2>
+      <p className="mt-1 text-sm text-ink-muted">Hands-on lessons in order. Each ends with exercises graded in your browser.</p>
       {levels.map((level) => {
         const group = lessons.filter((l) => l.level === level);
         if (!group.length) return null;
@@ -199,5 +207,129 @@ export function LessonPage() {
         </nav>
       </article>
     </Container>
+  );
+}
+
+const MODULES = [
+  { to: "/notes", label: "Theory notes", desc: "Every topic, beginner to expert", icon: BookOpen },
+  { to: "/mindmaps", label: "Mind maps", desc: "See how concepts connect", icon: Network },
+  { to: "/patterns", label: "Patterns", desc: "Reusable interview solutions", icon: Puzzle },
+  { to: "/shortcuts", label: "Shortcuts", desc: "Searchable syntax reference", icon: Zap },
+  { to: "/review", label: "Revision", desc: "Spaced-repetition queue", icon: Repeat },
+  { to: "/mock-interview", label: "Assessment", desc: "Timed mock interview", icon: Target },
+];
+
+const bookmarkLink = (key: string, notes: { slug: string; title: string }[], patterns: { slug: string; title: string }[], maps: { slug: string; title: string }[]) => {
+  const [kind, slug] = key.split(":");
+  if (kind === "note") return { path: `/notes/${slug}`, title: notes.find((n) => n.slug === slug)?.title ?? slug };
+  if (kind === "pattern") return { path: `/patterns/${slug}`, title: patterns.find((n) => n.slug === slug)?.title ?? slug };
+  if (kind === "map") return { path: `/mindmaps/${slug}`, title: maps.find((n) => n.slug === slug)?.title ?? slug };
+  return null;
+};
+
+/** Personal panel on /learn: goal, continue, recommendations, revision, bookmarks, topic progress. */
+function LearnDashboard() {
+  const { data } = usePage();
+  const progress = useProgress();
+  const [day, setDay] = useState<string | null>(null);
+  useEffect(() => setDay(today()), []);
+  const notes = data.notes ?? [];
+  const goal = progress.dailyGoal ?? 3;
+  const doneToday = day ? progress.dayCounts?.[day] ?? 0 : 0;
+  const due = day ? dueQuestions(data.index, progress, day).length : 0;
+  const dueCards = day ? Object.values(progress.cards).filter((c) => c.due <= day).length : 0;
+  // Next unread note in curriculum order, skipping ones whose prerequisites are unread.
+  const nextNotes = notes.filter((n) => !progress.read?.[n.slug] && n.prerequisites.every((p) => progress.read?.[p] || !notes.some((x) => x.slug === p))).slice(0, 3);
+  const bookmarks = (progress.bookmarks ?? [])
+    .map((k) => bookmarkLink(k, notes, data.patterns ?? [], data.mindmaps ?? []))
+    .filter((b) => b !== null)
+    .slice(0, 8);
+  const card = "rounded-card border border-surface-border bg-surface-raised p-4";
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {MODULES.map((m) => (
+          <Link key={m.to} to={m.to} className={`${card} flex gap-3 hover:border-accent/40`}>
+            <m.icon className="mt-0.5 h-5 w-5 shrink-0 text-accent" aria-hidden />
+            <span><span className="block font-semibold text-ink">{m.label}</span><span className="block text-sm text-ink-muted">{m.desc}</span></span>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <section className={card} aria-labelledby="goal">
+          <h2 id="goal" className="flex items-center gap-2 font-semibold text-ink"><Target className="h-4 w-4 text-accent" aria-hidden /> Today's goal</h2>
+          <p className="mt-2 text-sm text-ink-muted">{doneToday} of {goal} learning actions (solves, reviews, notes, exercises)</p>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-soft" aria-hidden>
+            <div className="h-full bg-accent" style={{ width: `${Math.min(100, (100 * doneToday) / goal)}%` }} />
+          </div>
+          <label className="mt-3 flex items-center gap-2 text-xs text-ink-muted">
+            Daily goal
+            <select value={goal} onChange={(e) => setDailyGoal(Number(e.target.value))} className="rounded border border-surface-border bg-surface px-1 py-0.5 text-ink">
+              {[1, 2, 3, 5, 8, 10].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+        </section>
+
+        <section className={card} aria-labelledby="revision">
+          <h2 id="revision" className="flex items-center gap-2 font-semibold text-ink"><Repeat className="h-4 w-4 text-accent" aria-hidden /> Revision queue</h2>
+          <p className="mt-2 text-sm text-ink-muted">{due} questions and {dueCards} flashcards due.</p>
+          <div className="mt-3 flex gap-3 text-sm">
+            <Link to="/review" className="font-medium text-accent hover:underline">Review questions →</Link>
+            <Link to="/flashcards" className="font-medium text-accent hover:underline">Flashcards →</Link>
+          </div>
+        </section>
+
+        <section className={card} aria-labelledby="continue">
+          <h2 id="continue" className="flex items-center gap-2 font-semibold text-ink"><Brain className="h-4 w-4 text-accent" aria-hidden /> Recommended next</h2>
+          {nextNotes.length ? (
+            <ul className="mt-2 space-y-1 text-sm">
+              {nextNotes.map((n) => <li key={n.slug}><Link to={`/notes/${n.slug}`} className="text-accent hover:underline">{n.title}</Link> <span className="text-xs text-ink-muted">· {n.difficulty}</span></li>)}
+            </ul>
+          ) : <p className="mt-2 text-sm text-ink-muted">You've read every note — try a mock interview.</p>}
+        </section>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className={card} aria-labelledby="recent">
+          <h2 id="recent" className="font-semibold text-ink">Recently viewed</h2>
+          {progress.recent?.length ? (
+            <ul className="mt-2 space-y-1 text-sm">{progress.recent.slice(0, 6).map((r) => <li key={r.key}><Link to={r.path} className="text-accent hover:underline">{r.title}</Link></li>)}</ul>
+          ) : <p className="mt-2 text-sm text-ink-muted">Pages you open will show up here.</p>}
+        </section>
+        <section className={card} aria-labelledby="bookmarks">
+          <h2 id="bookmarks" className="flex items-center gap-2 font-semibold text-ink"><Bookmark className="h-4 w-4 text-accent" aria-hidden /> Bookmarks</h2>
+          {bookmarks.length ? (
+            <ul className="mt-2 space-y-1 text-sm">{bookmarks.map((b) => <li key={b.path}><Link to={b.path} className="text-accent hover:underline">{b.title}</Link></li>)}</ul>
+          ) : <p className="mt-2 text-sm text-ink-muted">Bookmark notes, patterns and maps to find them here.</p>}
+        </section>
+      </div>
+
+      <section className={card} aria-labelledby="concepts-progress">
+        <h2 id="concepts-progress" className="font-semibold text-ink">Concept progress</h2>
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {NOTE_CATEGORIES.map((c) => {
+            const group = notes.filter((n) => n.category === c.slug);
+            const read = group.filter((n) => progress.read?.[n.slug]).length;
+            const qs = [...new Set(group.flatMap((n) => n.questions))];
+            const solved = qs.filter((q) => progress.questions[q]?.solvedAt).length;
+            return (
+              <li key={c.slug}>
+                <Link to={`/notes#cat-${c.slug}`} className="block text-sm hover:underline">
+                  <span className="font-medium text-ink">{c.label}</span>
+                  <span className="block text-xs text-ink-muted">{read}/{group.length} notes · {solved}/{qs.length} questions</span>
+                </Link>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-soft" aria-hidden>
+                  <div className="h-full bg-accent" style={{ width: `${group.length ? (100 * read) / group.length : 0}%` }} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <PracticeNext title="Practice your weak spots" />
+    </div>
   );
 }

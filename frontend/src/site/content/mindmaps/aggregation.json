@@ -1,0 +1,277 @@
+{
+  "slug": "aggregation",
+  "title": "SQL Aggregation",
+  "description": "Aggregate functions, GROUP BY, HAVING, NULL behaviour and conditional aggregation in PostgreSQL.",
+  "root": {
+    "id": "agg",
+    "label": "Aggregation",
+    "detail": "Many rows in, one row per group out.",
+    "note": "group-by",
+    "children": [
+      {
+        "id": "fns",
+        "label": "Aggregate functions",
+        "detail": "All ignore NULL inputs except COUNT(*).",
+        "note": "count",
+        "children": [
+          {
+            "id": "count",
+            "label": "COUNT",
+            "detail": "COUNT(*) rows, COUNT(col) non-NULL, COUNT(DISTINCT).",
+            "note": "count",
+            "questions": [
+              5,
+              12
+            ],
+            "children": []
+          },
+          {
+            "id": "sum",
+            "label": "SUM",
+            "detail": "NULL when no input rows; COALESCE to 0.",
+            "note": "sum",
+            "questions": [
+              1,
+              11
+            ],
+            "children": []
+          },
+          {
+            "id": "avg",
+            "label": "AVG",
+            "detail": "Integer AVG returns numeric; NULLs excluded.",
+            "note": "avg",
+            "questions": [
+              6,
+              113
+            ],
+            "children": []
+          },
+          {
+            "id": "minmax",
+            "label": "MIN / MAX",
+            "detail": "Work on numbers, text, dates.",
+            "note": "min-max",
+            "questions": [
+              26
+            ],
+            "children": []
+          },
+          {
+            "id": "strag",
+            "label": "STRING_AGG",
+            "detail": "Concatenate with ORDER BY inside.",
+            "note": "string-functions",
+            "questions": [
+              125,
+              127
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "groupby",
+        "label": "GROUP BY",
+        "detail": "Each non-aggregated column must be grouped.",
+        "note": "group-by",
+        "prereq": [
+          "fns"
+        ],
+        "children": [
+          {
+            "id": "gb-multi",
+            "label": "Multiple keys",
+            "detail": "Group at the needed grain.",
+            "note": "group-by",
+            "questions": [
+              2
+            ],
+            "children": []
+          },
+          {
+            "id": "gb-expr",
+            "label": "Group by expression",
+            "detail": "CASE or DATE_TRUNC buckets.",
+            "note": "group-by",
+            "questions": [
+              129,
+              110
+            ],
+            "children": []
+          },
+          {
+            "id": "gb-null",
+            "label": "NULL is one group",
+            "detail": "All NULL keys fall into one group.",
+            "note": "null-handling",
+            "questions": [
+              55
+            ],
+            "children": []
+          },
+          {
+            "id": "gb-sets",
+            "label": "ROLLUP / CUBE",
+            "detail": "GROUPING SETS for subtotals.",
+            "note": "group-by",
+            "pattern": "pivot-report",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "having",
+        "label": "HAVING",
+        "detail": "Filter groups after aggregation.",
+        "note": "having",
+        "prereq": [
+          "groupby"
+        ],
+        "children": [
+          {
+            "id": "hv-thresh",
+            "label": "Threshold filter",
+            "detail": "HAVING COUNT(*) > n.",
+            "note": "having",
+            "questions": [
+              62,
+              127
+            ],
+            "children": []
+          },
+          {
+            "id": "hv-subq",
+            "label": "Compare to average",
+            "detail": "HAVING SUM(x) > (SELECT AVG ...).",
+            "note": "scalar-subqueries",
+            "questions": [
+              15,
+              16
+            ],
+            "children": []
+          },
+          {
+            "id": "hv-dup",
+            "label": "Find duplicates",
+            "detail": "GROUP BY key HAVING COUNT(*) > 1.",
+            "note": "having",
+            "pattern": "find-duplicates",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "cond",
+        "label": "Conditional aggregation",
+        "detail": "Aggregate subsets in one pass.",
+        "note": "conditional-aggregation",
+        "prereq": [
+          "groupby"
+        ],
+        "children": [
+          {
+            "id": "sumcase",
+            "label": "SUM(CASE ...)",
+            "detail": "Portable form.",
+            "note": "count-case-when",
+            "pattern": "conditional-aggregation",
+            "questions": [
+              92,
+              93
+            ],
+            "children": []
+          },
+          {
+            "id": "filter",
+            "label": "FILTER (WHERE ...)",
+            "detail": "Postgres-native, cleaner.",
+            "note": "filter-clause",
+            "questions": [
+              130
+            ],
+            "children": []
+          },
+          {
+            "id": "pivot",
+            "label": "Pivot rows to columns",
+            "detail": "One FILTER per output column.",
+            "note": "conditional-aggregation",
+            "pattern": "pivot-report",
+            "questions": [
+              131
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "multi",
+        "label": "Multi-level aggregation",
+        "detail": "Aggregate an aggregate via CTE.",
+        "note": "cte",
+        "prereq": [
+          "groupby"
+        ],
+        "children": [
+          {
+            "id": "ml-avg",
+            "label": "Average of totals",
+            "detail": "AVG over per-customer SUMs.",
+            "note": "cte",
+            "questions": [
+              40,
+              96
+            ],
+            "children": []
+          },
+          {
+            "id": "ml-share",
+            "label": "Share of total",
+            "detail": "SUM(x) / SUM(SUM(x)) OVER ().",
+            "note": "over",
+            "questions": [
+              105
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "pitfalls",
+        "label": "Pitfalls",
+        "detail": "Common mistakes.",
+        "note": "group-by",
+        "children": [
+          {
+            "id": "pf-fanout",
+            "label": "Join fan-out",
+            "detail": "Duplicated rows inflate SUM/COUNT.",
+            "note": "join-cardinality",
+            "questions": [
+              32
+            ],
+            "children": []
+          },
+          {
+            "id": "pf-div",
+            "label": "Divide by zero",
+            "detail": "Use NULLIF(denominator, 0).",
+            "note": "null-handling",
+            "questions": [
+              133
+            ],
+            "children": []
+          },
+          {
+            "id": "pf-where",
+            "label": "Aggregate in WHERE",
+            "detail": "Not allowed; use HAVING.",
+            "note": "having",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

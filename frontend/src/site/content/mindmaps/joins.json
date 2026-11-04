@@ -1,0 +1,275 @@
+{
+  "slug": "joins",
+  "title": "SQL JOINs",
+  "description": "Every PostgreSQL join type, how matching and NULL padding work, cardinality pitfalls, and anti-join patterns.",
+  "root": {
+    "id": "joins",
+    "label": "JOINs",
+    "detail": "Combine rows from two or more tables.",
+    "note": "inner-join",
+    "children": [
+      {
+        "id": "inner",
+        "label": "INNER JOIN",
+        "detail": "Only rows that match on both sides.",
+        "note": "inner-join",
+        "children": [
+          {
+            "id": "inner-basic",
+            "label": "Equi-join on key",
+            "detail": "ON a.id = b.a_id; USING (col) merges the column.",
+            "note": "inner-join",
+            "questions": [
+              1,
+              11
+            ],
+            "children": []
+          },
+          {
+            "id": "inner-bridge",
+            "label": "Bridge tables",
+            "detail": "Route through an intermediate table.",
+            "note": "multiple-joins",
+            "questions": [
+              2,
+              10
+            ],
+            "children": []
+          },
+          {
+            "id": "inner-nonequi",
+            "label": "Non-equi joins",
+            "detail": "Join on <, >, BETWEEN.",
+            "note": "inner-join",
+            "questions": [
+              21
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "outer",
+        "label": "Outer joins",
+        "detail": "Keep unmatched rows with NULL padding.",
+        "note": "left-join",
+        "prereq": [
+          "inner"
+        ],
+        "children": [
+          {
+            "id": "left",
+            "label": "LEFT JOIN",
+            "detail": "All left rows; NULLs where right is missing.",
+            "note": "left-join",
+            "questions": [
+              25,
+              27
+            ],
+            "children": []
+          },
+          {
+            "id": "left-chain",
+            "label": "Chained LEFT JOINs",
+            "detail": "An INNER join later can undo the LEFT.",
+            "note": "left-join",
+            "questions": [
+              31,
+              32
+            ],
+            "children": []
+          },
+          {
+            "id": "right",
+            "label": "RIGHT JOIN",
+            "detail": "Mirror of LEFT; usually rewritten as LEFT.",
+            "note": "right-join",
+            "questions": [
+              41,
+              44
+            ],
+            "children": []
+          },
+          {
+            "id": "full",
+            "label": "FULL OUTER JOIN",
+            "detail": "All rows from both sides.",
+            "note": "full-outer-join",
+            "questions": [
+              51,
+              55
+            ],
+            "children": []
+          },
+          {
+            "id": "on-where",
+            "label": "ON vs WHERE filter",
+            "detail": "WHERE on right column turns LEFT into INNER.",
+            "note": "left-join",
+            "questions": [
+              33
+            ],
+            "children": []
+          },
+          {
+            "id": "coalesce",
+            "label": "COALESCE padded NULLs",
+            "detail": "Show 0 instead of NULL for missing totals.",
+            "note": "null-handling",
+            "questions": [
+              27,
+              39
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "self",
+        "label": "SELF JOIN",
+        "detail": "Same table, two aliases.",
+        "note": "self-join",
+        "prereq": [
+          "inner"
+        ],
+        "children": [
+          {
+            "id": "self-hier",
+            "label": "Manager hierarchy",
+            "detail": "employee.reports_to = manager.id.",
+            "note": "self-join",
+            "pattern": "self-referencing",
+            "questions": [
+              61,
+              62
+            ],
+            "children": []
+          },
+          {
+            "id": "self-pairs",
+            "label": "Pairs: a.id < b.id",
+            "detail": "Avoid self-pairs and mirrored duplicates.",
+            "note": "self-join",
+            "questions": [
+              66,
+              64
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "cross",
+        "label": "CROSS JOIN",
+        "detail": "Cartesian product: |A| x |B| rows.",
+        "note": "cross-join",
+        "children": [
+          {
+            "id": "cross-combo",
+            "label": "All combinations",
+            "detail": "No ON clause.",
+            "note": "cross-join",
+            "questions": [
+              71,
+              72
+            ],
+            "children": []
+          },
+          {
+            "id": "cross-scalar",
+            "label": "Attach a scalar row",
+            "detail": "Join a 1-row CTE to every row.",
+            "note": "cross-join",
+            "questions": [
+              19,
+              50
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "anti",
+        "label": "Anti & semi joins",
+        "detail": "Rows with / without a match.",
+        "note": "join-vs-subquery",
+        "prereq": [
+          "outer"
+        ],
+        "children": [
+          {
+            "id": "anti-left",
+            "label": "LEFT JOIN ... IS NULL",
+            "detail": "Test the right side's key IS NULL.",
+            "note": "left-join",
+            "pattern": "customers-without-orders",
+            "questions": [
+              28,
+              29
+            ],
+            "children": []
+          },
+          {
+            "id": "anti-exists",
+            "label": "NOT EXISTS",
+            "detail": "Null-safe, usually same plan as anti-join.",
+            "note": "exists-not-exists",
+            "pattern": "anti-join",
+            "questions": [
+              30
+            ],
+            "children": []
+          },
+          {
+            "id": "anti-notin",
+            "label": "NOT IN trap",
+            "detail": "Any NULL in the list yields no rows.",
+            "note": "in-not-in",
+            "pattern": "unmatched-records",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "card",
+        "label": "Cardinality",
+        "detail": "How many rows a join produces.",
+        "note": "join-cardinality",
+        "prereq": [
+          "inner"
+        ],
+        "children": [
+          {
+            "id": "card-fanout",
+            "label": "Fan-out",
+            "detail": "1-to-many joins multiply rows; SUM inflates.",
+            "note": "join-cardinality",
+            "questions": [
+              32,
+              9
+            ],
+            "children": []
+          },
+          {
+            "id": "card-fix",
+            "label": "Aggregate before join",
+            "detail": "Pre-aggregate in a CTE to avoid double counting.",
+            "note": "cte",
+            "questions": [
+              40
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "lateral",
+        "label": "LATERAL",
+        "detail": "Subquery can reference earlier FROM items; top-N per row.",
+        "note": "correlated-subqueries",
+        "pattern": "top-n-per-group",
+        "children": []
+      }
+    ]
+  }
+}

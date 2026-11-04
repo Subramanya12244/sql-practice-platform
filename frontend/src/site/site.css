@@ -129,3 +129,43 @@ html.dark .prose-site code {
     display: none !important;
   }
 }
+
+/* Code blocks: copy / run actions and light SQL highlighting. */
+.prose-site .code-block {
+  position: relative;
+  margin: 1rem 0;
+}
+.prose-site .code-block pre {
+  margin: 0;
+}
+.prose-site .code-actions {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  display: flex;
+  gap: 0.3rem;
+  opacity: 0.85;
+}
+.prose-site .code-actions button {
+  border: 1px solid rgb(var(--color-border));
+  background: rgb(var(--color-surface-raised));
+  color: rgb(var(--color-ink-muted));
+  border-radius: 0.4rem;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.72rem;
+  font-family: inherit;
+}
+.prose-site .code-actions button:hover,
+.prose-site .code-actions button:focus-visible {
+  color: rgb(var(--color-ink));
+}
+.prose-site .tok-k { color: rgb(var(--color-accent)); font-weight: 600; }
+.prose-site .tok-s { color: #15803d; }
+.prose-site .tok-n { color: #b45309; }
+.prose-site .tok-c { color: rgb(var(--color-ink-muted)); font-style: italic; }
+html.dark .prose-site .tok-s { color: #86efac; }
+html.dark .prose-site .tok-n { color: #fcd34d; }
+.prose-site h2[id],
+.prose-site h3[id] {
+  scroll-margin-top: 5rem;
+}

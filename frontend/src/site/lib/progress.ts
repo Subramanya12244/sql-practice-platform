@@ -23,6 +23,16 @@ export interface Progress {
   mocks?: { date: string; solved: number; total: number; usedSec: number; durationMin: number }[];
   /** Learning-path exercises passed, keyed "lesson-slug#index" → ISO time. */
   lessons?: Record<string, string>;
+  /** Saved items, keyed "note:<slug>", "pattern:<slug>", "map:<slug>", "q:<number>". */
+  bookmarks?: string[];
+  /** Recently opened learning pages, newest first. */
+  recent?: { key: string; title: string; path: string; at: string }[];
+  /** Theory notes marked as read: slug → ISO time. */
+  read?: Record<string, string>;
+  /** Daily goal: learning actions (solves, reviews, notes read, exercises) per day. */
+  dailyGoal?: number;
+  /** Learning actions per day, for the goal meter. */
+  dayCounts?: Record<string, number>;
 }
 
 /** Receives every change so a signed-in account can mirror it; null when anonymous. */
@@ -85,7 +95,7 @@ export function recordAttempt(num: number, sql: string, correct: boolean) {
   write({
     ...p,
     questions: { ...p.questions, [num]: q },
-    activeDays: correct ? addDay(p.activeDays, today()) : p.activeDays,
+    ...(correct ? bump(p) : { activeDays: p.activeDays }),
   });
   sink?.question(num, q, correct && !prev.solvedAt);
   if (correct) sink?.state(current);
@@ -115,7 +125,7 @@ export function reviewCard(num: number, knewIt: boolean) {
   write({
     ...p,
     cards: { ...p.cards, [num]: { box, due } },
-    activeDays: addDay(p.activeDays, today()),
+    ...bump(p),
   });
   sink?.state(current);
 }
@@ -144,10 +154,51 @@ export function recordMock(entry: { solved: number; total: number; usedSec: numb
   sink?.state(current);
 }
 
+function bump(p: Progress): Pick<Progress, "dayCounts" | "activeDays"> {
+  const d = today();
+  const counts = Object.fromEntries(Object.entries(p.dayCounts ?? {}).sort().slice(-60));
+  counts[d] = (counts[d] ?? 0) + 1;
+  return { dayCounts: counts, activeDays: addDay(p.activeDays, d) };
+}
+
+export function toggleBookmark(key: string) {
+  const p = read();
+  const has = p.bookmarks?.includes(key);
+  write({ ...p, bookmarks: has ? p.bookmarks!.filter((k) => k !== key) : [key, ...(p.bookmarks ?? [])].slice(0, 200) });
+  sink?.state(current);
+}
+
+export function recordVisit(key: string, title: string, path: string) {
+  const p = read();
+  if (p.recent?.[0]?.key === key) return;
+  const recent = [{ key, title, path, at: new Date().toISOString() }, ...(p.recent ?? []).filter((r) => r.key !== key)].slice(0, 12);
+  write({ ...p, recent });
+}
+
+export function markNoteRead(slug: string, isRead = true) {
+  const p = read();
+  const next = { ...(p.read ?? {}) };
+  if (isRead) {
+    if (next[slug]) return;
+    next[slug] = new Date().toISOString();
+    write({ ...p, read: next, ...bump(p) });
+  } else {
+    delete next[slug];
+    write({ ...p, read: next });
+  }
+  sink?.state(current);
+}
+
+export function setDailyGoal(n: number) {
+  const p = read();
+  write({ ...p, dailyGoal: Math.max(1, Math.min(20, Math.round(n))) });
+  sink?.state(current);
+}
+
 export function completeExercise(key: string) {
   const p = read();
   if (p.lessons?.[key]) return;
-  write({ ...p, lessons: { ...p.lessons, [key]: new Date().toISOString() }, activeDays: addDay(p.activeDays, today()) });
+  write({ ...p, lessons: { ...p.lessons, [key]: new Date().toISOString() }, ...bump(p) });
   sink?.state(current);
 }
 

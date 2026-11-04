@@ -35,7 +35,10 @@ export function useAuth(): AuthState {
   return ctx;
 }
 
-const remoteState = (p: Progress): RemoteState => ({ activeDays: p.activeDays, cards: p.cards, lessons: p.lessons });
+const remoteState = (p: Progress): RemoteState => ({
+  activeDays: p.activeDays, cards: p.cards, lessons: p.lessons,
+  bookmarks: p.bookmarks, read: p.read, dailyGoal: p.dailyGoal, dayCounts: p.dayCounts,
+});
 
 /** Pull account progress, merge with this browser, push the union back, then mirror changes live. */
 async function startSync(sb: SupabaseClient, userId: string) {

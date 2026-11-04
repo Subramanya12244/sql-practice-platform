@@ -1,0 +1,87 @@
+{
+  "category": "set-operators",
+  "title": "Set operators",
+  "order": 8,
+  "items": [
+    {
+      "id": "union",
+      "operation": "Combine and dedupe",
+      "syntax": "SELECT … UNION SELECT …",
+      "explanation": "Stacks results and removes duplicate rows. Column counts and types must match.",
+      "example": "SELECT country FROM customers UNION SELECT country FROM suppliers ORDER BY country;",
+      "expected": "Every country of a customer or supplier, once.",
+      "notes": [
+        "union"
+      ]
+    },
+    {
+      "id": "union-all",
+      "operation": "Combine and keep duplicates",
+      "syntax": "SELECT … UNION ALL SELECT …",
+      "explanation": "No deduplication, so faster.",
+      "example": "SELECT 'customer' AS type, city FROM customers UNION ALL SELECT 'supplier', city FROM suppliers LIMIT 10;",
+      "expected": "Cities labelled by source.",
+      "notes": [
+        "union-all"
+      ]
+    },
+    {
+      "id": "intersect",
+      "operation": "Rows in both",
+      "syntax": "SELECT … INTERSECT SELECT …",
+      "explanation": "Distinct rows present in both results.",
+      "example": "SELECT country FROM customers INTERSECT SELECT country FROM suppliers ORDER BY country;",
+      "expected": "Countries with both customers and suppliers.",
+      "notes": [
+        "intersect"
+      ]
+    },
+    {
+      "id": "except",
+      "operation": "Rows in first only",
+      "syntax": "SELECT … EXCEPT SELECT …",
+      "explanation": "Distinct rows of the first result not in the second (Oracle: MINUS).",
+      "example": "SELECT country FROM customers EXCEPT SELECT country FROM suppliers ORDER BY country;",
+      "expected": "Customer countries without suppliers.",
+      "notes": [
+        "except"
+      ]
+    },
+    {
+      "id": "except-keys",
+      "operation": "Find missing keys",
+      "syntax": "SELECT id FROM a EXCEPT SELECT id FROM b",
+      "explanation": "Anti-join on whole rows; treats NULLs as equal.",
+      "example": "SELECT product_id FROM products EXCEPT SELECT product_id FROM order_details ORDER BY product_id;",
+      "expected": "Products 9 and 17.",
+      "notes": [
+        "except",
+        "exists-not-exists"
+      ]
+    },
+    {
+      "id": "union-order-by",
+      "operation": "Sort a combined result",
+      "syntax": "(SELECT …) UNION (SELECT …) ORDER BY col",
+      "explanation": "ORDER BY and LIMIT after the last query apply to the whole result.",
+      "example": "SELECT company_name FROM customers UNION SELECT company_name FROM suppliers ORDER BY company_name LIMIT 5;",
+      "expected": "First 5 company names alphabetically.",
+      "notes": [
+        "union",
+        "order-by"
+      ]
+    },
+    {
+      "id": "union-counts",
+      "operation": "Count per source",
+      "syntax": "WITH all AS (… UNION ALL …) SELECT type, COUNT(*) …",
+      "explanation": "UNION ALL then GROUP BY to summarise several tables.",
+      "example": "WITH e AS (SELECT 'customer' AS type, country FROM customers UNION ALL SELECT 'supplier', country FROM suppliers) SELECT type, COUNT(*) FROM e GROUP BY type;",
+      "expected": "Row count per entity type.",
+      "notes": [
+        "union-all",
+        "group-by"
+      ]
+    }
+  ]
+}

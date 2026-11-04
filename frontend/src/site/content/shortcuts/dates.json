@@ -1,0 +1,108 @@
+{
+  "category": "dates",
+  "title": "Dates",
+  "order": 9,
+  "items": [
+    {
+      "id": "current-date",
+      "operation": "Today and now",
+      "syntax": "CURRENT_DATE, NOW()",
+      "explanation": "CURRENT_DATE is a date; NOW() is a timestamptz fixed at transaction start.",
+      "example": "SELECT CURRENT_DATE AS today, NOW() AS now_ts;",
+      "expected": "One row with today's date and timestamp.",
+      "notes": [
+        "date-time-functions"
+      ]
+    },
+    {
+      "id": "extract-part",
+      "operation": "Year, month, day of week",
+      "syntax": "EXTRACT(YEAR FROM d)",
+      "explanation": "Returns numeric; ISODOW gives 1 = Monday to 7 = Sunday.",
+      "example": "SELECT order_id, EXTRACT(YEAR FROM order_date) AS y, EXTRACT(MONTH FROM order_date) AS m, EXTRACT(ISODOW FROM order_date) AS dow FROM orders LIMIT 5;",
+      "expected": "5 orders with year, month and weekday.",
+      "notes": [
+        "date-time-functions"
+      ]
+    },
+    {
+      "id": "date-trunc",
+      "operation": "Bucket by period",
+      "syntax": "date_trunc('month', d)",
+      "explanation": "Rounds down to the start of the period (PostgreSQL).",
+      "example": "SELECT date_trunc('month', order_date)::date AS month, COUNT(*) FROM orders GROUP BY 1 ORDER BY 1 LIMIT 5;",
+      "expected": "Order counts for the first 5 months.",
+      "notes": [
+        "date-time-functions"
+      ]
+    },
+    {
+      "id": "date-diff",
+      "operation": "Days between dates",
+      "syntax": "d2 - d1",
+      "explanation": "date minus date is an integer number of days in PostgreSQL.",
+      "example": "SELECT order_id, shipped_date - order_date AS days_to_ship FROM orders WHERE shipped_date IS NOT NULL LIMIT 5;",
+      "expected": "5 orders with days to ship.",
+      "notes": [
+        "date-time-functions"
+      ]
+    },
+    {
+      "id": "interval-add",
+      "operation": "Add an interval",
+      "syntax": "d + interval '1 month'",
+      "explanation": "Adds calendar units; the result is a timestamp unless cast.",
+      "example": "SELECT order_date, (order_date + interval '1 month')::date AS one_month_later FROM orders LIMIT 5;",
+      "expected": "Order dates shifted by one month.",
+      "notes": [
+        "date-time-functions"
+      ]
+    },
+    {
+      "id": "age-function",
+      "operation": "Years and months between",
+      "syntax": "AGE(d2, d1)",
+      "explanation": "Returns an interval like '3 years 2 mons'.",
+      "example": "SELECT first_name, AGE(hire_date, birth_date) AS age_at_hire FROM employees;",
+      "expected": "Each employee's age at hire.",
+      "notes": [
+        "date-time-functions"
+      ]
+    },
+    {
+      "id": "to-char",
+      "operation": "Format a date",
+      "syntax": "TO_CHAR(d, 'YYYY-MM')",
+      "explanation": "Formats dates as text. 'Day' pads with spaces; use 'FMDay' to trim.",
+      "example": "SELECT order_id, TO_CHAR(order_date, 'YYYY-MM') AS ym, TO_CHAR(order_date, 'FMDay') AS weekday FROM orders LIMIT 5;",
+      "expected": "5 orders with year-month and weekday name.",
+      "notes": [
+        "date-time-functions",
+        "string-functions"
+      ]
+    },
+    {
+      "id": "date-range-filter",
+      "operation": "Filter a date range",
+      "syntax": "WHERE d >= '2024-01-01' AND d < '2024-02-01'",
+      "explanation": "Half-open ranges are index-friendly and handle timestamps correctly.",
+      "example": "SELECT COUNT(*) FROM orders WHERE order_date >= (SELECT MIN(order_date) FROM orders) AND order_date < (SELECT MIN(order_date) FROM orders) + interval '3 months';",
+      "expected": "Orders in the first three months of data.",
+      "notes": [
+        "date-time-functions",
+        "indexes"
+      ]
+    },
+    {
+      "id": "generate-series-dates",
+      "operation": "Calendar of dates",
+      "syntax": "generate_series(start, end, interval '1 day')",
+      "explanation": "Builds a list of dates to fill gaps (PostgreSQL).",
+      "example": "SELECT generate_series(DATE '2024-01-01', DATE '2024-01-07', interval '1 day')::date AS d;",
+      "expected": "7 consecutive dates.",
+      "notes": [
+        "date-time-functions"
+      ]
+    }
+  ]
+}

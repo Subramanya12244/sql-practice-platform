@@ -1,0 +1,219 @@
+{
+  "slug": "set-operators",
+  "title": "SQL Set Operators",
+  "description": "UNION, UNION ALL, INTERSECT and EXCEPT in PostgreSQL: column rules, duplicates, ordering and common patterns.",
+  "root": {
+    "id": "sets",
+    "label": "Set Operators",
+    "detail": "Combine result sets vertically.",
+    "note": "union",
+    "children": [
+      {
+        "id": "rules",
+        "label": "Rules",
+        "detail": "Requirements for operands.",
+        "note": "union",
+        "children": [
+          {
+            "id": "r-cols",
+            "label": "Same column count",
+            "detail": "Matched by position, not name.",
+            "note": "union",
+            "questions": [
+              79
+            ],
+            "children": []
+          },
+          {
+            "id": "r-types",
+            "label": "Compatible types",
+            "detail": "Types resolved like CASE; cast if needed.",
+            "note": "union",
+            "questions": [
+              80
+            ],
+            "children": []
+          },
+          {
+            "id": "r-names",
+            "label": "Names from first query",
+            "detail": "Output column names come from the first SELECT.",
+            "note": "union",
+            "questions": [
+              82
+            ],
+            "children": []
+          },
+          {
+            "id": "r-order",
+            "label": "ORDER BY at end",
+            "detail": "Applies to the whole result; parenthesize for per-branch.",
+            "note": "order-by",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "union",
+        "label": "UNION",
+        "detail": "Combine and remove duplicates.",
+        "note": "union",
+        "prereq": [
+          "rules"
+        ],
+        "children": [
+          {
+            "id": "u-two",
+            "label": "Two sources",
+            "detail": "Customer + supplier lists.",
+            "note": "union",
+            "questions": [
+              79,
+              80
+            ],
+            "children": []
+          },
+          {
+            "id": "u-three",
+            "label": "Three-way union",
+            "detail": "Chain multiple branches.",
+            "note": "union",
+            "questions": [
+              81,
+              83
+            ],
+            "children": []
+          },
+          {
+            "id": "u-label",
+            "label": "Literal type labels",
+            "detail": "SELECT 'Customer' AS type, ...",
+            "note": "union",
+            "questions": [
+              82,
+              84
+            ],
+            "children": []
+          },
+          {
+            "id": "u-dedup",
+            "label": "Dedup across sources",
+            "detail": "Same value from two tables appears once.",
+            "note": "union",
+            "questions": [
+              85
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "unionall",
+        "label": "UNION ALL",
+        "detail": "Keep duplicates; no sort/hash step.",
+        "note": "union-all",
+        "prereq": [
+          "rules"
+        ],
+        "children": [
+          {
+            "id": "ua-perf",
+            "label": "Faster",
+            "detail": "Prefer when duplicates are impossible or wanted.",
+            "note": "union-all",
+            "children": []
+          },
+          {
+            "id": "ua-count",
+            "label": "Stack then aggregate",
+            "detail": "UNION ALL in CTE, then GROUP BY.",
+            "note": "union-all",
+            "questions": [
+              86,
+              93
+            ],
+            "children": []
+          },
+          {
+            "id": "ua-cond",
+            "label": "Tag + conditional agg",
+            "detail": "Compare sources per key.",
+            "note": "conditional-aggregation",
+            "pattern": "conditional-aggregation",
+            "questions": [
+              92,
+              97
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "intersect",
+        "label": "INTERSECT",
+        "detail": "Rows in both results.",
+        "note": "intersect",
+        "prereq": [
+          "rules"
+        ],
+        "children": [
+          {
+            "id": "i-both",
+            "label": "Common values",
+            "detail": "Countries with customers and suppliers.",
+            "note": "intersect",
+            "children": []
+          },
+          {
+            "id": "i-all",
+            "label": "INTERSECT ALL",
+            "detail": "Keeps min duplicate count.",
+            "note": "intersect",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "except",
+        "label": "EXCEPT",
+        "detail": "Rows in first not in second.",
+        "note": "except",
+        "prereq": [
+          "rules"
+        ],
+        "children": [
+          {
+            "id": "e-missing",
+            "label": "Find missing rows",
+            "detail": "NULL-safe alternative to NOT IN.",
+            "note": "except",
+            "pattern": "missing-records",
+            "children": []
+          },
+          {
+            "id": "e-diff",
+            "label": "Compare two tables",
+            "detail": "A EXCEPT B and B EXCEPT A.",
+            "note": "except",
+            "pattern": "unmatched-records",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "nulls",
+        "label": "NULLs are equal here",
+        "detail": "Set ops treat NULLs as duplicates of each other.",
+        "note": "null-handling",
+        "children": []
+      },
+      {
+        "id": "prec",
+        "label": "Precedence",
+        "detail": "INTERSECT binds tighter than UNION/EXCEPT.",
+        "note": "intersect",
+        "children": []
+      }
+    ]
+  }
+}

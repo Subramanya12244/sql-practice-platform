@@ -1,0 +1,106 @@
+{
+  "category": "strings",
+  "title": "Strings",
+  "order": 10,
+  "items": [
+    {
+      "id": "concat",
+      "operation": "Join strings",
+      "syntax": "a || ' ' || b, CONCAT(a, ' ', b)",
+      "explanation": "|| returns NULL if any part is NULL; CONCAT treats NULL as empty.",
+      "example": "SELECT first_name || ' ' || last_name AS full_name, CONCAT(title_of_courtesy, ' ', last_name) AS formal FROM employees;",
+      "expected": "Full and formal names.",
+      "notes": [
+        "string-functions"
+      ]
+    },
+    {
+      "id": "upper-lower",
+      "operation": "Change case",
+      "syntax": "UPPER(s), LOWER(s), INITCAP(s)",
+      "explanation": "INITCAP capitalises each word (PostgreSQL).",
+      "example": "SELECT UPPER(company_name), LOWER(city) FROM customers LIMIT 5;",
+      "expected": "Upper-case names and lower-case cities.",
+      "notes": [
+        "string-functions"
+      ]
+    },
+    {
+      "id": "length",
+      "operation": "String length",
+      "syntax": "LENGTH(s)",
+      "explanation": "Counts characters (CHAR_LENGTH is the standard name).",
+      "example": "SELECT product_name, LENGTH(product_name) AS len FROM products ORDER BY len DESC LIMIT 5;",
+      "expected": "5 longest product names.",
+      "notes": [
+        "string-functions"
+      ]
+    },
+    {
+      "id": "substring",
+      "operation": "Part of a string",
+      "syntax": "SUBSTRING(s FROM start FOR len), LEFT(s, n)",
+      "explanation": "Positions start at 1.",
+      "example": "SELECT company_name, LEFT(company_name, 3) AS code, SUBSTRING(company_name FROM 2 FOR 4) AS mid FROM customers LIMIT 5;",
+      "expected": "Name prefixes and middle parts.",
+      "notes": [
+        "string-functions"
+      ]
+    },
+    {
+      "id": "split-part",
+      "operation": "Split on a delimiter",
+      "syntax": "SPLIT_PART(s, ' ', n)",
+      "explanation": "Returns the nth piece, or '' when missing (PostgreSQL).",
+      "example": "SELECT contact_name, SPLIT_PART(contact_name, ' ', 1) AS first, SPLIT_PART(contact_name, ' ', 2) AS last FROM customers LIMIT 5;",
+      "expected": "Contact names split into first and last.",
+      "notes": [
+        "string-functions"
+      ]
+    },
+    {
+      "id": "position",
+      "operation": "Find a substring",
+      "syntax": "POSITION('x' IN s), STRPOS(s, 'x')",
+      "explanation": "Returns 1-based position, 0 when absent.",
+      "example": "SELECT contact_name, POSITION(' ' IN contact_name) AS space_at FROM customers LIMIT 5;",
+      "expected": "Position of the first space.",
+      "notes": [
+        "string-functions"
+      ]
+    },
+    {
+      "id": "replace-trim",
+      "operation": "Clean text",
+      "syntax": "REPLACE(s, a, b), TRIM(s)",
+      "explanation": "REPLACE swaps every occurrence; TRIM strips leading and trailing spaces.",
+      "example": "SELECT product_name, REPLACE(product_name, ' ', '_') AS slug, TRIM('  x  ') AS trimmed FROM products LIMIT 5;",
+      "expected": "Product names with spaces replaced.",
+      "notes": [
+        "string-functions"
+      ]
+    },
+    {
+      "id": "regex-match",
+      "operation": "Regular expression",
+      "syntax": "s ~ 'pattern', s ~* 'pattern'",
+      "explanation": "~ is case-sensitive, ~* case-insensitive (PostgreSQL).",
+      "example": "SELECT postal_code FROM customers WHERE postal_code ~ '^[0-9]+$' LIMIT 5;",
+      "expected": "Numeric-only postal codes.",
+      "notes": [
+        "string-functions"
+      ]
+    },
+    {
+      "id": "lpad-cast",
+      "operation": "Pad and convert",
+      "syntax": "LPAD(s, n, '0'), col::text",
+      "explanation": "Pads to a fixed width; ::text casts a number to string.",
+      "example": "SELECT order_id, LPAD(order_id::text, 6, '0') AS padded FROM orders LIMIT 5;",
+      "expected": "Zero-padded order ids.",
+      "notes": [
+        "string-functions"
+      ]
+    }
+  ]
+}

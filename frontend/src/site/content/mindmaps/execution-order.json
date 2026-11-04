@@ -1,0 +1,311 @@
+{
+  "slug": "execution-order",
+  "title": "SQL Logical Execution Order",
+  "description": "The logical order PostgreSQL evaluates a SELECT, and which aliases and aggregates each clause can or cannot reference.",
+  "root": {
+    "id": "exec",
+    "label": "Execution Order",
+    "detail": "Logical order, not physical plan order; the planner may reorder when results are equal.",
+    "note": "select",
+    "children": [
+      {
+        "id": "from",
+        "label": "1. FROM / JOIN",
+        "detail": "Build the input row set; ON conditions applied here.",
+        "note": "inner-join",
+        "children": [
+          {
+            "id": "from-can",
+            "label": "Can: base columns",
+            "detail": "ON may reference columns of tables joined so far.",
+            "note": "multiple-joins",
+            "questions": [
+              2
+            ],
+            "children": []
+          },
+          {
+            "id": "from-cant",
+            "label": "Can't: SELECT aliases",
+            "detail": "Output aliases don't exist yet.",
+            "note": "select",
+            "children": []
+          },
+          {
+            "id": "on-vs-where",
+            "label": "ON vs WHERE in outer",
+            "detail": "Filter in ON keeps unmatched rows; in WHERE it removes them.",
+            "note": "left-join",
+            "questions": [
+              28
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "where",
+        "label": "2. WHERE",
+        "detail": "Row-level filter before grouping.",
+        "note": "where",
+        "prereq": [
+          "from"
+        ],
+        "children": [
+          {
+            "id": "where-can",
+            "label": "Can: input columns",
+            "detail": "Any column from FROM items, scalar subqueries.",
+            "note": "where",
+            "questions": [
+              112
+            ],
+            "children": []
+          },
+          {
+            "id": "where-noagg",
+            "label": "Can't: aggregates",
+            "detail": "SUM() in WHERE is an error; use HAVING.",
+            "note": "having",
+            "children": []
+          },
+          {
+            "id": "where-noalias",
+            "label": "Can't: SELECT aliases",
+            "detail": "Repeat the expression or wrap in a subquery/CTE.",
+            "note": "cte",
+            "children": []
+          },
+          {
+            "id": "where-nowin",
+            "label": "Can't: window funcs",
+            "detail": "Filter on rank via an outer query.",
+            "note": "row-number",
+            "questions": [
+              98
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "groupby",
+        "label": "3. GROUP BY",
+        "detail": "Collapse rows into groups.",
+        "note": "group-by",
+        "prereq": [
+          "where"
+        ],
+        "children": [
+          {
+            "id": "gb-can",
+            "label": "Can: output aliases",
+            "detail": "PostgreSQL allows SELECT aliases and ordinals here (extension).",
+            "note": "group-by",
+            "questions": [
+              129
+            ],
+            "children": []
+          },
+          {
+            "id": "gb-func",
+            "label": "Functional dependency",
+            "detail": "Grouping by a PK lets you select other columns of that table.",
+            "note": "primary-foreign-keys",
+            "questions": [
+              1
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "having",
+        "label": "4. HAVING",
+        "detail": "Filter groups using aggregates.",
+        "note": "having",
+        "prereq": [
+          "groupby"
+        ],
+        "children": [
+          {
+            "id": "hv-can",
+            "label": "Can: aggregates",
+            "detail": "HAVING COUNT(*) > 5.",
+            "note": "having",
+            "questions": [
+              15,
+              62
+            ],
+            "children": []
+          },
+          {
+            "id": "hv-cant",
+            "label": "Can't: SELECT aliases",
+            "detail": "PostgreSQL rejects output aliases in HAVING.",
+            "note": "having",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "window",
+        "label": "5. Window functions",
+        "detail": "Computed over the grouped/filtered rows.",
+        "note": "over",
+        "prereq": [
+          "having"
+        ],
+        "children": [
+          {
+            "id": "win-can",
+            "label": "Can: aggregates inside",
+            "detail": "e.g. RANK() OVER (ORDER BY SUM(x)).",
+            "note": "rank",
+            "questions": [
+              14
+            ],
+            "children": []
+          },
+          {
+            "id": "win-cant",
+            "label": "Can't be filtered here",
+            "detail": "Use a subquery/CTE, then WHERE on result.",
+            "note": "ranking-within-groups",
+            "questions": [
+              100
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "select",
+        "label": "6. SELECT",
+        "detail": "Evaluate output expressions and aliases.",
+        "note": "select",
+        "prereq": [
+          "window"
+        ],
+        "children": [
+          {
+            "id": "sel-alias",
+            "label": "Aliases defined here",
+            "detail": "Visible only to ORDER BY (and GROUP BY ext).",
+            "note": "select",
+            "children": []
+          },
+          {
+            "id": "sel-nolat",
+            "label": "No lateral aliases",
+            "detail": "An alias can't be used in the same SELECT list.",
+            "note": "select",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "distinct",
+        "label": "7. DISTINCT",
+        "detail": "Remove duplicate output rows.",
+        "note": "distinct",
+        "prereq": [
+          "select"
+        ],
+        "children": [
+          {
+            "id": "don",
+            "label": "DISTINCT ON",
+            "detail": "Postgres: first row per key; needs matching ORDER BY.",
+            "note": "distinct",
+            "pattern": "latest-record-per-group",
+            "questions": [
+              98
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "orderby",
+        "label": "8. ORDER BY",
+        "detail": "Sort the final rows.",
+        "note": "order-by",
+        "prereq": [
+          "distinct"
+        ],
+        "children": [
+          {
+            "id": "ob-can",
+            "label": "Can: aliases & ordinals",
+            "detail": "ORDER BY total DESC or ORDER BY 2.",
+            "note": "order-by",
+            "questions": [
+              3
+            ],
+            "children": []
+          },
+          {
+            "id": "ob-distinct",
+            "label": "With DISTINCT",
+            "detail": "ORDER BY expressions must appear in select list.",
+            "note": "distinct",
+            "children": []
+          },
+          {
+            "id": "ob-nulls",
+            "label": "NULLS FIRST/LAST",
+            "detail": "NULLs sort last in ASC by default.",
+            "note": "null-handling",
+            "questions": [
+              26,
+              118
+            ],
+            "children": []
+          },
+          {
+            "id": "ob-case",
+            "label": "CASE in ORDER BY",
+            "detail": "Custom sort orders.",
+            "note": "case",
+            "questions": [
+              132
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "limit",
+        "label": "9. LIMIT / OFFSET",
+        "detail": "Take a slice of the sorted result.",
+        "note": "limit-offset",
+        "prereq": [
+          "orderby"
+        ],
+        "children": [
+          {
+            "id": "lim-det",
+            "label": "Needs deterministic sort",
+            "detail": "Without a unique ORDER BY, results can vary.",
+            "note": "limit-offset",
+            "questions": [
+              4
+            ],
+            "children": []
+          },
+          {
+            "id": "lim-ties",
+            "label": "FETCH ... WITH TIES",
+            "detail": "Include rows tied with the last one.",
+            "note": "limit-offset",
+            "questions": [
+              22
+            ],
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

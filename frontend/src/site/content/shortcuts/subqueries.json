@@ -1,0 +1,97 @@
+{
+  "category": "subqueries",
+  "title": "Subqueries",
+  "order": 5,
+  "items": [
+    {
+      "id": "scalar-subquery",
+      "operation": "Compare with one value",
+      "syntax": "WHERE col > (SELECT AVG(col) FROM t)",
+      "explanation": "A scalar subquery returns one row and one column.",
+      "example": "SELECT product_name, unit_price FROM products WHERE unit_price > (SELECT AVG(unit_price) FROM products) ORDER BY unit_price DESC;",
+      "expected": "Products priced above average.",
+      "notes": [
+        "scalar-subqueries"
+      ]
+    },
+    {
+      "id": "in-subquery",
+      "operation": "Match a list from a query",
+      "syntax": "WHERE col IN (SELECT …)",
+      "explanation": "Semi-join: keeps rows whose value appears in the subquery.",
+      "example": "SELECT company_name FROM customers WHERE customer_id IN (SELECT customer_id FROM orders WHERE freight > 150);",
+      "expected": "Customers with at least one order over 150 freight.",
+      "notes": [
+        "in-not-in"
+      ]
+    },
+    {
+      "id": "exists-subquery",
+      "operation": "Has at least one match",
+      "syntax": "WHERE EXISTS (SELECT 1 FROM … WHERE …)",
+      "explanation": "Stops at the first match; the select list is irrelevant.",
+      "example": "SELECT s.company_name FROM suppliers s WHERE EXISTS (SELECT 1 FROM products p WHERE p.supplier_id = s.supplier_id AND p.unit_price > 50);",
+      "expected": "Suppliers of at least one product over 50.",
+      "notes": [
+        "exists-not-exists"
+      ]
+    },
+    {
+      "id": "not-exists",
+      "operation": "Has no match",
+      "syntax": "WHERE NOT EXISTS (…)",
+      "explanation": "NULL-safe anti-join; prefer it to NOT IN.",
+      "example": "SELECT customer_id FROM customers c WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id);",
+      "expected": "FISSA and PARIS.",
+      "notes": [
+        "exists-not-exists"
+      ]
+    },
+    {
+      "id": "correlated-subquery",
+      "operation": "Per-row comparison",
+      "syntax": "WHERE col > (SELECT AVG(col) FROM t2 WHERE t2.g = t1.g)",
+      "explanation": "The inner query refers to the outer row and runs per row (logically).",
+      "example": "SELECT p.product_name, p.category_id, p.unit_price FROM products p WHERE p.unit_price > (SELECT AVG(p2.unit_price) FROM products p2 WHERE p2.category_id = p.category_id) ORDER BY p.category_id;",
+      "expected": "Products priced above their category average.",
+      "notes": [
+        "correlated-subqueries"
+      ]
+    },
+    {
+      "id": "derived-table",
+      "operation": "Subquery in FROM",
+      "syntax": "SELECT … FROM (SELECT …) AS t",
+      "explanation": "A derived table needs an alias; use it to filter on aggregates or window results.",
+      "example": "SELECT * FROM (SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY customer_id) t WHERE n > 2 ORDER BY n DESC;",
+      "expected": "Customers with more than 2 orders.",
+      "notes": [
+        "scalar-subqueries",
+        "cte-vs-subquery"
+      ]
+    },
+    {
+      "id": "subquery-in-select",
+      "operation": "Value per row in SELECT",
+      "syntax": "SELECT a, (SELECT … WHERE b.k = a.k) FROM a",
+      "explanation": "Correlated scalar subquery as a column; returns NULL when nothing matches.",
+      "example": "SELECT c.customer_id, (SELECT MAX(o.order_date) FROM orders o WHERE o.customer_id = c.customer_id) AS last_order FROM customers c LIMIT 5;",
+      "expected": "5 customers with their last order date.",
+      "notes": [
+        "scalar-subqueries",
+        "correlated-subqueries"
+      ]
+    },
+    {
+      "id": "any-all",
+      "operation": "Compare with every value",
+      "syntax": "col > ALL (SELECT …)",
+      "explanation": "ALL: true for every value; ANY: true for at least one.",
+      "example": "SELECT product_name, unit_price FROM products WHERE unit_price > ALL (SELECT unit_price FROM products WHERE category_id = 2);",
+      "expected": "Products more expensive than every category-2 product.",
+      "notes": [
+        "scalar-subqueries"
+      ]
+    }
+  ]
+}

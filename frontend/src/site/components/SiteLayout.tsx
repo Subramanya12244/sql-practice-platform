@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Database, Github, Menu, Shield, UserRound, X } from "lucide-react";
+import { ChevronDown, Database, Github, Menu, Search, Shield, UserRound, X } from "lucide-react";
+import { SearchDialog } from "./SearchDialog";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { SITE_NAME } from "../lib/seo";
 import { Container } from "./ui";
@@ -8,13 +9,23 @@ import { useAuth } from "../lib/auth";
 
 const NAV = [
   { to: "/learn", label: "Learn" },
+  { to: "/notes", label: "Notes" },
+  { to: "/patterns", label: "Patterns" },
+  { to: "/mindmaps", label: "Mind maps" },
   { to: "/questions", label: "Practice" },
-  { to: "/interview", label: "Interview sets" },
-  { to: "/mock-interview", label: "Mock interview" },
-  { to: "/concepts", label: "Concepts" },
-  { to: "/flashcards", label: "Flashcards" },
-  { to: "/playground", label: "Playground" },
+  { to: "/interview", label: "Interview" },
   { to: "/progress", label: "Progress" },
+];
+
+const MORE = [
+  { to: "/mock-interview", label: "Mock interview" },
+  { to: "/review", label: "Revision queue" },
+  { to: "/flashcards", label: "Flashcards" },
+  { to: "/shortcuts", label: "Shortcuts" },
+  { to: "/concepts", label: "Concept guides" },
+  { to: "/playground", label: "Playground" },
+  { to: "/schema", label: "Schema" },
+  { to: "/challenge", label: "Weekly challenge" },
 ];
 
 const REPO_URL = "https://github.com/Subramanya12244/northwind-sql-practice";
@@ -22,7 +33,32 @@ const REPO_URL = "https://github.com/Subramanya12244/northwind-sql-practice";
 export function SiteLayout({ children, loading, error }: { children: ReactNode; loading: boolean; error: string | null }) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
-  useEffect(() => setOpen(false), [location.pathname]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  useEffect(() => {
+    setOpen(false);
+    setMoreOpen(false);
+  }, [location.pathname]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      } else if (e.key === "/" && !/input|textarea|select/i.test((e.target as HTMLElement).tagName) && !(e.target as HTMLElement).isContentEditable) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  const searchButton = (
+    <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search (Ctrl+K)"
+      className="inline-flex items-center gap-2 rounded-lg border border-surface-border px-2.5 py-1.5 text-sm text-ink-faint hover:text-ink">
+      <Search className="h-4 w-4" aria-hidden /> <span className="hidden 2xl:inline">Search</span>
+      <kbd className="hidden rounded border border-surface-border px-1 font-mono text-[10px] 2xl:inline">⌘K</kbd>
+    </button>
+  );
   const { enabled, session, profile } = useAuth();
   const navigate = useNavigate();
   // A seeded account must pick its own password before using the site.
@@ -69,14 +105,31 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
                 {n.label}
               </NavLink>
             ))}
+            <div className="relative" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setMoreOpen(false)}>
+              <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-haspopup="true"
+                className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-hover/5 hover:text-ink">
+                More <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+              </button>
+              {moreOpen && (
+                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-card border border-surface-border bg-surface-raised p-1 shadow-panel">
+                  {MORE.map((n) => (
+                    <NavLink key={n.to} to={n.to} className="block rounded-lg px-3 py-2 text-sm text-ink-muted hover:bg-hover/5 hover:text-ink">{n.label}</NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
           <div className="ml-auto hidden items-center gap-2 xl:flex">
+            {searchButton}
             {account}
             <ThemeToggle compact />
           </div>
+          <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search" className="ml-auto rounded-lg p-2 text-ink-muted hover:bg-hover/5 xl:hidden">
+            <Search className="h-5 w-5" />
+          </button>
           <button
             type="button"
-            className="ml-auto rounded-lg p-2 text-ink-muted hover:bg-hover/5 xl:hidden"
+            className="rounded-lg p-2 text-ink-muted hover:bg-hover/5 xl:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
@@ -87,7 +140,8 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
         {open && (
           <nav className="border-t border-surface-border xl:hidden" aria-label="Mobile">
             <Container className="flex flex-col gap-1 py-3">
-              {NAV.map((n) => (
+              <div className="pb-1">{searchButton}</div>
+              {[...NAV, ...MORE].map((n) => (
                 <NavLink key={n.to} to={n.to} className={linkClass}>
                   {n.label}
                 </NavLink>
@@ -102,6 +156,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
         <div className={`h-0.5 bg-accent transition-opacity duration-base ${loading ? "animate-pulse opacity-100" : "opacity-0"}`} aria-hidden />
       </header>
 
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
       <main id="main" className="flex-1">
         {error && (
           <Container className="pt-6">
@@ -125,6 +180,10 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
             <p className="font-semibold text-ink">Learn</p>
             <ul className="mt-2 space-y-1.5">
               <li><Link className="hover:text-ink" to="/learn">Learn SQL (free course)</Link></li>
+              <li><Link className="hover:text-ink" to="/notes">SQL theory notes</Link></li>
+              <li><Link className="hover:text-ink" to="/patterns">SQL patterns</Link></li>
+              <li><Link className="hover:text-ink" to="/mindmaps">SQL mind maps</Link></li>
+              <li><Link className="hover:text-ink" to="/shortcuts">SQL shortcuts</Link></li>
               <li><Link className="hover:text-ink" to="/questions">All practice questions</Link></li>
               <li><Link className="hover:text-ink" to="/interview">SQL interview sets by role</Link></li>
               <li><Link className="hover:text-ink" to="/mock-interview">SQL mock interview</Link></li>

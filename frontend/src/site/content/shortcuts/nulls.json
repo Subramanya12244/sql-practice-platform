@@ -1,0 +1,100 @@
+{
+  "category": "nulls",
+  "title": "NULLs",
+  "order": 11,
+  "items": [
+    {
+      "id": "is-null",
+      "operation": "Test for NULL",
+      "syntax": "col IS NULL / IS NOT NULL",
+      "explanation": "Comparisons with NULL return NULL, never true.",
+      "example": "SELECT COUNT(*) FROM orders WHERE employee_id IS NULL;",
+      "expected": "1 (the order with no employee).",
+      "notes": [
+        "null-handling"
+      ]
+    },
+    {
+      "id": "coalesce",
+      "operation": "Default for NULL",
+      "syntax": "COALESCE(a, b, …)",
+      "explanation": "Returns the first non-NULL argument.",
+      "example": "SELECT order_id, COALESCE(shipped_date::text, 'not shipped') AS shipped FROM orders ORDER BY shipped_date NULLS FIRST LIMIT 5;",
+      "expected": "Unshipped orders show 'not shipped'.",
+      "notes": [
+        "null-handling"
+      ]
+    },
+    {
+      "id": "nullif",
+      "operation": "Turn a value into NULL",
+      "syntax": "NULLIF(a, b)",
+      "explanation": "NULL when a = b; classic guard against division by zero.",
+      "example": "SELECT product_name, ROUND(unit_price / NULLIF(units_on_order, 0), 2) AS ratio FROM products LIMIT 5;",
+      "expected": "Ratio is NULL because units_on_order is 0.",
+      "notes": [
+        "null-handling"
+      ]
+    },
+    {
+      "id": "count-ignores-null",
+      "operation": "COUNT(col) skips NULLs",
+      "syntax": "COUNT(*) vs COUNT(col)",
+      "explanation": "COUNT(*) counts rows; COUNT(col) counts non-NULL values.",
+      "example": "SELECT COUNT(*) AS orders, COUNT(shipped_date) AS shipped, COUNT(employee_id) AS with_employee FROM orders;",
+      "expected": "Different counts where NULLs exist.",
+      "notes": [
+        "count",
+        "null-handling"
+      ]
+    },
+    {
+      "id": "nulls-last",
+      "operation": "Sort NULLs",
+      "syntax": "ORDER BY col DESC NULLS LAST",
+      "explanation": "PostgreSQL sorts NULLs as largest: last in ASC, first in DESC.",
+      "example": "SELECT order_id, shipped_date FROM orders ORDER BY shipped_date DESC NULLS LAST LIMIT 5;",
+      "expected": "Latest shipped orders, NULLs at the end.",
+      "notes": [
+        "null-handling",
+        "order-by"
+      ]
+    },
+    {
+      "id": "is-distinct-from",
+      "operation": "NULL-safe comparison",
+      "syntax": "a IS DISTINCT FROM b",
+      "explanation": "Treats two NULLs as equal and NULL vs value as different.",
+      "example": "SELECT order_id, employee_id FROM orders WHERE employee_id IS DISTINCT FROM 1 LIMIT 5;",
+      "expected": "Orders not by employee 1, including the NULL one.",
+      "notes": [
+        "null-handling",
+        "comparison-operators"
+      ]
+    },
+    {
+      "id": "not-in-null-trap",
+      "operation": "NOT IN with NULLs",
+      "syntax": "x NOT IN (SELECT col …)",
+      "explanation": "One NULL in the list makes NOT IN return no rows; use NOT EXISTS.",
+      "example": "SELECT COUNT(*) AS rows_returned FROM employees WHERE employee_id NOT IN (SELECT employee_id FROM orders);",
+      "expected": "0, because orders.employee_id contains a NULL.",
+      "notes": [
+        "in-not-in",
+        "null-handling"
+      ]
+    },
+    {
+      "id": "null-in-aggregates",
+      "operation": "Aggregates ignore NULLs",
+      "syntax": "SUM/AVG/MIN/MAX skip NULLs",
+      "explanation": "AVG divides by the count of non-NULL values; SUM of no rows is NULL.",
+      "example": "SELECT SUM(freight) FILTER (WHERE freight < 0) AS sum_none, COALESCE(SUM(freight) FILTER (WHERE freight < 0), 0) AS sum_zero FROM orders;",
+      "expected": "NULL and 0.",
+      "notes": [
+        "null-handling",
+        "sum"
+      ]
+    }
+  ]
+}

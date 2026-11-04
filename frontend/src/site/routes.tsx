@@ -20,6 +20,13 @@ import { AccountPage, LoginPage, SignupPage } from "./pages/AuthPages";
 import { AdminPage } from "./pages/AdminPage";
 import { LearnPage, LessonPage } from "./pages/LearnPages";
 import { ReviewPage } from "./pages/ReviewPage";
+import { NotePage, NotesIndexPage } from "./pages/NotesPages";
+import { PatternPage, PatternsIndexPage } from "./pages/PatternsPages";
+import { ShortcutDocPage, ShortcutsPage } from "./pages/ShortcutsPages";
+import { MindMapPage, MindMapsIndexPage } from "./pages/MindMapPages";
+import {
+  loadMap, loadMapIndex, loadNote, loadNoteIndex, loadPattern, loadPatternIndex, loadShortcutPage, loadShortcuts, mapsLinking,
+} from "./lib/learning";
 import { ChallengePage, LeaderboardPage, ProfilePage } from "./pages/CommunityPages";
 import { InterviewSetPage, InterviewSetsPage } from "./pages/InterviewSetPages";
 
@@ -32,6 +39,9 @@ export interface SiteRoute {
 }
 
 const base = async (): Promise<PageData> => ({ index: await loadIndex(), topics: await loadTopics() });
+const guideLinks = async () => (await loadAllGuides()).map(({ slug, title, description }) => ({ slug, title, description }));
+/** Summaries every learning page needs for cross-links. */
+const library = async () => ({ notes: await loadNoteIndex(), patterns: await loadPatternIndex(), mindmaps: await loadMapIndex() });
 const one = (p: string) => async () => [p];
 
 export const routes: SiteRoute[] = [
@@ -43,7 +53,11 @@ export const routes: SiteRoute[] = [
     load: async ({ slug }) => {
       const data = await base();
       if (!data.index.some((q) => q.slug === slug)) return null;
-      return { ...data, question: await loadQuestion(slug!), schema: await loadSchema() };
+      const question = await loadQuestion(slug!);
+      // Notes that teach this question, so the page links back into theory.
+      const notes = (await loadNoteIndex()).filter((n) => n.questions.includes(question.number));
+      const patterns = (await loadPatternIndex()).filter((p) => p.questions.includes(question.number));
+      return { ...data, question, schema: await loadSchema(), notes, patterns };
     },
     paths: async () => (await loadIndex()).map((q) => `/questions/${q.slug}`),
   },
@@ -113,7 +127,7 @@ export const routes: SiteRoute[] = [
   {
     path: "/learn",
     element: <LearnPage />,
-    load: async () => ({ ...(await base()), lessons: await loadLessonSummaries() }),
+    load: async () => ({ ...(await base()), ...(await library()), lessons: await loadLessonSummaries() }),
     paths: one("/learn"),
   },
   {
@@ -139,6 +153,53 @@ export const routes: SiteRoute[] = [
       return set ? { ...(await base()), set } : null;
     },
     paths: async () => (await loadAllSets()).map((s) => `/interview/${s.slug}`),
+  },
+  { path: "/notes", element: <NotesIndexPage />, load: async () => ({ ...(await base()), notes: await loadNoteIndex() }), paths: one("/notes") },
+  {
+    path: "/notes/:slug",
+    element: <NotePage />,
+    load: async ({ slug }) => {
+      const note = await loadNote(slug!);
+      if (!note) return null;
+      return { ...(await base()), ...(await library()), guides: await guideLinks(), note, relatedMaps: await mapsLinking("note", note.slug) };
+    },
+    paths: async () => (await loadNoteIndex()).map((n) => `/notes/${n.slug}`),
+  },
+  { path: "/patterns", element: <PatternsIndexPage />, load: async () => ({ ...(await base()), patterns: await loadPatternIndex() }), paths: one("/patterns") },
+  {
+    path: "/patterns/:slug",
+    element: <PatternPage />,
+    load: async ({ slug }) => {
+      const pattern = await loadPattern(slug!);
+      if (!pattern) return null;
+      return { ...(await base()), ...(await library()), guides: await guideLinks(), pattern, relatedMaps: await mapsLinking("pattern", pattern.slug) };
+    },
+    paths: async () => (await loadPatternIndex()).map((p) => `/patterns/${p.slug}`),
+  },
+  {
+    path: "/shortcuts",
+    element: <ShortcutsPage />,
+    load: async () => ({ ...(await base()), notes: await loadNoteIndex(), shortcuts: await loadShortcuts() }),
+    paths: one("/shortcuts"),
+  },
+  {
+    path: "/shortcuts/:slug",
+    element: <ShortcutDocPage />,
+    load: async ({ slug }) => {
+      const shortcutPage = await loadShortcutPage(slug!);
+      return shortcutPage ? { ...(await base()), shortcutPage } : null;
+    },
+    paths: async () => ["/shortcuts/comparisons", "/shortcuts/interview-revision"],
+  },
+  { path: "/mindmaps", element: <MindMapsIndexPage />, load: async () => ({ ...(await base()), mindmaps: await loadMapIndex() }), paths: one("/mindmaps") },
+  {
+    path: "/mindmaps/:slug",
+    element: <MindMapPage />,
+    load: async ({ slug }) => {
+      const mindmap = await loadMap(slug!);
+      return mindmap ? { ...(await base()), ...(await library()), mindmap } : null;
+    },
+    paths: async () => (await loadMapIndex()).map((m) => `/mindmaps/${m.slug}`),
   },
   // Account pages render a shell at build time; everything else happens in the browser.
   { path: "/login", element: <LoginPage />, load: base, paths: one("/login") },
