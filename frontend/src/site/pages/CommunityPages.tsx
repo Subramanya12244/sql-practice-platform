@@ -67,7 +67,9 @@ export function ProfilePage() {
   const { data } = usePage();
   const { enabled } = useAuth();
   const { search } = useLocation();
-  const username = new URLSearchParams(search).get("u") ?? "";
+  // Read ?u= after hydration: the prerendered HTML has no query string.
+  const [username, setUsername] = useState("");
+  useEffect(() => setUsername(new URLSearchParams(search).get("u") ?? ""), [search]);
   const [p, setP] = useState<PublicProfile | null | undefined>(undefined);
   useEffect(() => {
     if (enabled && username) publicProfile(username).then(setP).catch(() => setP(null));
@@ -82,8 +84,11 @@ export function ProfilePage() {
   return (
     <Container>
       <Seo title="Profile" description="SQL practice profile." path="/profile" noindex />
-      {!enabled ? <NeedsAccounts /> : p === undefined ? <p className="py-10 text-ink-muted">Loading…</p> : !p ? (
-        <p className="py-10 text-ink-muted">This profile is private or doesn't exist.</p>
+      {!p && <PageHeader eyebrow="Community" title={username || "Profile"} />}
+      {!enabled ? <NeedsAccounts /> : !username ? (
+        <p className="text-ink-muted">Open a profile from the <Link to="/leaderboard" className="text-accent underline">leaderboard</Link>.</p>
+      ) : p === undefined ? <p className="text-ink-muted">Loading…</p> : !p ? (
+        <p className="text-ink-muted">This profile is private or doesn't exist.</p>
       ) : (
         <>
           <PageHeader eyebrow="Profile" title={p.username} intro={`Practicing since ${new Date(p.joined).toLocaleDateString()}`} />

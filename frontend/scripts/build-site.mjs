@@ -39,11 +39,15 @@ for (const path of paths) {
   const { html, head, noindex, page } = await server.render(path);
   // index/topics are fetched by the client (shared, cached), so keep them out of each page.
   const { index: _i, topics: _t, ...rest } = page.data;
-  const embedded = JSON.stringify({ ...page, data: rest }).replace(/</g, "\\u003c");
+  const embedded = JSON.stringify({ ...page, data: rest }).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
   const doc = template
-    .replace("<!--head-->", head + extraHead)
-    .replace("<!--app-->", html)
-    .replace("<!--page-data-->", `<script>window.__PAGE__=${embedded}</script>${beacon}`);
+    // Function replacers: a string replacement would expand "$'" / "$&" found in content.
+    .replace("<!--head-->", () => head + extraHead)
+    .replace("<!--app-->", () => html)
+    .replace("<!--page-data-->", () => `<script>window.__PAGE__=${embedded}</script>${beacon}`);
+  if (!doc.includes(`window.__PAGE__=${embedded}</script>`) || !doc.includes(html)) {
+    throw new Error(`Prerender of ${path} mangled its content`);
+  }
   const file = path === "/404" ? join(out, "404.html") : join(out, path, "index.html");
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, doc);
