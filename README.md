@@ -219,7 +219,7 @@ loaded with the Northwind data, and progress is kept in `localStorage`.
 |---|---|---|
 | Entry | `frontend/index.html` → `src/main.tsx` | `frontend/site.html` → `src/site/` |
 | SQL engine | FastAPI → PostgreSQL | PGlite in a Web Worker |
-| Features | Everything, incl. ChatGPT import, uploads, GitHub sync, git lab | Questions, concept guides, cheat sheet, flashcards, progress, share |
+| Features | Everything, incl. ChatGPT import, uploads, GitHub sync, git lab | Learning path (18 lessons), 133 questions, mock interview, playground, concept guides, cheat sheet, flashcards, progress, optional accounts + admin |
 | Rendering | Client-side SPA | Every page prerendered to HTML + JSON-LD, sitemap, robots |
 
 ```bash
@@ -247,6 +247,45 @@ don't need the question repo. Concept guides live in `frontend/src/site/content/
 4. Deploy. `public/_headers` sets caching and the WASM content type; `404.html` is served for unknown URLs.
 5. In [Google Search Console](https://search.google.com/search-console) add the site and submit
    `https://<project>.pages.dev/sitemap.xml` (same in Bing Webmaster Tools).
+
+### Accounts, Google login and admin (optional, Supabase free tier)
+
+Without Supabase the site works anonymously, and progress stays in the browser. When it is configured:
+- visitors can sign in with a username/email and password, or with Google
+- progress, flashcards, lessons and mock interviews sync across devices
+- admins get `/admin`, showing user counts, activity, every user's solved count, role changes and the audit log
+
+The schema and RLS policies are in `supabase/migrations/001_accounts.sql`:
+- users can read and write only their own rows
+- the audit log is append-only
+- only admins can change roles
+
+1. Create a project at [supabase.com](https://supabase.com). Then open **SQL editor**, paste and run `supabase/migrations/001_accounts.sql`.
+2. **Authentication → Providers → Email:** turn on email, and turn off "Confirm email". Usernames sign in with a synthetic `@users.sqlpractice.local` address.
+3. **Google:**
+   - In Google Cloud Console → APIs & Services → Credentials, create an OAuth client ID (type: Web).
+   - Add the authorized redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`.
+   - Paste the client ID and secret into Supabase **Authentication → Providers → Google**.
+4. **Authentication → URL configuration:** set the Site URL to `https://<project>.pages.dev`, and add `http://localhost:4174/**` for local testing.
+5. Seed the owner and admin accounts and import the owner's solved questions. Every non-🆕 question is marked solved. Run this from your own shell, and never commit these values:
+   ```bash
+   cd frontend
+   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<service-role-key> \
+   SEED_USER_PASSWORD='<owner password>' SEED_ADMIN_PASSWORD='<temporary admin password>' \
+   node scripts/seed-accounts.mjs
+   ```
+   This creates `Subramanya.a` (user) and `admin` (admin). The admin must change its password at first sign-in.
+6. Add these to the Cloudflare Pages env, and to `frontend/.env.local` for local builds:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+
+   The anon key is public by design, and RLS protects the data. Never put the service-role key in a `VITE_` variable.
+
+You can test the RLS policies locally against plain Postgres:
+```bash
+createdb authtest && psql -d authtest -f supabase/tests/auth_stub.sql \
+  && psql -d authtest -f supabase/migrations/001_accounts.sql && psql -d authtest -f supabase/tests/rls_test.sql
+```
 
 ---
 

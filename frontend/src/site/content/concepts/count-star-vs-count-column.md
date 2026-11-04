@@ -38,9 +38,9 @@ Illustrative result (assume a fourth shipper with no orders):
 
 | shipper_id | company_name | count_star | orders_handled |
 |---|---|---|---|
-| 2 | United Package | 326 | 326 |
-| 3 | Federal Shipping | 255 | 255 |
-| 1 | Speedy Express | 249 | 249 |
+| 1 | Speedy Express | 34 | 34 |
+| 2 | United Package | 33 | 33 |
+| 3 | Federal Shipping | 33 | 33 |
 | 4 | New Courier | 1 | 0 |
 
 The shipper with no orders still produces one row from the `LEFT JOIN`, with `o.order_id` NULL. `COUNT(*)` counts that row (1); `COUNT(o.order_id)` skips the NULL (0). Only the second is correct.

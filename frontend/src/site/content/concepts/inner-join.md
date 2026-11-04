@@ -45,9 +45,9 @@ Illustrative result:
 
 | shipper | orders | revenue |
 |---|---|---|
-| United Package | 326 | 533547.63 |
-| Federal Shipping | 255 | 383405.47 |
-| Speedy Express | 249 | 348839.94 |
+| Speedy Express | 34 | 52325.26 |
+| Federal Shipping | 33 | 45935.76 |
+| United Package | 33 | 40058.78 |
 
 ## How it works
 

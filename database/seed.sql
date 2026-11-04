@@ -584,6 +584,68 @@ INSERT INTO order_details (order_id, product_id, unit_price, quantity, discount)
   (10347, 37, 26, 29, 0.1),
   (10347, 44, 19.45, 30, 0.15),
   (10347, 51, 53, 31, 0);
+-- ---------------------------------------------------------------------------
+-- Edge cases and dates. These reshape existing rows rather than adding new
+-- ones, so row counts stay at standard Northwind sizes (91 customers,
+-- 77 products, 9 employees, 100 orders) that question texts refer to.
+-- ---------------------------------------------------------------------------
+
+-- Product categories as in the original Northwind (the inserts above had them scrambled,
+-- e.g. Mishi Kobe Niku under Beverages). 1 Beverages, 2 Condiments, 3 Confections,
+-- 4 Dairy, 5 Grains/Cereals, 6 Meat/Poultry, 7 Produce, 8 Seafood.
+UPDATE products p SET category_id = v.category_id
+  FROM (VALUES
+    (1,1),(2,1),(3,2),(4,2),(5,2),(6,2),(7,7),(8,2),(9,6),(10,8),(11,4),(12,4),(13,8),(14,7),
+    (15,2),(16,3),(17,6),(18,8),(19,3),(20,3),(21,3),(22,5),(23,5),(24,1),(25,3),(26,3),(27,3),
+    (28,7),(29,6),(30,8),(31,4),(32,4),(33,4),(34,1),(35,1),(36,8),(37,8),(38,1),(39,1),(40,8),
+    (41,8),(42,5),(43,1),(44,2),(45,8),(46,8),(47,3),(48,3),(49,3),(50,3),(51,7),(52,5),(53,6),
+    (54,6),(55,6),(56,5),(57,5),(58,8),(59,4),(60,4),(61,2),(62,3),(63,2),(64,5),(65,2),(66,2),
+    (67,1),(68,3),(69,4),(70,1),(71,4),(72,4),(73,8),(74,7),(75,1),(76,1),(77,2)
+  ) AS v(product_id, category_id)
+ WHERE p.product_id = v.product_id;
+
+-- Org chart (as in the original Northwind): Fuller is VP, Buchanan manages 6, 7, 9.
+UPDATE employees SET reports_to = CASE employee_id
+    WHEN 1 THEN 2 WHEN 3 THEN 2 WHEN 4 THEN 2 WHEN 5 THEN 2 WHEN 8 THEN 2
+    WHEN 6 THEN 5 WHEN 7 THEN 5 WHEN 9 THEN 5 END;
+
+UPDATE employees SET birth_date = CASE employee_id
+    WHEN 1 THEN DATE '1948-12-08' WHEN 2 THEN DATE '1952-02-19' WHEN 3 THEN DATE '1963-08-30'
+    WHEN 4 THEN DATE '1937-09-19' WHEN 5 THEN DATE '1955-03-04' WHEN 6 THEN DATE '1963-07-02'
+    WHEN 7 THEN DATE '1960-05-29' WHEN 8 THEN DATE '1958-01-09' WHEN 9 THEN DATE '1966-01-27' END;
+
+-- Required dates: 28 days after ordering, 14 days for a few rush orders.
+UPDATE orders SET required_date = order_date + CASE WHEN order_id % 7 = 0 THEN 14 ELSE 28 END;
+
+-- Some shipped orders arrive late, for date-difference questions.
+UPDATE orders SET shipped_date = required_date + (order_id % 9 + 1)
+ WHERE order_id % 11 = 0 AND shipped_date IS NOT NULL;
+
+-- Customers with no orders (Q28): FISSA and PARIS, as in the original data set.
+UPDATE orders SET customer_id = CASE customer_id WHEN 'FISSA' THEN 'FOLKO' ELSE 'BONAP' END
+ WHERE customer_id IN ('FISSA', 'PARIS');
+
+-- Products never ordered (Q29, Q30): move their order lines to another
+-- product in the same category that the order doesn't already contain.
+UPDATE order_details d
+   SET product_id = r.new_product
+  FROM (
+    SELECT d2.order_id, d2.product_id,
+           (SELECT MIN(p.product_id)
+              FROM products p
+             WHERE p.product_id NOT IN (9, 17)
+               AND p.category_id = (SELECT category_id FROM products WHERE product_id = d2.product_id)
+               AND NOT EXISTS (SELECT 1 FROM order_details x
+                                WHERE x.order_id = d2.order_id AND x.product_id = p.product_id)) AS new_product
+      FROM order_details d2
+     WHERE d2.product_id IN (9, 17)
+  ) r
+ WHERE d.order_id = r.order_id AND d.product_id = r.product_id;
+
+-- An employee with no orders and an order with no employee (Q53, Q57 FULL OUTER JOIN).
+UPDATE orders SET employee_id = 6 WHERE employee_id = 5;
+UPDATE orders SET employee_id = NULL WHERE order_id = (SELECT MAX(order_id) FROM orders WHERE shipped_date IS NOT NULL);
+
 SELECT setval('categories_category_id_seq', (SELECT MAX(category_id) FROM categories));
 SELECT setval('suppliers_supplier_id_seq', (SELECT MAX(supplier_id) FROM suppliers));
 SELECT setval('products_product_id_seq', (SELECT MAX(product_id) FROM products));

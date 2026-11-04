@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, Shuffle } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Container, PageHeader, QuestionCard } from "../components/ui";
 import { Seo, breadcrumbs } from "../lib/seo";
@@ -14,6 +14,8 @@ export function QuestionsPage() {
   const [query, setQuery] = useState("");
   const [level, setLevel] = useState<(typeof LEVELS)[number]>("All");
   const [trapsOnly, setTrapsOnly] = useState(false);
+  const [unsolvedOnly, setUnsolvedOnly] = useState(false);
+  const navigate = useNavigate();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -23,12 +25,19 @@ export function QuestionsPage() {
         if (level === "Hard" ? !hard : item.difficulty !== level) return false;
       }
       if (trapsOnly && !item.hadMistakes) return false;
+      if (unsolvedOnly && progress.questions[item.number]?.solvedAt) return false;
       if (!q) return true;
       return [item.title, item.topicLabel, ...item.concepts].join(" ").toLowerCase().includes(q) || `q${item.number}` === q;
     });
-  }, [data.index, query, level, trapsOnly]);
+  }, [data.index, query, level, trapsOnly, unsolvedOnly, progress.questions]);
 
-  const filtering = query || level !== "All" || trapsOnly;
+  const filtering = query || level !== "All" || trapsOnly || unsolvedOnly;
+
+  /** Jump to a random question from the current filter (or all, if nothing matches). */
+  const random = () => {
+    const pool = filtered.length ? filtered : data.index;
+    navigate(`/questions/${pool[Math.floor(Math.random() * pool.length)].slug}`);
+  };
 
   return (
     <Container>
@@ -72,6 +81,13 @@ export function QuestionsPage() {
           <input type="checkbox" checked={trapsOnly} onChange={(e) => setTrapsOnly(e.target.checked)} className="accent-[rgb(var(--color-accent))]" />
           Common traps only
         </label>
+        <label className="flex items-center gap-2 px-2 text-sm text-ink-muted">
+          <input type="checkbox" checked={unsolvedOnly} onChange={(e) => setUnsolvedOnly(e.target.checked)} className="accent-[rgb(var(--color-accent))]" />
+          Unsolved only
+        </label>
+        <button type="button" onClick={random} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-3 py-2 text-sm font-medium text-ink hover:border-accent/40">
+          <Shuffle className="h-4 w-4" aria-hidden /> Random
+        </button>
       </div>
 
       {filtering ? (

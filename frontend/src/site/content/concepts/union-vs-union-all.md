@@ -46,8 +46,8 @@ Illustrative result:
 | name | city | country | contact_type |
 |---|---|---|---|
 | Alejandra Camino | Madrid | Spain | Customer |
-| Andrew Fuller | Tacoma | USA | Employee |
-| Antonio del Valle Saavedra | Oviedo | Spain | Supplier |
+| Alexander Feuer | Leipzig | Germany | Customer |
+| Ana Trujillo | México D.F. | Mexico | Customer |
 
 `UNION ALL` is right here: the literal label already makes rows from different sources distinct, so deduplication would only cost time.
 

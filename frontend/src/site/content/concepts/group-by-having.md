@@ -22,7 +22,7 @@ ORDER BY metric DESC;
 
 ## Example
 
-**Business question:** Which customers have generated more than $30,000 in net revenue?
+**Business question:** Which customers have generated more than $5,000 in net revenue?
 
 ```sql
 SELECT c.customer_id,
@@ -32,17 +32,17 @@ FROM customers c
 JOIN orders o         ON o.customer_id = c.customer_id
 JOIN order_details od ON od.order_id   = o.order_id
 GROUP BY c.customer_id, c.company_name
-HAVING SUM(od.unit_price * od.quantity * (1 - od.discount)) > 30000
+HAVING SUM(od.unit_price * od.quantity * (1 - od.discount)) > 5000
 ORDER BY revenue DESC;
 ```
 
-Illustrative result (values are examples, not exact):
+Result:
 
 | customer_id | company_name | revenue |
 |---|---|---|
-| QUICK | QUICK-Stop | 110277.31 |
-| ERNSH | Ernst Handel | 104874.98 |
-| SAVEA | Save-a-lot Markets | 104361.95 |
+| FOLKO | Folk och fä HB | 12905.32 |
+| GOURL | Gourmet Lanchonetes | 9578.85 |
+| BOLID | Bólido Comidas preparadas | 8095.04 |
 
 ## How it works
 
@@ -51,7 +51,7 @@ PostgreSQL evaluates a grouped query in this logical order: `FROM`/`JOIN` → `W
 - **`WHERE` filters individual rows.** It runs before grouping, so it cannot reference `SUM(...)` or any other aggregate.
 - **`GROUP BY` sets the grain.** After grouping, each output row represents one group. Every column in `SELECT` must either appear in `GROUP BY` or be wrapped in an aggregate. PostgreSQL relaxes this when you group by a primary key: grouping by `c.customer_id` lets you select `c.company_name` because it is functionally dependent.
 - **`HAVING` filters groups.** It sees one row per group and can compare aggregate values.
-- **Aliases:** PostgreSQL allows `ORDER BY revenue`, but not `HAVING revenue > 30000`, because `HAVING` is evaluated before `SELECT` aliases exist. Repeat the expression.
+- **Aliases:** PostgreSQL allows `ORDER BY revenue`, but not `HAVING revenue > 5000`, because `HAVING` is evaluated before `SELECT` aliases exist. Repeat the expression.
 
 A frequent interview variant is "above average": compare each group to the average of all groups. That needs two passes, because aggregates cannot be nested (`AVG(SUM(...))` is an error):
 

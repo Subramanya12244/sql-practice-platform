@@ -14,6 +14,8 @@ export interface QuestionSummary {
   difficulty: string;
   concepts: string[];
   hadMistakes: boolean;
+  /** Authored practice question the repo owner hasn't attempted yet. */
+  isNew?: boolean;
   watchOutFor: string;
   takeaway: string;
   /** Short forms for flashcards and cards (index.json only). */
@@ -41,6 +43,8 @@ export interface Question extends QuestionSummary {
   pitfalls: string[];
   followups: Followup[];
   related: number[];
+  /** Editor starting text; defaults to a template built from tables. */
+  starter?: string;
 }
 
 export interface Topic {
@@ -60,6 +64,40 @@ export interface ConceptGuide {
   body: string;
 }
 
+export interface LessonExercise {
+  index: number;
+  prompt: string;
+  solution: string;
+  orderBy: { column: string; desc: boolean }[] | null;
+}
+
+export type LessonSegment = { kind: "md"; text: string } | { kind: "exercise"; exercise: LessonExercise };
+
+export interface Lesson {
+  slug: string;
+  title: string;
+  order: number;
+  level: string;
+  description: string;
+  related: string[];
+  segments: LessonSegment[];
+}
+
+export type LessonSummary = Pick<Lesson, "slug" | "title" | "order" | "level" | "description"> & { exercises: number };
+
+export interface SchemaColumn {
+  name: string;
+  type: string;
+  pk: boolean;
+  notNull: boolean;
+  fk: { table: string; column: string } | null;
+}
+
+export interface SchemaTable {
+  name: string;
+  columns: SchemaColumn[];
+}
+
 /** Data a page needs to render; serialized into the HTML for hydration. */
 export interface PageData {
   index: QuestionSummary[];
@@ -68,4 +106,7 @@ export interface PageData {
   guide?: ConceptGuide;
   guides?: Pick<ConceptGuide, "slug" | "title" | "description">[];
   cheatsheet?: ConceptGuide;
+  schema?: SchemaTable[];
+  lesson?: Lesson;
+  lessons?: LessonSummary[];
 }

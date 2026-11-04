@@ -52,6 +52,7 @@ export function QuestionCard({ q, solved }: { q: QuestionSummary; solved?: boole
         <span>·</span>
         <span>{q.topicLabel}</span>
         <span className="ml-auto flex items-center gap-1.5">
+          {q.isNew && <span className="rounded bg-accent-dim px-1.5 text-[10px] font-semibold uppercase text-accent">New</span>}
           {q.hadMistakes && <AlertTriangle className="h-3.5 w-3.5 text-warn" aria-label="Common trap" />}
           {solved && <CheckCircle2 className="h-3.5 w-3.5 text-success" aria-label="Solved" />}
           <Difficulty level={q.difficulty} />

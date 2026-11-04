@@ -34,13 +34,13 @@ GROUP BY e.employee_id, e.first_name, e.last_name
 ORDER BY revenue DESC;
 ```
 
-Illustrative result (the last row is a hypothetical employee with no orders):
+Result (first two and last rows; Steven Buchanan has no orders):
 
 | employee_id | employee | revenue |
 |---|---|---|
-| 4 | Margaret Peacock | 232890.85 |
-| 3 | Janet Leverling | 202812.84 |
-| 10 | New Hire | 0 |
+| 6 | Michael Suyama | 32276.55 |
+| 4 | Margaret Peacock | 22617.81 |
+| 5 | Steven Buchanan | 0 |
 
 Without `COALESCE`, the last row would show NULL, because `SUM` over no non-NULL values is NULL.
 

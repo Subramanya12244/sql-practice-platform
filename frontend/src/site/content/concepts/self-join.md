@@ -47,7 +47,7 @@ Illustrative result:
 | 1 | Nancy Davolio | Andrew Fuller |
 | 2 | Andrew Fuller | *NULL* |
 | 3 | Janet Leverling | Andrew Fuller |
-| 6 | Michael Suyama | Steven Buchanan |
+| 4 | Margaret Peacock | Andrew Fuller |
 
 `LEFT JOIN` keeps the top manager, whose `reports_to` is NULL. With `INNER JOIN` that person would disappear.
 

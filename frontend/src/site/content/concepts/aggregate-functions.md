@@ -42,9 +42,9 @@ Illustrative result:
 
 | category_name | revenue | orders | biggest_line |
 |---|---|---|---|
-| Beverages | 267868.18 | 354 | 15810.00 |
-| Dairy Products | 234507.29 | 303 | 10540.00 |
-| Confections | 167357.23 | 334 | 3952.50 |
+| Beverages | 29335.52 | 31 | 9248.85 |
+| Confections | 20511.84 | 42 | 1701.00 |
+| Meat/Poultry | 18705.28 | 18 | 3342.33 |
 
 Note that revenue uses `order_details.unit_price` (the price at the time of sale), not `products.unit_price` (the current catalog price).
 

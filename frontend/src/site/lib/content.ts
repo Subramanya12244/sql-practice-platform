@@ -1,5 +1,5 @@
-import type { ConceptGuide } from "../types";
-import { parseGuide } from "./frontmatter";
+import type { ConceptGuide, Lesson, LessonSummary } from "../types";
+import { parseGuide, parseLesson } from "./frontmatter";
 
 // Each guide becomes its own lazy chunk; only the page that needs it loads it.
 const guideFiles = import.meta.glob("../content/concepts/*.md", {
@@ -34,4 +34,24 @@ export async function loadAllGuides(): Promise<ConceptGuide[]> {
 export async function loadCheatsheet(): Promise<ConceptGuide | undefined> {
   const loader = Object.values(cheatsheetFile)[0];
   return loader ? parseGuide(await loader(), "cheatsheet") : undefined;
+}
+
+const lessonFiles = import.meta.glob("../content/lessons/*.md", {
+  query: "?raw",
+  import: "default",
+}) as Record<string, () => Promise<string>>;
+
+export async function loadAllLessons(): Promise<Lesson[]> {
+  const all = await Promise.all(Object.entries(lessonFiles).map(async ([p, load]) => parseLesson(await load(), slugOf(p))));
+  return all.sort((a, b) => a.order - b.order);
+}
+
+export async function loadLessonSummaries(): Promise<LessonSummary[]> {
+  return (await loadAllLessons()).map(({ slug, title, order, level, description, segments }) => ({
+    slug, title, order, level, description, exercises: segments.filter((s) => s.kind === "exercise").length,
+  }));
+}
+
+export async function loadLesson(slug: string): Promise<Lesson | undefined> {
+  return (await loadAllLessons()).find((l) => l.slug === slug);
 }

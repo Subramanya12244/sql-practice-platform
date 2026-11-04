@@ -49,8 +49,8 @@ Illustrative result (first query):
 |---|
 | Brazil |
 | Canada |
-| France |
-| Germany |
+| Denmark |
+| Finland |
 
 Illustrative result (second query):
 

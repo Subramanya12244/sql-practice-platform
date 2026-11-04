@@ -3,8 +3,9 @@ import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 import northwind from "../../public/data/northwind.sql?raw";
 import { compareResults } from "../site/lib/resultCompare";
-import { execute, submit, type SqlDb } from "../site/lib/sqlRunner";
+import { execute, runRaw, submit, type SqlDb } from "../site/lib/sqlRunner";
 import type { Question } from "../site/types";
+import { parseLesson } from "../site/lib/frontmatter";
 
 const questionFiles = import.meta.glob<Question>("../../public/data/q/*.json", { eager: true, import: "default" });
 const loadQ = (slug: string): Question => {
@@ -91,4 +92,41 @@ describe("sqlRunner on Northwind", () => {
     const r = await submit(db, buggy, q.referenceQuery, q.sortRequired);
     expect(r.correct).toBe(false);
   });
+});
+
+describe("transaction guard", () => {
+  const db = {
+    exec: async (sql: string) => (/pg_sequences/.test(sql) ? [{ fields: [], rows: [] }] : [{ fields: [{ name: "x" }], rows: [[1]] }]),
+  } as unknown as SqlDb;
+  it("allows savepoints and CASE … END", async () => {
+    await expect(runRaw(db, "SAVEPOINT a; DELETE FROM t; ROLLBACK TO SAVEPOINT a; SELECT 1;")).resolves.toBeTruthy();
+    await expect(runRaw(db, "SELECT CASE WHEN 1=1 THEN 1 END;")).resolves.toBeTruthy();
+  });
+  it("blocks statements that end the wrapper transaction", async () => {
+    for (const sql of ["COMMIT;", "ROLLBACK;", "SELECT 1; END;", "BEGIN; SELECT 1;"]) {
+      await expect(runRaw(db, sql)).rejects.toThrow(/not allowed/);
+    }
+  });
+});
+
+const lessonFiles = import.meta.glob<string>("../site/content/lessons/*.md", { eager: true, query: "?raw", import: "default" });
+
+describe("lesson exercises", () => {
+  const exercises = Object.entries(lessonFiles).flatMap(([path, raw]) =>
+    parseLesson(raw, path).segments.flatMap((s) => (s.kind === "exercise" ? [{ path, ex: s.exercise }] : [])),
+  );
+  it("has exercises", () => expect(exercises.length).toBeGreaterThan(40));
+  it("every solution runs in the browser DB, returns rows, and grades itself correct", async () => {
+    const bad: string[] = [];
+    for (const { path, ex } of exercises) {
+      const run = await execute(db, ex.solution);
+      if (!run.success || !run.row_count) {
+        bad.push(`${path}#${ex.index}: ${run.message ?? "0 rows"}`);
+        continue;
+      }
+      const r = await submit(db, ex.solution, ex.solution, Boolean(ex.orderBy), ex.orderBy);
+      if (!r.correct) bad.push(`${path}#${ex.index}: self-grade ${r.message}`);
+    }
+    expect(bad).toEqual([]);
+  }, 120_000);
 });

@@ -16,6 +16,7 @@
   "dependencies": {
     "@electric-sql/pglite": "0.5.10",
     "@monaco-editor/react": "^4.6.0",
+    "@supabase/supabase-js": "2.118.0",
     "@tanstack/react-query": "^5.62.8",
     "lucide-react": "^0.468.0",
     "marked": "18.1.1",

@@ -5,12 +5,28 @@ import { ResultsPanel } from "../../components/ResultsPanel";
 import type { ResultTab, ResultTarget, SubmitResult, TableSchema } from "../../types";
 import type { Question } from "../types";
 import { getDb, getSchemas, runQuery, submitQuery } from "../lib/browserDb";
-import { recordAttempt, saveDraft, useProgress } from "../lib/progress";
+import { completeExercise, recordAttempt, saveDraft, useProgress } from "../lib/progress";
 
 /** Editor + results for one question. Browser only — loaded lazily. */
-export default function PracticePanel({ question, onSolved }: { question: Question; onSolved?: (r: SubmitResult) => void }) {
+export default function PracticePanel({
+  question,
+  onSolved,
+  fresh = false,
+  playground = false,
+  lessonKey,
+}: {
+  question: Question;
+  onSolved?: (r: SubmitResult) => void;
+  /** Start from the starter query instead of the visitor's saved draft (mock interviews). */
+  fresh?: boolean;
+  /** Free-form querying: no Submit, nothing graded. */
+  playground?: boolean;
+  /** Learning-path exercise: graded, but tracked under this key instead of a question number. */
+  lessonKey?: string;
+}) {
   const progress = useProgress();
-  const saved = progress.questions[question.number];
+  const saved = lessonKey ? undefined : progress.questions[question.number];
+  const exerciseDone = lessonKey ? Boolean(progress.lessons?.[lessonKey]) : false;
   const [sql, setSql] = useState("");
   // The database (~5 MB compressed, cached after the first visit) starts on first interaction,
   // so reading a question page doesn't download it.
@@ -30,8 +46,8 @@ export default function PracticePanel({ question, onSolved }: { question: Questi
   useEffect(() => {
     if (restored.current) return;
     restored.current = true;
-    setSql(saved?.lastSql ?? starter(question));
-  }, [saved, question]);
+    setSql((!fresh && saved?.lastSql) || starter(question));
+  }, [saved, question, fresh]);
 
   useEffect(() => {
     if (!wantDb) return;
@@ -54,9 +70,9 @@ export default function PracticePanel({ question, onSolved }: { question: Questi
     (next: string) => {
       setSql(next);
       clearTimeout(draftTimer.current);
-      draftTimer.current = setTimeout(() => saveDraft(question.number, next), 600);
+      if (!lessonKey) draftTimer.current = setTimeout(() => saveDraft(question.number, next), 600);
     },
-    [question.number],
+    [question.number, lessonKey],
   );
 
   const onRun = useCallback(
@@ -81,11 +97,13 @@ export default function PracticePanel({ question, onSolved }: { question: Questi
   const onSubmit = useCallback(async () => {
     setSubmitting(true);
     const result = await submitQuery(sql, question.referenceQuery, question.sortRequired, question.orderBy ?? null);
-    recordAttempt(question.number, sql, result.correct);
+    if (lessonKey) {
+      if (result.correct) completeExercise(lessonKey);
+    } else recordAttempt(question.number, sql, result.correct);
     setSubmitResult(result);
     setSubmitting(false);
     onSolved?.(result);
-  }, [sql, question, onSolved]);
+  }, [sql, question, onSolved, lessonKey]);
 
   return (
     <div
@@ -110,7 +128,7 @@ export default function PracticePanel({ question, onSolved }: { question: Questi
           </>
         )}
         {ready === "error" && <span className="text-danger">Could not start the database. Reload the page to try again.</span>}
-        {saved?.solvedAt && (
+        {(saved?.solvedAt || exerciseDone) && (
           <span className="ml-auto inline-flex items-center gap-1 font-medium text-success">
             <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Solved
           </span>
@@ -121,7 +139,7 @@ export default function PracticePanel({ question, onSolved }: { question: Questi
           value={sql}
           onChange={onChange}
           onRun={onRun}
-          onSubmit={onSubmit}
+          onSubmit={playground ? undefined : onSubmit}
           running={running || ready === "loading"}
           submitting={submitting || ready === "loading"}
           starterSql={starter(question)}
@@ -146,5 +164,7 @@ export default function PracticePanel({ question, onSolved }: { question: Questi
 }
 
 function starter(q: Question): string {
+  if (q.starter) return q.starter;
+  if (!q.tables.length) return "-- Query any Northwind table. Ctrl/⌘+Enter runs everything.\n\nSELECT *\nFROM customers\nLIMIT 10;\n";
   return `-- Q${q.number}: ${q.title}\n-- Tables: ${q.tables.join(", ")}\n\nSELECT\n  \nFROM ${q.tables[0] ?? ""};\n`;
 }

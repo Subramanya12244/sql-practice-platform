@@ -42,9 +42,9 @@ Illustrative result:
 
 | customer_id | company_name | order_count |
 |---|---|---|
-| FISSA | FISSA Fabrica Inter. Salchichas S.A. | 0 |
+| FISSA | FISSA Fabrica Inter. Salchichas | 0 |
 | PARIS | Paris spécialités | 0 |
-| CENTC | Centro comercial Moctezuma | 1 |
+| BOTTM | Bottom-Dollar Markets | 1 |
 
 `COUNT(o.order_id)` is essential here. `COUNT(*)` would return 1 for customers with no orders, because the unmatched row still exists — it just has NULLs on the right side.
 

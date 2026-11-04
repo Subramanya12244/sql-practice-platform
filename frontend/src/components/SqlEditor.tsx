@@ -81,7 +81,8 @@ interface Props {
   value: string;
   onChange: (sql: string) => void;
   onRun: (request: RunRequest) => void;
-  onSubmit: () => void;
+  /** Omit to hide the Submit button (free-form playground). */
+  onSubmit?: () => void;
   running?: boolean;
   submitting?: boolean;
   starterSql?: string;
@@ -360,17 +361,19 @@ export function SqlEditor({
             <Play className="h-3.5 w-3.5" />
             {running ? "Running…" : "Run All"}
           </button>
-          <button
-            type="button"
-            className="btn-secondary border-accent/40 text-accent hover:bg-accent-dim"
-            onClick={onSubmit}
-            disabled={submitting || !value.trim()}
-          >
-            <Send className="h-3.5 w-3.5" />
-            {submitting
-              ? "Submitting…"
-              : submitLabel || "Submit"}
-          </button>
+          {onSubmit && (
+            <button
+              type="button"
+              className="btn-secondary border-accent/40 text-accent hover:bg-accent-dim"
+              onClick={onSubmit}
+              disabled={submitting || !value.trim()}
+            >
+              <Send className="h-3.5 w-3.5" />
+              {submitting
+                ? "Submitting…"
+                : submitLabel || "Submit"}
+            </button>
+          )}
         </div>
       </div>
       <div className="min-h-0 flex-1">

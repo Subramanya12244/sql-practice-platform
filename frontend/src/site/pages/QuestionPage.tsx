@@ -5,6 +5,7 @@ import { usePage } from "../SiteApp";
 import { InlineMarkdown, Markdown } from "../components/Markdown";
 import { Chip, Container, Difficulty, Skeleton } from "../components/ui";
 import { ShareButton } from "../components/ShareButton";
+import { SchemaPanel } from "../components/SchemaPanel";
 import { SITE_NAME, Seo, breadcrumbs, canonical, clip, faqPage } from "../lib/seo";
 import { markRevealed, useProgress } from "../lib/progress";
 
@@ -137,6 +138,12 @@ export function QuestionPage() {
             </summary>
             <p className="mt-3 text-sm text-ink-muted"><InlineMarkdown source={q.watchOutFor} /></p>
           </details>
+
+          {data.schema && (
+            <div className="mt-6">
+              <SchemaPanel schema={data.schema} highlight={q.tables} />
+            </div>
+          )}
         </article>
 
         <div ref={panelRef} className="min-w-0 lg:sticky lg:top-20 lg:self-start">

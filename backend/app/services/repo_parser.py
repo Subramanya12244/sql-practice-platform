@@ -34,6 +34,11 @@ TOPIC_FROM_FOLDER = {
     "09_Self_Join": "SELF JOIN",
     "10_Cross_Join": "CROSS JOIN",
     "11_Set_Operators": "UNION",
+    "12_Window_Functions": "WINDOW FUNCTIONS",
+    "13_Date_Time": "DATE & TIME",
+    "14_String_Functions": "STRING FUNCTIONS",
+    "15_CASE_Conditional": "CASE & CONDITIONAL",
+    "16_DML_DDL": "DML & DDL",
 }
 
 

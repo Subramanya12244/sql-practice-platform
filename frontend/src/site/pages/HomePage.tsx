@@ -1,9 +1,42 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpen, Brain, Layers, Play, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Brain, CalendarDays, Layers, Play, Sparkles, Timer } from "lucide-react";
 import { usePage } from "../SiteApp";
-import { Container, QuestionCard } from "../components/ui";
+import { Container, QuestionCard, Skeleton } from "../components/ui";
 import { SITE_NAME, SITE_URL, Seo } from "../lib/seo";
-import { useProgress } from "../lib/progress";
+import { today, useProgress } from "../lib/progress";
+
+/** Same question for everyone on a given UTC day. */
+function dailyPick<T>(items: T[], day: string): T | undefined {
+  let h = 0;
+  for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return items[h % items.length];
+}
+
+function DailyChallenge() {
+  const { data } = usePage();
+  const [day, setDay] = useState<string | null>(null);
+  useEffect(() => setDay(today()), []);
+  const q = day ? dailyPick(data.index, day) : undefined;
+  return (
+    <div className="rounded-card border border-accent/30 bg-accent-dim p-5">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
+        <CalendarDays className="h-3.5 w-3.5" aria-hidden /> Today's challenge
+      </p>
+      {q ? (
+        <>
+          <Link to={`/questions/${q.slug}`} className="mt-2 block font-display text-xl font-bold text-ink hover:text-accent">
+            Q{q.number} · {q.title}
+          </Link>
+          <p className="mt-1 text-sm text-ink-muted">{q.topicLabel} · {q.difficulty}</p>
+          <p className="mt-2 line-clamp-2 text-sm text-ink-muted">{q.problemShort}</p>
+        </>
+      ) : (
+        <Skeleton className="mt-3 h-16" />
+      )}
+    </div>
+  );
+}
 
 export function HomePage() {
   const { data } = usePage();
@@ -16,7 +49,7 @@ export function HomePage() {
     <>
       <Seo
         title={`${SITE_NAME} — Free SQL Interview Practice with Real Postgres`}
-        description={`Practice ${data.index.length} SQL interview questions on the Northwind database. Joins, GROUP BY, CTEs, subqueries and set operators, graded instantly in your browser. Free, no sign-up.`}
+        description={`Practice ${data.index.length} SQL interview questions on Northwind: joins, GROUP BY, CTEs, window functions and dates, graded instantly in your browser. Free, no sign-up.`}
         path="/"
         jsonLd={[
           {
@@ -38,7 +71,7 @@ export function HomePage() {
             Practice SQL interview questions that actually get asked
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-muted">
-            {data.index.length} business-style problems on the Northwind database, from aggregations to self joins and set operators.
+            {data.index.length} business-style problems on the Northwind database, from aggregations and joins to window functions and date analysis.
             Write a query, run it, and get graded instantly — with the approach, the common traps, and interview follow-ups for every question.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -71,6 +104,20 @@ export function HomePage() {
           </dl>
         </Container>
       </section>
+
+      <Container className="grid gap-4 pt-14 md:grid-cols-2">
+        <DailyChallenge />
+        <div className="rounded-card border border-surface-border bg-surface-raised p-5 shadow-panel">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+            <Timer className="h-3.5 w-3.5" aria-hidden /> Mock interview
+          </p>
+          <p className="mt-2 font-display text-xl font-bold text-ink">5 questions. One timer. No hints.</p>
+          <p className="mt-1 text-sm text-ink-muted">Simulate a real SQL screen, then review what you missed.</p>
+          <Link to="/mock-interview" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline">
+            Start a mock interview <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
+      </Container>
 
       <Container className="py-14">
         <h2 className="font-display text-2xl font-bold text-ink">Learn by topic</h2>

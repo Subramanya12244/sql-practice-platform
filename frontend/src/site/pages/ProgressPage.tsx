@@ -59,6 +59,22 @@ export function ProgressPage() {
         <ShareButton kind="progress" solved={solvedNums.size} total={data.index.length} streak={days} />
       </div>
 
+      {(progress.mocks?.length ?? 0) > 0 && (
+        <>
+          <h2 className="mt-12 font-display text-xl font-bold text-ink">Mock interviews</h2>
+          <ul className="mt-4 divide-y divide-surface-border rounded-card border border-surface-border">
+            {[...progress.mocks!].reverse().slice(0, 10).map((m) => (
+              <li key={m.date} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                <span className="text-ink-muted">{new Date(m.date).toLocaleDateString()}</span>
+                <span className="font-semibold text-ink">{m.solved}/{m.total}</span>
+                <span className="text-ink-faint">{Math.round(m.usedSec / 60)} of {m.durationMin} min</span>
+              </li>
+            ))}
+          </ul>
+          <Link to="/mock-interview" className="mt-2 inline-block text-sm font-medium text-accent hover:underline">Start another</Link>
+        </>
+      )}
+
       <h2 className="mt-12 font-display text-xl font-bold text-ink">By topic</h2>
       <div className="mt-4 space-y-3">
         {data.topics.map((t) => {

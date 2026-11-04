@@ -57,7 +57,7 @@ Illustrative result:
 
 | employee_id | employee_name | total_revenue |
 |---|---|---|
-| 4 | Margaret Peacock | 232890.85 |
+| 6 | Michael Suyama | 32276.55 |
 
 ## How it works
 

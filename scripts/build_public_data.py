@@ -35,6 +35,11 @@ FOLDERS = {
     "09_Self_Join": ("self-join", "SELF JOIN"),
     "10_Cross_Join": ("cross-join", "CROSS JOIN"),
     "11_Set_Operators": ("set-operators", "Set Operators"),
+    "12_Window_Functions": ("window-functions", "Window Functions"),
+    "13_Date_Time": ("date-time", "Date & Time"),
+    "14_String_Functions": ("string-functions", "String Functions"),
+    "15_CASE_Conditional": ("case-conditional", "CASE & Conditional Logic"),
+    "16_DML_DDL": ("dml-ddl", "DML & DDL"),
 }
 
 
@@ -138,6 +143,7 @@ def build_question(md: Path) -> dict | None:
         "concepts": meta["concepts_used"],
         "outcome": meta["outcome"],
         "hadMistakes": meta["outcome"].startswith("⚠"),
+        "isNew": meta["outcome"].startswith("🆕"),
         "watchOutFor": meta["watch_out_for"],
         "problem": meta["business_problem"],
         "objective": meta["objective"],
@@ -157,6 +163,37 @@ def build_question(md: Path) -> dict | None:
         "takeaway": meta["key_takeaway"],
         "related": [n for n in meta["related_question_numbers"] if n != number],
     }
+
+
+def parse_schema(sql: str) -> list[dict]:
+    """Tables, columns, primary and foreign keys from database/schema.sql."""
+    tables = []
+    for name, body in re.findall(r"CREATE TABLE IF NOT EXISTS (\w+) \((.*?)\n\);", sql, re.S):
+        cols, table_pk = [], []
+        for line in body.splitlines():
+            line = line.strip().rstrip(",")
+            if not line:
+                continue
+            pk_m = re.match(r"PRIMARY KEY \(([^)]+)\)", line)
+            if pk_m:
+                table_pk = [c.strip() for c in pk_m.group(1).split(",")]
+                continue
+            m = re.match(r"(\w+)\s+([A-Z]+(?:\s*\(\s*\d+(?:,\s*\d+)?\s*\))?)(.*)", line)
+            if not m:
+                continue
+            ref = re.search(r"REFERENCES (\w+)\((\w+)\)", m.group(3))
+            cols.append({
+                "name": m.group(1),
+                "type": re.sub(r"\s+", "", m.group(2)).lower().replace("serial", "integer"),
+                "pk": "PRIMARY KEY" in m.group(3),
+                "notNull": "NOT NULL" in m.group(3) or "PRIMARY KEY" in m.group(3),
+                "fk": {"table": ref.group(1), "column": ref.group(2)} if ref else None,
+            })
+        for c in cols:
+            if c["name"] in table_pk:
+                c["pk"] = True
+        tables.append({"name": name, "columns": cols})
+    return tables
 
 
 def main() -> None:
@@ -179,7 +216,7 @@ def main() -> None:
         if nums:
             topics.append({"slug": slug, "label": label, "folder": folder, "questions": nums})
 
-    summary_keys = ("number", "slug", "title", "topic", "topicLabel", "difficulty", "concepts", "hadMistakes", "watchOutFor", "takeaway")
+    summary_keys = ("number", "slug", "title", "topic", "topicLabel", "difficulty", "concepts", "hadMistakes", "isNew", "watchOutFor", "takeaway")
     index = [
         {
             **{k: q[k] for k in summary_keys},
@@ -199,7 +236,9 @@ def main() -> None:
     (OUT / "index.json").write_text(json.dumps(index, ensure_ascii=False), encoding="utf-8")
     (OUT / "topics.json").write_text(json.dumps(topics, ensure_ascii=False), encoding="utf-8")
     (OUT / "questions.json").unlink(missing_ok=True)
-    northwind = (ROOT / "database" / "schema.sql").read_text() + "\n" + (ROOT / "database" / "seed.sql").read_text()
+    schema_sql = (ROOT / "database" / "schema.sql").read_text()
+    (OUT / "schema.json").write_text(json.dumps(parse_schema(schema_sql)), encoding="utf-8")
+    northwind = schema_sql + "\n" + (ROOT / "database" / "seed.sql").read_text()
     (OUT / "northwind.sql").write_text(northwind, encoding="utf-8")
     print(f"Wrote {len(questions)} questions, {len(topics)} topics to {OUT.relative_to(ROOT)}")
 

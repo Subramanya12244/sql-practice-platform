@@ -1,8 +1,8 @@
 import { matchPath, type Params } from "react-router-dom";
 import type { ReactElement } from "react";
 import type { PageData } from "./types";
-import { loadIndex, loadQuestion, loadTopics } from "./lib/data";
-import { guideSlugs, loadAllGuides, loadCheatsheet, loadGuide } from "./lib/content";
+import { loadIndex, loadQuestion, loadSchema, loadTopics } from "./lib/data";
+import { guideSlugs, loadAllGuides, loadCheatsheet, loadGuide, loadLesson, loadLessonSummaries } from "./lib/content";
 import { HomePage } from "./pages/HomePage";
 import { QuestionsPage } from "./pages/QuestionsPage";
 import { TopicPage } from "./pages/TopicPage";
@@ -13,6 +13,12 @@ import { FlashcardsPage } from "./pages/FlashcardsPage";
 import { CheatsheetPage } from "./pages/CheatsheetPage";
 import { ProgressPage } from "./pages/ProgressPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { SchemaPage } from "./pages/SchemaPage";
+import { MockInterviewPage } from "./pages/MockInterviewPage";
+import { PlaygroundPage } from "./pages/PlaygroundPage";
+import { AccountPage, LoginPage, SignupPage } from "./pages/AuthPages";
+import { AdminPage } from "./pages/AdminPage";
+import { LearnPage, LessonPage } from "./pages/LearnPages";
 
 export interface SiteRoute {
   path: string;
@@ -34,7 +40,7 @@ export const routes: SiteRoute[] = [
     load: async ({ slug }) => {
       const data = await base();
       if (!data.index.some((q) => q.slug === slug)) return null;
-      return { ...data, question: await loadQuestion(slug!) };
+      return { ...data, question: await loadQuestion(slug!), schema: await loadSchema() };
     },
     paths: async () => (await loadIndex()).map((q) => `/questions/${q.slug}`),
   },
@@ -79,6 +85,44 @@ export const routes: SiteRoute[] = [
     paths: one("/cheatsheet"),
   },
   { path: "/progress", element: <ProgressPage />, load: base, paths: one("/progress") },
+  {
+    path: "/schema",
+    element: <SchemaPage />,
+    load: async () => ({ ...(await base()), schema: await loadSchema() }),
+    paths: one("/schema"),
+  },
+  {
+    path: "/playground",
+    element: <PlaygroundPage />,
+    load: async () => ({ ...(await base()), schema: await loadSchema() }),
+    paths: one("/playground"),
+  },
+  {
+    path: "/mock-interview",
+    element: <MockInterviewPage />,
+    load: async () => ({ ...(await base()), schema: await loadSchema() }),
+    paths: one("/mock-interview"),
+  },
+  {
+    path: "/learn",
+    element: <LearnPage />,
+    load: async () => ({ ...(await base()), lessons: await loadLessonSummaries() }),
+    paths: one("/learn"),
+  },
+  {
+    path: "/learn/:slug",
+    element: <LessonPage />,
+    load: async ({ slug }) => {
+      const lesson = await loadLesson(slug!);
+      return lesson ? { ...(await base()), lesson, lessons: await loadLessonSummaries() } : null;
+    },
+    paths: async () => (await loadLessonSummaries()).map((l) => `/learn/${l.slug}`),
+  },
+  // Account pages render a shell at build time; everything else happens in the browser.
+  { path: "/login", element: <LoginPage />, load: base, paths: one("/login") },
+  { path: "/signup", element: <SignupPage />, load: base, paths: one("/signup") },
+  { path: "/account", element: <AccountPage />, load: base, paths: one("/account") },
+  { path: "/admin", element: <AdminPage />, load: base, paths: one("/admin") },
 ];
 
 export const notFoundRoute: SiteRoute = {

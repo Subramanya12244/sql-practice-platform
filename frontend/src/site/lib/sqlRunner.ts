@@ -21,9 +21,12 @@ interface RawResult {
  * DELETE or DROP never damages the visitor's in-browser copy of Northwind.
  */
 export async function runRaw(db: SqlDb, sql: string): Promise<RawResult> {
-  if (/\b(commit|rollback|begin|start\s+transaction)\b/i.test(stripComments(sql))) {
+  // Savepoints are fine inside the wrapper; anything that would end it is not.
+  if (/\b(commit|begin|start\s+transaction|abort)\b|(^|;)\s*end\s*(;|$)|\brollback\b(?!\s+(transaction\s+|work\s+)?to\b)/i.test(stripComments(sql))) {
     throw new Error("Transaction control statements are not allowed here.");
   }
+  // Sequences ignore ROLLBACK; snapshot them so an INSERT doesn't shift ids for the next run.
+  const [seqs] = await db.exec("SELECT schemaname, sequencename, last_value FROM pg_sequences", { rowMode: "array" });
   await db.exec("BEGIN");
   try {
     const results = await db.exec(sql, { rowMode: "array" });
@@ -34,6 +37,13 @@ export async function runRaw(db: SqlDb, sql: string): Promise<RawResult> {
     };
   } finally {
     await db.exec("ROLLBACK");
+    const restore = (seqs?.rows as [string, string, string | null][] | undefined ?? [])
+      .map(([schema, name, last]) => {
+        const seq = `'${schema.replace(/'/g, "''")}.${name.replace(/'/g, "''")}'`;
+        return last === null ? `SELECT setval(${seq}, 1, false)` : `SELECT setval(${seq}, ${Number(last)}, true)`;
+      })
+      .join(";");
+    if (restore) await db.exec(restore);
   }
 }
 

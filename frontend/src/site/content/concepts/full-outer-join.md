@@ -36,12 +36,12 @@ Illustrative result:
 
 | employee_id | employee_name | total_orders |
 |---|---|---|
-| 4 | Margaret Peacock | 156 |
-| 3 | Janet Leverling | 127 |
-| 1 | Nancy Davolio | 123 |
-| *NULL* | *NULL* | 0 |
+| 6 | Michael Suyama | 22 |
+| 4 | Margaret Peacock | 11 |
+| 8 | Laura Callahan | 11 |
+| *NULL* | *NULL* | 1 |
 
-In clean Northwind data every order has an employee, so the NULL group may not appear. The query is still correct: it is built to surface data-quality gaps on either side.
+In this data one order has a NULL `employee_id`, so it lands in the NULL group, and Steven Buchanan (employee 5) appears with 0 orders. The query is still correct: it is built to surface data-quality gaps on either side.
 
 ## How it works
 

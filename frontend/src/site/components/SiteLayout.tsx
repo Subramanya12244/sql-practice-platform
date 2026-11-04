@@ -1,15 +1,18 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
-import { Database, Github, Menu, X } from "lucide-react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Database, Github, Menu, Shield, UserRound, X } from "lucide-react";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { SITE_NAME } from "../lib/seo";
 import { Container } from "./ui";
+import { useAuth } from "../lib/auth";
 
 const NAV = [
+  { to: "/learn", label: "Learn" },
   { to: "/questions", label: "Practice" },
+  { to: "/mock-interview", label: "Mock interview" },
   { to: "/concepts", label: "Concepts" },
   { to: "/flashcards", label: "Flashcards" },
-  { to: "/cheatsheet", label: "Cheat sheet" },
+  { to: "/playground", label: "Playground" },
   { to: "/progress", label: "Progress" },
 ];
 
@@ -19,6 +22,27 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
   const [open, setOpen] = useState(false);
   const location = useLocation();
   useEffect(() => setOpen(false), [location.pathname]);
+  const { enabled, session, profile } = useAuth();
+  const navigate = useNavigate();
+  // A seeded account must pick its own password before using the site.
+  useEffect(() => {
+    if (profile?.must_change_password && location.pathname !== "/account") navigate("/account", { replace: true });
+  }, [profile, location.pathname, navigate]);
+
+  const account = !enabled ? null : session ? (
+    <span className="flex items-center gap-1">
+      {profile?.role === "admin" && (
+        <NavLink to="/admin" className="rounded-lg p-2 text-ink-muted hover:bg-hover/5 hover:text-ink" aria-label="Admin" title="Admin">
+          <Shield className="h-4 w-4" />
+        </NavLink>
+      )}
+      <NavLink to="/account" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-hover/5 hover:text-ink">
+        <UserRound className="h-4 w-4" aria-hidden /> {profile?.username ?? "Account"}
+      </NavLink>
+    </span>
+  ) : (
+    <Link to="/login" className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white">Sign in</Link>
+  );
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-fast ${
@@ -38,19 +62,20 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
             </span>
             {SITE_NAME}
           </Link>
-          <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="Main">
+          <nav className="ml-4 hidden items-center gap-1 lg:flex" aria-label="Main">
             {NAV.map((n) => (
               <NavLink key={n.to} to={n.to} className={linkClass}>
                 {n.label}
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto hidden md:block">
+          <div className="ml-auto hidden items-center gap-2 lg:flex">
+            {account}
             <ThemeToggle compact />
           </div>
           <button
             type="button"
-            className="ml-auto rounded-lg p-2 text-ink-muted hover:bg-hover/5 md:hidden"
+            className="ml-auto rounded-lg p-2 text-ink-muted hover:bg-hover/5 lg:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
@@ -59,14 +84,15 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
           </button>
         </Container>
         {open && (
-          <nav className="border-t border-surface-border md:hidden" aria-label="Mobile">
+          <nav className="border-t border-surface-border lg:hidden" aria-label="Mobile">
             <Container className="flex flex-col gap-1 py-3">
               {NAV.map((n) => (
                 <NavLink key={n.to} to={n.to} className={linkClass}>
                   {n.label}
                 </NavLink>
               ))}
-              <div className="pt-2">
+              <div className="flex items-center gap-2 pt-2">
+                {account}
                 <ThemeToggle />
               </div>
             </Container>
@@ -91,16 +117,20 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
           <div>
             <p className="font-semibold text-ink">{SITE_NAME}</p>
             <p className="mt-2 max-w-xs">
-              Free SQL interview practice on the Northwind database. Queries run in your browser — no sign-up.
+              Free SQL interview practice on the Northwind database. Queries run in your browser — sign-up optional.
             </p>
           </div>
           <div>
             <p className="font-semibold text-ink">Learn</p>
             <ul className="mt-2 space-y-1.5">
-              <li><Link className="hover:text-ink" to="/questions">All 88 questions</Link></li>
+              <li><Link className="hover:text-ink" to="/learn">Learn SQL (free course)</Link></li>
+              <li><Link className="hover:text-ink" to="/questions">All practice questions</Link></li>
+              <li><Link className="hover:text-ink" to="/mock-interview">SQL mock interview</Link></li>
               <li><Link className="hover:text-ink" to="/concepts">SQL concept guides</Link></li>
               <li><Link className="hover:text-ink" to="/cheatsheet">SQL cheat sheet</Link></li>
               <li><Link className="hover:text-ink" to="/flashcards">Flashcards</Link></li>
+              <li><Link className="hover:text-ink" to="/playground">Online SQL playground</Link></li>
+              <li><Link className="hover:text-ink" to="/schema">Northwind schema</Link></li>
             </ul>
           </div>
           <div>

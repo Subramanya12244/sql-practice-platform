@@ -36,9 +36,9 @@ Illustrative result:
 
 | supplier_id | company_name | product_count |
 |---|---|---|
-| 7 | Pavlova, Ltd. | 5 |
-| 12 | Plutzer Lebensmittelgroßmärkte AG | 5 |
-| 2 | New Orleans Cajun Delights | 4 |
+| 18 | Aux joyeux ecclésiastiques | 3 |
+| 16 | Bigfoot Breweries | 3 |
+| 5 | Cooperativa de Quesos | 3 |
 
 `suppliers` is on the right, so every supplier appears. `COUNT(p.product_id)` returns 0 for a supplier with no products; `COUNT(*)` would return 1.
 
