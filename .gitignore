@@ -49,3 +49,5 @@ postgres_data/
 # Uploaded datasets and their generated schema (can be large / private)
 projects/*
 !projects/.gitkeep
+
+.wrangler/

@@ -1,0 +1,11 @@
+// Static hosting for the public site (Cloudflare Workers static assets, free tier).
+// Deploy: VITE_SITE_URL=https://sql-practice-lab.sql-practice-frontend.workers.dev npm run build:site && npx wrangler deploy
+{
+  "name": "sql-practice-lab",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist-site",
+    "not_found_handling": "404-page",
+    "html_handling": "drop-trailing-slash"
+  }
+}
