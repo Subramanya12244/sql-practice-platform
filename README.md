@@ -578,4 +578,4 @@ Editor also supports Format, Reset, Clear, and Copy.
 
 ## Responsibility
 
-Code for this platform is generated and managed under the **SQL Practice Platform** (`sql-practice-platform`) repository. Existing practice materials live in the sibling `northwind-sql-practice` folder and can be imported via `questions/build_questions.py`.
+Code for DataForge lives in the `sql-practice-platform` repository. Existing practice materials live in the sibling `northwind-sql-practice` folder and can be imported via `questions/build_questions.py`.

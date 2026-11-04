@@ -50,8 +50,8 @@ export function HomePage() {
   return (
     <>
       <Seo
-        title={`${SITE_NAME} — ${BRAND.tagline}`}
-        description={`Free SQL, Python and data engineering practice: ${data.index.length} graded SQL questions, real PostgreSQL in your browser, ETL, warehousing, Spark, Airflow and dbt tracks, and projects.`}
+        title={`${SITE_NAME} | Learn SQL & Data Engineering`}
+        description={`${SITE_NAME} is an interactive SQL and data engineering learning platform: ${data.index.length} graded SQL questions on real PostgreSQL in your browser, Python, ETL, warehousing, Spark, Airflow and dbt tracks, and projects.`}
         path="/"
         jsonLd={[
           {
