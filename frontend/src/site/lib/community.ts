@@ -34,6 +34,10 @@ export interface PublicProfile {
   solvedNumbers: number[];
   activeDays: string[];
   solutions: number;
+  /** From migration 005: portfolio name/headline and reviewer-approved projects. */
+  name?: string | null;
+  headline?: string | null;
+  projects?: { slug: string; repo: string | null; approved_at: string }[];
 }
 
 async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {

@@ -138,7 +138,7 @@ export const routes: SiteRoute[] = [
   { path: "/review", element: <ReviewPage />, load: base, paths: one("/review") },
   { path: "/challenge", element: <ChallengePage />, load: base, paths: one("/challenge") },
   { path: "/leaderboard", element: <LeaderboardPage />, load: base, paths: one("/leaderboard") },
-  { path: "/profile", element: <ProfilePage />, load: base, paths: one("/profile") },
+  { path: "/profile", element: <ProfilePage />, load: async () => ({ ...(await base()), projects: await loadProjectIndex() }), paths: one("/profile") },
   {
     path: "/schema",
     element: <SchemaPage />,

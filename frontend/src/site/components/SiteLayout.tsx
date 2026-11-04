@@ -7,6 +7,7 @@ import { NAV_GROUPS, activeGroup } from "../lib/navigation";
 import { SearchDialog } from "./SearchDialog";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { SITE_NAME } from "../lib/seo";
+import { useMyReviews } from "../lib/reviews";
 import { Container } from "./ui";
 import { useAuth } from "../lib/auth";
 
@@ -44,6 +45,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
     </button>
   );
   const { enabled, session, profile } = useAuth();
+  const { unseen } = useMyReviews(session?.user.id);
   const navigate = useNavigate();
   // A seeded account must pick its own password before using the site.
   useEffect(() => {
@@ -59,6 +61,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
       )}
       <NavLink to="/account" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-hover/5 hover:text-ink">
         <UserRound className="h-4 w-4" aria-hidden /> {profile?.username ?? "Account"}
+        {unseen > 0 && <span className="ml-0.5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-white" aria-label={`${unseen} new project review${unseen > 1 ? "s" : ""}`}>{unseen}</span>}
       </NavLink>
     </span>
   ) : (

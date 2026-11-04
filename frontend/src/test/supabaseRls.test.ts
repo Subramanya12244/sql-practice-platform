@@ -10,6 +10,7 @@ import m001 from "../../../supabase/migrations/001_accounts.sql?raw";
 import m002 from "../../../supabase/migrations/002_community.sql?raw";
 import m003 from "../../../supabase/migrations/003_dataforge.sql?raw";
 import m004 from "../../../supabase/migrations/004_submission_review.sql?raw";
+import m005 from "../../../supabase/migrations/005_public_portfolio.sql?raw";
 
 const A = "00000000-0000-0000-0000-00000000000a";
 const B = "00000000-0000-0000-0000-00000000000b";
@@ -30,7 +31,7 @@ const fails = (p: Promise<unknown>) => expect(p).rejects.toThrow();
 
 beforeAll(async () => {
   pg = new PGlite({ extensions: { citext, pgcrypto } });
-  for (const m of [stub, m001, m002, m003, m004]) await pg.exec(m);
+  for (const m of [stub, m001, m002, m003, m004, m005]) await pg.exec(m);
   // Re-applying must be safe (no data loss, no errors).
   await pg.exec(m003);
   await pg.exec(m004);
@@ -129,5 +130,27 @@ describe("submission lifecycle", () => {
   it("Rejected is a valid status", async () => {
     await as(ADMIN, `update project_submissions set status = 'Rejected' where id = ${id}`);
     expect((await as<{ status: string }>(A, `select status from project_submissions where id = ${id}`))[0].status).toBe("Rejected");
+  });
+});
+
+describe("public portfolio (005)", () => {
+  type Pub = { projects: { slug: string; repo: string }[]; name: string | null } | null;
+  const pub = async (who: string | null) => (await as<{ p: Pub }>(who, "select public_profile('learner_a') as p"))[0].p;
+  it("is hidden until the learner opts in", async () => {
+    expect(await pub(null)).toBeNull();
+    expect(await pub(B)).toBeNull();
+  });
+  it("lists only reviewer-approved projects, without notes or emails", async () => {
+    await as(A, "update profiles set public_profile = true, state = state || '{\"portfolio\":{\"name\":\"Learner A\",\"headline\":\"x\"}}' where id = auth.uid()");
+    const [{ id }] = await as<{ id: number }>(A, "insert into project_submissions (user_id, project_slug, repo_url, notes) values (auth.uid(), 'p3', 'https://github.com/a/p3', 'secret notes') returning id");
+    let p = await pub(null);
+    expect(p?.projects.map((x) => x.slug)).not.toContain("p3");
+    await as(ADMIN, `update project_submissions set status = 'Completed' where id = ${id}`);
+    p = await pub(null);
+    expect(p?.projects).toEqual([expect.objectContaining({ slug: "p3", repo: "https://github.com/a/p3" })]);
+    expect(p?.name).toBe("Learner A");
+    expect(JSON.stringify(p)).not.toMatch(/secret notes|@x\.test/);
+    await as(A, "update profiles set public_profile = false where id = auth.uid()");
+    expect(await pub(null)).toBeNull();
   });
 });

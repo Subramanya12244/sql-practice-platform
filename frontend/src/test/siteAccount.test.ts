@@ -109,3 +109,13 @@ describe("auth page helpers", () => {
     expect(friendlyAuthError("Something else")).toBe("Something else");
   });
 });
+
+describe("review notifications", () => {
+  it("counts reviews newer than the last time the learner looked", async () => {
+    const { unseenCount } = await import("../site/lib/reviews");
+    const rows = [{ reviewed_at: "2026-11-05T10:00:00Z" }, { reviewed_at: "2026-11-04T10:00:00Z" }];
+    expect(unseenCount(rows, "")).toBe(2);
+    expect(unseenCount(rows, "2026-11-04T12:00:00Z")).toBe(1);
+    expect(unseenCount(rows, "2026-11-05T10:00:00Z")).toBe(0);
+  });
+});

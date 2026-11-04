@@ -91,7 +91,7 @@ export function ProfilePage() {
         <p className="text-ink-muted">This profile is private or doesn't exist.</p>
       ) : (
         <>
-          <PageHeader eyebrow="Profile" title={p.username} intro={`Practicing since ${new Date(p.joined).toLocaleDateString()}`} />
+          <PageHeader eyebrow="Portfolio" title={p.name || p.username} intro={`${p.headline ? `${p.headline} · ` : ""}${p.name ? `@${p.username} · ` : ""}Practicing since ${new Date(p.joined).toLocaleDateString()}`} />
           <div className="grid grid-cols-3 gap-3">
             {[["Solved", `${p.solved} / ${data.index.length}`], ["Day streak", String(streak(p.activeDays))], ["Shared solutions", String(p.solutions)]].map(([k, v]) => (
               <div key={k} className="rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel">
@@ -100,6 +100,22 @@ export function ProfilePage() {
               </div>
             ))}
           </div>
+          {(p.projects?.length ?? 0) > 0 && (
+            <>
+              <h2 className="mt-8 font-display text-xl font-bold text-ink">Reviewer-approved projects</h2>
+              <ul className="mt-3 space-y-2">
+                {p.projects!.map((pr) => (
+                  <li key={pr.slug} className="rounded-card border border-surface-border bg-surface-raised p-4 text-sm">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <Link to={`/projects-lab/${pr.slug}`} className="font-semibold text-ink hover:underline">{data.projects?.find((x) => x.slug === pr.slug)?.title ?? pr.slug}</Link>
+                      <span className="text-xs text-success">Approved {new Date(pr.approved_at).toLocaleDateString()}</span>
+                    </div>
+                    {pr.repo && <a href={pr.repo} target="_blank" rel="noopener noreferrer nofollow" className="mt-1 block break-all text-accent underline">{pr.repo}</a>}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           <h2 className="mt-8 font-display text-xl font-bold text-ink">By topic</h2>
           <ul className="mt-3 space-y-2">
             {byTopic.map((t) => (

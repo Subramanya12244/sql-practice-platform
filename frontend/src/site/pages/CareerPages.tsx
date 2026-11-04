@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, CalendarRange, CheckCircle2, Circle, Download, MessageSquareText, Printer, UserRound } from "lucide-react";
+import { Briefcase, CalendarRange, CheckCircle2, Circle, Download, MessageSquareText, Printer, Share2, UserRound } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Container, PageHeader } from "../components/ui";
 import { Seo } from "../lib/seo";
@@ -14,6 +14,7 @@ import { getRuns, runDatasets } from "../lib/dataQuality";
 import { NOTE_CATEGORIES, loadAllNotes } from "../lib/learning";
 import { topicScores } from "../lib/insights";
 import { SITE_URL } from "../lib/seo";
+import { useAuth } from "../lib/auth";
 import type { PageData } from "../types";
 
 const card = "rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel";
@@ -335,6 +336,20 @@ export function buildPortfolio(data: PageData, progress: ReturnType<typeof usePr
   };
 }
 
+/** Public link to the opt-in profile, which lists reviewer-approved projects (migration 005). */
+function ShareLink() {
+  const { enabled, profile } = useAuth();
+  const [copied, setCopied] = useState(false);
+  if (!enabled || !profile) return null;
+  if (!profile.public_profile) return <Link to="/account" className="self-center text-sm text-accent underline">Make your profile public to get a share link</Link>;
+  const url = `${SITE_URL}/profile?u=${encodeURIComponent(profile.username)}`;
+  return (
+    <button type="button" className={btn2} onClick={() => void navigator.clipboard?.writeText(url).then(() => setCopied(true))}>
+      <Share2 className="h-4 w-4" aria-hidden /> {copied ? "Link copied" : "Copy share link"}
+    </button>
+  );
+}
+
 export function PortfolioPage() {
   const { data } = usePage();
   const progress = useProgress();
@@ -371,6 +386,7 @@ export function PortfolioPage() {
       <div className="mt-3 flex gap-2 print:hidden">
         <button type="button" className={btn} onClick={download} disabled={!mounted}><Download className="h-4 w-4" aria-hidden /> Export Markdown</button>
         <button type="button" className={btn2} onClick={() => window.print()}><Printer className="h-4 w-4" aria-hidden /> Print / save PDF</button>
+        <ShareLink />
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

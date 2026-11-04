@@ -9,6 +9,8 @@ import { useAuth } from "../lib/auth";
 import { USERNAME_RE } from "../lib/account";
 import { setPublicProfile } from "../lib/community";
 import { useProgress } from "../lib/progress";
+import { markReviewsSeen, reviewsSeenAt, useMyReviews } from "../lib/reviews";
+import { ClipboardCheck } from "lucide-react";
 
 const input =
   "mt-1 w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 aria-[invalid=true]:border-danger";
@@ -283,8 +285,43 @@ export function ResetPasswordPage() {
   );
 }
 
+const REVIEW_TONE: Record<string, string> = { Completed: "text-success", "Changes requested": "text-warn", Rejected: "text-danger" };
+
+/** Admin decisions on this learner's project submissions; viewing them clears the header badge. */
+function MyReviews({ userId }: { userId: string }) {
+  const { rows } = useMyReviews(userId);
+  // What was "seen" before this visit, captured once the reviews arrive; then mark them all seen.
+  const [baseline, setBaseline] = useState<string | null>(null);
+  useEffect(() => {
+    if (!rows.length || baseline !== null) return;
+    setBaseline(reviewsSeenAt());
+    markReviewsSeen(rows[0].reviewed_at);
+  }, [rows, baseline]);
+  return (
+    <section className={card} aria-labelledby="acc-reviews">
+      <h2 id="acc-reviews" className="flex items-center gap-2 font-display text-lg font-bold text-ink"><ClipboardCheck className="h-4 w-4 text-accent" aria-hidden /> Project reviews</h2>
+      {rows.length ? (
+        <ul className="mt-3 divide-y divide-surface-border text-sm">
+          {rows.map((r) => (
+            <li key={r.id} className="py-2">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <Link to={`/projects-lab/${r.project_slug}`} className="font-semibold text-ink hover:underline">{r.project_slug}</Link>
+                <span className={`text-xs font-semibold ${REVIEW_TONE[r.status] ?? "text-ink-muted"}`}>
+                  {r.status}{baseline !== null && r.reviewed_at > baseline && <span className="ml-1 rounded bg-accent px-1 text-[10px] text-white">new</span>}
+                </span>
+              </div>
+              {r.review_comment && <p className="mt-1 text-ink-muted">"{r.review_comment}"</p>}
+              <p className="text-xs text-ink-faint">{new Date(r.reviewed_at).toLocaleString()}</p>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="mt-2 text-sm text-ink-muted">No reviews yet. Submit a project from the <Link to="/projects-lab" className="text-accent underline">Projects Lab</Link> and an admin will review it.</p>}
+    </section>
+  );
+}
+
 function PublicToggle() {
-  const { session, profile } = useAuth();
+  const { session, profile, refreshProfile } = useAuth();
   const [on, setOn] = useState(Boolean(profile?.public_profile));
   const [err, setErr] = useState<string | null>(null);
   if (!session || profile?.public_profile === undefined) return null;
@@ -297,7 +334,7 @@ function PublicToggle() {
           onChange={(e) => {
             const next = e.target.checked;
             setOn(next);
-            setPublicProfile(session.user.id, next).catch((ex: Error) => { setOn(!next); setErr(ex.message); });
+            setPublicProfile(session.user.id, next).then(refreshProfile).catch((ex: Error) => { setOn(!next); setErr(ex.message); });
           }}
         />
         Public profile (appear on the leaderboard)
@@ -381,6 +418,8 @@ export function AccountPage() {
                 {profile.role === "admin" && <Link to="/admin" className="text-accent hover:underline">Admin dashboard</Link>}
               </div>
             </section>
+
+            {session && <MyReviews userId={session.user.id} />}
 
             <section className={card} aria-labelledby="acc-password">
               <h2 id="acc-password" className="flex items-center gap-2 font-display text-lg font-bold text-ink"><KeyRound className="h-4 w-4 text-accent" aria-hidden /> Change password</h2>

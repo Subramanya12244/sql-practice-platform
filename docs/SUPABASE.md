@@ -24,6 +24,7 @@ objects only; none drops tables or deletes rows.
 3. `supabase/migrations/003_dataforge.sql`: visualization sessions, project progress and
    submissions, data quality rules and runs.
 4. `supabase/migrations/004_submission_review.sql`: admin review of project submissions.
+5. `supabase/migrations/005_public_portfolio.sql`: public profiles also list reviewer-approved projects and the portfolio name and headline. It replaces one function and changes no tables.
 
 Re-running 002 after 004 resets the audit-action list to 002's list. If you do, run 004 again.
 

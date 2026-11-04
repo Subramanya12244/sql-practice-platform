@@ -28,6 +28,8 @@ interface AuthState {
   signOut(): Promise<void>;
   changePassword(password: string): Promise<void>;
   audit(action: string, detail?: Record<string, unknown>): void;
+  /** Re-read the profile row after the user changes it (e.g. public profile). */
+  refreshProfile(): Promise<void>;
 }
 
 /** Supabase Auth messages, reworded for people. Unknown messages pass through unchanged. */
@@ -207,9 +209,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void getSupabase().then((sb) => sb.from("audit_log").insert({ user_id: session.user.id, action, detail }));
   }, [session]);
 
+  const refreshProfile = useCallback(async () => {
+    if (!session) return;
+    const sb = await getSupabase();
+    const { data } = await sb.from("profiles").select("*").eq("id", session.user.id).single();
+    if (data) setProfile(data as Profile);
+  }, [session]);
+
   const value = useMemo<AuthState>(
-    () => ({ enabled: accountsEnabled, ready, session, profile, signIn, signUp, resetPassword, signOut, changePassword, audit }),
-    [ready, session, profile, signIn, signUp, resetPassword, signOut, changePassword, audit],
+    () => ({ enabled: accountsEnabled, ready, session, profile, signIn, signUp, resetPassword, signOut, changePassword, audit, refreshProfile }),
+    [ready, session, profile, signIn, signUp, resetPassword, signOut, changePassword, audit, refreshProfile],
   );
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }
