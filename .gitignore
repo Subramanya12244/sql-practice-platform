@@ -1,0 +1,51 @@
+# Environment
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+dist-site/
+dist-site-server/
+*.local
+.npm
+.vite/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test / build
+coverage/
+*.tsbuildinfo
+
+# Docker volumes
+postgres_data/
+
+# Uploaded datasets and their generated schema (can be large / private)
+projects/*
+!projects/.gitkeep

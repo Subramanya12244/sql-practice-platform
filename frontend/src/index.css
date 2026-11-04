@@ -1,0 +1,213 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+html.light {
+  color-scheme: light;
+  --color-surface: 250 250 252;
+  --color-surface-raised: 255 255 255;
+  --color-surface-overlay: 244 244 247;
+  --color-surface-soft: 236 236 241;
+  --color-border: rgba(24, 24, 27, 0.1);
+  --color-accent: 99 102 241;
+  --color-accent-muted: 79 70 229;
+  --color-success: 5 150 105;
+  --color-danger: 220 68 68;
+  --color-warn: 180 120 10;
+  --color-ink: 24 24 27;
+  --color-ink-muted: 82 82 91;
+  --color-ink-faint: 113 113 122;
+  --color-hover: 24 24 27;
+  --bg: #fafafc;
+  --bg-glow-1: rgba(99, 102, 241, 0.07);
+  --bg-glow-2: rgba(139, 124, 248, 0.04);
+  --scrollbar: rgba(24, 24, 27, 0.12);
+  --scrollbar-hover: rgba(24, 24, 27, 0.22);
+  --shadow-panel: 0 0 0 1px rgba(24, 24, 27, 0.06);
+  --shadow-soft: 0 8px 30px rgba(24, 24, 27, 0.08);
+  --shadow-glow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 8px 24px rgba(99, 102, 241, 0.12);
+  --chart-grid: #e4e4e7;
+  --chart-tick: #71717a;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e4e4e7;
+  --chart-bar-muted: #e4e4e7;
+  --chart-bar-accent: #6366f1;
+  --chart-bar-success: #059669;
+}
+
+html.dark {
+  color-scheme: dark;
+  --color-surface: 9 9 11;
+  --color-surface-raised: 17 17 20;
+  --color-surface-overlay: 24 24 27;
+  --color-surface-soft: 31 31 36;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-accent: 139 124 248;
+  --color-accent-muted: 109 92 231;
+  --color-success: 52 211 153;
+  --color-danger: 248 113 113;
+  --color-warn: 251 191 36;
+  --color-ink: 244 244 245;
+  --color-ink-muted: 161 161 170;
+  --color-ink-faint: 113 113 122;
+  --color-hover: 255 255 255;
+  --bg: #09090b;
+  --bg-glow-1: rgba(139, 124, 248, 0.09);
+  --bg-glow-2: rgba(99, 102, 241, 0.05);
+  --scrollbar: rgba(255, 255, 255, 0.08);
+  --scrollbar-hover: rgba(255, 255, 255, 0.14);
+  --shadow-panel: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.28);
+  --shadow-glow: 0 0 0 1px rgba(139, 124, 248, 0.25), 0 8px 24px rgba(109, 92, 231, 0.18);
+  --chart-grid: #27272a;
+  --chart-tick: #a1a1aa;
+  --chart-tooltip-bg: #18181b;
+  --chart-tooltip-border: #3f3f46;
+  --chart-bar-muted: #3f3f46;
+  --chart-bar-accent: #8b7cf8;
+  --chart-bar-success: #34d399;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: rgb(var(--color-ink));
+  background:
+    radial-gradient(900px 480px at 12% -8%, var(--bg-glow-1), transparent 55%),
+    radial-gradient(700px 420px at 100% 0%, var(--bg-glow-2), transparent 50%),
+    var(--bg);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium
+      transition-all duration-base ease-out
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-0
+      disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .btn-primary {
+    @apply btn text-white shadow-glow;
+    background: linear-gradient(
+      135deg,
+      rgb(var(--color-accent)) 0%,
+      rgb(var(--color-accent-muted)) 100%
+    );
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+    filter: brightness(0.98);
+  }
+
+  .btn-secondary {
+    @apply btn border border-surface-border bg-surface-overlay/80 text-ink
+      hover:bg-surface-soft;
+  }
+  .btn-secondary:active:not(:disabled) {
+    @apply scale-[0.98];
+  }
+
+  .btn-danger {
+    @apply btn border border-danger/25 bg-danger-dim text-danger hover:bg-danger/20;
+  }
+
+  .btn-ghost {
+    @apply btn text-ink-muted hover:bg-hover/5 hover:text-ink;
+  }
+
+  .panel {
+    @apply rounded-card border border-surface-border bg-surface-raised/90 shadow-panel backdrop-blur-sm;
+  }
+
+  .card {
+    @apply panel p-5 transition-all duration-base;
+  }
+  .card-hover {
+    @apply card hover:bg-surface-overlay/70 hover:shadow-soft;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium tracking-wide;
+  }
+
+  .field-input {
+    @apply w-full rounded-xl border border-surface-border bg-surface-overlay/80 px-3.5 py-2.5 text-sm text-ink
+      placeholder:text-ink-faint transition duration-fast
+      focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-surface-border bg-surface-overlay/70
+      px-3 py-1.5 text-xs font-medium text-ink-muted transition duration-fast
+      hover:bg-surface-soft hover:text-ink;
+  }
+  .chip-active {
+    @apply border-accent/40 bg-accent-dim text-accent;
+  }
+
+  .section-label {
+    @apply mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-faint;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition duration-fast;
+  }
+  .nav-link-active {
+    @apply bg-accent-dim text-accent;
+    box-shadow: inset 0 0 0 1px rgb(var(--color-accent) / 0.22);
+  }
+  .nav-link-idle {
+    @apply text-ink-muted hover:bg-hover/5 hover:text-ink;
+  }
+
+  .page-title {
+    @apply font-display text-2xl font-semibold tracking-tight text-ink;
+  }
+  .page-subtitle {
+    @apply mt-1.5 text-sm leading-relaxed text-ink-muted;
+  }
+
+  .stat-value {
+    @apply font-display text-3xl font-semibold tracking-tight text-ink;
+  }
+
+  .divider {
+    @apply border-t border-surface-border;
+  }
+
+  .table-shell {
+    @apply overflow-hidden rounded-card border border-surface-border;
+  }
+  .table-header {
+    @apply bg-surface-overlay/80 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-faint;
+  }
+}

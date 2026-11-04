@@ -1,0 +1,681 @@
+{
+  "topics": [
+    {
+      "slug": "fundamentals",
+      "title": "Fundamentals",
+      "description": "Working tree, staging area, commits, and everyday inspection commands.",
+      "sort_order": 1
+    },
+    {
+      "slug": "branching",
+      "title": "Branching",
+      "description": "Create, switch, and merge branches — including fast-forward merges.",
+      "sort_order": 2
+    },
+    {
+      "slug": "remotes",
+      "title": "Remote Repositories",
+      "description": "Remotes, tracking branches, fetch/pull/push concepts.",
+      "sort_order": 3
+    },
+    {
+      "slug": "undoing",
+      "title": "Undoing Changes",
+      "description": "restore vs reset vs revert across working tree, index, and history.",
+      "sort_order": 4
+    },
+    {
+      "slug": "stash",
+      "title": "Stashing",
+      "description": "Temporarily shelve work and come back cleanly.",
+      "sort_order": 5
+    },
+    {
+      "slug": "rebase",
+      "title": "Rebase",
+      "description": "Rewrite local history carefully (advanced scenarios).",
+      "sort_order": 6
+    },
+    {
+      "slug": "cherry-pick",
+      "title": "Cherry-pick",
+      "description": "Apply individual commits onto another branch.",
+      "sort_order": 7
+    },
+    {
+      "slug": "recovery",
+      "title": "Recovery",
+      "description": "Reflog and recovering from accidental resets.",
+      "sort_order": 8
+    },
+    {
+      "slug": "real-world",
+      "title": "Real-world Scenarios",
+      "description": "Practical developer situations you will hit on the job.",
+      "sort_order": 9
+    }
+  ],
+  "questions": [
+    {
+      "question_number": 1,
+      "topic": "fundamentals",
+      "title": "Stage a single modified file",
+      "difficulty": "Beginner",
+      "mode": "command",
+      "scenario": "You are on `main` in `data-engineering-project`. You edited both `app.py` and `config.py`.",
+      "objective": "Learn selective staging with `git add`.",
+      "task": "Stage only `app.py`. Leave `config.py` unstaged.",
+      "concepts": ["staging area", "git add"],
+      "allowed_commands": ["git add"],
+      "repository_state": {
+        "repo_name": "data-engineering-project",
+        "current_branch": "main",
+        "head": "a100001",
+        "branches": { "main": "a100001" },
+        "commits": [
+          {
+            "hash": "a100001",
+            "message": "Initial commit",
+            "parents": [],
+            "tree": {
+              "app.py": "print('hello')\n",
+              "config.py": "DEBUG = False\n",
+              "README.md": "# Project\n"
+            }
+          }
+        ],
+        "working_tree": [
+          { "path": "app.py", "status": "M", "content": "print('hello')\nprint('world')\n" },
+          { "path": "config.py", "status": "M", "content": "DEBUG = True\n" }
+        ],
+        "staged": [],
+        "untracked": []
+      },
+      "expected_state": {
+        "current_branch": "main",
+        "staged": [{ "path": "app.py", "status": "M" }],
+        "working_tree": [{ "path": "config.py", "status": "M" }],
+        "untracked": []
+      },
+      "accepted_solutions": ["git add app.py"],
+      "hints": [
+        "Think about which Git area currently contains each file's changes.",
+        "You need a command from the `git add` family.",
+        "Stage a path explicitly: `git add <file>`."
+      ],
+      "explanation": "`git add app.py` copies that file's working-tree content into the staging area (index). Other modified files stay unstaged until you add them.",
+      "common_mistakes": [
+        "Using `git add .` which stages every change",
+        "Committing immediately without checking `git status`"
+      ]
+    },
+    {
+      "question_number": 2,
+      "topic": "fundamentals",
+      "title": "Commit staged work",
+      "difficulty": "Beginner",
+      "mode": "command",
+      "scenario": "`src/pipeline.py` is already staged on `main`.",
+      "objective": "Create a commit from the staging area.",
+      "task": "Create a commit with the message `Add pipeline entrypoint`.",
+      "concepts": ["git commit", "staging area"],
+      "allowed_commands": ["git commit"],
+      "repository_state": {
+        "repo_name": "etl-lab",
+        "current_branch": "main",
+        "head": "b200001",
+        "branches": { "main": "b200001" },
+        "commits": [
+          {
+            "hash": "b200001",
+            "message": "Init",
+            "parents": [],
+            "tree": { "README.md": "# ETL\n" }
+          }
+        ],
+        "files": {
+          "README.md": "# ETL\n",
+          "src/pipeline.py": "def main():\n    pass\n"
+        },
+        "staged": [
+          { "path": "src/pipeline.py", "status": "A", "content": "def main():\n    pass\n" }
+        ],
+        "working_tree": [],
+        "untracked": []
+      },
+      "expected_state": {
+        "current_branch": "main",
+        "staged": [],
+        "working_tree": [],
+        "untracked": [],
+        "head_message_contains": "Add pipeline entrypoint",
+        "commit_count_min": 2
+      },
+      "accepted_solutions": ["git commit -m \"Add pipeline entrypoint\"", "git commit -m 'Add pipeline entrypoint'"],
+      "hints": [
+        "Commits record whatever is currently in the staging area.",
+        "Use `git commit` with a message flag.",
+        "`git commit -m \"your message\"`."
+      ],
+      "explanation": "`git commit -m \"…\"` creates a new snapshot from the index and advances the current branch.",
+      "common_mistakes": ["Forgetting `-m`", "Trying to commit with nothing staged"]
+    },
+    {
+      "question_number": 3,
+      "topic": "fundamentals",
+      "title": "Inspect repository status",
+      "difficulty": "Beginner",
+      "mode": "command",
+      "scenario": "You just walked into a messy working tree and need situational awareness.",
+      "objective": "Use the primary inspection command.",
+      "task": "Run the command that shows branch, staged, unstaged, and untracked files.",
+      "concepts": ["git status"],
+      "allowed_commands": ["git status"],
+      "repository_state": {
+        "repo_name": "messy-repo",
+        "current_branch": "main",
+        "head": "c300001",
+        "branches": { "main": "c300001" },
+        "commits": [
+          {
+            "hash": "c300001",
+            "message": "Start",
+            "parents": [],
+            "tree": { "app.py": "x = 1\n" }
+          }
+        ],
+        "working_tree": [{ "path": "app.py", "status": "M", "content": "x = 2\n" }],
+        "staged": [],
+        "untracked": ["notes.txt"]
+      },
+      "expected_state": {
+        "current_branch": "main",
+        "working_tree": [{ "path": "app.py", "status": "M" }],
+        "untracked": ["notes.txt"]
+      },
+      "accepted_solutions": ["git status"],
+      "hints": [
+        "This command does not change the repository.",
+        "It is the first command most developers run.",
+        "`git status`."
+      ],
+      "explanation": "`git status` is read-only. For this lab, running it successfully while leaving the repo unchanged counts as solving the inspection task.",
+      "common_mistakes": ["Running `git log` instead", "Trying to fix files before inspecting"]
+    },
+    {
+      "question_number": 4,
+      "topic": "undoing",
+      "title": "Discard changes to one file",
+      "difficulty": "Beginner",
+      "mode": "scenario",
+      "scenario": "Repository: `data-engineering-project`\nCurrent branch: `feature/customer-analysis`\nWorking tree has modifications in `src/customer.py` and `src/orders.py`, plus untracked `notes.txt`.",
+      "objective": "Use restore to surgically discard working-tree changes.",
+      "task": "Discard the changes to `src/orders.py` without affecting `src/customer.py` or `notes.txt`.",
+      "concepts": ["git restore", "working tree"],
+      "allowed_commands": ["git restore"],
+      "repository_state": {
+        "repo_name": "data-engineering-project",
+        "current_branch": "feature/customer-analysis",
+        "head": "d400001",
+        "branches": {
+          "main": "d400000",
+          "feature/customer-analysis": "d400001"
+        },
+        "commits": [
+          {
+            "hash": "d400000",
+            "message": "Base",
+            "parents": [],
+            "tree": {
+              "src/customer.py": "customers = []\n",
+              "src/orders.py": "orders = []\n"
+            }
+          },
+          {
+            "hash": "d400001",
+            "message": "Add customer analysis",
+            "parents": ["d400000"],
+            "tree": {
+              "src/customer.py": "customers = []\n",
+              "src/orders.py": "orders = []\n"
+            }
+          }
+        ],
+        "working_tree": [
+          { "path": "src/customer.py", "status": "M", "content": "customers = [1]\n" },
+          { "path": "src/orders.py", "status": "M", "content": "orders = [1]\n" }
+        ],
+        "staged": [],
+        "untracked": ["notes.txt"]
+      },
+      "expected_state": {
+        "current_branch": "feature/customer-analysis",
+        "working_tree": [{ "path": "src/customer.py", "status": "M" }],
+        "staged": [],
+        "untracked": ["notes.txt"]
+      },
+      "accepted_solutions": ["git restore src/orders.py", "git checkout -- src/orders.py"],
+      "hints": [
+        "Think about which Git area currently contains the unwanted edits.",
+        "Look at `git restore` for working-tree recovery.",
+        "`git restore <path>` restores the path from the index/HEAD."
+      ],
+      "explanation": "`git restore src/orders.py` replaces the working-tree file with the indexed (committed) version. Other files are untouched. Prefer `restore` over older `checkout --` syntax.",
+      "common_mistakes": [
+        "Using `git restore .` and wiping customer.py too",
+        "Using `git reset --hard` which destroys everything"
+      ]
+    },
+    {
+      "question_number": 5,
+      "topic": "undoing",
+      "title": "Unstage a file",
+      "difficulty": "Beginner",
+      "mode": "scenario",
+      "scenario": "You accidentally staged `secrets.env` and still want to keep your local edits.",
+      "objective": "Unstage without discarding working-tree changes.",
+      "task": "Unstage `secrets.env` but keep the file modifications in the working tree.",
+      "concepts": ["git restore --staged", "staging area"],
+      "allowed_commands": ["git restore"],
+      "repository_state": {
+        "repo_name": "api-service",
+        "current_branch": "main",
+        "head": "e500001",
+        "branches": { "main": "e500001" },
+        "commits": [
+          {
+            "hash": "e500001",
+            "message": "Init",
+            "parents": [],
+            "tree": { "secrets.env": "TOKEN=old\n", "app.py": "ok\n" }
+          }
+        ],
+        "working_tree": [],
+        "staged": [
+          { "path": "secrets.env", "status": "M", "content": "TOKEN=new\n" }
+        ],
+        "files": { "secrets.env": "TOKEN=new\n", "app.py": "ok\n" },
+        "untracked": []
+      },
+      "expected_state": {
+        "current_branch": "main",
+        "staged": [],
+        "working_tree": [{ "path": "secrets.env", "status": "M" }],
+        "untracked": []
+      },
+      "accepted_solutions": [
+        "git restore --staged secrets.env",
+        "git reset HEAD secrets.env"
+      ],
+      "hints": [
+        "Think about which Git area currently contains the file.",
+        "Look at `git restore` with a staging-area flag.",
+        "`git restore --staged <path>`."
+      ],
+      "explanation": "`git restore --staged` removes the path from the index while leaving the working tree alone. That is different from `git restore <path>`, which rewrites the working tree.",
+      "common_mistakes": [
+        "Using `git restore secrets.env` which also discards edits",
+        "Using `git reset --hard`"
+      ]
+    },
+    {
+      "question_number": 6,
+      "topic": "branching",
+      "title": "Create a feature branch",
+      "difficulty": "Beginner",
+      "mode": "command",
+      "scenario": "You are on `main` and need an isolated line of work.",
+      "objective": "Create and switch to a new branch in one step.",
+      "task": "Create and switch to branch `feature/login`.",
+      "concepts": ["git switch", "branch creation"],
+      "allowed_commands": ["git switch", "git checkout"],
+      "repository_state": {
+        "repo_name": "webapp",
+        "current_branch": "main",
+        "head": "f600001",
+        "branches": { "main": "f600001" },
+        "commits": [
+          {
+            "hash": "f600001",
+            "message": "Init",
+            "parents": [],
+            "tree": { "README.md": "# Web\n" }
+          }
+        ],
+        "working_tree": [],
+        "staged": [],
+        "untracked": []
+      },
+      "expected_state": {
+        "current_branch": "feature/login",
+        "branch_exists": ["feature/login", "main"],
+        "working_tree": [],
+        "staged": []
+      },
+      "accepted_solutions": [
+        "git switch -c feature/login",
+        "git checkout -b feature/login"
+      ],
+      "hints": [
+        "You need both a new branch name and to move HEAD there.",
+        "`git switch` can create branches with `-c`.",
+        "`git switch -c feature/login`."
+      ],
+      "explanation": "`git switch -c feature/login` creates the branch at the current commit and checks it out. Equivalent older form: `git checkout -b feature/login`.",
+      "common_mistakes": [
+        "Creating with `git branch` but forgetting to switch",
+        "Typos in the branch name"
+      ]
+    },
+    {
+      "question_number": 7,
+      "topic": "branching",
+      "title": "Fast-forward merge a feature",
+      "difficulty": "Intermediate",
+      "mode": "scenario",
+      "scenario": "`feature/metrics` is ahead of `main` with no divergent commits. You are on `main`.",
+      "objective": "Integrate a feature with a fast-forward merge.",
+      "task": "Merge `feature/metrics` into `main`.",
+      "concepts": ["git merge", "fast-forward"],
+      "allowed_commands": ["git merge"],
+      "repository_state": {
+        "repo_name": "metrics-app",
+        "current_branch": "main",
+        "head": "g700001",
+        "branches": {
+          "main": "g700001",
+          "feature/metrics": "g700002"
+        },
+        "commits": [
+          {
+            "hash": "g700001",
+            "message": "Base",
+            "parents": [],
+            "tree": { "app.py": "v1\n" }
+          },
+          {
+            "hash": "g700002",
+            "message": "Add metrics",
+            "parents": ["g700001"],
+            "tree": { "app.py": "v1\n", "metrics.py": "ok\n" }
+          }
+        ],
+        "working_tree": [],
+        "staged": [],
+        "untracked": []
+      },
+      "expected_state": {
+        "current_branch": "main",
+        "head": "g700002",
+        "branches": {
+          "main": "g700002",
+          "feature/metrics": "g700002"
+        },
+        "working_tree": [],
+        "staged": []
+      },
+      "accepted_solutions": ["git merge feature/metrics"],
+      "hints": [
+        "You are already on the branch that should receive the changes.",
+        "Use the merge family of commands.",
+        "`git merge feature/metrics`."
+      ],
+      "explanation": "Because `main` was a direct ancestor of `feature/metrics`, Git can fast-forward `main` to that tip without creating a merge commit.",
+      "common_mistakes": ["Merging while on the feature branch", "Rebasing when a FF merge is enough"]
+    },
+    {
+      "question_number": 8,
+      "topic": "stash",
+      "title": "Stash local work",
+      "difficulty": "Intermediate",
+      "mode": "scenario",
+      "scenario": "You have uncommitted edits but need a clean tree to switch context.",
+      "objective": "Shelve working-tree and staged changes.",
+      "task": "Stash your local modifications so the working tree becomes clean.",
+      "concepts": ["git stash"],
+      "allowed_commands": ["git stash"],
+      "repository_state": {
+        "repo_name": "service",
+        "current_branch": "feature/tmp",
+        "head": "h800001",
+        "branches": { "feature/tmp": "h800001", "main": "h800001" },
+        "commits": [
+          {
+            "hash": "h800001",
+            "message": "Init",
+            "parents": [],
+            "tree": { "main.py": "print(1)\n" }
+          }
+        ],
+        "working_tree": [
+          { "path": "main.py", "status": "M", "content": "print(2)\n" }
+        ],
+        "staged": [],
+        "untracked": []
+      },
+      "expected_state": {
+        "current_branch": "feature/tmp",
+        "working_tree": [],
+        "staged": [],
+        "stash_count": 1
+      },
+      "accepted_solutions": ["git stash", "git stash push", "git stash save"],
+      "hints": [
+        "You need a temporary shelf for unfinished work.",
+        "Look at the stash command family.",
+        "`git stash` (or `git stash push`)."
+      ],
+      "explanation": "`git stash` records local modifications and resets the working tree/index to HEAD. Use `stash pop`/`apply` later to restore.",
+      "common_mistakes": ["Committing WIP to main", "Using reset --hard and losing work"]
+    },
+    {
+      "question_number": 9,
+      "topic": "real-world",
+      "title": "Fix an accidental stage",
+      "difficulty": "Beginner",
+      "mode": "scenario",
+      "scenario": "You meant to stage `src/api.py` but staged `src/legacy.py` instead.",
+      "objective": "Correct the staging area surgically.",
+      "task": "Unstage `src/legacy.py` while keeping its working-tree edits. (Next, you would stage `src/api.py` — practice that as a follow-up once this is clean.)",
+      "concepts": ["git restore --staged", "staging area"],
+      "allowed_commands": ["git restore", "git reset"],
+      "repository_state": {
+        "repo_name": "platform",
+        "current_branch": "feature/api",
+        "head": "i900001",
+        "branches": { "feature/api": "i900001" },
+        "commits": [
+          {
+            "hash": "i900001",
+            "message": "Base",
+            "parents": [],
+            "tree": {
+              "src/api.py": "old\n",
+              "src/legacy.py": "old\n"
+            }
+          }
+        ],
+        "files": {
+          "src/api.py": "new api\n",
+          "src/legacy.py": "new legacy\n"
+        },
+        "working_tree": [
+          { "path": "src/api.py", "status": "M", "content": "new api\n" }
+        ],
+        "staged": [
+          { "path": "src/legacy.py", "status": "M", "content": "new legacy\n" }
+        ],
+        "untracked": []
+      },
+      "expected_state": {
+        "current_branch": "feature/api",
+        "staged": [],
+        "working_tree": [
+          { "path": "src/api.py", "status": "M" },
+          { "path": "src/legacy.py", "status": "M" }
+        ],
+        "untracked": []
+      },
+      "accepted_solutions": [
+        "git restore --staged src/legacy.py",
+        "git reset HEAD src/legacy.py"
+      ],
+      "hints": [
+        "You need to move changes out of the staging area — not discard them.",
+        "Look at `git restore` with a staging-area flag.",
+        "`git restore --staged src/legacy.py`."
+      ],
+      "explanation": "`git restore --staged src/legacy.py` removes the path from the index while leaving the working tree alone. Afterwards you can `git add src/api.py` when you are ready.",
+      "common_mistakes": [
+        "Using `git restore src/legacy.py` which also discards edits",
+        "Using `git reset --hard`"
+      ]
+    },
+    {
+      "question_number": 10,
+      "topic": "remotes",
+      "title": "Add an origin remote",
+      "difficulty": "Beginner",
+      "mode": "command",
+      "scenario": "Your local repo has commits but no remotes configured yet.",
+      "objective": "Register a remote named origin.",
+      "task": "Add a remote named `origin` with URL `https://github.com/example/practice.git`.",
+      "concepts": ["git remote"],
+      "allowed_commands": ["git remote"],
+      "repository_state": {
+        "repo_name": "practice",
+        "current_branch": "main",
+        "head": "j100001",
+        "branches": { "main": "j100001" },
+        "commits": [
+          {
+            "hash": "j100001",
+            "message": "Init",
+            "parents": [],
+            "tree": { "README.md": "# Hi\n" }
+          }
+        ],
+        "remotes": {},
+        "working_tree": [],
+        "staged": [],
+        "untracked": []
+      },
+      "expected_state": {
+        "current_branch": "main",
+        "remotes": {
+          "origin": "https://github.com/example/practice.git"
+        }
+      },
+      "accepted_solutions": [
+        "git remote add origin https://github.com/example/practice.git"
+      ],
+      "hints": [
+        "Remotes are named bookmarks for other repositories.",
+        "Use the `git remote` family.",
+        "`git remote add origin <url>`."
+      ],
+      "explanation": "`git remote add` only records a URL locally. It does not fetch or push until you run those commands.",
+      "common_mistakes": ["Using clone when a repo already exists", "Typos in the remote name"]
+    },
+    {
+      "question_number": 11,
+      "topic": "undoing",
+      "title": "Undo the last local commit (keep changes)",
+      "difficulty": "Intermediate",
+      "mode": "scenario",
+      "scenario": "You committed too early on `main`. The commit has not been pushed. You want the changes back in the staging area.",
+      "objective": "Move HEAD back one commit without losing the snapshot contents.",
+      "task": "Reset the last commit but keep its changes staged.",
+      "concepts": ["git reset --soft"],
+      "allowed_commands": ["git reset"],
+      "repository_state": {
+        "repo_name": "service",
+        "current_branch": "main",
+        "head": "k110002",
+        "branches": { "main": "k110002" },
+        "commits": [
+          {
+            "hash": "k110001",
+            "message": "Base",
+            "parents": [],
+            "tree": { "a.txt": "1\n" }
+          },
+          {
+            "hash": "k110002",
+            "message": "Too early",
+            "parents": ["k110001"],
+            "tree": { "a.txt": "1\n", "b.txt": "2\n" }
+          }
+        ],
+        "working_tree": [],
+        "staged": [],
+        "untracked": []
+      },
+      "expected_state": {
+        "current_branch": "main",
+        "head": "k110001",
+        "staged": [{ "path": "b.txt", "status": "A" }],
+        "working_tree": []
+      },
+      "accepted_solutions": ["git reset --soft HEAD~1", "git reset --soft HEAD^"],
+      "hints": [
+        "You want to move a branch pointer without discarding file contents.",
+        "Look at `git reset` modes — soft vs mixed vs hard.",
+        "`git reset --soft HEAD~1`."
+      ],
+      "explanation": "`--soft` moves HEAD/branch back but leaves the index and working tree as they were, so the undone commit's changes remain staged.",
+      "common_mistakes": ["reset --hard (destroys changes)", "revert (adds a new commit)"]
+    },
+    {
+      "question_number": 12,
+      "topic": "real-world",
+      "title": "Delete a merged feature branch",
+      "difficulty": "Beginner",
+      "mode": "command",
+      "scenario": "Feature work is merged. Clean up the local branch name while staying on `main`.",
+      "objective": "Delete a local branch safely.",
+      "task": "Delete the local branch `feature/done`.",
+      "concepts": ["git branch -d"],
+      "allowed_commands": ["git branch"],
+      "repository_state": {
+        "repo_name": "app",
+        "current_branch": "main",
+        "head": "l120002",
+        "branches": {
+          "main": "l120002",
+          "feature/done": "l120002"
+        },
+        "commits": [
+          {
+            "hash": "l120001",
+            "message": "Base",
+            "parents": [],
+            "tree": { "x": "1\n" }
+          },
+          {
+            "hash": "l120002",
+            "message": "Feature",
+            "parents": ["l120001"],
+            "tree": { "x": "1\n", "y": "2\n" }
+          }
+        ],
+        "working_tree": [],
+        "staged": [],
+        "untracked": []
+      },
+      "expected_state": {
+        "current_branch": "main",
+        "branch_exists": ["main"],
+        "branch_missing": ["feature/done"]
+      },
+      "accepted_solutions": ["git branch -d feature/done", "git branch -D feature/done"],
+      "hints": [
+        "Branch names are pointers — deleting one does not delete commits that are still reachable from main.",
+        "Use `git branch` with a delete flag.",
+        "`git branch -d feature/done`."
+      ],
+      "explanation": "`git branch -d` removes the local branch ref. Commits remain reachable from `main` after the merge/fast-forward.",
+      "common_mistakes": ["Trying to delete the branch you are on", "Using rm -rf .git"]
+    }
+  ]
+}

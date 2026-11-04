@@ -1,0 +1,131 @@
+/* Light theme: a deeper indigo so accent text and white-on-accent buttons meet WCAG AA (4.5:1). */
+:root,
+html.light {
+  --color-accent: 79 70 229;
+  --color-accent-muted: 67 56 202;
+  --color-success: 4 120 87;
+  --color-warn: 146 64 14;
+  --color-danger: 185 28 28;
+}
+
+/* Public site: document scrolls normally (the local app uses full-height panes). */
+html,
+body,
+#root {
+  height: auto;
+  min-height: 100%;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Rendered Markdown (problem text, guides, answers). */
+.prose-site {
+  line-height: 1.7;
+  color: rgb(var(--color-ink) / 0.92);
+}
+.prose-site > :first-child {
+  margin-top: 0;
+}
+.prose-site p,
+.prose-site ul,
+.prose-site ol,
+.prose-site pre,
+.prose-site table,
+.prose-site blockquote {
+  margin: 0.85em 0;
+}
+.prose-site h2 {
+  margin: 2em 0 0.6em;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: rgb(var(--color-ink));
+}
+.prose-site h3 {
+  margin: 1.6em 0 0.4em;
+  font-size: 1.1rem;
+  font-weight: 650;
+  color: rgb(var(--color-ink));
+}
+.prose-site ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.prose-site ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.prose-site li + li {
+  margin-top: 0.3em;
+}
+.prose-site a {
+  color: rgb(var(--color-accent));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-site strong {
+  font-weight: 650;
+  color: rgb(var(--color-ink));
+}
+.prose-site code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.88em;
+  padding: 0.1em 0.35em;
+  border-radius: 6px;
+  background: rgb(var(--color-surface-soft));
+  color: rgb(var(--color-accent-muted));
+}
+html.dark .prose-site code {
+  color: rgb(var(--color-accent));
+}
+.prose-site pre {
+  overflow-x: auto;
+  padding: 1em 1.1em;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: rgb(var(--color-surface-overlay));
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.prose-site pre code {
+  padding: 0;
+  background: none;
+  color: rgb(var(--color-ink));
+}
+.prose-site table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.prose-site th,
+.prose-site td {
+  padding: 0.45em 0.8em;
+  border: 1px solid var(--color-border);
+  text-align: left;
+  white-space: nowrap;
+}
+.prose-site th {
+  background: rgb(var(--color-surface-overlay));
+  font-weight: 600;
+}
+.prose-site blockquote {
+  padding: 0.6em 1em;
+  border-left: 3px solid rgb(var(--color-accent));
+  background: rgb(var(--color-accent) / 0.08);
+  border-radius: 0 10px 10px 0;
+}
+.prose-site hr {
+  margin: 2em 0;
+  border-color: var(--color-border);
+}
+
+@media print {
+  header,
+  footer {
+    display: none !important;
+  }
+}

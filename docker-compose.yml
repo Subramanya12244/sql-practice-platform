@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sql-practice-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sh:/docker-entrypoint-initdb.d/00_init.sh:ro
+      - ./database/schema.sql:/docker-init-assets/schema.sql:ro
+      - ./database/seed.sql:/docker-init-assets/seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sql-practice-backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sql_readonly:readonly_pass@postgres:5432/northwind
+      APP_DATABASE_URL: postgresql+asyncpg://sql_app:app_pass@postgres:5432/sql_practice
+      DATABASE_ADMIN_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/northwind
+      APP_DATABASE_ADMIN_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/sql_practice
+      QUERY_TIMEOUT_SECONDS: "5"
+      QUERY_MAX_ROWS: "1000"
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000,http://frontend:5173
+      GITHUB_REPOSITORY: ${GITHUB_REPOSITORY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_BRANCH: ${GITHUB_BRANCH:-main}
+      QUESTIONS_FILE_PATH: /app/questions/questions.json
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./questions:/app/questions:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sql-practice-frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
