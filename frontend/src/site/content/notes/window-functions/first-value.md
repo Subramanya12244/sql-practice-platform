@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: FIRST_VALUE returns the value from the first row of the window frame, e.g. each customer's first product or first order date.
 prerequisites: [window-order-by, partition-by]
 related: [last-value, row-number, lag, min-max]
-questions: [107, 119]
+questions: [156, 168]
 patterns: [earliest-latest-transactions, latest-record-per-group]
 guides: [window-functions]
 minutes: 7

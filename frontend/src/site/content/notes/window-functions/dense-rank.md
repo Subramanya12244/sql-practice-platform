@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: DENSE_RANK ranks tied rows equally without gaps, the standard tool for Nth highest value and top-N distinct values per group.
 prerequisites: [rank, partition-by]
 related: [rank, row-number, ranking-within-groups]
-questions: [99, 100]
+questions: [148, 149]
 patterns: [nth-highest, second-highest, top-n-per-group]
 guides: [rank-vs-dense-rank-vs-row-number, nth-highest-value, second-highest-value]
 minutes: 7

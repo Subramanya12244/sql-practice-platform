@@ -4,7 +4,7 @@ slug: gaps-and-islands
 category: dates
 difficulty: Advanced
 description: Group consecutive rows into islands and find gaps between them using LAG with a running SUM of break flags, or the ROW_NUMBER difference trick.
-questions: [104, 109, 119]
+questions: [153, 158, 168]
 notes: [lag, lead, running-totals, row-number]
 guides: [gaps-and-islands]
 ---

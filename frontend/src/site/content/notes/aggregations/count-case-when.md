@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: Count only rows that meet a condition with COUNT(CASE WHEN ... THEN 1 END) and SUM(CASE ...). Avoid the ELSE 0 trap.
 prerequisites: [count, case]
 related: [conditional-aggregation, filter-clause, sum, null-handling]
-questions: [130, 86, 92, 93]
+questions: [179, 86, 92, 93]
 patterns: [conditional-aggregation, pivot-report]
 guides: [conditional-aggregation-pivot, count-star-vs-count-column]
 minutes: 6

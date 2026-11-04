@@ -4,7 +4,7 @@ slug: running-total
 category: running
 difficulty: Intermediate
 description: Compute cumulative sums with SUM() OVER (ORDER BY … ROWS UNBOUNDED PRECEDING), per group with PARTITION BY, and avoid RANGE tie surprises.
-questions: [101, 119, 105]
+questions: [150, 168, 154]
 notes: [running-totals, window-order-by, partition-by, sum]
 guides: [running-total]
 ---

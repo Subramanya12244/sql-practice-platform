@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: PARTITION BY splits rows into independent groups for a window function, like GROUP BY but without collapsing rows.
 prerequisites: [over, group-by]
 related: [window-order-by, row-number, rank, ranking-within-groups]
-questions: [14, 23, 98, 104, 109]
+questions: [14, 23, 147, 153, 158]
 patterns: [top-n-per-group, latest-record-per-group]
 guides: [window-functions, top-n-per-group]
 minutes: 8

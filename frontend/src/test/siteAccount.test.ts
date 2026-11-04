@@ -80,3 +80,15 @@ SELECT count(*) FROM orders;
     expect(parseOrderBy("a, b desc")).toEqual([{ column: "a", desc: false }, { column: "b", desc: true }]);
   });
 });
+
+import { migrateProgress } from "../site/lib/progress";
+describe("renumber migration", () => {
+  it("moves Q98–Q142 progress to Q147–Q191 once and leaves other numbers alone", () => {
+    const old: Progress = { version: 1, questions: { 5: { attempts: 1 }, 98: { attempts: 2, solvedAt: "x" }, 142: { attempts: 1 } }, activeDays: [], cards: { 100: { box: 3, due: "d" } } };
+    const m = migrateProgress(old);
+    expect(Object.keys(m.questions).sort()).toEqual(["147", "191", "5"]);
+    expect(m.questions[147].solvedAt).toBe("x");
+    expect(Object.keys(m.cards)).toEqual(["149"]);
+    expect(migrateProgress(m)).toBe(m);
+  });
+});

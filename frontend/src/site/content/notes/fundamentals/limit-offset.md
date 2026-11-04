@@ -6,7 +6,7 @@ difficulty: Beginner
 description: Return the top N rows and paginate with LIMIT, OFFSET and FETCH FIRST in PostgreSQL, plus why keyset pagination beats large offsets.
 prerequisites: [order-by]
 related: [order-by, row-number, dense-rank, indexes, query-optimization]
-questions: [3, 4, 5, 20, 122]
+questions: [3, 4, 5, 20, 171]
 patterns: [second-highest, nth-highest, top-n-per-group]
 guides: [second-highest-value, nth-highest-value]
 minutes: 6

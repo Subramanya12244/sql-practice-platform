@@ -4,7 +4,7 @@ slug: modifying-data
 order: 15
 level: Intermediate
 description: Change data with SQL INSERT, UPDATE, DELETE, PostgreSQL UPSERT (ON CONFLICT) and RETURNING, with safe Northwind examples run inside transactions.
-related: [q29-products-never-ordered, q114-unshipped-orders-older-than-30-days]
+related: [q29-products-never-ordered, q163-unshipped-orders-older-than-30-days]
 ---
 
 Data-modifying statements change rows. In PostgreSQL every one of them can end with `RETURNING`, which hands back the affected rows as a result set. Exercises here run inside a transaction that is rolled back, so nothing is saved.

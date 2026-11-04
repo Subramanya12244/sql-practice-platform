@@ -178,8 +178,8 @@
             "detail": "INSERT/UPDATE/DELETE ... RETURNING in WITH.",
             "note": "cte",
             "questions": [
-              138,
-              140
+              187,
+              189
             ],
             "children": []
           }

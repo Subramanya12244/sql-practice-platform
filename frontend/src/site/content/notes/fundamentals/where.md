@@ -6,7 +6,7 @@ difficulty: Beginner
 description: Filter rows with SQL WHERE in PostgreSQL - comparisons, ranges, lists, patterns, NULL checks, and the WHERE vs HAVING difference.
 prerequisites: [select]
 related: [comparison-operators, logical-operators, null-handling, having, in-not-in]
-questions: [112, 114, 121, 136]
+questions: [161, 163, 170, 185]
 patterns: []
 guides: [group-by-having]
 minutes: 7

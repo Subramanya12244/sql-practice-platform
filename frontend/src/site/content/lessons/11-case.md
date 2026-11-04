@@ -4,7 +4,7 @@ slug: case
 order: 11
 level: Intermediate
 description: Add conditional logic to SQL with CASE: searched and simple forms, bucketing values, conditional aggregation and custom sort orders on Northwind.
-related: [q82-contact-directory-with-type-label, q106-customer-revenue-quartiles, q112-late-shipments-with-days-late]
+related: [q82-contact-directory-with-type-label, q155-customer-revenue-quartiles, q161-late-shipments-with-days-late]
 ---
 
 `CASE` is SQL's if/else. It returns a value, so it can appear anywhere an expression can: `SELECT`, `WHERE`, `ORDER BY`, inside aggregates.

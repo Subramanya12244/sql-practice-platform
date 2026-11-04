@@ -6,7 +6,7 @@ difficulty: Advanced
 description: 1NF, 2NF, 3NF and BCNF explained with Northwind, plus update anomalies, functional dependencies and when to denormalize.
 prerequisites: [primary-foreign-keys, inner-join]
 related: [database-design, primary-foreign-keys, constraints, jsonb, views]
-questions: [2, 10, 125, 141]
+questions: [2, 10, 174, 190]
 patterns: [find-duplicates]
 guides: []
 minutes: 10

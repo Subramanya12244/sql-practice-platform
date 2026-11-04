@@ -107,7 +107,7 @@ FROM orders
 ORDER BY customer_id, order_date DESC, order_id DESC;
 ```
 
-This is the idea behind [Latest Order per Customer](/questions/q98-latest-order-per-customer).
+This is the idea behind [Latest Order per Customer](/questions/q147-latest-order-per-customer).
 
 ## Common mistakes
 

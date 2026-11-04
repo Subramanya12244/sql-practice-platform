@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: How primary keys identify rows and foreign keys link tables, with referential actions, composite keys, surrogate vs natural keys and indexing.
 prerequisites: [constraints, inner-join]
 related: [constraints, normalization, database-design, self-join, indexes]
-questions: [28, 29, 61, 139, 141]
+questions: [28, 29, 61, 188, 190]
 patterns: [unmatched-records, customers-without-orders, self-referencing, hierarchical-queries]
 guides: [left-join, self-join]
 minutes: 9

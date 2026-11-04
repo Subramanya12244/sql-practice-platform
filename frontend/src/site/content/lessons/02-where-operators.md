@@ -4,7 +4,7 @@ slug: where-operators
 order: 2
 level: Beginner
 description: Filter rows with SQL WHERE: comparison operators, AND/OR/NOT, IN, BETWEEN, LIKE and ILIKE pattern matching, with Northwind examples.
-related: [q66-customers-from-the-same-country, q61-employees-without-a-manager, q114-unshipped-orders-older-than-30-days]
+related: [q66-customers-from-the-same-country, q61-employees-without-a-manager, q163-unshipped-orders-older-than-30-days]
 ---
 
 `WHERE` keeps only rows for which a condition is true. It runs before grouping and before `SELECT` aliases exist.

@@ -6,7 +6,7 @@ difficulty: Advanced
 description: ACID, BEGIN/COMMIT/ROLLBACK, savepoints, isolation levels and MVCC in PostgreSQL, with the anomalies each level prevents.
 prerequisites: [select, constraints]
 related: [constraints, primary-foreign-keys, temporary-tables, indexes]
-questions: [135, 136, 137, 138, 139, 140]
+questions: [184, 185, 186, 187, 188, 189]
 patterns: []
 guides: []
 minutes: 11

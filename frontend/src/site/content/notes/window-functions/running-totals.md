@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: Compute cumulative sums with SUM() OVER (ORDER BY ...), choose ROWS vs RANGE correctly, and reset totals per group in PostgreSQL.
 prerequisites: [sum, window-order-by, partition-by]
 related: [moving-averages, window-order-by, over, lag]
-questions: [101, 119, 105]
+questions: [150, 168, 154]
 patterns: [running-total, month-over-month-growth]
 guides: [running-total]
 minutes: 8

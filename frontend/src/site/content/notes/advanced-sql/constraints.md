@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: Enforce data rules in the database with NOT NULL, UNIQUE, CHECK, PRIMARY KEY, FOREIGN KEY, DEFAULT and PostgreSQL exclusion constraints.
 prerequisites: [select, null-handling]
 related: [primary-foreign-keys, transactions, indexes, normalization, database-design]
-questions: [139, 141, 142]
+questions: [188, 190, 191]
 patterns: [find-duplicates]
 guides: []
 minutes: 9

@@ -33,6 +33,8 @@ export interface Progress {
   dailyGoal?: number;
   /** Learning actions per day, for the goal meter. */
   dayCounts?: Record<string, number>;
+  /** One-off data migrations already applied to this record. */
+  migrations?: string[];
 }
 
 /** Receives every change so a signed-in account can mirror it; null when anonymous. */
@@ -47,7 +49,22 @@ export function setProgressSink(next: ProgressSink | null) {
 }
 
 const KEY = "sqlp.public.progress";
-const EMPTY: Progress = { version: 1, questions: {}, activeDays: [], cards: {} };
+const RENUMBER = "q98-142-to-q147-191";
+const EMPTY: Progress = { version: 1, questions: {}, activeDays: [], cards: {}, migrations: [RENUMBER] };
+
+/**
+ * Practice questions Q98–Q142 became Q147–Q191 (they clashed with imported Q98–Q146).
+ * Move saved attempts and flashcard boxes so nobody loses progress.
+ */
+export function migrateProgress(p: Progress): Progress {
+  if (p.migrations?.includes(RENUMBER)) return p;
+  const shift = <T,>(rec: Record<string, T>) =>
+    Object.fromEntries(Object.entries(rec).map(([k, v]) => {
+      const n = Number(k);
+      return [n >= 98 && n <= 142 ? String(n + 49) : k, v];
+    }));
+  return { ...p, questions: shift(p.questions), cards: shift(p.cards), migrations: [...(p.migrations ?? []), RENUMBER] };
+}
 const listeners = new Set<() => void>();
 let current: Progress = EMPTY;
 let loaded = false;
@@ -59,7 +76,7 @@ function read(): Progress {
     const raw = typeof localStorage !== "undefined" ? localStorage.getItem(KEY) : null;
     if (raw) {
       const parsed = JSON.parse(raw) as Progress;
-      if (parsed && parsed.version === 1) current = { ...EMPTY, ...parsed };
+      if (parsed && parsed.version === 1) current = migrateProgress({ ...EMPTY, ...parsed, migrations: parsed.migrations ?? [] });
     }
   } catch {
     /* storage unavailable or corrupt — start fresh */
@@ -223,7 +240,7 @@ export function importProgress(json: string): boolean {
   try {
     const parsed = JSON.parse(json) as Progress;
     if (parsed?.version !== 1 || typeof parsed.questions !== "object") return false;
-    write({ ...EMPTY, ...parsed });
+    write(migrateProgress({ ...EMPTY, migrations: [], ...parsed }));
     return true;
   } catch {
     return false;

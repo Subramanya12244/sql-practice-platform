@@ -6,7 +6,7 @@ difficulty: Beginner
 description: Find smallest and largest values with SQL MIN and MAX on numbers, dates and text, plus tie-safe ways to return the row that holds the max.
 prerequisites: [select, group-by]
 related: [avg, group-by, scalar-subqueries, row-number, first-value]
-questions: [22, 26, 50, 113, 119, 129]
+questions: [22, 26, 50, 162, 168, 178]
 patterns: [latest-record-per-group, earliest-latest-transactions, second-highest]
 guides: [aggregate-functions, second-highest-value]
 minutes: 7

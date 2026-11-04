@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: ROW_NUMBER assigns a unique sequential number to each row in a partition; the go-to tool for dedup, latest-per-group and pagination.
 prerequisites: [over, partition-by, window-order-by]
 related: [rank, dense-rank, ranking-within-groups, cte]
-questions: [98, 100, 14, 23]
+questions: [147, 149, 14, 23]
 patterns: [latest-record-per-group, top-n-per-group, remove-duplicates, find-duplicates]
 guides: [rank-vs-dense-rank-vs-row-number, top-n-per-group]
 minutes: 8

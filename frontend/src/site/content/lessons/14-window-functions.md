@@ -4,7 +4,7 @@ slug: window-functions
 order: 14
 level: Advanced
 description: Learn SQL window functions on Northwind: ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD, running totals, moving averages and PARTITION BY.
-related: [q99-rank-vs-dense-rank-product-prices, q100-top-3-products-by-revenue-per-category, q101-running-total-of-monthly-revenue, q103-month-over-month-revenue-change, q105-customer-share-of-total-revenue]
+related: [q148-rank-vs-dense-rank-product-prices, q149-top-3-products-by-revenue-per-category, q150-running-total-of-monthly-revenue, q152-month-over-month-revenue-change, q154-customer-share-of-total-revenue]
 ---
 
 A window function computes a value for each row using a set of related rows (the window) without collapsing them like `GROUP BY` does.

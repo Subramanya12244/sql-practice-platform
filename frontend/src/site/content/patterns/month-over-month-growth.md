@@ -4,7 +4,7 @@ slug: month-over-month-growth
 category: growth
 difficulty: Intermediate
 description: Compare each month with the previous one using LAG, compute percent change safely with NULLIF, and handle months with no data.
-questions: [103, 101, 117]
+questions: [152, 150, 166]
 notes: [lag, date-time-functions, null-handling, window-order-by]
 guides: [lag-and-lead]
 ---

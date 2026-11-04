@@ -55,11 +55,11 @@ Multi-step questions such as "above average" or "best X per Y" need either a sub
 
 The skill that most separates mid-level from junior candidates. Guides: [window functions](/concepts/window-functions), [RANK vs DENSE_RANK vs ROW_NUMBER](/concepts/rank-vs-dense-rank-vs-row-number), [top N per group](/concepts/top-n-per-group), [running total](/concepts/running-total), [LAG and LEAD](/concepts/lag-and-lead).
 
-- [Top 3 Products by Revenue per Category](/questions/q100-top-3-products-by-revenue-per-category): `ROW_NUMBER` or `DENSE_RANK` partitioned by category, filtered outside.
-- [RANK vs DENSE_RANK Product Prices](/questions/q99-rank-vs-dense-rank-product-prices): explaining tie behaviour.
-- [Running Total of Monthly Revenue](/questions/q101-running-total-of-monthly-revenue): `SUM() OVER (ORDER BY month)` on a pre-aggregated CTE.
-- [Days Until Next Customer Order](/questions/q104-days-until-next-customer-order): `LEAD` within a customer partition.
-- [Customer Share of Total Revenue](/questions/q105-customer-share-of-total-revenue): `SUM() OVER ()` for percent of total.
+- [Top 3 Products by Revenue per Category](/questions/q149-top-3-products-by-revenue-per-category): `ROW_NUMBER` or `DENSE_RANK` partitioned by category, filtered outside.
+- [RANK vs DENSE_RANK Product Prices](/questions/q148-rank-vs-dense-rank-product-prices): explaining tie behaviour.
+- [Running Total of Monthly Revenue](/questions/q150-running-total-of-monthly-revenue): `SUM() OVER (ORDER BY month)` on a pre-aggregated CTE.
+- [Days Until Next Customer Order](/questions/q153-days-until-next-customer-order): `LEAD` within a customer partition.
+- [Customer Share of Total Revenue](/questions/q154-customer-share-of-total-revenue): `SUM() OVER ()` for percent of total.
 
 The classic "second highest salary" also lives here; see [Nth highest value](/concepts/nth-highest-value) and practise with [Top Customer(s) by Revenue (Tie-Safe)](/questions/q50-top-customer-s-by-revenue-tie-safe-interview-level).
 
@@ -67,11 +67,11 @@ The classic "second highest salary" also lives here; see [Nth highest value](/co
 
 Almost every business question has a time dimension. Guides: [PostgreSQL date functions](/concepts/date-functions-postgresql), [year-over-year growth](/concepts/year-over-year-growth).
 
-- [Orders per Year and Month](/questions/q110-orders-per-year-and-month): `DATE_TRUNC` vs `EXTRACT` for bucketing.
-- [Late Shipments with Days Late](/questions/q112-late-shipments-with-days-late): date subtraction and NULL shipped dates.
-- [Year-over-Year Revenue Growth](/questions/q117-year-over-year-revenue-growth): `LAG` over yearly totals with `NULLIF`.
-- [Customers Inactive in Last Six Months](/questions/q118-customers-inactive-in-last-six-months): `INTERVAL` arithmetic against a fixed "today".
-- [First Order Month Cohort Size](/questions/q119-first-order-month-cohort-size): `MIN(order_date)` per customer, then grouping by cohort.
+- [Orders per Year and Month](/questions/q159-orders-per-year-and-month): `DATE_TRUNC` vs `EXTRACT` for bucketing.
+- [Late Shipments with Days Late](/questions/q161-late-shipments-with-days-late): date subtraction and NULL shipped dates.
+- [Year-over-Year Revenue Growth](/questions/q166-year-over-year-revenue-growth): `LAG` over yearly totals with `NULLIF`.
+- [Customers Inactive in Last Six Months](/questions/q167-customers-inactive-in-last-six-months): `INTERVAL` arithmetic against a fixed "today".
+- [First Order Month Cohort Size](/questions/q168-first-order-month-cohort-size): `MIN(order_date)` per customer, then grouping by cohort.
 
 ## Skill group 6: NULL handling and counting
 
@@ -80,7 +80,7 @@ NULLs cause the subtle bugs interviewers love. Guides: [NULL handling and COALES
 - [Customers and Latest Order Date](/questions/q26-customers-and-latest-order-date): NULL `MAX` for customers without orders, and `NULLS LAST` sorting.
 - [Customers and Average Order Value](/questions/q40-customers-and-average-order-value): avoiding divide-by-zero and NULL averages.
 - [Employees Without a Manager](/questions/q61-employees-without-a-manager): `IS NULL`, never `= NULL`.
-- [Unshipped Orders Older Than 30 Days](/questions/q114-unshipped-orders-older-than-30-days): NULL as a business state.
+- [Unshipped Orders Older Than 30 Days](/questions/q163-unshipped-orders-older-than-30-days): NULL as a business state.
 
 ## Skill group 7: Set operators
 
@@ -95,9 +95,9 @@ Less common but quick wins when they appear. Guides: [UNION vs UNION ALL](/conce
 
 Reporting-style questions often want categories as columns. Guide: [pivot with CASE WHEN / FILTER](/concepts/conditional-aggregation-pivot).
 
-- [Revenue by Quarter](/questions/q111-revenue-by-quarter): one aggregate per period.
-- [Orders by Day of Week](/questions/q116-orders-by-day-of-week): `EXTRACT(DOW ...)` grouped and labelled.
-- [Average Days to Ship per Shipper](/questions/q113-average-days-to-ship-per-shipper): aggregating a derived date difference.
+- [Revenue by Quarter](/questions/q160-revenue-by-quarter): one aggregate per period.
+- [Orders by Day of Week](/questions/q165-orders-by-day-of-week): `EXTRACT(DOW ...)` grouped and labelled.
+- [Average Days to Ship per Shipper](/questions/q162-average-days-to-ship-per-shipper): aggregating a derived date difference.
 
 ## Example
 

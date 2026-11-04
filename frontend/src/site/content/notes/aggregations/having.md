@@ -6,7 +6,7 @@ difficulty: Beginner
 description: Filter groups after aggregation with HAVING, and learn when to use WHERE instead. PostgreSQL examples on Northwind.
 prerequisites: [group-by, where]
 related: [count, sum, avg, conditional-aggregation, scalar-subqueries]
-questions: [15, 16, 17, 62, 127]
+questions: [15, 16, 17, 62, 176]
 patterns: [find-duplicates]
 guides: [group-by-having]
 minutes: 7

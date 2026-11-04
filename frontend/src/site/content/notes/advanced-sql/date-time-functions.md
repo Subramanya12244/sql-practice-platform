@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: Extract parts, truncate to periods, add intervals and subtract dates in PostgreSQL with EXTRACT, DATE_TRUNC, AGE and TO_CHAR.
 prerequisites: [select, where, group-by]
 related: [string-functions, running-totals, lag, window-order-by]
-questions: [110, 111, 112, 113, 115, 119]
+questions: [159, 160, 161, 162, 164, 168]
 patterns: [month-over-month-growth, year-over-year-growth, consecutive-dates, gaps-and-islands, inactive-customers]
 guides: [date-functions-postgresql, year-over-year-growth]
 minutes: 9

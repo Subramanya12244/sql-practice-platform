@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: Use the standard FILTER (WHERE ...) clause in PostgreSQL to restrict each aggregate to matching rows. Cleaner than CASE.
 prerequisites: [count, sum, group-by]
 related: [conditional-aggregation, count-case-when, having, over]
-questions: [130, 131]
+questions: [179, 180]
 patterns: [conditional-aggregation, pivot-report]
 guides: [conditional-aggregation-pivot]
 minutes: 6

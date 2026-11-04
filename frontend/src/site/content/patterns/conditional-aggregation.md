@@ -4,7 +4,7 @@ slug: conditional-aggregation
 category: reshape
 difficulty: Intermediate
 description: Compute several filtered counts and sums in one pass with SUM(CASE WHEN …) or PostgreSQL's FILTER clause.
-questions: [130, 92, 93, 97, 86]
+questions: [179, 92, 93, 97, 86]
 notes: [conditional-aggregation, count-case-when, filter-clause, case]
 guides: [conditional-aggregation-pivot]
 ---

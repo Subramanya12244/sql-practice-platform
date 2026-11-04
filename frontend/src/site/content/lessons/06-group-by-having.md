@@ -4,7 +4,7 @@ slug: group-by-having
 order: 6
 level: Beginner
 description: Group rows with SQL GROUP BY and filter groups with HAVING; learn WHERE vs HAVING with Northwind customer, product and category examples.
-related: [q02-category-revenue, q35-categories-and-number-of-products, q36-suppliers-and-number-of-products, q110-orders-per-year-and-month]
+related: [q02-category-revenue, q35-categories-and-number-of-products, q36-suppliers-and-number-of-products, q159-orders-per-year-and-month]
 ---
 
 `GROUP BY` splits rows into groups that share the same values, then aggregates run once per group. `HAVING` filters groups after aggregation, the way `WHERE` filters rows before it.

@@ -20,7 +20,7 @@
             "detail": "Pick columns and expressions from a table.",
             "note": "select",
             "questions": [
-              122
+              171
             ],
             "children": []
           },
@@ -30,7 +30,7 @@
             "detail": "Keep rows matching a boolean condition.",
             "note": "where",
             "questions": [
-              112
+              161
             ],
             "prereq": [
               "select"
@@ -43,7 +43,7 @@
             "detail": "Combine predicates; mind precedence and NULL logic.",
             "note": "logical-operators",
             "questions": [
-              121
+              170
             ],
             "prereq": [
               "where"
@@ -79,7 +79,7 @@
             "detail": "Three-valued logic; IS NULL, COALESCE, NULLIF.",
             "note": "null-handling",
             "questions": [
-              133
+              182
             ],
             "prereq": [
               "where"
@@ -92,7 +92,7 @@
             "detail": "Conditional values inside any expression.",
             "note": "case",
             "questions": [
-              128
+              177
             ],
             "prereq": [
               "select"
@@ -213,7 +213,7 @@
             "detail": "SUM(CASE ...) or agg FILTER (WHERE ...).",
             "note": "conditional-aggregation",
             "questions": [
-              130
+              179
             ],
             "prereq": [
               "groupby",
@@ -305,8 +305,8 @@
             "detail": "ROW_NUMBER, RANK, DENSE_RANK.",
             "note": "row-number",
             "questions": [
-              98,
-              99
+              147,
+              148
             ],
             "children": []
           },
@@ -316,8 +316,8 @@
             "detail": "Access previous or next rows.",
             "note": "lag",
             "questions": [
-              103,
-              104
+              152,
+              153
             ],
             "children": []
           },
@@ -327,8 +327,8 @@
             "detail": "SUM/AVG OVER with ROWS frames.",
             "note": "running-totals",
             "questions": [
-              101,
-              102
+              150,
+              151
             ],
             "children": []
           }
@@ -363,8 +363,8 @@
             "detail": "DATE_TRUNC, EXTRACT, intervals.",
             "note": "date-time-functions",
             "questions": [
-              110,
-              115
+              159,
+              164
             ],
             "children": []
           },
@@ -374,8 +374,8 @@
             "detail": "CONCAT, SPLIT_PART, LIKE, regex.",
             "note": "string-functions",
             "questions": [
-              120,
-              123
+              169,
+              172
             ],
             "children": []
           }
@@ -396,7 +396,7 @@
             "detail": "PRIMARY KEY, FOREIGN KEY, CHECK, UNIQUE.",
             "note": "constraints",
             "questions": [
-              142
+              191
             ],
             "children": []
           },
@@ -416,8 +416,8 @@
             "detail": "BEGIN/COMMIT, isolation, atomic DML.",
             "note": "transactions",
             "questions": [
-              139,
-              140
+              188,
+              189
             ],
             "children": []
           }

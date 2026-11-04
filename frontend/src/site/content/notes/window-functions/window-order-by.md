@@ -6,7 +6,7 @@ difficulty: Advanced
 description: How ORDER BY inside OVER sets row order, peers and the default frame, and how ROWS, RANGE and GROUPS frames differ in PostgreSQL.
 prerequisites: [over, partition-by, order-by]
 related: [running-totals, moving-averages, last-value, first-value]
-questions: [101, 102, 107, 119]
+questions: [150, 151, 156, 168]
 patterns: [running-total, moving-average]
 guides: [window-functions, running-total]
 minutes: 12

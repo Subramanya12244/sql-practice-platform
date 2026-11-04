@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: RANK gives tied rows the same rank and leaves gaps after ties, ideal for tie-safe top-1 and competition-style ranking.
 prerequisites: [row-number, partition-by]
 related: [dense-rank, row-number, ranking-within-groups]
-questions: [14, 23, 24, 99]
+questions: [14, 23, 24, 148]
 patterns: [top-n-per-group, nth-highest]
 guides: [rank-vs-dense-rank-vs-row-number, top-n-per-group]
 minutes: 7

@@ -4,7 +4,7 @@ slug: second-highest
 category: ranking
 difficulty: Beginner
 description: Find the second highest value with MAX below MAX, DENSE_RANK, or OFFSET 1, handling ties and the no-second-value case.
-questions: [99, 22, 50]
+questions: [148, 22, 50]
 notes: [dense-rank, scalar-subqueries, limit-offset, min-max]
 guides: [second-highest-value]
 ---

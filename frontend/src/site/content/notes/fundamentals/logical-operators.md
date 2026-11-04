@@ -6,7 +6,7 @@ difficulty: Beginner
 description: Combine SQL conditions with AND, OR and NOT, understand operator precedence and three-valued logic with NULL in PostgreSQL.
 prerequisites: [where, comparison-operators]
 related: [where, comparison-operators, null-handling, case, in-not-in]
-questions: [114, 121, 128, 130]
+questions: [163, 170, 177, 179]
 patterns: []
 guides: []
 minutes: 6

@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: Save a query as a named virtual table with CREATE VIEW, and learn updatable views, materialized views and when each is the right choice.
 prerequisites: [select, inner-join, group-by]
 related: [cte, temporary-tables, query-optimization, database-design]
-questions: [1, 3, 31, 141]
+questions: [1, 3, 31, 190]
 patterns: []
 guides: [cte]
 minutes: 8

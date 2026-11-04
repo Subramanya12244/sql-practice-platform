@@ -6,7 +6,7 @@ difficulty: Beginner
 description: Use SQL CASE for if-then logic - simple and searched forms, bucketing, custom sorting, safe division and conditional aggregation in PostgreSQL.
 prerequisites: [select, logical-operators]
 related: [conditional-aggregation, count-case-when, filter-clause, null-handling, order-by]
-questions: [128, 129, 130, 132, 134]
+questions: [177, 178, 179, 181, 183]
 patterns: [conditional-aggregation, pivot-report]
 guides: [conditional-aggregation-pivot]
 minutes: 8

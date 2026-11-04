@@ -4,7 +4,7 @@ slug: consecutive-dates
 category: dates
 difficulty: Advanced
 description: Detect consecutive days or streaks with LAG date differences, or with the date minus ROW_NUMBER trick, and find the longest streak.
-questions: [104, 109, 112]
+questions: [153, 158, 161]
 notes: [lag, row-number, date-time-functions, window-order-by]
 guides: [gaps-and-islands, lag-and-lead]
 ---

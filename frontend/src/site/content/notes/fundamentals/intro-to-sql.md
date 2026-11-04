@@ -6,7 +6,7 @@ difficulty: Beginner
 description: What SQL is, how a relational database stores data in tables, and the logical order PostgreSQL uses to evaluate a SELECT query.
 prerequisites: []
 related: [select, where, order-by, inner-join, group-by]
-questions: [1, 3, 5, 110]
+questions: [1, 3, 5, 159]
 patterns: []
 guides: [sql-order-of-execution]
 minutes: 7

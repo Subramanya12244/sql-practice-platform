@@ -43,7 +43,7 @@
             "note": "avg",
             "questions": [
               6,
-              113
+              162
             ],
             "children": []
           },
@@ -63,8 +63,8 @@
             "detail": "Concatenate with ORDER BY inside.",
             "note": "string-functions",
             "questions": [
-              125,
-              127
+              174,
+              176
             ],
             "children": []
           }
@@ -95,8 +95,8 @@
             "detail": "CASE or DATE_TRUNC buckets.",
             "note": "group-by",
             "questions": [
-              129,
-              110
+              178,
+              159
             ],
             "children": []
           },
@@ -136,7 +136,7 @@
             "note": "having",
             "questions": [
               62,
-              127
+              176
             ],
             "children": []
           },
@@ -188,7 +188,7 @@
             "detail": "Postgres-native, cleaner.",
             "note": "filter-clause",
             "questions": [
-              130
+              179
             ],
             "children": []
           },
@@ -199,7 +199,7 @@
             "note": "conditional-aggregation",
             "pattern": "pivot-report",
             "questions": [
-              131
+              180
             ],
             "children": []
           }
@@ -231,7 +231,7 @@
             "detail": "SUM(x) / SUM(SUM(x)) OVER ().",
             "note": "over",
             "questions": [
-              105
+              154
             ],
             "children": []
           }
@@ -259,7 +259,7 @@
             "detail": "Use NULLIF(denominator, 0).",
             "note": "null-handling",
             "questions": [
-              133
+              182
             ],
             "children": []
           },

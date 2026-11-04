@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: Concatenate, search, split, clean and aggregate text in PostgreSQL with ||, CONCAT, LIKE, SPLIT_PART, REPLACE, regex and STRING_AGG.
 prerequisites: [select, where, null-handling]
 related: [date-time-functions, group-by, case, null-handling]
-questions: [120, 121, 122, 123, 124, 125]
+questions: [169, 170, 171, 172, 173, 174]
 patterns: [find-duplicates]
 guides: []
 minutes: 9

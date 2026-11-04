@@ -58,7 +58,7 @@
             "detail": "Any column from FROM items, scalar subqueries.",
             "note": "where",
             "questions": [
-              112
+              161
             ],
             "children": []
           },
@@ -82,7 +82,7 @@
             "detail": "Filter on rank via an outer query.",
             "note": "row-number",
             "questions": [
-              98
+              147
             ],
             "children": []
           }
@@ -103,7 +103,7 @@
             "detail": "PostgreSQL allows SELECT aliases and ordinals here (extension).",
             "note": "group-by",
             "questions": [
-              129
+              178
             ],
             "children": []
           },
@@ -173,7 +173,7 @@
             "detail": "Use a subquery/CTE, then WHERE on result.",
             "note": "ranking-within-groups",
             "questions": [
-              100
+              149
             ],
             "children": []
           }
@@ -220,7 +220,7 @@
             "note": "distinct",
             "pattern": "latest-record-per-group",
             "questions": [
-              98
+              147
             ],
             "children": []
           }
@@ -259,7 +259,7 @@
             "note": "null-handling",
             "questions": [
               26,
-              118
+              167
             ],
             "children": []
           },
@@ -269,7 +269,7 @@
             "detail": "Custom sort orders.",
             "note": "case",
             "questions": [
-              132
+              181
             ],
             "children": []
           }

@@ -6,7 +6,7 @@ difficulty: Advanced
 description: LAST_VALUE returns the value at the last row of the frame; learn why the default frame breaks it and how to fix it in PostgreSQL.
 prerequisites: [first-value, window-order-by]
 related: [first-value, lead, row-number]
-questions: [107]
+questions: [156]
 patterns: [latest-record-per-group, earliest-latest-transactions]
 guides: [window-functions]
 minutes: 8

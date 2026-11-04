@@ -6,7 +6,7 @@ difficulty: Advanced
 description: Build, query, index and unnest JSON documents in PostgreSQL with jsonb, ->, ->>, @>, jsonb_agg and jsonb_array_elements.
 prerequisites: [select, group-by, string-functions]
 related: [indexes, normalization, database-design, cte]
-questions: [125, 141]
+questions: [174, 190]
 patterns: []
 guides: []
 minutes: 10

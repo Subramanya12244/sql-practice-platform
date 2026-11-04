@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: LAG reads a value from a previous row in the window order, used for period-over-period change, gaps between events and streaks.
 prerequisites: [over, partition-by, window-order-by]
 related: [lead, first-value, running-totals, date-time-functions]
-questions: [103, 109, 117]
+questions: [152, 158, 166]
 patterns: [month-over-month-growth, year-over-year-growth, consecutive-dates, gaps-and-islands]
 guides: [lag-and-lead, year-over-year-growth, gaps-and-islands]
 minutes: 8

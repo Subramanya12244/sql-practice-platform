@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: Compute several filtered aggregates in one pass with SUM(CASE ...) and FILTER. Build pivot reports in PostgreSQL.
 prerequisites: [group-by, case, sum]
 related: [count-case-when, filter-clause, having, union-all]
-questions: [86, 92, 93, 97, 130, 131]
+questions: [86, 92, 93, 97, 179, 180]
 patterns: [conditional-aggregation, pivot-report]
 guides: [conditional-aggregation-pivot, pivot-rows-to-columns]
 minutes: 9

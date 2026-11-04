@@ -4,7 +4,7 @@ slug: remove-duplicates
 category: dedup
 difficulty: Intermediate
 description: Delete duplicate rows but keep one per key, using ROW_NUMBER with ctid in PostgreSQL, or keep-the-minimum-id DELETE … USING.
-questions: [138, 98]
+questions: [187, 147]
 notes: [row-number, partition-by, cte, transactions]
 guides: [find-duplicates]
 ---

@@ -4,7 +4,7 @@ slug: moving-average
 category: running
 difficulty: Intermediate
 description: Smooth a series with AVG() OVER (ROWS BETWEEN N PRECEDING AND CURRENT ROW), handle short windows, and use RANGE with intervals for calendar windows.
-questions: [102, 101, 109]
+questions: [151, 150, 158]
 notes: [moving-averages, window-order-by, avg, running-totals]
 guides: [window-functions]
 ---

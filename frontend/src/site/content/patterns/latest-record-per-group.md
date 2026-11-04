@@ -4,7 +4,7 @@ slug: latest-record-per-group
 category: latest
 difficulty: Intermediate
 description: Fetch the most recent row for each key with ROW_NUMBER, DISTINCT ON in PostgreSQL, or a join to MAX(date).
-questions: [98, 26, 118]
+questions: [147, 26, 167]
 notes: [row-number, partition-by, correlated-subqueries, min-max]
 guides: [top-n-per-group]
 ---

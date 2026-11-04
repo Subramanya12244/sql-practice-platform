@@ -4,7 +4,7 @@ slug: nth-highest
 category: ranking
 difficulty: Intermediate
 description: Return the Nth highest distinct value with DENSE_RANK, OFFSET N-1, or a correlated COUNT, and choose how ties are treated.
-questions: [99, 100, 14]
+questions: [148, 149, 14]
 notes: [dense-rank, rank, limit-offset, correlated-subqueries]
 guides: [nth-highest-value, rank-vs-dense-rank-vs-row-number]
 ---

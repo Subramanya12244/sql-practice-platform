@@ -114,7 +114,7 @@ ORDER BY growth_pct DESC NULLS LAST;
 | Per group, many years | `LAG() OVER (PARTITION BY grp ORDER BY yr)` |
 | Two specific years side by side | `SUM(...) FILTER (WHERE yr = ...)` |
 | Same month last year | `LAG(x, 12)` on a complete monthly series, or self-join on `month - INTERVAL '1 year'` |
-| Month-over-month | `LAG` on a monthly CTE, see [Month-over-Month Revenue Change](/questions/q103-month-over-month-revenue-change) |
+| Month-over-month | `LAG` on a monthly CTE, see [Month-over-Month Revenue Change](/questions/q152-month-over-month-revenue-change) |
 
 ## Interview questions
 

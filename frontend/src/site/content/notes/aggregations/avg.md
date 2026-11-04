@@ -6,7 +6,7 @@ difficulty: Beginner
 description: How SQL AVG computes means, why NULLs change the result, integer averages in PostgreSQL, and averages of aggregates like average order value.
 prerequisites: [sum, count]
 related: [sum, min-max, group-by, scalar-subqueries, moving-averages]
-questions: [6, 7, 8, 40, 113, 133]
+questions: [6, 7, 8, 40, 162, 182]
 patterns: [moving-average]
 guides: [aggregate-functions]
 minutes: 7

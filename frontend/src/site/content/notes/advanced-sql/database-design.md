@@ -6,7 +6,7 @@ difficulty: Expert
 description: Design relational schemas from requirements: entities, cardinality, keys, data types, constraints, indexes and OLTP vs OLAP trade-offs, using Northwind.
 prerequisites: [normalization, primary-foreign-keys, constraints]
 related: [normalization, primary-foreign-keys, constraints, indexes, views, jsonb, join-cardinality]
-questions: [41, 61, 86, 141, 142]
+questions: [41, 61, 86, 190, 191]
 patterns: [self-referencing, hierarchical-queries]
 guides: []
 minutes: 11

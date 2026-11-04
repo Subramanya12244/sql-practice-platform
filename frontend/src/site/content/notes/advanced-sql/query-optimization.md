@@ -6,7 +6,7 @@ difficulty: Expert
 description: Read EXPLAIN plans, write sargable filters, choose joins vs subqueries wisely and avoid common performance traps in PostgreSQL.
 prerequisites: [indexes, inner-join, group-by]
 related: [indexes, join-vs-subquery, exists-not-exists, cte-vs-subquery, views]
-questions: [3, 28, 98, 100, 118]
+questions: [3, 28, 147, 149, 167]
 patterns: [anti-join, top-n-per-group, latest-record-per-group]
 guides: [sql-order-of-execution, exists-vs-in]
 minutes: 11

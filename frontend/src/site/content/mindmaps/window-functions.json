@@ -30,7 +30,7 @@
             "detail": "Defines row order; enables running frames.",
             "note": "window-order-by",
             "questions": [
-              101
+              150
             ],
             "children": []
           },
@@ -40,8 +40,8 @@
             "detail": "WINDOW w AS (...) for reuse.",
             "note": "over",
             "questions": [
-              102,
-              104
+              151,
+              153
             ],
             "children": []
           },
@@ -51,7 +51,7 @@
             "detail": "Whole result set, e.g. percent of total.",
             "note": "over",
             "questions": [
-              105
+              154
             ],
             "children": []
           }
@@ -73,7 +73,7 @@
             "note": "row-number",
             "pattern": "latest-record-per-group",
             "questions": [
-              98
+              147
             ],
             "children": []
           },
@@ -84,7 +84,7 @@
             "note": "rank",
             "questions": [
               14,
-              99
+              148
             ],
             "children": []
           },
@@ -95,8 +95,8 @@
             "note": "dense-rank",
             "pattern": "nth-highest",
             "questions": [
-              99,
-              100
+              148,
+              149
             ],
             "children": []
           },
@@ -106,7 +106,7 @@
             "detail": "Split into n buckets.",
             "note": "ranking-within-groups",
             "questions": [
-              106
+              155
             ],
             "children": []
           },
@@ -116,7 +116,7 @@
             "detail": "Relative position 0-1.",
             "note": "rank",
             "questions": [
-              108
+              157
             ],
             "children": []
           },
@@ -127,7 +127,7 @@
             "note": "ranking-within-groups",
             "pattern": "top-n-per-group",
             "questions": [
-              100,
+              149,
               24
             ],
             "children": []
@@ -150,8 +150,8 @@
             "note": "lag",
             "pattern": "month-over-month-growth",
             "questions": [
-              103,
-              117
+              152,
+              166
             ],
             "children": []
           },
@@ -161,7 +161,7 @@
             "detail": "Next row's value.",
             "note": "lead",
             "questions": [
-              104
+              153
             ],
             "children": []
           },
@@ -172,7 +172,7 @@
             "note": "lag",
             "pattern": "gaps-and-islands",
             "questions": [
-              109
+              158
             ],
             "children": []
           },
@@ -183,7 +183,7 @@
             "note": "first-value",
             "pattern": "earliest-latest-transactions",
             "questions": [
-              107
+              156
             ],
             "children": []
           },
@@ -193,7 +193,7 @@
             "detail": "Default frame ends at current row; extend it.",
             "note": "last-value",
             "questions": [
-              107
+              156
             ],
             "children": []
           }
@@ -215,8 +215,8 @@
             "note": "running-totals",
             "pattern": "running-total",
             "questions": [
-              101,
-              119
+              150,
+              168
             ],
             "children": []
           },
@@ -227,7 +227,7 @@
             "note": "moving-averages",
             "pattern": "moving-average",
             "questions": [
-              102
+              151
             ],
             "children": []
           },
@@ -237,8 +237,8 @@
             "detail": "x / SUM(x) OVER ().",
             "note": "over",
             "questions": [
-              105,
-              134
+              154,
+              183
             ],
             "children": []
           }
@@ -259,7 +259,7 @@
             "detail": "Physical row offsets.",
             "note": "moving-averages",
             "questions": [
-              102
+              151
             ],
             "children": []
           },
@@ -291,7 +291,7 @@
             "detail": "Wrap in CTE then filter.",
             "note": "cte",
             "questions": [
-              98
+              147
             ],
             "children": []
           },

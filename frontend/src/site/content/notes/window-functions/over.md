@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: The OVER clause turns an aggregate or ranking function into a window function that computes per row without collapsing rows.
 prerequisites: [group-by, sum, order-by]
 related: [partition-by, window-order-by, running-totals, row-number]
-questions: [105, 101, 13, 134]
+questions: [154, 150, 13, 183]
 patterns: [running-total, top-n-per-group]
 guides: [window-functions]
 minutes: 9

@@ -4,7 +4,7 @@ slug: inactive-customers
 category: latest
 difficulty: Intermediate
 description: Find customers with no orders in the last N months relative to a reference date, including never-ordered customers, using MAX(order_date) and LEFT JOIN.
-questions: [118, 26, 28]
+questions: [167, 26, 28]
 notes: [left-join, min-max, date-time-functions, exists-not-exists]
 guides: [date-functions-postgresql, left-join]
 ---

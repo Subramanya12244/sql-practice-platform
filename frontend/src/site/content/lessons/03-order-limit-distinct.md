@@ -4,7 +4,7 @@ slug: order-limit-distinct
 order: 3
 level: Beginner
 description: Sort results with SQL ORDER BY, page with LIMIT and OFFSET, and remove duplicates with DISTINCT and DISTINCT ON, using Northwind data.
-related: [q03-top-10-customers-by-revenue, q05-top-5-customers-by-number-of-orders, q99-rank-vs-dense-rank-product-prices, q98-latest-order-per-customer]
+related: [q03-top-10-customers-by-revenue, q05-top-5-customers-by-number-of-orders, q148-rank-vs-dense-rank-product-prices, q147-latest-order-per-customer]
 ---
 
 Rows have no natural order. `ORDER BY` defines one, `LIMIT`/`OFFSET` take a slice of it, and `DISTINCT` drops duplicate rows.

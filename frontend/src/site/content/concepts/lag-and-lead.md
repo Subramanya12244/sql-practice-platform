@@ -73,7 +73,7 @@ FROM monthly
 ORDER BY month;
 ```
 
-That is the core of [Month-over-Month Revenue Change](/questions/q103-month-over-month-revenue-change). For yearly comparison see [year-over-year growth](/concepts/year-over-year-growth).
+That is the core of [Month-over-Month Revenue Change](/questions/q152-month-over-month-revenue-change). For yearly comparison see [year-over-year growth](/concepts/year-over-year-growth).
 
 ## Common mistakes
 
@@ -94,7 +94,7 @@ That is the core of [Month-over-Month Revenue Change](/questions/q103-month-over
 | Cumulative value up to this row | `SUM() OVER (ORDER BY ...)`, see [running total](/concepts/running-total) |
 | Databases without window functions | Self-join on `ROW_NUMBER` or correlated `MAX(date) WHERE date < current` |
 
-The average gap between events is a natural follow-up: compute the gap with `LAG`, then `AVG` it per group, as in [Average Gap Between Employee Orders](/questions/q109-average-gap-between-employee-orders).
+The average gap between events is a natural follow-up: compute the gap with `LAG`, then `AVG` it per group, as in [Average Gap Between Employee Orders](/questions/q158-average-gap-between-employee-orders).
 
 ## Interview questions
 

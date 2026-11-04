@@ -6,7 +6,7 @@ difficulty: Beginner
 description: SQL comparison operators in PostgreSQL - =, <>, <, >, BETWEEN, IN, LIKE, ILIKE, IS NULL and IS DISTINCT FROM, with NULL behaviour explained.
 prerequisites: [where]
 related: [where, logical-operators, null-handling, in-not-in, string-functions]
-questions: [112, 114, 121, 124]
+questions: [161, 163, 170, 173]
 patterns: []
 guides: [null-handling-coalesce]
 minutes: 7

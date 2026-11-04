@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: LEAD reads a value from a following row in the window order, used for time-to-next-event, validity ranges and next status.
 prerequisites: [lag, partition-by]
 related: [lag, last-value, date-time-functions]
-questions: [104, 109]
+questions: [153, 158]
 patterns: [consecutive-dates, gaps-and-islands, earliest-latest-transactions]
 guides: [lag-and-lead]
 minutes: 6

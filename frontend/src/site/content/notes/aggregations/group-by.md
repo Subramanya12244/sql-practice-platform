@@ -6,7 +6,7 @@ difficulty: Beginner
 description: How SQL GROUP BY collapses rows into groups, the select-list rule, grouping by expressions, NULL groups, and ROLLUP and GROUPING SETS in PostgreSQL.
 prerequisites: [count, sum]
 related: [having, count, sum, conditional-aggregation, partition-by, distinct]
-questions: [1, 2, 4, 10, 110, 129]
+questions: [1, 2, 4, 10, 159, 178]
 patterns: [find-duplicates, pivot-report]
 guides: [group-by-having, sql-order-of-execution]
 minutes: 9

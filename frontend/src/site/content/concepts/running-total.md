@@ -63,7 +63,7 @@ The `ytd` column restarts at 1997-02, while `running_total` keeps growing. Month
 3. With `ORDER BY` and no frame, the default frame is `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`: every row from the start of the partition up to the current one, plus its peers.
 4. `PARTITION BY EXTRACT(YEAR FROM month)` makes each year an independent window.
 
-Swap `SUM` for `AVG` and narrow the frame to get a moving average, as in [Three-Month Moving Average Revenue](/questions/q102-three-month-moving-average-revenue):
+Swap `SUM` for `AVG` and narrow the frame to get a moving average, as in [Three-Month Moving Average Revenue](/questions/q151-three-month-moving-average-revenue):
 
 ```sql
 WITH monthly AS (
@@ -97,7 +97,7 @@ The first row averages one month, the second row two, and from the third row on 
 
 - **Cumulative totals, YTD, running counts:** `SUM()` / `COUNT()` `OVER (ORDER BY ...)`.
 - **Change from previous period:** `LAG()`; see [LAG and LEAD](/concepts/lag-and-lead).
-- **Share of total:** `value / SUM(value) OVER ()`, as in [Customer Share of Total Revenue](/questions/q105-customer-share-of-total-revenue).
+- **Share of total:** `value / SUM(value) OVER ()`, as in [Customer Share of Total Revenue](/questions/q154-customer-share-of-total-revenue).
 - **Older databases without window functions:** correlated subquery or self-join with `<=`, accepting the cost.
 
 ## Interview questions

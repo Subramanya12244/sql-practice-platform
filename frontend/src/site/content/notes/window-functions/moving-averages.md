@@ -6,7 +6,7 @@ difficulty: Advanced
 description: Build rolling averages with AVG() OVER and ROWS or RANGE frames, handle partial windows and date gaps in PostgreSQL.
 prerequisites: [avg, window-order-by, running-totals]
 related: [running-totals, window-order-by, date-time-functions]
-questions: [102, 101]
+questions: [151, 150]
 patterns: [moving-average]
 guides: [window-functions]
 minutes: 9

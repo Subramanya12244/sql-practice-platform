@@ -6,7 +6,7 @@ difficulty: Advanced
 description: Rank rows per group with PARTITION BY, choose ROW_NUMBER, RANK or DENSE_RANK for ties, and solve top-N per group in PostgreSQL.
 prerequisites: [row-number, rank, dense-rank, partition-by]
 related: [row-number, rank, dense-rank, cte]
-questions: [14, 23, 24, 98, 100, 106, 108]
+questions: [14, 23, 24, 147, 149, 155, 157]
 patterns: [top-n-per-group, latest-record-per-group, nth-highest]
 guides: [top-n-per-group, rank-vs-dense-rank-vs-row-number]
 minutes: 10

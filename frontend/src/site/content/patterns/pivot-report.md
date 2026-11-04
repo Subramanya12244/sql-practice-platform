@@ -4,7 +4,7 @@ slug: pivot-report
 category: reshape
 difficulty: Intermediate
 description: Turn rows into columns (categories by year, countries by quarter) with SUM … FILTER or CASE; PostgreSQL has no PIVOT keyword.
-questions: [131, 111, 130]
+questions: [180, 160, 179]
 notes: [conditional-aggregation, filter-clause, case, date-time-functions]
 guides: [pivot-rows-to-columns, conditional-aggregation-pivot]
 ---

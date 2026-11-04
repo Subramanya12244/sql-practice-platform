@@ -6,7 +6,7 @@ difficulty: Beginner
 description: Learn SQL SELECT in PostgreSQL - choose columns, compute expressions, use aliases and casts, and avoid SELECT * in production queries.
 prerequisites: [intro-to-sql]
 related: [where, distinct, order-by, case, null-handling]
-questions: [1, 120, 122, 128]
+questions: [1, 169, 171, 177]
 patterns: []
 guides: [sql-order-of-execution]
 minutes: 7

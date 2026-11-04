@@ -4,7 +4,7 @@ slug: date-time
 order: 13
 level: Intermediate
 description: Work with dates in PostgreSQL: EXTRACT, DATE_TRUNC, intervals, date arithmetic, AGE and TO_CHAR, with Northwind order and shipping examples.
-related: [q110-orders-per-year-and-month, q111-revenue-by-quarter, q112-late-shipments-with-days-late, q113-average-days-to-ship-per-shipper, q116-orders-by-day-of-week]
+related: [q159-orders-per-year-and-month, q160-revenue-by-quarter, q161-late-shipments-with-days-late, q162-average-days-to-ship-per-shipper, q165-orders-by-day-of-week]
 ---
 
 Northwind stores `order_date`, `required_date`, `shipped_date`, `birth_date` and `hire_date` as `DATE`. PostgreSQL gives you a rich toolkit for slicing and computing with them.

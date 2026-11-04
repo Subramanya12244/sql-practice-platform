@@ -6,7 +6,7 @@ difficulty: Beginner
 description: Sort SQL results with ORDER BY - multiple keys, ASC/DESC, NULLS FIRST/LAST, aliases, CASE-based custom order, and deterministic tie-breakers.
 prerequisites: [select]
 related: [limit-offset, case, null-handling, window-order-by, row-number]
-questions: [3, 26, 122, 132]
+questions: [3, 26, 171, 181]
 patterns: [top-n-per-group]
 guides: [sql-order-of-execution]
 minutes: 7

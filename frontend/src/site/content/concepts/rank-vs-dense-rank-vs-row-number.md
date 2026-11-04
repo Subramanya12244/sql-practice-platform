@@ -97,8 +97,8 @@ ORDER BY category_id, dense_rnk, product_name;
 - **Exactly N rows per group:** `ROW_NUMBER`.
 - **Top N including everyone tied at the cut-off:** `RANK` (returns possibly more than N rows).
 - **Nth distinct value / top N distinct levels:** `DENSE_RANK`.
-- **Buckets such as quartiles:** `NTILE(4)`, as in [Customer Revenue Quartiles](/questions/q106-customer-revenue-quartiles).
-- **Relative position 0–1:** `PERCENT_RANK()`, as in [Employee Revenue Percentile Rank](/questions/q108-employee-revenue-percentile-rank).
+- **Buckets such as quartiles:** `NTILE(4)`, as in [Customer Revenue Quartiles](/questions/q155-customer-revenue-quartiles).
+- **Relative position 0–1:** `PERCENT_RANK()`, as in [Employee Revenue Percentile Rank](/questions/q157-employee-revenue-percentile-rank).
 
 For filtering by rank per group, see [Top N per group](/concepts/top-n-per-group).
 

@@ -4,7 +4,7 @@ slug: indexes-explain
 order: 17
 level: Advanced
 description: Speed up SQL with indexes: B-tree basics, composite and partial indexes, and reading PostgreSQL EXPLAIN and EXPLAIN ANALYZE query plans.
-related: [q66-customers-from-the-same-country, q67-customers-from-the-same-city, q98-latest-order-per-customer]
+related: [q66-customers-from-the-same-country, q67-customers-from-the-same-city, q147-latest-order-per-customer]
 ---
 
 An index is a separate sorted structure that lets the database find rows without scanning the whole table. `EXPLAIN` shows the plan the planner chose; `EXPLAIN ANALYZE` actually runs the query and adds real timings.

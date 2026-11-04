@@ -4,7 +4,7 @@ slug: top-n-per-group
 category: ranking
 difficulty: Intermediate
 description: Return the top N rows inside each group with ROW_NUMBER or DENSE_RANK over PARTITION BY, or a LATERAL subquery in PostgreSQL.
-questions: [14, 100, 23, 24]
+questions: [14, 149, 23, 24]
 notes: [row-number, dense-rank, partition-by, ranking-within-groups]
 guides: [top-n-per-group]
 ---

@@ -70,9 +70,9 @@ LIMIT 3;
 
 - **`DATE_TRUNC`** rounds down to the start of a unit (`'year'`, `'quarter'`, `'month'`, `'week'`). It returns a timestamp, so cast with `::date` for clean output. It is the best key for monthly grouping because it keeps year and month together and sorts correctly.
 - **`EXTRACT`** returns a number. `DOW` is 0 = Sunday to 6 = Saturday; `ISODOW` is 1 = Monday to 7 = Sunday.
-- **`DATE - DATE`** gives an integer number of days. That is the simplest way to compute days to ship or days late, as in [Late Shipments with Days Late](/questions/q112-late-shipments-with-days-late).
+- **`DATE - DATE`** gives an integer number of days. That is the simplest way to compute days to ship or days late, as in [Late Shipments with Days Late](/questions/q161-late-shipments-with-days-late).
 - **`AGE`** returns a calendar-aware interval. Use `EXTRACT(YEAR FROM AGE(...))` for completed years.
-- **`INTERVAL`** handles months and years correctly (`DATE '1998-12-31' - INTERVAL '6 months'`), which is what [Customers Inactive in Last Six Months](/questions/q118-customers-inactive-in-last-six-months) needs.
+- **`INTERVAL`** handles months and years correctly (`DATE '1998-12-31' - INTERVAL '6 months'`), which is what [Customers Inactive in Last Six Months](/questions/q167-customers-inactive-in-last-six-months) needs.
 - **`TO_CHAR`** is for display only. `'Mon YYYY'`, `'YYYY-"Q"Q'` and `'Day'` are common patterns.
 
 ## Common mistakes

@@ -31,7 +31,7 @@
             "detail": "text has no perf penalty vs varchar(n).",
             "note": "string-functions",
             "questions": [
-              120
+              169
             ],
             "children": []
           },
@@ -41,8 +41,8 @@
             "detail": "Prefer timestamptz; interval for durations.",
             "note": "date-time-functions",
             "questions": [
-              115,
-              114
+              164,
+              163
             ],
             "children": []
           },
@@ -52,7 +52,7 @@
             "detail": "x::numeric, CAST(x AS type).",
             "note": "select",
             "questions": [
-              110
+              159
             ],
             "children": []
           },
@@ -102,7 +102,7 @@
             "detail": "Prefer GENERATED ... AS IDENTITY.",
             "note": "primary-foreign-keys",
             "questions": [
-              135
+              184
             ],
             "children": []
           },
@@ -127,7 +127,7 @@
             "detail": "UPDATE writes a new tuple; xmin/xmax.",
             "note": "transactions",
             "questions": [
-              139
+              188
             ],
             "children": []
           },
@@ -162,8 +162,8 @@
             "detail": "Get rows back from INSERT/UPDATE/DELETE.",
             "note": "transactions",
             "questions": [
-              135,
-              136
+              184,
+              185
             ],
             "children": []
           },
@@ -174,7 +174,7 @@
             "note": "constraints",
             "pattern": "remove-duplicates",
             "questions": [
-              139
+              188
             ],
             "children": []
           },
@@ -184,7 +184,7 @@
             "detail": "Update using a join.",
             "note": "multiple-joins",
             "questions": [
-              137
+              186
             ],
             "children": []
           }
@@ -216,7 +216,7 @@
             "detail": "Session-scoped tables.",
             "note": "temporary-tables",
             "questions": [
-              141
+              190
             ],
             "children": []
           },
@@ -226,7 +226,7 @@
             "detail": "PK, FK, UNIQUE, CHECK, NOT NULL.",
             "note": "constraints",
             "questions": [
-              142
+              191
             ],
             "children": []
           }

@@ -4,7 +4,7 @@ slug: missing-records
 category: missing
 difficulty: Intermediate
 description: Find expected values that have no row, such as months without orders or products never sold, using generate_series or a reference table with a LEFT JOIN.
-questions: [29, 30, 27, 110]
+questions: [29, 30, 27, 159]
 notes: [left-join, exists-not-exists, date-time-functions, null-handling]
 guides: [left-join]
 ---

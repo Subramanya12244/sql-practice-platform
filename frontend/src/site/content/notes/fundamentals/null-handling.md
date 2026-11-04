@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: How NULL behaves in SQL - IS NULL, COALESCE, NULLIF, NULLs in aggregates, joins, sorting and NOT IN, with PostgreSQL examples.
 prerequisites: [where, comparison-operators]
 related: [logical-operators, case, left-join, count, in-not-in]
-questions: [25, 27, 57, 112, 133]
+questions: [25, 27, 57, 161, 182]
 patterns: [missing-records, anti-join]
 guides: [null-handling-coalesce, count-star-vs-count-column]
 minutes: 9

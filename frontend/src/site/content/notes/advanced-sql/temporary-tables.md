@@ -6,7 +6,7 @@ difficulty: Intermediate
 description: Stage intermediate results in session-scoped tables with CREATE TEMP TABLE, ON COMMIT options and indexes, and compare them with CTEs and views.
 prerequisites: [select, cte]
 related: [views, cte, indexes, transactions]
-questions: [140, 141]
+questions: [189, 190]
 patterns: [remove-duplicates]
 guides: [cte]
 minutes: 7

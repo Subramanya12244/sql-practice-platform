@@ -6,7 +6,7 @@ difficulty: Advanced
 description: How B-tree, GIN and other PostgreSQL indexes speed up lookups, joins and sorts, when they are ignored, and what they cost on writes.
 prerequisites: [where, order-by, inner-join]
 related: [query-optimization, constraints, primary-foreign-keys, jsonb]
-questions: [3, 26, 98, 118]
+questions: [3, 26, 147, 167]
 patterns: [latest-record-per-group, top-n-per-group]
 guides: []
 minutes: 10

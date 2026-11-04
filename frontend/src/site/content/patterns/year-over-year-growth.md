@@ -4,7 +4,7 @@ slug: year-over-year-growth
 category: growth
 difficulty: Intermediate
 description: Compare a period with the same period a year earlier using LAG over yearly totals, LAG(…, 12) over months, or conditional aggregation.
-questions: [117, 111, 131]
+questions: [166, 160, 180]
 notes: [lag, date-time-functions, conditional-aggregation, filter-clause]
 guides: [year-over-year-growth]
 ---

@@ -4,7 +4,7 @@ slug: nulls
 order: 4
 level: Beginner
 description: Understand SQL NULL: IS NULL, IS DISTINCT FROM, COALESCE and NULLIF, plus how NULL affects comparisons and aggregates in Northwind.
-related: [q61-employees-without-a-manager, q114-unshipped-orders-older-than-30-days, q28-customers-with-no-orders]
+related: [q61-employees-without-a-manager, q163-unshipped-orders-older-than-30-days, q28-customers-with-no-orders]
 ---
 
 `NULL` means "unknown" or "missing". It is not zero and not an empty string. Any comparison with `NULL` yields `NULL` (not true), so such rows are filtered out by `WHERE`.

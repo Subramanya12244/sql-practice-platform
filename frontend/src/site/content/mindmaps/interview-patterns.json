@@ -21,7 +21,7 @@
             "note": "dense-rank",
             "pattern": "second-highest",
             "questions": [
-              99
+              148
             ],
             "children": []
           },
@@ -32,7 +32,7 @@
             "note": "dense-rank",
             "pattern": "nth-highest",
             "questions": [
-              100
+              149
             ],
             "children": []
           },
@@ -43,7 +43,7 @@
             "note": "ranking-within-groups",
             "pattern": "top-n-per-group",
             "questions": [
-              100,
+              149,
               14
             ],
             "children": []
@@ -55,7 +55,7 @@
             "note": "row-number",
             "pattern": "latest-record-per-group",
             "questions": [
-              98,
+              147,
               26
             ],
             "children": []
@@ -67,7 +67,7 @@
             "note": "first-value",
             "pattern": "earliest-latest-transactions",
             "questions": [
-              107
+              156
             ],
             "children": []
           }
@@ -97,7 +97,7 @@
             "note": "row-number",
             "pattern": "remove-duplicates",
             "questions": [
-              138
+              187
             ],
             "children": []
           }
@@ -139,7 +139,7 @@
             "note": "left-join",
             "pattern": "inactive-customers",
             "questions": [
-              118
+              167
             ],
             "children": []
           },
@@ -170,7 +170,7 @@
             "note": "running-totals",
             "pattern": "running-total",
             "questions": [
-              101
+              150
             ],
             "children": []
           },
@@ -181,7 +181,7 @@
             "note": "moving-averages",
             "pattern": "moving-average",
             "questions": [
-              102
+              151
             ],
             "children": []
           },
@@ -192,7 +192,7 @@
             "note": "lag",
             "pattern": "month-over-month-growth",
             "questions": [
-              103
+              152
             ],
             "children": []
           },
@@ -203,7 +203,7 @@
             "note": "lag",
             "pattern": "year-over-year-growth",
             "questions": [
-              117
+              166
             ],
             "children": []
           },
@@ -222,7 +222,7 @@
             "note": "lag",
             "pattern": "gaps-and-islands",
             "questions": [
-              109
+              158
             ],
             "children": []
           }
@@ -241,7 +241,7 @@
             "note": "filter-clause",
             "pattern": "conditional-aggregation",
             "questions": [
-              130,
+              179,
               92
             ],
             "children": []
@@ -253,7 +253,7 @@
             "note": "conditional-aggregation",
             "pattern": "pivot-report",
             "questions": [
-              131
+              180
             ],
             "children": []
           },

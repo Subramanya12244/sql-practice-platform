@@ -6,7 +6,7 @@ difficulty: Beginner
 description: Remove duplicate rows with SQL DISTINCT, count unique values with COUNT(DISTINCT), and use PostgreSQL DISTINCT ON for one row per group.
 prerequisites: [select]
 related: [count, group-by, order-by, row-number, union]
-questions: [9, 10, 12, 32, 127]
+questions: [9, 10, 12, 32, 176]
 patterns: [find-duplicates, remove-duplicates, latest-record-per-group]
 guides: [find-duplicates]
 minutes: 7

@@ -4,7 +4,7 @@ slug: earliest-latest-transactions
 category: latest
 difficulty: Intermediate
 description: Show each customer's first and last order side by side with MIN/MAX, FIRST_VALUE/LAST_VALUE, or conditional aggregation on ROW_NUMBER.
-questions: [107, 26, 119]
+questions: [156, 26, 168]
 notes: [min-max, first-value, last-value, row-number]
 guides: [window-functions]
 ---

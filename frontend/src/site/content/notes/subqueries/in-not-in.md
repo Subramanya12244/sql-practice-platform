@@ -6,7 +6,7 @@ difficulty: Beginner
 description: IN checks membership in a list or subquery; NOT IN breaks silently when the subquery returns a NULL. Learn when to use each.
 prerequisites: [where, null-handling]
 related: [exists-not-exists, scalar-subqueries, logical-operators, except]
-questions: [28, 29, 30, 121]
+questions: [28, 29, 30, 170]
 patterns: [anti-join, unmatched-records]
 guides: [exists-vs-in]
 minutes: 6
