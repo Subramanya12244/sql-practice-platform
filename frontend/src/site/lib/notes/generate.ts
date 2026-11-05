@@ -10,7 +10,7 @@ import type { Progress } from "../progress";
 import type { QuestionSummary } from "../../types";
 import { outlineProgram, parseOutline } from "./pyOutline";
 import { pyNote, sqlNote, type NoteItem, type NotesOptions } from "./content";
-import type { PdfRequest, PdfResponse } from "./pdf.worker";
+import type { FontReport, PdfRequest, PdfResponse } from "./pdf.worker";
 
 export interface Selection { kind: "sql" | "python"; key: string } // key: question slug or Python slug
 
@@ -55,7 +55,7 @@ export async function collectItems(sel: Selection[], index: QuestionSummary[], p
 }
 
 let worker: Worker | null = null, seq = 0;
-export function renderPdf(items: NoteItem[], options: NotesOptions): Promise<{ blob: Blob; pages: number }> {
+export function renderPdf(items: NoteItem[], options: NotesOptions): Promise<{ blob: Blob; pages: number; fonts: FontReport }> {
   worker ??= new Worker(new URL("./pdf.worker.ts", import.meta.url), { type: "module" });
   const id = ++seq;
   const req: PdfRequest = { id, items, options, generatedAt: new Date().toLocaleString() };
@@ -63,7 +63,7 @@ export function renderPdf(items: NoteItem[], options: NotesOptions): Promise<{ b
     const onMsg = (e: MessageEvent<PdfResponse>) => {
       if (e.data.id !== id) return;
       worker!.removeEventListener("message", onMsg);
-      if (e.data.ok) resolve({ blob: new Blob([e.data.pdf], { type: "application/pdf" }), pages: e.data.pages });
+      if (e.data.ok) resolve({ blob: new Blob([e.data.pdf], { type: "application/pdf" }), pages: e.data.pages, fonts: e.data.fonts });
       else reject(new Error(`The PDF could not be built: ${e.data.error}`));
     };
     worker!.addEventListener("message", onMsg);

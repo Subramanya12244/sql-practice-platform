@@ -32,15 +32,32 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
 }
 
 // ── Public API ───────────────────────────────────────────────────────────
-export async function listNotes(userId: string | null): Promise<StoredNote[]> {
-  if (userId) {
-    const sb = await getSupabase();
-    const { data, error } = await sb.from("study_notes").select("id, title, kind, topics, refs, options, pages, size_bytes, created_at").order("created_at", { ascending: false });
-    if (error) throw new Error(/study_notes/.test(error.message) ? "Saving notes to your account needs migration 009_study_notes.sql." : error.message);
-    return (data ?? []).map((r) => ({ ...(r as Omit<StoredNote, "where">), where: "account" as const }));
-  }
-  const rows = await tx<{ meta: StoredNote }[]>("readonly", (s) => s.getAll() as IDBRequest<{ meta: StoredNote }[]>);
-  return rows.map((r) => r.meta).sort((a, b) => b.created_at.localeCompare(a.created_at));
+async function deviceNotes(): Promise<StoredNote[]> {
+  try {
+    const rows = await tx<{ meta: StoredNote }[]>("readonly", (st) => st.getAll() as IDBRequest<{ meta: StoredNote }[]>);
+    return rows.map((r) => r.meta);
+  } catch { return []; }
+}
+
+/** Account notes (when signed in) plus notes kept in this browser, newest first. Nothing local is hidden or removed. */
+export async function listNotes(userId: string | null): Promise<{ notes: StoredNote[]; warning?: string }> {
+  const local = await deviceNotes();
+  const byDate = (xs: StoredNote[]) => xs.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  if (!userId) return { notes: byDate(local) };
+  const sb = await getSupabase();
+  const { data, error } = await sb.from("study_notes").select("id, title, kind, topics, refs, options, pages, size_bytes, created_at").order("created_at", { ascending: false });
+  if (error) return { notes: byDate(local), warning: /study_notes|schema cache/.test(error.message) ? "Account notes need migration 009_study_notes.sql. Notes in this browser are listed below." : error.message };
+  const account = (data ?? []).map((r) => ({ ...(r as Omit<StoredNote, "where">), where: "account" as const }));
+  return { notes: byDate([...account, ...local]) };
+}
+
+/** Upload a note kept in this browser to the account, then drop the local copy. */
+export async function copyToAccount(userId: string, n: StoredNote): Promise<StoredNote> {
+  const blob = await noteBlob(null, n);
+  const { id: _id, created_at: _c, where: _w, ...meta } = n;
+  const saved = await saveNote(userId, meta, blob);
+  await tx("readwrite", (st) => st.delete(n.id));
+  return saved;
 }
 
 export async function saveNote(userId: string | null, note: NewNote, pdf: Blob): Promise<StoredNote> {

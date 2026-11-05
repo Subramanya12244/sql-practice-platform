@@ -153,3 +153,26 @@ Security:
 - Limit: grading runs in the browser, so the source rows are learner-written; XP can't be written directly, but a determined user could forge a solved row. Admin-approved projects are the trustworthy signal.
 
 Anonymous visitors get the same rules computed in the browser from local progress.
+
+## Study notes (migration 009)
+
+`009_study_notes.sql` stores Visual Learning Notes PDFs for signed-in learners. It adds:
+
+- `study_notes`: one metadata row per PDF (title, kind, topics, problem refs, options, pages, size). Learners can insert, read and delete their own rows only. There is no update policy, so a "new version" is a new note. Admins have no access: the notes are the learner's own documents. A trigger caps each learner at 100 notes.
+- The private Storage bucket `study-notes` (PDF only, 20 MB per file). Files live at `<user id>/<note id>.pdf`, and the policies allow a learner to read, upload and delete only inside their own folder. Uploads must match that exact path shape.
+
+Notes made without an account stay in the browser (IndexedDB). After signing in they are still listed, marked "this browser", and can be copied to the account. Nothing local is deleted except by the learner.
+
+### Applying it safely
+
+1. Apply 007 and 008 first (009 doesn't depend on them, but keep the order).
+2. In the Supabase dashboard, open SQL Editor, paste the whole of `009_study_notes.sql` and run it. It only creates objects (`create … if not exists`, `drop policy if exists` + `create policy`, and an upsert of the bucket row), so running it twice is safe and changes no existing data.
+3. Check it:
+   ```sql
+   select id, public, file_size_limit, allowed_mime_types from storage.buckets where id = 'study-notes';
+   select policyname from pg_policies where tablename in ('study_notes', 'objects') and policyname like 'study_notes%';
+   ```
+   Expect one private bucket and six policies (three on `study_notes`, three on `storage.objects`).
+4. In the app, sign in, generate a note, press **Save to My Study Notes**, and confirm it appears under My Study Notes as an account note; download and delete it. With a second account, confirm the first account's note isn't listed.
+
+To remove the feature's data: delete the notes from the app (which removes both the row and the file), then drop the bucket from the Storage UI. Deleting `study_notes` rows with SQL alone leaves the files in Storage.

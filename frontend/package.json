@@ -24,6 +24,7 @@
     "lucide-react": "^0.468.0",
     "marked": "18.1.1",
     "mermaid": "^11.16.1",
+    "pdfjs-dist": "4.10.38",
     "pdfmake": "0.2.23",
     "pgsql-ast-parser": "12.0.2",
     "react": "^18.3.1",

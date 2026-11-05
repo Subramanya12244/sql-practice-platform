@@ -47,7 +47,7 @@ describe("visual learning notes", () => {
     expect(py[1].map((r) => r.kind)).toEqual(expect.arrayContaining(["kw", "fn", "str", "num"]));
   });
   it("parses Markdown blocks, keeping wrapped list lines in their item", () => {
-    const out = md("Para **bold** and `code`.\n\n- one\n  continued\n- two\n\n| a | b |\n|---|---|\n| 1 | 2 |", t, false) as { ul?: unknown[]; table?: { body: unknown[][] } }[];
+    const out = md("Para **bold** and `code`.\n\n- one\n  continued\n- two\n\n| a | b |\n|---|---|\n| 1 | 2 |", { t, dark: false }) as { ul?: unknown[]; table?: { body: unknown[][] } }[];
     expect(out[1].ul).toHaveLength(2);
     expect(JSON.stringify(out[1].ul![0])).toContain("one continued");
     expect(out[2].table!.body).toHaveLength(2);

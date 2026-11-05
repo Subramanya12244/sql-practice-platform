@@ -106,9 +106,14 @@ const KIND_LABEL: Record<FlowKind, string> = {
   select: "SELECT", distinct: "DISTINCT", order: "ORDER BY", limit: "LIMIT", setop: "SET OPERATION", branch: "BRANCH", result: "RESULT",
 };
 
-/** Layered top-to-bottom layout: a node sits one layer below its deepest input. */
-export function flowSvg(g: FlowGraph, t: Theme, maxWidth = 515): string | null {
-  if (!g.nodes.length) return null;
+interface Placed { x: number; y: number; w: number; h: number; lines: string[]; row: number }
+export interface FlowLayout { width: number; height: number; rows: { y: number; h: number }[]; pos: Map<string, Placed>; widestLayer: number }
+
+/**
+ * Layered top-to-bottom layout: a node sits one layer below its deepest input. Boxes never get
+ * narrower than `minBoxW`; a layer that doesn't fit wraps onto extra rows instead of shrinking.
+ */
+export function layoutFlow(g: FlowGraph, maxWidth = 515, minBoxW = 170): FlowLayout {
   const depth = new Map<string, number>();
   const ins = new Map<string, string[]>();
   for (const e of g.edges) ins.set(e.to, [...(ins.get(e.to) ?? []), e.from]);
@@ -125,37 +130,125 @@ export function flowSvg(g: FlowGraph, t: Theme, maxWidth = 515): string | null {
   for (const n of g.nodes) (layers[depth.get(n.id)!] ??= []).push(n.id);
   const byId = new Map(g.nodes.map((n) => [n.id, n]));
   const gapY = 22, gapX = 12;
-  const pos = new Map<string, { x: number; y: number; w: number; h: number; lines: string[] }>();
+  const perRow = Math.max(1, Math.floor((maxWidth + gapX) / (minBoxW + gapX)));
+  const pos = new Map<string, Placed>();
+  const rows: { y: number; h: number }[] = [];
   let y = 4;
   for (const layer of layers.filter(Boolean)) {
-    const w = Math.min(250, (maxWidth - (layer.length - 1) * gapX) / layer.length);
-    const blocks = layer.map((id) => {
-      const n = byId.get(id)!;
-      const lines = n.detail.flatMap((x) => wrap(x, w - 12, 7, true)).slice(0, 8);
-      return { id, lines, h: 30 + lines.length * 9 };
-    });
-    const h = Math.max(...blocks.map((b) => b.h));
-    const used = layer.length * w + (layer.length - 1) * gapX;
-    blocks.forEach((b, i) => pos.set(b.id, { x: (maxWidth - used) / 2 + i * (w + gapX), y, w, h: b.h, lines: b.lines }));
-    y += h + gapY;
+    for (let i = 0; i < layer.length; i += perRow) {
+      const row = layer.slice(i, i + perRow);
+      const w = Math.min(250, (maxWidth - (row.length - 1) * gapX) / row.length);
+      const blocks = row.map((id) => {
+        const lines = byId.get(id)!.detail.flatMap((x) => wrap(x, w - 12, 7, true)).slice(0, 8);
+        return { id, lines, h: 30 + lines.length * 9 };
+      });
+      const h = Math.max(...blocks.map((bk) => bk.h));
+      const used = row.length * w + (row.length - 1) * gapX;
+      blocks.forEach((bk, k) => pos.set(bk.id, { x: (maxWidth - used) / 2 + k * (w + gapX), y, w, h: bk.h, lines: bk.lines, row: rows.length }));
+      rows.push({ y, h });
+      y += h + gapY;
+    }
   }
+  return { width: maxWidth, height: y - gapY + 8, rows, pos, widestLayer: Math.max(0, ...layers.filter(Boolean).map((l) => l.length)) };
+}
+
+/** Render rows [from, to) of a layout. Edges leaving or entering the slice get continuation stubs. */
+function renderFlow(g: FlowGraph, L: FlowLayout, t: Theme, from = 0, to = L.rows.length, part?: { i: number; n: number }): string {
+  const top = L.rows[from].y - 4 - (from > 0 ? 18 : 0);
+  const bottom = L.rows[to - 1].y + L.rows[to - 1].h + (to < L.rows.length ? 26 : 8);
+  const byId = new Map(g.nodes.map((n) => [n.id, n]));
+  const inSlice = (id: string) => { const p = L.pos.get(id); return !!p && p.row >= from && p.row < to; };
+  const Y = (y: number) => y - top;
   let body = "";
+  if (part && from > 0) body += text(4, 11, `▲ continued from part ${part.i - 1}`, { size: 7, fill: t.faint });
+  const outgoing: Record<string, string[]> = {}, incoming: Record<string, string[]> = {};
+  const to_ = to;
   for (const e of g.edges) {
-    const a = pos.get(e.from), b = pos.get(e.to);
+    const a = L.pos.get(e.from), b = L.pos.get(e.to);
     if (!a || !b) continue;
-    const x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y;
-    body += `<path d="M${x1},${y1} C${x1},${(y1 + y2) / 2} ${x2},${(y1 + y2) / 2} ${x2},${y2 - 6}" fill="none" stroke="${t.faint}" stroke-width="1"/>` + arrowHead(x2, y2, "down", t.faint);
-    if (e.label) body += text((x1 + x2) / 2 + 4, (y1 + y2) / 2 + 3, e.label.length > 40 ? `${e.label.slice(0, 39)}…` : e.label, { size: 6.5, fill: t.muted, mono: true });
+    const ia = inSlice(e.from), ib = inSlice(e.to);
+    if (!ia && !ib) continue;
+    const x1 = a.x + a.w / 2, x2 = b.x + b.w / 2;
+    if (ia && ib) {
+      const y1 = Y(a.y + a.h), y2 = Y(b.y);
+      body += `<path d="M${x1},${y1} C${x1},${(y1 + y2) / 2} ${x2},${(y1 + y2) / 2} ${x2},${y2 - 6}" fill="none" stroke="${t.faint}" stroke-width="1"/>` + arrowHead(x2, y2, "down", t.faint);
+      if (e.label) body += text((x1 + x2) / 2 + 4, (y1 + y2) / 2 + 3, e.label.length > 40 ? `${e.label.slice(0, 39)}…` : e.label, { size: 6.5, fill: t.muted, mono: true });
+    } else if (ia) {
+      (outgoing[e.from] ??= []).push(byId.get(e.to)!.title);
+    } else {
+      (incoming[e.to] ??= []).push(byId.get(e.from)!.title);
+    }
+  }
+  // One stub and one label per box (several edges to or from the same box would overlap).
+  const names = (xs: string[]) => { const u = [...new Set(xs)]; return u.length > 2 ? `${u.slice(0, 2).join(", ")} +${u.length - 2}` : u.join(", "); };
+  for (const [id, targets] of Object.entries(outgoing)) {
+    const a = L.pos.get(id)!, x1 = a.x + a.w / 2, y1 = Y(a.y + a.h);
+    body += `<line x1="${x1}" y1="${y1}" x2="${x1}" y2="${y1 + 12}" stroke="${t.faint}" stroke-dasharray="3 2"/>` + arrowHead(x1, y1 + 18, "down", t.faint);
+    // Labels only where nothing else shares the gap: under the part's last row.
+    if (a.row === to_ - 1) body += text(x1 + 6, y1 + 16, `to ${names(targets)} (next part)`.slice(0, Math.floor(a.w / 3.4)), { size: 6.5, fill: t.faint });
+  }
+  for (const [id, sources] of Object.entries(incoming)) {
+    const b2 = L.pos.get(id)!, x2 = b2.x + b2.w / 2, y2 = Y(b2.y);
+    body += `<line x1="${x2}" y1="${y2 - 16}" x2="${x2}" y2="${y2 - 6}" stroke="${t.faint}" stroke-dasharray="3 2"/>` + arrowHead(x2, y2, "down", t.faint);
+    if (b2.row === from) body += text(x2 + 6, y2 - 8, `from ${names(sources)} (previous part)`.slice(0, Math.floor(b2.w / 3.4)), { size: 6.5, fill: t.faint });
   }
   for (const n of g.nodes) {
-    const p = pos.get(n.id)!;
+    if (!inSlice(n.id)) continue;
+    const p = L.pos.get(n.id)!;
+    const y = Y(p.y);
     const strong = n.kind === "result" || n.kind === "select";
-    body += `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="6" fill="${strong ? t.accentSoft : t.panel}" stroke="${n.kind === "source" ? t.secondary : t.border}"/>`;
-    body += text(p.x + 6, p.y + 10, KIND_LABEL[n.kind], { size: 6.5, bold: true, fill: n.kind === "source" ? t.secondary : t.accent });
-    body += text(p.x + 6, p.y + 21, n.title.length > 42 ? `${n.title.slice(0, 41)}…` : n.title, { size: 8.5, bold: true, fill: t.ink, mono: true });
-    p.lines.forEach((l, i) => { body += text(p.x + 6, p.y + 32 + i * 9, l, { size: 7, fill: t.muted, mono: true }); });
+    body += `<rect x="${p.x}" y="${y}" width="${p.w}" height="${p.h}" rx="6" fill="${strong ? t.accentSoft : t.panel}" stroke="${n.kind === "source" ? t.secondary : t.border}"/>`;
+    body += text(p.x + 6, y + 10, KIND_LABEL[n.kind], { size: 6.5, bold: true, fill: n.kind === "source" ? t.secondary : t.accent });
+    body += text(p.x + 6, y + 21, n.title.length > 42 ? `${n.title.slice(0, 41)}…` : n.title, { size: 8.5, bold: true, fill: t.ink, mono: true });
+    p.lines.forEach((l, i) => { body += text(p.x + 6, y + 32 + i * 9, l, { size: 7, fill: t.muted, mono: true }); });
   }
-  return svg(maxWidth, y - gapY + 8, t, body);
+  if (part && to < L.rows.length) body += text(4, bottom - top - 3, `▼ continues in part ${part.i + 1}`, { size: 7, fill: t.faint });
+  return svg(L.width, bottom - top, t, body);
+}
+
+export function flowSvg(g: FlowGraph, t: Theme, maxWidth = 515): string | null {
+  if (!g.nodes.length) return null;
+  return renderFlow(g, layoutFlow(g, maxWidth), t);
+}
+
+/**
+ * A query flow sized for print: one diagram when it fits, otherwise parts that each fit a page,
+ * split between rows (a row is never cut), plus a compact overview of the whole flow.
+ */
+export function flowParts(g: FlowGraph, t: Theme, width: number, maxHeight: number): { parts: string[]; overview: string | null } {
+  if (!g.nodes.length) return { parts: [], overview: null };
+  const L = layoutFlow(g, width);
+  if (L.height <= maxHeight) return { parts: [renderFlow(g, L, t)], overview: null };
+  const chunks: [number, number][] = [];
+  let start = 0;
+  for (let r = 0; r < L.rows.length; r++) {
+    const h = L.rows[r].y + L.rows[r].h - L.rows[start].y + 50;
+    if (h > maxHeight && r > start) { chunks.push([start, r]); start = r; }
+  }
+  chunks.push([start, L.rows.length]);
+  const parts = chunks.map(([a, b], i) => renderFlow(g, L, t, a, b, { i: i + 1, n: chunks.length }));
+  // An overview only helps while every row still gets a legible 14pt-high box.
+  return { parts, overview: L.rows.length * 20 <= maxHeight ? overviewSvg(g, L, t, maxHeight) : null };
+}
+
+/** Titles only, every node and edge, scaled to one page: the map that the detailed parts follow. */
+function overviewSvg(g: FlowGraph, L: FlowLayout, t: Theme, maxHeight: number): string {
+  // Leave room for the figure's heading and caption inside the same page.
+  const s = Math.min(1, (maxHeight - 40) / L.height);
+  let body = "";
+  for (const e of g.edges) {
+    const a = L.pos.get(e.from), b = L.pos.get(e.to);
+    if (!a || !b) continue;
+    body += `<line x1="${(a.x + a.w / 2)}" y1="${(a.y + a.h) * s}" x2="${(b.x + b.w / 2)}" y2="${b.y * s}" stroke="${t.faint}" stroke-width="0.8"/>`;
+  }
+  for (const n of g.nodes) {
+    const p = L.pos.get(n.id)!;
+    const h = Math.max(14, p.h * s);
+    body += `<rect x="${p.x}" y="${p.y * s}" width="${p.w}" height="${h}" rx="4" fill="${t.panel}" stroke="${n.kind === "source" ? t.secondary : t.border}"/>`;
+    const label = n.title.toUpperCase().startsWith(KIND_LABEL[n.kind]) || n.title === "Result" ? n.title : `${KIND_LABEL[n.kind]} ${n.title}`;
+    body += text(p.x + 5, p.y * s + Math.min(h - 3, 10), label.slice(0, 40), { size: 7, fill: t.ink, mono: true });
+  }
+  return svg(L.width, L.height * s + 18, t, body);
 }
 
 // ── Python flowchart (from the solution's AST) ───────────────────────────
@@ -215,4 +308,54 @@ export function pipelineSvg(stages: { label: string; line: number }[], t: Theme,
   });
   const rows = Math.ceil(stages.length / perRow);
   return svg(maxWidth, 8 + rows * h + (rows - 1) * 26, t, body);
+}
+
+const svgH = (s: string) => Number(s.match(/height="([\d.]+)"/)?.[1] ?? 0);
+
+/**
+ * Flowchart parts that each fit `maxH` at full size: one per function, and a long function is
+ * split between its top-level steps (a step and its nested body are never separated).
+ */
+export function outlineParts(o: PyOutline, t: Theme, width: number, maxH: number): { title: string; svg: string }[] {
+  const out: { title: string; svg: string }[] = [];
+  for (const f of o.functions.filter((fn) => fn.steps.length)) {
+    const render = (a: number, b: number) => outlineSvg({ ...o, functions: [{ ...f, steps: f.steps.slice(a, b) }] }, t, width)!;
+    for (let start = 0, part = 0; start < f.steps.length; part++) {
+      // Grow the part one top-level step at a time while it still fits; one step always fits a part.
+      let end = start + 1;
+      while (end < f.steps.length && svgH(render(start, end + 1)) <= maxH) end++;
+      let svgText = render(start, end);
+      if (end === start + 1 && svgH(svgText) > maxH) {
+        // One block taller than a page: show its first statements and point to the code for the rest.
+        const step = f.steps[start], kids = step.children ?? [];
+        for (let k = kids.length - 1; k >= 1; k--) {
+          const trimmed = { ...step, children: [...kids.slice(0, k), { kind: "other" as const, text: `… ${kids.length - k} more statements in this block (see the code)`, line: kids[k].line }] };
+          svgText = outlineSvg({ ...o, functions: [{ ...f, steps: [trimmed] }] }, t, width)!;
+          if (svgH(svgText) <= maxH) break;
+        }
+      }
+      out.push({ title: part === 0 ? f.name : `${f.name} (continued from line ${f.steps[start].line})`, svg: svgText });
+      start = end;
+    }
+  }
+  return out;
+}
+
+/** Schema diagram parts of whole table rows that fit `maxH`; links between parts are listed in text. */
+export function schemaParts(tables: SchemaTable[], t: Theme, width: number, maxH: number): { svg: string; tables: string[] }[] {
+  const whole = schemaSvg(tables, t, width);
+  if (!whole) return [];
+  if (svgH(whole) <= maxH) return [{ svg: whole, tables: tables.map((x) => x.name) }];
+  const out: { svg: string; tables: string[] }[] = [];
+  let start = 0;
+  while (start < tables.length) {
+    let end = start + 1;
+    for (let k = start + 1; k <= tables.length; k++) {
+      if (svgH(schemaSvg(tables.slice(start, k), t, width)!) > maxH) break;
+      end = k;
+    }
+    out.push({ svg: schemaSvg(tables.slice(start, end), t, width)!, tables: tables.slice(start, end).map((x) => x.name) });
+    start = end;
+  }
+  return out;
 }
