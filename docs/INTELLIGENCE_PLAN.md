@@ -6,13 +6,13 @@ This document checks the "Advanced Intelligence, Data Engineering & Career Devel
 
 - **Public site** (`frontend/src/site/`): a static site on Cloudflare. SQL runs in **PGlite** (PostgreSQL 18.6, WASM) in a Web Worker, and every query is wrapped in `BEGIN … ROLLBACK` with a timeout. Progress is kept in localStorage and optionally synced to Supabase. There is no server of our own.
 - **Local app** (`frontend/src/` with `backend/` FastAPI): the full Postgres stack, a read-only role, project databases (`sqlp_<slug>`) and the ChatGPT import.
-- **Paid services:** none have been added. The AI tutor ships **without a provider**; see "AI provider options" below.
+- **Paid services:** none have been added. There is no AI tutor. The AI chat path was removed in Stage 7, and the helper at `/ai-tutor` is fully rule-based.
 
 ## Gap analysis
 
 | Spec area | Before this round | Status now |
 |---|---|---|
-| 3. AI SQL mentor `/ai-tutor` | 3-level hint ladder and error coach only | **Done, except AI chat (disabled by design).**<br>• Provider abstraction (`lib/tutor.ts`: `TutorProvider`, `disabledProvider`, `httpProvider`); no keys in the frontend.<br>• Context limited to the question, the real schema of its tables, the user's SQL, attempts, hint level, mistakes and related notes.<br>• Deterministic schema check (flags non-existent tables or columns).<br>• Clause-by-clause explanation.<br>• "Check my result", verified by the DB without recording a submit.<br>• 5-level assistance, every level recorded; a solve after level ≥ 2 or a reveal is marked **assisted**.<br>• Tutor settings: highest level allowed, confirm before the solution.<br>• Links to the visualizer and comparison tools.<br>The chat tab shows a disabled state until `VITE_TUTOR_ENDPOINT` is set. |
+| 3. AI SQL mentor `/ai-tutor` | 3-level hint ladder and error coach only | **Done, except AI chat (disabled by design).**<br>• Provider abstraction (`lib/tutor.ts`: `TutorProvider`, `disabledProvider`, `httpProvider`); no keys in the frontend.<br>• Context limited to the question, the real schema of its tables, the user's SQL, attempts, hint level, mistakes and related notes.<br>• Deterministic schema check (flags non-existent tables or columns).<br>• Clause-by-clause explanation.<br>• "Check my result", verified by the DB without recording a submit.<br>• 5-level assistance, every level recorded; a solve after level ≥ 2 or a reveal is marked **assisted**.<br>• Tutor settings: highest level allowed, confirm before the solution.<br>• Links to the visualizer and comparison tools.<br>The AI chat tab and provider code were removed (no AI tutor, no paid APIs). |
 | 4. Query visualizer `/query-visualizer` | Missing (only the EXPLAIN tree in the editor) | **Done.**<br>• Logical-order stepper: FROM/JOIN → WHERE → GROUP BY → HAVING → window → SELECT → DISTINCT → ORDER BY → LIMIT.<br>• Real intermediate rows (capped at 20) and exact counts from derived queries.<br>• JOIN cards: left and right rows, matching pairs, unmatched rows with samples.<br>• Rows removed by WHERE and HAVING, with partition sizes for window functions.<br>• Clause highlighting, back and next.<br>• A separate **physical plan** tab.<br>Unsupported shapes (set operations, multiple statements, non-SELECT) are reported rather than guessed. |
 | 5. Solution comparison `/solution-comparison` | Missing | **Done.** Side-by-side editors showing:<br>• equivalence (ordered or unordered) and a row diff<br>• detected approaches and structural complexity<br>• median of 5 timed runs after a warm-up, with the per-run times<br>• plan cost and plan tree<br>• rule-based notes on NULL, duplicate and determinism traps<br>• recorded conditions: engine version, row count and indexes per table<br>It never declares a winner. |
 | 6. Readiness `/readiness` | Weak-topic scoring (`lib/insights.ts`) | **Done.**<br>• Each topic is scored on five dimensions: application, independence, efficiency, knowledge and retention.<br>• A topic needs at least 3 practiced questions, and an overall estimate needs at least 3 assessed topics.<br>• Repo or imported solves are shown but **never scored**, and assisted solves never count as independent.<br>• Shows recommendations, revision and the next check date, labelled as an estimate. |
@@ -39,19 +39,6 @@ This document checks the "Advanced Intelligence, Data Engineering & Career Devel
 | `errorKinds` | Counts of deterministic error classes on failed submits (from `lib/errorHelp.ts`, otherwise "Wrong result" or "SQL error"). |
 
 Signed-in users sync these fields through `profiles.state.qmeta`, so no migration is needed. "Check my result" never records an attempt.
-
-## AI provider options (not connected)
-
-| Option | Where the key lives | Cost | Notes |
-|---|---|---|---|
-| Cloudflare Worker proxy and a hosted model API (e.g. Claude) | Worker secret | Paid per token | Works on the public site. Needs rate limiting per visitor. |
-| Local FastAPI endpoint | `backend/.env` | Paid per token, or free with a local model | The local app only. |
-| Local open-weights model (e.g. via Ollama) behind FastAPI | None | Free; needs a capable machine | Lower quality. The local app only. |
-
-To enable one, deploy an endpoint that accepts `{context, messages}` and returns `{reply}`, then build with `VITE_TUTOR_ENDPOINT=<url>`. The endpoint must:
-- treat `context` as data, never as instructions
-- cap tokens per request and rate-limit per user
-- never execute SQL itself; correctness stays with "Check my result"
 
 ## Tests added
 
@@ -91,7 +78,7 @@ To enable one, deploy an endpoint that accepts `{context, messages}` and returns
 | Navigation | Done. `lib/navigation.ts` defines Overview · Learn · Practice · Data Engineering · Projects · Data Quality · AI & Intelligence · Assessments · Progress, plus Settings. It shows dropdowns on desktop and an accordion on mobile. Portfolio is not built yet, so it isn't in the nav. |
 | Learning hub and tracks | Done. 102 topic notes reuse the notes renderer, plus 7 track mind maps (React Flow), flashcard decks built from each note's interview questions, and mermaid architecture diagrams. |
 | Integrated query visualizer | Done on every question and scenario: Visualize and History tabs, provenance labels, an AST (`pgsql-ast-parser`) with a clause-splitter fallback, CTE dependency graphs, set-op branches, EXPLAIN and optional ANALYZE, a volatile-function gate, clause highlighting in the editor, and per-attempt sessions (local, see migration 003). |
-| Python practice | Done. Pyodide 0.29.5 in a Worker with the safety limits listed above. 20 exercises. |
+| Python practice | Done. Pyodide 0.29.5 in a Worker with the safety limits listed above. 150 problems with visible and hidden tests. |
 | Projects lab | Done. 12 projects with 38 SQL, 23 Python and 8 checklist tasks. Every SQL task is verified in tests (the solution passes, the starter fails), and every Python task in CI. |
 | Data quality lab | Done. 12 rule types with identifier validation, suggestions from the schema, a score, reports and run comparison. |
 | Database changes | `supabase/migrations/003_dataforge.sql`, plus `tests/rls_test_003.sql`. |

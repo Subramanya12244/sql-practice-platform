@@ -3,6 +3,7 @@ import { useLocation, type Params } from "react-router-dom";
 import type { PageData } from "./types";
 import { loadPage, matchRoute, notFoundRoute } from "./routes";
 import { SiteLayout } from "./components/SiteLayout";
+import { startActivityTracking } from "./lib/activity";
 
 export interface InitialPage {
   path: string;
@@ -32,6 +33,8 @@ export function SiteApp({ initial }: { initial: InitialPage }) {
   const [page, setPage] = useState<InitialPage>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => startActivityTracking(), []);
 
   useEffect(() => {
     if (location.pathname === page.path) return;

@@ -28,6 +28,9 @@ import { QueryVisualizerPage } from "./pages/QueryVisualizerPage";
 import { SolutionComparisonPage } from "./pages/SolutionComparisonPage";
 import { ReadinessPage } from "./pages/ReadinessPage";
 import { TutorPage } from "./pages/TutorPage";
+import { HistoryPage } from "./pages/HistoryPage";
+import { StudyNotesPage } from "./pages/StudyNotesPage";
+import { PythonAssessmentPage } from "./pages/PythonAssessmentPage";
 import { DataGeneratorPage } from "./pages/DataGeneratorPage";
 import { DataEngineeringPage } from "./pages/DataEngineeringPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -135,9 +138,9 @@ export const routes: SiteRoute[] = [
     load: async () => ({ ...(await base()), cheatsheet: await loadCheatsheet() }),
     paths: one("/cheatsheet"),
   },
-  { path: "/progress", element: <ProgressPage />, load: base, paths: one("/progress") },
+  { path: "/progress", element: <ProgressPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/progress") },
   { path: "/review", element: <ReviewPage />, load: base, paths: one("/review") },
-  { path: "/challenge", element: <ChallengePage />, load: base, paths: one("/challenge") },
+  { path: "/challenge", element: <ChallengePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/challenge") },
   { path: "/leaderboard", element: <LeaderboardPage />, load: base, paths: one("/leaderboard") },
   { path: "/profile", element: <ProfilePage />, load: async () => ({ ...(await base()), projects: await loadProjectIndex() }), paths: one("/profile") },
   {
@@ -292,6 +295,9 @@ export const routes: SiteRoute[] = [
     },
     paths: async () => (await loadProjectIndex()).map((p) => `/projects-lab/${p.slug}`),
   },
+  { path: "/practice/python/assessment", element: <PythonAssessmentPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/practice/python/assessment") },
+  { path: "/study-notes", element: <StudyNotesPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/study-notes") },
+  { path: "/history", element: <HistoryPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/history") },
   { path: "/practice/python", element: <PythonPracticeIndexPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/practice/python") },
   {
     path: "/practice/python/:slug",
@@ -322,7 +328,7 @@ export const routes: SiteRoute[] = [
   { path: "/signup", element: <SignupPage />, load: base, paths: one("/signup") },
   { path: "/account", element: <AccountPage />, load: base, paths: one("/account") },
   { path: "/reset-password", element: <ResetPasswordPage />, load: base, paths: one("/reset-password") },
-  { path: "/admin", element: <AdminPage />, load: async () => ({ ...(await base()), projects: await loadProjectIndex() }), paths: one("/admin") },
+  { path: "/admin", element: <AdminPage />, load: async () => ({ ...(await base()), projects: await loadProjectIndex(), exercises: await loadExerciseIndex() }), paths: one("/admin") },
 ];
 
 export const notFoundRoute: SiteRoute = {

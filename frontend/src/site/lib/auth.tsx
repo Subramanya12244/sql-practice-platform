@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { accountsEnabled, getSupabase, send } from "./supabase";
 import { clearLocalData, setDataSink, startDataSync } from "./dataSync";
+import { clearActivity, flush as flushActivity, setActivitySink, track, type ActivitySink } from "./activity";
 import { looksLikeEmail, mergeProgress, progressToRows, usernameToEmail, type MockRow, type ProgressRow, type RemoteState } from "./account";
 import { getProgress, replaceProgress, resetProgress, setProgressSink, type Progress } from "./progress";
 
@@ -42,6 +43,21 @@ export function friendlyAuthError(msg: string): string {
   if (m.includes("password should be at least")) return "Use at least 8 characters.";
   if (m.includes("failed to fetch") || m.includes("network")) return "Can't reach the server. Check your connection and try again.";
   return msg;
+}
+
+/** Delivers queued activity to the account. Duplicate ids and minutes are ignored by the database. */
+function activitySink(sb: SupabaseClient, userId: string): ActivitySink {
+  return {
+    async send(events, minutes, session) {
+      const results = await Promise.all([
+        events.length ? sb.from("learning_events").upsert(events.map((e) => ({ id: e.id, user_id: userId, type: e.type, ref: e.ref ?? null, meta: e.meta ?? {}, session_id: e.session || null, at: e.at })), { onConflict: "id", ignoreDuplicates: true }) : null,
+        minutes.length ? sb.from("active_minutes").upsert(minutes.map((m) => ({ user_id: userId, minute: m })), { onConflict: "user_id,minute", ignoreDuplicates: true }) : null,
+        session.id ? sb.from("learning_sessions").upsert({ id: session.id, user_id: userId, started_at: session.started, last_activity_at: session.last }, { onConflict: "id" }) : null,
+      ]);
+      // A missing table (migration 007 not applied) or a policy refusal keeps the queue for later.
+      return results.every((r) => !r || !r.error);
+    },
+  };
 }
 
 const AuthCtx = createContext<AuthState | null>(null);
@@ -133,12 +149,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
           setProgressSink(null);
           setDataSink(null);
+          setActivitySink(null);
           return;
         }
         const { data } = await sb.from("profiles").select("*").eq("id", uid).single();
         setProfile((data as Profile) ?? null);
         await startSync(sb, uid).catch(() => undefined);
         await startDataSync(sb, uid).catch(() => undefined);
+        setActivitySink(activitySink(sb, uid));
       };
       const { data } = await sb.auth.getSession();
       await onSession(data.session);
@@ -146,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const sub = sb.auth.onAuthStateChange((event, s) => {
         if (event === "SIGNED_IN" && s && s.user.id !== activeUser) {
           send(sb.from("audit_log").insert({ user_id: s.user.id, action: "login", detail: { provider: s.user.app_metadata?.provider } }));
+          track("login");
         }
         void onSession(s);
       });
@@ -187,10 +206,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (session) await sb.from("audit_log").insert({ user_id: session.user.id, action: "logout", detail: {} });
     setProgressSink(null);
     setDataSink(null);
+    await flushActivity();
+    setActivitySink(null);
     await sb.auth.signOut();
     // Account progress lives on the server; don't leave it in a shared browser.
     resetProgress();
     clearLocalData();
+    clearActivity();
   }, [session]);
 
   const changePassword = useCallback(async (password: string) => {

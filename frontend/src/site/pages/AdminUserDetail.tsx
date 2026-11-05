@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { getSupabase } from "../lib/supabase";
+import { TrendChart } from "../components/AdminAnalytics";
+import { pct } from "../lib/adminAnalytics";
 
 interface Detail {
   progress: { question_number: number; attempts: number; solved_at: string | null; revealed: boolean; updated_at: string }[];
@@ -42,9 +44,26 @@ export function summarize(d: Pick<Detail, "progress" | "tasks">, index: { number
   };
 }
 
-export function AdminUserDetail({ userId, username, onClose }: { userId: string; username: string; onClose: () => void }) {
+interface Activity {
+  days: { day: string; minutes: number; sql: number; python: number; lessons: number }[];
+  sessions: { started_at: string; last_activity_at: string }[];
+  problems: { type: string; ref: string; submits: number; passed: number; fails: number }[];
+}
+
+export function AdminUserDetail({ userId, username, onClose, range }: { userId: string; username: string; onClose: () => void; range?: { from: string; to: string } }) {
   const { data } = usePage();
   const [d, setD] = useState<Detail | null>(null);
+  const [act, setAct] = useState<Activity | null>(null);
+  useEffect(() => {
+    if (!range) return;
+    setAct(null);
+    void (async () => {
+      // The RPC writes an admin_view_learner audit row before returning anything.
+      const sb = await getSupabase();
+      const { data: a, error } = await sb.rpc("admin_learner_activity", { p_user: userId, p_from: range.from, p_to: range.to });
+      if (!error) setAct(a as Activity);
+    })();
+  }, [userId, range?.from, range?.to]);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -112,6 +131,25 @@ export function AdminUserDetail({ userId, username, onClose }: { userId: string;
               </ul>
             </div>
           </div>
+          {act && range && (
+            <div className="mt-4">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Activity {range.from} to {range.to}</h4>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <TrendChart title="Active minutes" days={act.days} field="minutes" />
+                <TrendChart title="SQL checks" days={act.days} field="sql" />
+                <TrendChart title="Python checks" days={act.days} field="python" />
+                <TrendChart title="Lessons" days={act.days} field="lessons" />
+              </div>
+              <p className="mt-2 text-xs text-ink-muted">
+                {act.sessions.length} session{act.sessions.length === 1 ? "" : "s"}
+                {act.sessions.length > 0 && ` · avg ${Math.round(act.sessions.reduce((s, x) => s + (Date.parse(x.last_activity_at) - Date.parse(x.started_at)), 0) / act.sessions.length / 60000)} min long`}
+                {" · "}accuracy {pct(act.problems.reduce((s, p) => s + Number(p.passed), 0), act.problems.reduce((s, p) => s + Number(p.submits), 0)) ?? "—"}%
+              </p>
+              {act.problems.some((p) => Number(p.fails) > 0) && (
+                <p className="mt-1 text-xs text-ink-muted">Most failed: {act.problems.filter((p) => Number(p.fails) > 0).slice(0, 5).map((p) => `${p.ref} (${p.fails})`).join(", ")}</p>
+              )}
+            </div>
+          )}
           <h4 className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink-faint">Recent activity</h4>
           <ul className="mt-1 space-y-0.5 text-xs text-ink-muted">
             {d.audit.length ? d.audit.map((a) => <li key={a.id}>{fmt(a.created_at)} · <span className="text-ink">{a.action}</span>{Object.keys(a.detail).length ? ` ${JSON.stringify(a.detail)}` : ""}</li>) : <li>No events.</li>}

@@ -8,6 +8,17 @@ export interface PyExercise {
   description: string;
   topic: string;
   minutes: number;
+  /** Stable problem id shown to learners, e.g. "PY-021". Progress is keyed by slug. */
+  code: string;
+  /** Concepts tested (front matter `concepts`, comma separated). */
+  concepts: string[];
+  /** One of PY_CATEGORIES (front matter `category`). */
+  category: string;
+  /** Data engineering skill practised, e.g. "validation" (front matter `skill`). */
+  skill: string;
+  /** Expected complexity, e.g. "O(n)". */
+  time: string;
+  space: string;
   body: string;
   task: PythonTask | null;
 }
@@ -27,6 +38,12 @@ export function parseExercise(raw: string, fallback: string): PyExercise {
     description: meta.description || "",
     topic: meta.topic || "",
     minutes: Number(meta.minutes) || 10,
+    code: meta.id || "",
+    concepts: (meta.concepts || "").split(",").map((c) => c.trim()).filter(Boolean),
+    category: meta.category || "",
+    skill: meta.skill || "",
+    time: meta.time || "",
+    space: meta.space || "",
     body: rest.replace(/<!--task:[^>]*-->/g, "").trim(),
     task,
   };

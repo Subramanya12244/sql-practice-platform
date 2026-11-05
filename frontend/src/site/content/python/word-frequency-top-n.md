@@ -1,17 +1,44 @@
 ---
+id: PY-020
 title: Word Frequency Top-N
 slug: word-frequency-top-n
 difficulty: Easy
+category: files
+skill: aggregation
 description: Count words in text and return the top N, breaking ties alphabetically.
 topic: python-collections
+concepts: regex tokenising, Counter, sorting ties
+time: O(L + u log u)
+space: O(u)
 minutes: 15
 ---
+
+## Scenario
+
+Customer reviews from an app store export are free text. The product team wants the most frequent words to spot recurring complaints.
 
 ## Problem
 
 Write `def top_words(text: str, n: int) -> list` returning a list of `(word, count)` tuples for the
 `n` most frequent words. Words are lowercase runs of letters `a-z` (apostrophes and digits split words).
 Sort by count descending, then word ascending. Empty or `None` text returns `[]`.
+
+## Objective
+
+Return the n most frequent lowercase a-z words as (word, count) tuples, sorted by count desc then word.
+
+## Input format
+
+Text and n.
+
+## Output format
+
+A list of (word, count) tuples.
+
+## Constraints
+
+- Case-insensitive; punctuation ignored
+- Ties sorted alphabetically
 
 ## Examples
 
@@ -25,6 +52,10 @@ top_words("", 3)  ->  []
 - `re.findall(r'[a-z]+', text.lower())` tokenises.
 - `collections.Counter` counts; sort with key `(-count, word)`.
 
+## Why it matters
+
+Tokenizing text and counting with Counter is the base of log and text analytics, and deterministic tie-breaking keeps reports stable between runs.
+
 ```task
 {
   "id": "word-frequency-top-n",
@@ -33,6 +64,8 @@ top_words("", 3)  ->  []
   "instructions": "Write `def top_words(text: str, n: int) -> list` returning a list of `(word, count)` tuples for the\n`n` most frequent words. Words are lowercase runs of letters `a-z` (apostrophes and digits split words).\nSort by count descending, then word ascending. Empty or `None` text returns `[]`.",
   "starter": "def top_words(text: str, n: int) -> list:\n    raise NotImplementedError\n",
   "solution": "import re\nfrom collections import Counter\n\ndef top_words(text: str, n: int) -> list:\n    if not text:\n        return []\n    counts = Counter(re.findall(r\"[a-z]+\", text.lower()))\n    return sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:n]\n",
-  "tests": "assert top_words(\"the cat and the hat\", 2) == [(\"the\", 2), (\"and\", 1)]\nassert top_words(\"\", 3) == []\nassert top_words(None, 3) == []\nassert top_words(\"b a c b a\", 2) == [(\"a\", 2), (\"b\", 2)]\nassert top_words(\"Hello, HELLO world!\", 5) == [(\"hello\", 2), (\"world\", 1)]\nassert top_words(\"x\", 0) == []\n"
+  "tests": "assert top_words(\"the cat and the hat\", 2) == [(\"the\", 2), (\"and\", 1)]\nassert top_words(\"\", 3) == []\nassert top_words(None, 3) == []\n",
+  "hidden": "assert top_words(\"b a c b a\", 2) == [(\"a\", 2), (\"b\", 2)]\nassert top_words(\"Hello, HELLO world!\", 5) == [(\"hello\", 2), (\"world\", 1)]\nassert top_words(\"x\", 0) == []\n",
+  "explanation": "Lower-casing and extracting `[a-z]+` tokens normalises the text. Counter does the counting; sorting by (−count, word) puts the most frequent first and breaks ties alphabetically, so results are deterministic."
 }
 ```

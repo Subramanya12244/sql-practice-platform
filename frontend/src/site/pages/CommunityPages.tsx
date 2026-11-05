@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Flame, Trophy } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Container, PageHeader, QuestionCard, Tabs } from "../components/ui";
+import { DailyChallenge } from "../components/DailyChallenge";
 import { Seo } from "../lib/seo";
 import { useAuth } from "../lib/auth";
 import { streak, useProgress } from "../lib/progress";
@@ -179,7 +180,9 @@ export function ChallengePage() {
   return (
     <Container>
       <Seo title="Weekly SQL Challenge" description="Three SQL interview questions every week. Solve them and climb the weekly ranking." path="/challenge" />
-      <PageHeader eyebrow={week ? `Week of ${week}` : "This week"} title="Weekly SQL challenge" intro="Three questions, new every Monday (UTC). First solves this week count toward the ranking." />
+      <PageHeader eyebrow={week ? `Week of ${week}` : "This week"} title="Daily and weekly challenges" intro="One SQL and one Python problem every day, plus three SQL questions every Monday (UTC). First solves this week count toward the ranking." />
+      <div className="mb-8"><DailyChallenge /></div>
+      <h2 className="mb-2 font-display text-xl font-bold text-ink">This week's SQL challenge</h2>
       <p className="mb-4 flex items-center gap-2 text-sm text-ink-muted">
         <Flame className="h-4 w-4 text-warn" aria-hidden /> You've solved {done} of {qs.length}.
       </p>

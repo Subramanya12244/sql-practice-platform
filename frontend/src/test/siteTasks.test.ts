@@ -117,11 +117,43 @@ describe("python exercises content", () => {
   it("each has one python task with starter, solution and tests, and a real topic", () => {
     const topics = new Set(registry.tracks.find((t) => t.id === "python")!.topics.map((t) => t.slug));
     const ex = exerciseFiles.map(([p, r]) => parseExercise(r, p.split("/").pop()!.replace(/\.md$/, "")));
-    expect(ex.length).toBe(20);
+    expect(ex.length).toBe(150);
     for (const e of ex) {
       expect(e.task, e.slug).not.toBeNull();
       expect(e.task!.tests.includes("assert"), e.slug).toBe(true);
       expect(topics.has(e.topic), `${e.slug} topic ${e.topic}`).toBe(true);
     }
+  });
+});
+
+import { PY_CATEGORIES, PY_SKILLS } from "../site/lib/pyPractice";
+describe("python practice library", () => {
+  it("has exactly 150 complete problems: 50 Easy, 60 Medium, 40 Hard, unique ids", async () => {
+    const { parseExercise } = await import("../site/lib/pyExercises");
+    const files = Object.entries(import.meta.glob<string>("../site/content/python/*.md", { eager: true, query: "?raw", import: "default" }));
+    const all = files.map(([p, raw]) => ({ raw, ex: parseExercise(raw, p.split("/").pop()!.replace(/\.md$/, "")) }));
+    expect(all.length).toBe(150);
+    const count = (d: string) => all.filter((x) => x.ex.difficulty === d).length;
+    expect([count("Easy"), count("Medium"), count("Hard")]).toEqual([50, 60, 40]);
+    const ids = all.map((x) => x.ex.code);
+    expect(new Set(ids).size).toBe(150);
+    expect([...ids].sort()).toEqual(Array.from({ length: 150 }, (_, i) => `PY-${String(i + 1).padStart(3, "0")}`));
+    const bad: string[] = [];
+    for (const { raw, ex } of all) {
+      for (const h of ["## Scenario", "## Problem", "## Objective", "## Input format", "## Output format", "## Constraints", "## Examples", "## Hints", "## Why it matters"]) if (!raw.includes(h)) bad.push(`${ex.slug}: no ${h}`);
+      if (!PY_CATEGORIES.some((c) => c.slug === ex.category)) bad.push(`${ex.slug}: category ${ex.category}`);
+      if (!PY_SKILLS[ex.skill]) bad.push(`${ex.slug}: skill ${ex.skill}`);
+      if (!ex.time || !ex.space) bad.push(`${ex.slug}: no complexity`);
+      if (!ex.task?.hidden?.trim()) bad.push(`${ex.slug}: no hidden tests`);
+      if (/^(\s*)(def|class) [^\n]*:\n\1(?!\s)\S/m.test(ex.task?.starter ?? "")) bad.push(`${ex.slug}: starter body is not indented`);
+      if (!ex.task?.explanation?.trim()) bad.push(`${ex.slug}: no explanation`);
+      if (!ex.concepts.length) bad.push(`${ex.slug}: no concepts`);
+    }
+    expect(bad).toEqual([]);
+    // Every category is represented, and no two problems share a title or statement.
+    for (const c of PY_CATEGORIES) expect(all.filter((x) => x.ex.category === c.slug).length, c.slug).toBeGreaterThanOrEqual(15);
+    const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
+    expect(new Set(all.map((x) => norm(x.ex.title))).size).toBe(150);
+    expect(new Set(all.map((x) => norm(x.ex.task!.instructions))).size).toBe(150);
   });
 });

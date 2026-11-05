@@ -1,5 +1,5 @@
 import type { ExecuteResult, SubmitResult, TableSchema } from "../../types";
-import { execute, submit, type SqlDb } from "./sqlRunner";
+import { HIDDEN_ROWS, execute, submit, type SqlDb } from "./sqlRunner";
 import type { OrderKey } from "./resultCompare";
 
 const QUERY_TIMEOUT_MS = 8000;
@@ -98,6 +98,33 @@ export async function getSchemas(dataset = NORTHWIND.id): Promise<TableSchema[]>
   return [...byTable.values()];
 }
 
+export interface DbKeys {
+  pk: Record<string, string[]>;
+  fk: { table: string; column: string; refTable: string; refColumn: string }[];
+}
+
+/** Primary and foreign keys of the dataset, read from the live catalog (for the relationship diagram). */
+export async function getKeys(dataset = NORTHWIND.id): Promise<DbKeys> {
+  const { db } = await getDb(dataset);
+  const [pk] = await db.exec(
+    `SELECT tc.table_name, kcu.column_name FROM information_schema.table_constraints tc
+       JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tc.constraint_name AND kcu.table_schema = tc.table_schema
+      WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_schema = 'public' ORDER BY kcu.ordinal_position`,
+    { rowMode: "array" },
+  );
+  const [fk] = await db.exec(
+    `SELECT kcu.table_name, kcu.column_name, ccu.table_name, ccu.column_name FROM information_schema.table_constraints tc
+       JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tc.constraint_name AND kcu.table_schema = tc.table_schema
+       JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+      WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'`,
+    { rowMode: "array" },
+  );
+  const out: DbKeys = { pk: {}, fk: [] };
+  for (const [t, c] of pk.rows as string[][]) (out.pk[t] ??= []).push(c);
+  for (const [table, column, refTable, refColumn] of fk.rows as string[][]) out.fk.push({ table, column, refTable, refColumn });
+  return out;
+}
+
 export function submitQuery(
   sql: string,
   reference: string,
@@ -106,7 +133,7 @@ export function submitQuery(
   dataset = NORTHWIND.id,
 ): Promise<SubmitResult> {
   return withTimeout<SubmitResult>(
-    (db) => submit(db, sql, reference, sortRequired, orderBy),
+    (db) => submit(db, sql, reference, sortRequired, orderBy, dataset === NORTHWIND.id ? HIDDEN_ROWS : null),
     () => ({ correct: false, message: TIMEOUT_MSG, feedback: [], level_changed: false }),
     dataset,
   );

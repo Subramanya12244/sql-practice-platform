@@ -1,17 +1,19 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePage } from "../SiteApp";
-import { Container, PageHeader, Skeleton } from "../components/ui";
+import { Container, PageHeader, Skeleton, Tabs } from "../components/ui";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { erDiagramSource } from "../lib/data";
 
 // Mermaid is ~1 MB, so the diagram renders only in the browser, on demand.
+const SchemaFlow = lazy(() => import("../components/SchemaFlow"));
 const ErDiagram = lazy(() => import("../../components/ErDiagram").then((m) => ({ default: m.ErDiagram })));
 
 export function SchemaPage() {
   const { data } = usePage();
   const schema = data.schema ?? [];
   const [mounted, setMounted] = useState(false);
+  const [view, setView] = useState<"interactive" | "static">("interactive");
   useEffect(() => setMounted(true), []);
   const relationships = schema.flatMap((t) =>
     t.columns.filter((c) => c.fk).map((c) => ({ from: t.name, column: c.name, to: c.fk!.table, toColumn: c.fk!.column })),
@@ -31,14 +33,17 @@ export function SchemaPage() {
         intro="Every practice question runs on these 8 tables. Orders link customers, employees and shippers; order_details links orders to products, which belong to categories and suppliers."
       />
 
-      <section aria-labelledby="er" className="rounded-card border border-surface-border bg-[#151b23] p-4">
-        <h2 id="er" className="sr-only">Entity-relationship diagram</h2>
-        {mounted ? (
-          <Suspense fallback={<Skeleton className="h-[480px]" />}>
-            <ErDiagram source={erDiagramSource(schema)} />
-          </Suspense>
+      <section aria-labelledby="er">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 id="er" className="font-display text-lg font-bold text-ink">Entity-relationship diagram</h2>
+          <Tabs label="Diagram view" value={view} onChange={setView} tabs={[{ id: "interactive", label: "Interactive" }, { id: "static", label: "Static" }]} />
+        </div>
+        {!mounted ? <Skeleton className="h-[560px]" /> : view === "interactive" ? (
+          <Suspense fallback={<Skeleton className="h-[560px]" />}><SchemaFlow schema={schema} /></Suspense>
         ) : (
-          <Skeleton className="h-[480px]" />
+          <div className="rounded-card border border-surface-border bg-[#151b23] p-4">
+            <Suspense fallback={<Skeleton className="h-[480px]" />}><ErDiagram source={erDiagramSource(schema)} /></Suspense>
+          </div>
         )}
       </section>
 

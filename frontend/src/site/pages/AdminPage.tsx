@@ -7,6 +7,7 @@ import { getSupabase } from "../lib/supabase";
 import { setChallenge, setHidden, weekStart } from "../lib/community";
 import { AdminSubmissions } from "./AdminSubmissions";
 import { AdminUserDetail } from "./AdminUserDetail";
+import { AdminAnalytics } from "../components/AdminAnalytics";
 import { downloadCsv, toCsv } from "../lib/csv";
 
 interface CommentAdminRow {
@@ -107,7 +108,7 @@ interface AuditRow {
   created_at: string;
 }
 
-const ACTIONS = ["", "signup", "login", "logout", "submit", "solve", "mock_finish", "password_change", "role_change", "progress_import", "solution_share", "comment", "comment_hide", "submission_review"];
+const ACTIONS = ["", "signup", "login", "logout", "submit", "solve", "mock_finish", "password_change", "role_change", "progress_import", "solution_share", "comment", "comment_hide", "submission_review", "admin_export", "admin_view_learner"];
 const PAGE = 50;
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "—");
 const th = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-ink-faint";
@@ -115,7 +116,7 @@ const td = "px-3 py-2 text-sm text-ink";
 
 export function AdminPage() {
   const { enabled, ready, profile, session } = useAuth();
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [filterUser, setFilterUser] = useState("");
@@ -124,6 +125,8 @@ export function AdminPage() {
   const [hasMore, setHasMore] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [selected, setSelected] = useState<UserRow | null>(null);
+  const [detailRange, setDetailRange] = useState<{ from: string; to: string } | undefined>();
+  const [refresh, setRefresh] = useState(0);
   const isAdmin = profile?.role === "admin";
 
   const loadOverview = useCallback(async () => {
@@ -159,6 +162,7 @@ export function AdminPage() {
     const { error } = await sb.from("profiles").update({ role }).eq("id", u.id);
     if (error) return setErr(error.message);
     await Promise.all([loadOverview(), loadAudit()]);
+    setRefresh((n) => n + 1);
   }
 
   /** Up to 5,000 audit rows matching the current filters. */
@@ -169,6 +173,8 @@ export function AdminPage() {
     if (filterAction) q = q.eq("action", filterAction);
     const { data, error } = await q;
     if (error) return setErr(error.message);
+    const audited = await sb.rpc("admin_audit", { p_action: "admin_export", p_detail: { report: "audit_log", user: filterUser || null, action: filterAction || null } });
+    if (audited.error) return setErr(audited.error.message);
     const rows = (data ?? []).map((r) => ({ ...r, user: name(r.user_id as string | null) }));
     downloadCsv("dataforge-audit.csv", toCsv(rows as Record<string, string>[], ["created_at", "user", "action", "detail"]));
   }
@@ -184,58 +190,10 @@ export function AdminPage() {
     body = (
       <>
         {err && <p role="alert" className="mb-4 rounded-lg border border-danger/30 bg-danger-dim px-4 py-3 text-sm text-danger">{err}</p>}
-        {stats && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {[
-              ["Users", stats.users],
-              ["Admins", stats.admins],
-              ["Active 7d", stats.active7],
-              ["Active 30d", stats.active30],
-              ["Solves", stats.solves],
-              ["Mock interviews", stats.mocks],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel">
-                <p className="text-xs uppercase tracking-wider text-ink-faint">{label}</p>
-                <p className="mt-1 font-display text-2xl font-bold text-ink">{value}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-10 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-xl font-bold text-ink">Users ({users.length})</h2>
-          <button type="button" className="rounded-lg border border-surface-border px-3 py-1.5 text-sm" onClick={() => downloadCsv("dataforge-users.csv", toCsv(users as unknown as Record<string, string>[], ["username", "role", "solved", "attempts", "mocks", "created_at", "last_seen_at"]))}>Export CSV</button>
-        </div>
-        <p className="mt-1 text-xs text-ink-faint">Click a username for that learner's details.</p>
-        <div className="mt-3 overflow-x-auto rounded-card border border-surface-border">
-          <table className="w-full min-w-[640px]">
-            <thead className="bg-surface-raised">
-              <tr><th className={th}>Username</th><th className={th}>Role</th><th className={th}>Solved</th><th className={th}>Attempts</th><th className={th}>Mocks</th><th className={th}>Joined</th><th className={th}>Last active</th><th className={th} /></tr>
-            </thead>
-            <tbody className="divide-y divide-surface-border">
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td className={td}>
-                    <button type="button" className="text-accent hover:underline" onClick={() => { setSelected(u); setFilterUser(u.id); setPage(0); }}>{u.username}</button>
-                  </td>
-                  <td className={td}>{u.role}</td>
-                  <td className={td}>{u.solved}</td>
-                  <td className={td}>{u.attempts}</td>
-                  <td className={td}>{u.mocks}</td>
-                  <td className={td}>{fmt(u.created_at)}</td>
-                  <td className={td}>{fmt(u.last_seen_at)}</td>
-                  <td className={td}>
-                    <button type="button" className="text-xs text-ink-muted underline hover:text-ink" onClick={() => setRole(u, u.role === "admin" ? "user" : "admin")}>
-                      {u.role === "admin" ? "Make user" : "Make admin"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {selected && <AdminUserDetail key={selected.id} userId={selected.id} username={selected.username} onClose={() => setSelected(null)} />}
+        <AdminAnalytics refreshKey={refresh} selfId={session?.user.id}
+          onSelect={(l, range) => { setSelected({ ...(users.find((u) => u.id === l.id) ?? (l as unknown as UserRow)) }); setDetailRange(range); setFilterUser(l.id); setPage(0); }}
+          onRole={(l, role) => void setRole(l as unknown as UserRow, role)} />
+        {selected && <AdminUserDetail key={selected.id} userId={selected.id} username={selected.username} range={detailRange} onClose={() => setSelected(null)} />}
 
         <h2 className="mt-10 font-display text-xl font-bold text-ink">Audit log</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
@@ -278,7 +236,7 @@ export function AdminPage() {
   return (
     <Container>
       <Seo title="Admin" description="Admin dashboard." path="/admin" noindex />
-      <PageHeader eyebrow="Admin" title="Users & audit" />
+      <PageHeader eyebrow="Admin" title="Admin dashboard" />
       {body}
     </Container>
   );

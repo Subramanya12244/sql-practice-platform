@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { SampleTable } from "./SampleTable";
@@ -7,6 +7,8 @@ import { Markdown } from "./Markdown";
 import { runQuery } from "../lib/browserDb";
 import { visualize, type Provenance, type Stage, type Visualization } from "../lib/visualize";
 import { analyze, cteFlow, type Structure } from "../lib/sqlAst";
+import { buildGraphs, type GraphResult } from "../lib/queryGraph";
+const QueryDiagrams = lazy(() => import("./QueryDiagram"));
 
 const CLAUSE_COLOR: Record<string, string> = {
   from: "bg-sky-500/15", where: "bg-amber-500/20", "group by": "bg-emerald-500/15", having: "bg-rose-500/15",
@@ -106,9 +108,16 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
   const [analyzed, setAnalyzed] = useState<{ node: PlanNode | null; error?: string; ms?: number } | null>(null);
   const [counts, setCounts] = useState<{ ctes: Record<string, number | string>; branches: (number | string)[] }>({ ctes: {}, branches: [] });
   const [step, setStep] = useState(0);
-  const [tab, setTab] = useState<"logical" | "structure" | "plan">("logical");
+  const [tab, setTab] = useState<"logical" | "flow" | "rel" | "structure" | "plan">("logical");
   const run = (q: string) => runQuery(q, dataset);
   const body = sql.trim().replace(/;\s*$/, "");
+  const [graphs, setGraphs] = useState<GraphResult | null>(null);
+  useEffect(() => {
+    let live = true;
+    setGraphs(null);
+    void buildGraphs(body).then((g) => live && setGraphs(g));
+    return () => { live = false; };
+  }, [body]);
 
   useEffect(() => {
     let alive = true;
@@ -180,13 +189,26 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
         </p>
       )}
       <div role="tablist" className="flex flex-wrap gap-2 text-sm">
-        {([["logical", "Logical steps"], ["structure", "Structure"], ["plan", "Execution plan"]] as const).map(([t, label]) => (
+        {([["logical", "Logical steps"], ["flow", "Flow diagram"], ["rel", "Relationships"], ["structure", "Structure"], ["plan", "Execution plan"]] as const).map(([t, label]) => (
           <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => { setTab(t); if (t !== "logical") onClause?.(null); }}
             className={`rounded-lg px-3 py-1.5 ${tab === t ? "bg-accent text-white" : "border border-surface-border text-ink-muted"}`}>
             {label}
           </button>
         ))}
       </div>
+
+      {(tab === "flow" || tab === "rel") && (
+        !graphs ? <p className="flex items-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Parsing…</p>
+          : !graphs.ok ? <p role="status" className="rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-ink-muted">{graphs.reason}</p>
+            : (
+              <div className="space-y-2">
+                <p className="text-xs text-ink-faint">{tab === "flow" ? `${graphs.statement}. ${graphs.notes[0]}` : "Tables this query reads, with each join's type and columns. PK/FK markers come from the database catalog; dashed lines are foreign keys the query doesn't join on."}</p>
+                <Suspense fallback={<p className="text-sm text-ink-muted">Loading diagram…</p>}>
+                  <QueryDiagrams mode={tab} flow={graphs.flow} rel={graphs.rel} dataset={dataset} />
+                </Suspense>
+              </div>
+            )
+      )}
 
       {tab === "logical" && (
         v.unsupported ? (

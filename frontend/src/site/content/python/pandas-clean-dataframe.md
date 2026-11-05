@@ -1,11 +1,21 @@
 ---
+id: PY-012
 title: Clean a DataFrame with pandas
 slug: pandas-clean-dataframe
 difficulty: Medium
+category: advanced
+skill: cleaning
 description: Fix types, fill nulls and drop duplicate rows in a raw pandas DataFrame.
 topic: python-pandas
+concepts: pandas cleaning, to_numeric, to_datetime, deduplication
+time: O(n)
+space: O(n)
 minutes: 20
 ---
+
+## Scenario
+
+A customer sign-up export arrives with padded or missing names, amounts stored as text, unparseable dates, missing ids and duplicate customers. It must become a clean, typed table before loading.
 
 ## Problem
 
@@ -15,6 +25,23 @@ Write `def clean(df: pd.DataFrame) -> pd.DataFrame` for columns `id, name, amoun
 - parse `signup` to datetime (`errors="coerce"`);
 - drop rows with a null `id`, cast `id` to int, drop duplicate `id`s keeping the first;
 - return with a fresh `RangeIndex`. Do not mutate the input.
+
+## Objective
+
+Return a cleaned copy with stripped names, numeric amounts, parsed dates, non-null int ids and duplicate ids removed.
+
+## Input format
+
+A raw DataFrame with id, name, amount and signup.
+
+## Output format
+
+A new cleaned DataFrame.
+
+## Constraints
+
+- The input must not be modified
+- Invalid values become NaN/NaT, then defaults
 
 ## Examples
 
@@ -30,6 +57,10 @@ id   name     amount  signup         ->  id  name     amount  signup
 - Work on `df.copy()`.
 - `df.dropna(subset=['id'])` then `.astype({'id': int})`, then `drop_duplicates('id')`.
 
+## Why it matters
+
+This is the typical cleaning pass before any warehouse load, and doing it with vectorized pandas operations scales far beyond row-by-row loops.
+
 ```task
 {
   "id": "pandas-clean-dataframe",
@@ -38,6 +69,8 @@ id   name     amount  signup         ->  id  name     amount  signup
   "instructions": "Write `def clean(df: pd.DataFrame) -> pd.DataFrame` for columns `id, name, amount, signup`:\n- strip whitespace from `name` and replace empty names with `\"unknown\"` (nulls too);\n- convert `amount` to float with `pd.to_numeric(errors=\"coerce\")`, filling nulls with `0.0`;\n- parse `signup` to datetime (`errors=\"coerce\"`);\n- drop rows with a null `id`, cast `id` to int, drop duplicate `id`s keeping the first;\n- return with a fresh `RangeIndex`. Do not mutate the input.",
   "starter": "import pandas as pd\n\ndef clean(df: pd.DataFrame) -> pd.DataFrame:\n    raise NotImplementedError\n",
   "solution": "import pandas as pd\n\ndef clean(df: pd.DataFrame) -> pd.DataFrame:\n    out = df.copy()\n    out[\"name\"] = out[\"name\"].fillna(\"\").astype(str).str.strip().replace(\"\", \"unknown\")\n    out[\"amount\"] = pd.to_numeric(out[\"amount\"], errors=\"coerce\").fillna(0.0).astype(float)\n    out[\"signup\"] = pd.to_datetime(out[\"signup\"], errors=\"coerce\")\n    out = out.dropna(subset=[\"id\"])\n    out[\"id\"] = out[\"id\"].astype(int)\n    out = out.drop_duplicates(\"id\", keep=\"first\").reset_index(drop=True)\n    return out\n",
-  "tests": "import pandas as pd\nraw = pd.DataFrame({\"id\": [1, 1, 2, None], \"name\": [\" Ann \", \"Ann\", None, \"Zed\"],\n                    \"amount\": [\"10\", \"5\", \"x\", \"1\"], \"signup\": [\"2024-01-02\", \"2024-01-03\", \"bad\", None]})\nsnapshot = raw.copy()\nc = clean(raw)\nassert list(c[\"id\"]) == [1, 2]\nassert list(c[\"name\"]) == [\"Ann\", \"unknown\"]\nassert list(c[\"amount\"]) == [10.0, 0.0]\nassert c[\"amount\"].dtype == float\nassert pd.api.types.is_datetime64_any_dtype(c[\"signup\"])\nassert c.loc[0, \"signup\"] == pd.Timestamp(\"2024-01-02\") and pd.isna(c.loc[1, \"signup\"])\nassert list(c.index) == [0, 1]\nassert raw.equals(snapshot)\nempty = clean(pd.DataFrame({\"id\": [], \"name\": [], \"amount\": [], \"signup\": []}))\nassert len(empty) == 0\n"
+  "tests": "import pandas as pd\nraw = pd.DataFrame({\"id\": [1, 1, 2, None], \"name\": [\" Ann \", \"Ann\", None, \"Zed\"],\n                    \"amount\": [\"10\", \"5\", \"x\", \"1\"], \"signup\": [\"2024-01-02\", \"2024-01-03\", \"bad\", None]})\nsnapshot = raw.copy()\nc = clean(raw)\nassert list(c[\"id\"]) == [1, 2]\nassert list(c[\"name\"]) == [\"Ann\", \"unknown\"]\nassert list(c[\"amount\"]) == [10.0, 0.0]\nassert c[\"amount\"].dtype == float\n",
+  "hidden": "assert pd.api.types.is_datetime64_any_dtype(c[\"signup\"])\nassert c.loc[0, \"signup\"] == pd.Timestamp(\"2024-01-02\") and pd.isna(c.loc[1, \"signup\"])\nassert list(c.index) == [0, 1]\nassert raw.equals(snapshot)\nempty = clean(pd.DataFrame({\"id\": [], \"name\": [], \"amount\": [], \"signup\": []}))\nassert len(empty) == 0\n",
+  "explanation": "`errors='coerce'` turns unparseable numbers and dates into NaN/NaT instead of failing the whole column. Working on a copy keeps the caller's DataFrame intact, and rows are deduplicated by id after invalid ids are dropped."
 }
 ```

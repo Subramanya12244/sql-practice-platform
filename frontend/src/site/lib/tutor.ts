@@ -1,94 +1,10 @@
 /**
- * AI SQL tutor: provider abstraction + context assembly.
- *
- * No model is wired in by default. A provider is enabled only when a server-side endpoint is
- * configured (VITE_TUTOR_ENDPOINT); API keys never reach the browser. Everything in
- * `explainQuery` and `schemaCheck` is deterministic and works with no provider at all.
+ * SQL query helper: deterministic schema check and clause-by-clause explanation.
+ * There is no AI model or chat; everything here is rule-based and runs in the browser.
  */
-import type { Question, SchemaTable } from "../types";
-import type { NoteMeta } from "./learning";
-import type { QuestionProgress } from "./progress";
+import type { SchemaTable } from "../types";
 import { parseSelect } from "./sqlClauses";
 import { lint, type Note } from "./compareSolutions";
-
-export interface TutorMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
-export interface TutorContext {
-  question: Pick<Question, "number" | "title" | "problem" | "objective" | "tables" | "concepts" | "difficulty">;
-  /** Only tables the question uses, with their real columns and keys. */
-  schema: { table: string; columns: string[]; foreignKeys: string[] }[];
-  userSql: string;
-  attempts: number;
-  hintLevel: number;
-  previousMistakes: string[];
-  relatedNotes: { slug: string; title: string }[];
-}
-
-export interface TutorProvider {
-  id: string;
-  label: string;
-  available: boolean;
-  ask(ctx: TutorContext, history: TutorMessage[]): Promise<string>;
-}
-
-/** Used when nothing is configured: the UI shows a disabled state instead of failing. */
-export const disabledProvider: TutorProvider = {
-  id: "none",
-  label: "Not configured",
-  available: false,
-  ask: async () => {
-    throw new Error("No AI provider is configured for this site.");
-  },
-};
-
-/**
- * Talks to a server-side proxy that holds the model API key. The proxy receives the context
- * as data (never as instructions) and returns plain text.
- */
-export function httpProvider(endpoint: string): TutorProvider {
-  return {
-    id: "http",
-    label: "AI tutor",
-    available: true,
-    async ask(ctx, history) {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ context: ctx, messages: history.slice(-12) }),
-      });
-      if (!res.ok) throw new Error(`Tutor request failed (${res.status})`);
-      const data = (await res.json()) as { reply?: string };
-      return String(data.reply ?? "");
-    },
-  };
-}
-
-export function getTutorProvider(): TutorProvider {
-  const endpoint = import.meta.env.VITE_TUTOR_ENDPOINT as string | undefined;
-  return endpoint ? httpProvider(endpoint) : disabledProvider;
-}
-
-export function buildContext(q: Question, schema: SchemaTable[], userSql: string, p: QuestionProgress | undefined, notes: NoteMeta[]): TutorContext {
-  const used = new Set(q.tables.map((t) => t.toLowerCase()));
-  return {
-    question: { number: q.number, title: q.title, problem: q.problem, objective: q.objective, tables: q.tables, concepts: q.concepts, difficulty: q.difficulty },
-    schema: schema
-      .filter((t) => used.has(t.name.toLowerCase()))
-      .map((t) => ({
-        table: t.name,
-        columns: t.columns.map((c) => `${c.name} ${c.type}${c.pk ? " PK" : ""}`),
-        foreignKeys: t.columns.filter((c) => c.fk).map((c) => `${c.name} → ${c.fk!.table}.${c.fk!.column}`),
-      })),
-    userSql: userSql.slice(0, 8000),
-    attempts: p?.attempts ?? 0,
-    hintLevel: p?.hintLevel ?? 0,
-    previousMistakes: [...q.myMistakes.slice(0, 5), ...Object.keys(p?.errorKinds ?? {})],
-    relatedNotes: notes.map((n) => ({ slug: n.slug, title: n.title })),
-  };
-}
 
 /** Tables and table.column references in the SQL that don't exist in the real schema. */
 export function schemaCheck(sql: string, schema: SchemaTable[]): string[] {

@@ -12,6 +12,22 @@ import m003 from "../../../supabase/migrations/003_dataforge.sql?raw";
 import m004 from "../../../supabase/migrations/004_submission_review.sql?raw";
 import m005 from "../../../supabase/migrations/005_public_portfolio.sql?raw";
 import m006 from "../../../supabase/migrations/006_gamification.sql?raw";
+import m007 from "../../../supabase/migrations/007_activity_tracking.sql?raw";
+import m008 from "../../../supabase/migrations/008_admin_analytics.sql?raw";
+import m009 from "../../../supabase/migrations/009_study_notes.sql?raw";
+
+/** Minimal stand-in for Supabase Storage (bucket + object tables and storage.foldername). */
+const STORAGE_STUB = `
+  create schema if not exists storage;
+  create table if not exists storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+  create table if not exists storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets (id), name text not null, owner uuid default auth.uid());
+  alter table storage.objects enable row level security;
+  create or replace function storage.foldername(name text) returns text[] language sql immutable as $$
+    select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
+  grant usage on schema storage to anon, authenticated;
+  grant select, insert, delete on storage.objects to authenticated;
+  grant select on storage.objects to anon;
+`;
 import { ACHIEVEMENTS, MISSIONS, XP } from "../site/lib/gamification";
 import registry from "../site/content/tracks.json";
 
@@ -34,10 +50,12 @@ const fails = (p: Promise<unknown>) => expect(p).rejects.toThrow();
 
 beforeAll(async () => {
   pg = new PGlite({ extensions: { citext, pgcrypto } });
-  for (const m of [stub, m001, m002, m003, m004, m005, m006]) await pg.exec(m);
+  for (const m of [stub, m001, m002, m003, m004, m005, m006, m007, m008, STORAGE_STUB, m009]) await pg.exec(m);
   // Re-applying must be safe (no data loss, no errors).
   await pg.exec(m003);
   await pg.exec(m004);
+  await pg.exec(m008); // re-runnable, and restores the full audit action list
+  await pg.exec(m009);
   await pg.exec(`
     grant usage on schema public to anon, authenticated;
     grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -251,5 +269,124 @@ describe("gamification (006)", () => {
     const before = (await pg.query<{ n: number }>("select count(*)::int as n from xp_events")).rows[0].n;
     await pg.exec(m006);
     expect((await pg.query<{ n: number }>("select count(*)::int as n from xp_events")).rows[0].n).toBe(before);
+  });
+});
+
+describe("activity tracking (007)", () => {
+  const E1 = "11111111-1111-4111-8111-111111111111";
+  const S1 = "22222222-2222-4222-8222-222222222222";
+  const ins = (who: string, id: string, at = "now()") => as(who, `insert into learning_events (id, user_id, type, ref, at) values ('${id}', auth.uid(), 'sql_executed', 'q25', ${at}) on conflict (id) do nothing`);
+  it("accepts own events once and ignores a retried batch", async () => {
+    await ins(A, E1);
+    await ins(A, E1);
+    expect((await as<{ n: number }>(A, "select count(*)::int as n from learning_events")).at(0)!.n).toBe(1);
+  });
+  it("rejects other users' rows and back- or forward-dated events", async () => {
+    await fails(as(B, `insert into learning_events (id, user_id, type, at) values (gen_random_uuid(), '${A}', 'login', now())`));
+    await fails(ins(A, "33333333-3333-4333-8333-333333333333", "now() + interval '1 hour'"));
+    await fails(ins(A, "44444444-4444-4444-8444-444444444444", "now() - interval '8 days'"));
+    await fails(as(A, "insert into learning_events (id, user_id, type, at) values (gen_random_uuid(), auth.uid(), 'made_up', now())"));
+  });
+  it("counts an active minute once across tabs and devices", async () => {
+    const m = "date_trunc('minute', now()) - interval '2 minutes'";
+    for (let i = 0; i < 3; i++) await as(A, `insert into active_minutes (user_id, minute) values (auth.uid(), ${m}) on conflict do nothing`);
+    expect((await as<{ n: number }>(A, "select count(*)::int as n from active_minutes")).at(0)!.n).toBe(1);
+    await fails(as(A, "insert into active_minutes (user_id, minute) values (auth.uid(), date_trunc('minute', now()) + interval '30 seconds')"));
+  });
+  it("keeps session start fixed and last activity moving forward only", async () => {
+    await as(A, `insert into learning_sessions (id, user_id, started_at, last_activity_at) values ('${S1}', auth.uid(), now() - interval '20 minutes', now() - interval '5 minutes')`);
+    await as(A, `update learning_sessions set last_activity_at = now() - interval '10 minutes' where id = '${S1}'`);
+    const [r] = await as<{ ok: boolean }>(A, `select last_activity_at > now() - interval '6 minutes' as ok from learning_sessions where id = '${S1}'`);
+    expect(r.ok).toBe(true);
+    await fails(as(A, `update learning_sessions set started_at = now() - interval '5 days' where id = '${S1}'`));
+    expect(await as(A, "delete from learning_sessions returning 1")).toEqual([]);
+    expect(await as(A, "delete from learning_events returning 1")).toEqual([]);
+  });
+  it("hides learners' activity from each other and anonymous visitors; admins can read it", async () => {
+    for (const t of ["learning_events", "active_minutes", "learning_sessions"]) {
+      expect(await as(B, `select * from ${t} where user_id = '${A}'`)).toEqual([]);
+      expect(await as(null, `select * from ${t}`)).toEqual([]);
+      expect((await as(ADMIN, `select * from ${t} where user_id = '${A}'`)).length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("admin analytics (008)", () => {
+  const day = new Date().toISOString().slice(0, 10);
+  const from = new Date(Date.now() - 6 * 86_400_000).toISOString().slice(0, 10);
+  const range = `'${from}'::date, '${day}'::date`;
+  beforeAll(async () => {
+    for (const [passed, ref] of [[false, "q7"], [false, "q7"], [true, "q7"]] as const)
+      await as(A, `insert into learning_events (id, user_id, type, ref, meta, at) values (gen_random_uuid(), auth.uid(), 'sql_submitted', '${ref}', '{"passed": ${passed}}', now() - interval '1 hour')`);
+    await as(B, `insert into learning_events (id, user_id, type, ref, meta, at) values (gen_random_uuid(), auth.uid(), 'python_submitted', 'py:safe-cast', '{"passed": false, "hidden_failed": true}', now())`);
+    await pg.query(`update profiles set state = jsonb_set(state, '{lessons}', jsonb_build_object('py:safe-cast', '${day}', 'py:dedupe-preserve-order', '${day}T10:00:00Z', 'lesson:joins', '${day}')) where id = '${A}'`);
+  });
+  it("refuses learners and anonymous callers on every RPC", async () => {
+    for (const call of [`admin_overview(${range})`, "admin_learners()", `admin_learner_activity('${A}', ${range})`, `admin_problem_stats(${range})`, "admin_audit('admin_export', '{}')"]) {
+      await fails(as(A, `select * from ${call}`));
+      await fails(as(null, `select * from ${call}`));
+    }
+    await fails(as(A, "select * from py_completions()"));
+  });
+  it("counts activity, accuracy and Python completions for admins", async () => {
+    const [{ o }] = await as<{ o: Record<string, number> & { trend: unknown[] } }>(ADMIN, `select admin_overview(${range}) as o`);
+    expect(o.users).toBeGreaterThanOrEqual(3);
+    expect(o.sqlSubmits).toBe(3);
+    expect(o.sqlPassed).toBe(1);
+    expect(o.pySubmits).toBe(1);
+    expect(o.pySolves).toBe(2);
+    expect(o.wau).toBeGreaterThanOrEqual(2);
+    expect(o.trend).toHaveLength(7);
+    await fails(as(ADMIN, "select admin_overview('2026-01-10', '2026-01-01')"));
+  });
+  it("lists learners with per-learner totals", async () => {
+    const rows = await as<{ username: string; sql_submits: number; sql_passed: number; py_solved: number }>(ADMIN, "select * from admin_learners()");
+    const a = rows.find((r) => r.username === "learner_a")!;
+    expect([Number(a.sql_submits), Number(a.sql_passed), Number(a.py_solved)]).toEqual([3, 1, 2]);
+  });
+  it("aggregates per-problem results", async () => {
+    const rows = await as<{ kind: string; ref: string; submits: number; passed: number; hidden_failed: number }>(ADMIN, `select * from admin_problem_stats(${range}) order by ref`);
+    expect(rows.map((r) => [r.kind, r.ref, Number(r.submits), Number(r.passed), Number(r.hidden_failed)])).toEqual([["python", "py:safe-cast", 1, 0, 1], ["sql", "q7", 3, 1, 0]]);
+  });
+  it("audits learner views and exports; learners can't forge admin audit rows", async () => {
+    const [{ r }] = await as<{ r: { days: unknown[]; problems: { ref: string; fails: number }[] } }>(ADMIN, `select admin_learner_activity('${A}', ${range}) as r`);
+    expect(r.days).toHaveLength(7);
+    expect(r.problems.find((p) => p.ref === "q7")!.fails).toBe(2);
+    await as(ADMIN, `select admin_audit('admin_export', '{"report": "learners"}')`);
+    await fails(as(ADMIN, "select admin_audit('role_change', '{}')"));
+    const actions = await pg.query<{ action: string }>(`select action from audit_log where user_id = '${ADMIN}' and action like 'admin_%' order by id`);
+    expect(actions.rows.map((x) => x.action)).toEqual(["admin_view_learner", "admin_export"]);
+    await fails(as(A, "insert into audit_log (user_id, action) values (auth.uid(), 'admin_export')"));
+  });
+});
+
+describe("study notes (009)", () => {
+  const N1 = "aaaaaaaa-0000-4000-8000-000000000001";
+  const row = (who: string, id: string, path = `${who}/${id}.pdf`) =>
+    `insert into study_notes (id, user_id, title, kind, topics, refs, pages, size_bytes, storage_path) values ('${id}', '${who}', 'Joins', 'sql', '{"LEFT JOIN"}', '{q25}', 4, 70000, '${path}')`;
+  it("creates a private PDF-only bucket", async () => {
+    const [b] = (await pg.query<{ public: boolean; allowed_mime_types: string[] }>("select public, allowed_mime_types from storage.buckets where id = 'study-notes'")).rows;
+    expect(b).toEqual({ public: false, allowed_mime_types: ["application/pdf"] });
+  });
+  it("lets learners keep only their own notes and files", async () => {
+    await as(A, row(A, N1));
+    await fails(as(B, row(A, "aaaaaaaa-0000-4000-8000-000000000002")));
+    await fails(as(A, row(A, "aaaaaaaa-0000-4000-8000-000000000003", `${B}/x.pdf`)));
+    await as(A, `insert into storage.objects (bucket_id, name) values ('study-notes', '${A}/${N1}.pdf')`);
+    await fails(as(A, `insert into storage.objects (bucket_id, name) values ('study-notes', '${B}/${N1}.pdf')`));
+    await fails(as(A, `insert into storage.objects (bucket_id, name) values ('study-notes', '${A}/../evil.pdf')`));
+    for (const who of [B, ADMIN, null]) {
+      expect(await as(who, "select * from study_notes")).toEqual([]);
+      expect(await as(who, "select * from storage.objects where bucket_id = 'study-notes'")).toEqual([]);
+    }
+    expect(await as(A, "select title from study_notes")).toEqual([{ title: "Joins" }]);
+    expect(await as(A, "select name from storage.objects")).toEqual([{ name: `${A}/${N1}.pdf` }]);
+  });
+  it("can't be edited, and deletes only the owner's rows", async () => {
+    expect(await as(A, "update study_notes set title = 'x' returning 1")).toEqual([]);
+    expect(await as(B, "delete from study_notes returning 1")).toEqual([]);
+    expect(await as(B, "delete from storage.objects returning 1")).toEqual([]);
+    expect(await as(A, `delete from study_notes where id = '${N1}' returning 1`)).toHaveLength(1);
+    expect(await as(A, "delete from storage.objects returning 1")).toHaveLength(1);
   });
 });

@@ -9,8 +9,7 @@ import {
   Play,
   RotateCcw,
   Send,
-  TextSelect,
-} from "lucide-react";
+  TextSelect, MessageSquareCode } from "lucide-react";
 import { useToast } from "./Toast";
 import { useTheme } from "../contexts/ThemeContext";
 import type { ResultTarget, RunScope, TableSchema } from "../types";
@@ -92,6 +91,21 @@ interface Props {
   submitLabel?: string;
   /** Custom Monaco themes (public site). Omitted in the local app, which keeps vs / vs-dark. */
   themes?: { dark: string; light: string; define: (monaco: typeof import("monaco-editor")) => void };
+  /** Mark a SQL error in the editor: the statement that failed and PostgreSQL's 1-based position. */
+  errorMarker?: { sql: string; position: number; message: string } | null;
+}
+
+/** Table names and their aliases from FROM/JOIN clauses, for alias-aware column suggestions. */
+export function aliasMap(sql: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const re = /\b(?:from|join)\s+([A-Za-z_][\w.]*)(?:\s+(?:as\s+)?([A-Za-z_]\w*))?/gi;
+  const stop = new Set(["on", "where", "join", "left", "right", "inner", "full", "cross", "group", "order", "limit", "using", "natural", "union", "having", "window", "lateral"]);
+  for (const m of sql.matchAll(re)) {
+    const table = m[1].split(".").pop()!.toLowerCase();
+    out[table] = table;
+    if (m[2] && !stop.has(m[2].toLowerCase())) out[m[2].toLowerCase()] = table;
+  }
+  return out;
 }
 
 export function SqlEditor({
@@ -107,6 +121,7 @@ export function SqlEditor({
   onResultTargetChange,
   submitLabel,
   themes,
+  errorMarker,
 }: Props) {
   const toast = useToast();
   const { resolved: theme } = useTheme();
@@ -180,8 +195,9 @@ export function SqlEditor({
 
         if (dotted) {
           const aliasOrTable = dotted[1].toLowerCase();
+          const resolved = aliasMap(model.getValue())[aliasOrTable] ?? aliasOrTable;
           const table =
-            tables.find((t) => t.table_name.toLowerCase() === aliasOrTable) ||
+            tables.find((t) => t.table_name.toLowerCase() === resolved) ||
             tables.find((t) => t.table_name.toLowerCase().startsWith(aliasOrTable));
           if (table) {
             for (const col of table.columns) {
@@ -267,6 +283,31 @@ export function SqlEditor({
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  // Error squiggle at PostgreSQL's reported position (offset by where the failed text sits).
+  useEffect(() => {
+    const monaco = monacoRef.current;
+    const model = editorRef.current?.getModel();
+    if (!monaco || !model) return;
+    if (!errorMarker) return monaco.editor.setModelMarkers(model, "pg", []);
+    const base = model.getValue().indexOf(errorMarker.sql);
+    if (base < 0) return monaco.editor.setModelMarkers(model, "pg", []);
+    const at = model.getPositionAt(base + errorMarker.position - 1);
+    const word = model.getWordAtPosition(at);
+    monaco.editor.setModelMarkers(model, "pg", [{
+      severity: monaco.MarkerSeverity.Error,
+      message: errorMarker.message,
+      startLineNumber: at.lineNumber,
+      startColumn: word?.startColumn ?? at.column,
+      endLineNumber: at.lineNumber,
+      endColumn: word?.endColumn ?? at.column + 1,
+    }]);
+  }, [errorMarker]);
+
+  const toggleComment = useCallback(() => {
+    editorRef.current?.focus();
+    editorRef.current?.trigger("toolbar", "editor.action.commentLine", null);
+  }, []);
+
   const formatSql = useCallback(() => {
     try {
       const formatted = formatStandardSql(value);
@@ -334,6 +375,9 @@ export function SqlEditor({
           <button type="button" className="btn-secondary" onClick={formatSql} title="Format SQL">
             <AlignLeft className="h-3.5 w-3.5" />
             Format
+          </button>
+          <button type="button" className="btn-secondary" onClick={toggleComment} title="Comment or uncomment lines (⌘/Ctrl+/)" aria-label="Toggle comment">
+            <MessageSquareCode className="h-3.5 w-3.5" />
           </button>
           <button type="button" className="btn-secondary" onClick={copySql} title="Copy">
             <Copy className="h-3.5 w-3.5" />

@@ -38,8 +38,8 @@ async function boot(): Promise<Pyodide> {
   return p;
 }
 
-self.onmessage = async (e: MessageEvent<{ id: number; code: string; tests?: string }>) => {
-  const { id, code, tests } = e.data;
+self.onmessage = async (e: MessageEvent<{ id: number; code: string; tests?: string; stdin?: string }>) => {
+  const { id, code, tests, stdin } = e.data;
   let out = "";
   const write = (s: string) => {
     if (out.length < 20000) out += s + "\n";
@@ -53,6 +53,8 @@ self.onmessage = async (e: MessageEvent<{ id: number; code: string; tests?: stri
     await p.loadPackagesFromImports(`${code}\n${tests ?? ""}`);
     const ns = p.globals.get("dict")();
     await p.runPythonAsync(GUARD, { globals: ns });
+    // Standard input for input()/sys.stdin. JSON string literals are valid Python string literals.
+    await p.runPythonAsync(`import sys as _s, io as _io\n_s.stdin = _io.StringIO(${JSON.stringify(stdin ?? "")})`, { globals: ns });
     let phase: "code" | "tests" = "code";
     try {
       await p.runPythonAsync(code, { globals: ns });
@@ -65,7 +67,9 @@ self.onmessage = async (e: MessageEvent<{ id: number; code: string; tests?: stri
       const msg = String((err as Error).message ?? err);
       // Keep the last line (the exception) prominent; trim Pyodide's internal frames.
       const lines = msg.split("\n").filter((l) => !l.includes("/lib/python3") && !l.includes("_pyodide"));
-      self.postMessage({ id, ok: false, phase, stdout: out, error: lines.slice(-12).join("\n").trim() });
+      // Line of the learner's code that raised (tracebacks name it "<exec>"), only for the code phase.
+      const at = phase === "code" ? [...msg.matchAll(/File "<exec>", line (\d+)/g)].pop()?.[1] : undefined;
+      self.postMessage({ id, ok: false, phase, stdout: out, error: lines.slice(-12).join("\n").trim(), errorLine: at ? Number(at) : undefined });
     }
   } catch (err) {
     self.postMessage({ id, ok: false, phase: "load", stdout: out, error: `Python could not start: ${(err as Error).message}` });

@@ -14,6 +14,7 @@ import { ShareButton } from "../components/ShareButton";
 import { SchemaPanel } from "../components/SchemaPanel";
 import { SITE_NAME, Seo, breadcrumbs, canonical, clip, faqPage } from "../lib/seo";
 import { getProgress, markRevealed, recordHint, useProgress } from "../lib/progress";
+import { track } from "../lib/activity";
 
 const PracticePanel = lazy(() => import("../components/PracticePanel"));
 
@@ -63,6 +64,7 @@ export function QuestionPage() {
     setExecs(getExecs(histKey));
     setSessions(getSessions(histKey));
     setVizSql(null);
+    track("sql_opened", histKey);
   }, [histKey]);
   const latest = execs[0]?.sql ?? progress.questions[q.number]?.lastSql ?? "";
   const onRan = useCallback((sql: string, res: ExecuteResult) => {
@@ -416,7 +418,8 @@ export function QuestionPage() {
             <Skeleton className="h-[580px] lg:h-full" />
           )}
           <div className="flex shrink-0 flex-wrap gap-2 text-xs">
-            <Link to={`/ai-tutor?q=${q.slug}`} className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink">Open in tutor</Link>
+            <Link to={`/ai-tutor?q=${q.slug}`} className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink">Open in query helper</Link>
+            <Link to={`/study-notes?add=${q.slug}`} className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink">Study notes (PDF)</Link>
             <button type="button" className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink"
               onClick={() => visualizeNow(latest || q.solution)}>
               Visualize ↗ tab

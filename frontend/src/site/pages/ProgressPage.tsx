@@ -1,12 +1,42 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Flame, Trophy, Upload } from "lucide-react";
+import { Download, FileText, Flame, Trophy, Upload } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Container, PageHeader } from "../components/ui";
 import { ShareButton } from "../components/ShareButton";
 import { PracticeNext } from "./ReviewPage";
 import { Seo } from "../lib/seo";
 import { exportProgress, importProgress, resetProgress, streak, useProgress } from "../lib/progress";
+import { MASTERY, personalReportHtml, pyMastery, sqlMastery, sqlRevision, type Mastery } from "../lib/extras";
+import { PY_CATEGORIES, accuracy, overview, readStats, type PyStat } from "../lib/pyPractice";
+import { activeMinutes, formatMinutes, summarizeMinutes } from "../lib/activity";
+import { useAuth } from "../lib/auth";
+
+const TONE: Record<Mastery, string> = { "Not started": "text-ink-faint", Learning: "text-ink-muted", Practising: "text-ink", Proficient: "text-accent", Mastered: "text-success" };
+
+function MasteryList({ title, rows, link }: { title: string; rows: { topic: string; label: string; total: number; solved: number; level: Mastery; score: number }[]; link?: (t: string) => string }) {
+  return (
+    <section aria-label={title}>
+      <h3 className="text-sm font-semibold text-ink">{title}</h3>
+      <ul className="mt-2 space-y-2">
+        {rows.map((t) => {
+          const body = (
+            <>
+              <div className="flex justify-between gap-2 text-sm">
+                <span className="truncate font-medium text-ink">{t.label}</span>
+                <span className="shrink-0 text-xs"><span className={`font-semibold ${TONE[t.level]}`}>{t.level}</span> <span className="text-ink-faint">· {t.solved}/{t.total}</span></span>
+              </div>
+              <div className="mt-1 flex gap-[2px]" role="img" aria-label={`${t.label}: ${t.level}, mastery score ${t.score}`}>
+                {MASTERY.slice(1).map((m, i) => <span key={m} className={`h-1.5 flex-1 rounded-full ${MASTERY.indexOf(t.level) > i ? "bg-accent" : "bg-surface-soft"}`} />)}
+              </div>
+            </>
+          );
+          return <li key={t.topic}>{link ? <Link to={link(t.topic)} className="block rounded-lg p-2 hover:bg-hover/5">{body}</Link> : <div className="p-2">{body}</div>}</li>;
+        })}
+      </ul>
+    </section>
+  );
+}
 
 export function ProgressPage() {
   const { data } = usePage();
@@ -25,6 +55,35 @@ export function ProgressPage() {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "sql-practice-progress.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  const { profile } = useAuth();
+  const [pyStats, setPyStats] = useState<Record<string, PyStat>>({});
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); setPyStats(readStats()); }, []);
+  const exercises = data.exercises ?? [];
+  const sqlRows = sqlMastery(data.index, progress);
+  const pyRows = pyMastery(exercises, progress, mounted ? pyStats : {}, PY_CATEGORIES);
+
+  /** Self-contained HTML file the learner can open, print or save as PDF. */
+  function downloadReport() {
+    const today = new Date().toISOString().slice(0, 10);
+    const t = summarizeMinutes(activeMinutes(), today);
+    const o = overview(exercises, progress.lessons, pyStats);
+    const html = personalReportHtml({
+      name: profile?.username ?? "This browser", generated: new Date().toLocaleString(),
+      sql: { solved: solvedNums.size, total: data.index.length, independent: Object.values(progress.questions).filter((q) => q.solvedAt && !q.assisted && !q.revealed).length },
+      python: { solved: o.solved, total: o.total, accuracy: accuracy({ attempts: Object.values(pyStats).reduce((x, y) => x + y.attempts, 0), passes: Object.values(pyStats).reduce((x, y) => x + y.passes, 0) }) },
+      activeTime: { today: formatMinutes(t.todayMin), week: formatMinutes(t.weekMin), total: formatMinutes(t.totalMin) },
+      streak: days, sqlTopics: sqlRows, pyTopics: pyRows,
+      revise: [...sqlRevision(data.index, progress, 10).map((r) => ({ title: `Q${r.q.number} ${r.q.title}`, reason: r.reason })), ...o.revise.map((e) => ({ title: `${e.code} ${e.title}`, reason: "Python: failed checks" }))],
+      mocks: [...(progress.mocks ?? [])].reverse().slice(0, 10).map((m) => ({ date: m.date.slice(0, 10), solved: m.solved, total: m.total })),
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    a.download = `dataforge-report-${today}.html`;
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -79,23 +138,16 @@ export function ProgressPage() {
         </>
       )}
 
-      <h2 className="mt-12 font-display text-xl font-bold text-ink">By topic</h2>
-      <div className="mt-4 space-y-3">
-        {data.topics.map((t) => {
-          const done = t.questions.filter((n) => solvedNums.has(n)).length;
-          const pct = Math.round((done / t.questions.length) * 100);
-          return (
-            <Link key={t.slug} to={`/topics/${t.slug}`} className="block rounded-lg p-2 hover:bg-hover/5">
-              <div className="flex justify-between text-sm">
-                <span className="font-medium text-ink">{t.label}</span>
-                <span className="text-ink-muted">{done}/{t.questions.length}</span>
-              </div>
-              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-soft" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${t.label} progress`}>
-                <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
-              </div>
-            </Link>
-          );
-        })}
+      <div className="mt-12 flex flex-wrap items-end justify-between gap-2">
+        <h2 className="font-display text-xl font-bold text-ink">Topic mastery</h2>
+        <button type="button" onClick={downloadReport} disabled={!mounted} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-4 py-2 text-sm font-medium text-ink hover:border-accent/40 disabled:opacity-50">
+          <FileText className="h-4 w-4" aria-hidden /> Download report
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-ink-muted">Independent solves count fully; solves after hints or a revealed solution count half. Mastered needs 85% and a Hard solve.</p>
+      <div className="mt-4 grid gap-8 md:grid-cols-2">
+        <MasteryList title="SQL topics" rows={sqlRows} link={(t) => `/topics/${t}`} />
+        <MasteryList title="Python categories" rows={pyRows} />
       </div>
 
       <h2 className="mt-12 font-display text-xl font-bold text-ink">Back up your progress</h2>

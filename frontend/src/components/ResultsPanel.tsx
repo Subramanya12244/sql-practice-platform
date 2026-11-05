@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { ExecuteResult, ResultTab, SubmitResult } from "../types";
 import { useToast } from "./Toast";
+import { applyResultView, nextSort, type ResultView } from "../utils/resultView";
 
 interface Props {
   tabs: ResultTab[];
@@ -39,11 +40,13 @@ function ResultBody({
 }) {
   const toast = useToast();
   const [copiedCell, setCopiedCell] = useState<string | null>(null);
+  const [view, setView] = useState<ResultView>({ sortCol: null, dir: "asc", filter: "" });
+  const rows = useMemo(() => (result?.success ? applyResultView(result.rows, view) : []), [result, view]);
 
   const csv = useMemo(() => {
     if (!result?.success || !result.columns.length) return "";
     const header = result.columns.join(",");
-    const body = result.rows
+    const body = rows
       .map((row) =>
         row
           .map((c) => {
@@ -57,7 +60,7 @@ function ResultBody({
       )
       .join("\n");
     return `${header}\n${body}`;
-  }, [result]);
+  }, [result, rows]);
 
   const copyAll = async () => {
     if (!csv) return;
@@ -92,8 +95,18 @@ function ResultBody({
               <span className="text-ink-faint">|</span>
             {`${result.row_count ?? 0} rows`}
             {result.truncated && <span className="text-warn">(truncated)</span>}
+            {(view.filter || view.sortCol !== null) && <span className="text-ink-faint">· showing {rows.length}</span>}
           </span>
-          <div className="ml-auto flex gap-1.5">
+          <div className="ml-auto flex flex-wrap gap-1.5">
+            {result.rows.length > 1 && (
+              <input
+                value={view.filter}
+                onChange={(e) => setView((v) => ({ ...v, filter: e.target.value }))}
+                placeholder="Filter rows…"
+                aria-label="Filter result rows"
+                className="w-36 rounded-md border border-surface-border bg-surface px-2 py-1 text-xs text-ink outline-none focus:border-accent"
+              />
+            )}
             <button type="button" className="btn-secondary" onClick={copyAll}>
               <Copy className="h-3.5 w-3.5" />
               Copy
@@ -172,18 +185,22 @@ function ResultBody({
                   <th className="border-b border-surface-border px-2 py-1.5 font-mono text-[11px] text-ink-faint">
                     #
                   </th>
-                  {result.columns.map((col) => (
+                  {result.columns.map((col, ci) => (
                     <th
-                      key={col}
+                      key={`${col}-${ci}`}
+                      aria-sort={view.sortCol === ci ? (view.dir === "asc" ? "ascending" : "descending") : "none"}
                       className="border-b border-surface-border px-3 py-1.5 font-mono text-xs font-semibold text-ink"
                     >
-                      {col}
+                      <button type="button" className="inline-flex items-center gap-1 hover:text-accent" onClick={() => setView((v) => nextSort(v, ci))} title="Sort by this column">
+                        {col}
+                        {view.sortCol === ci && (view.dir === "asc" ? <ChevronUp className="h-3 w-3" aria-hidden /> : <ChevronDown className="h-3 w-3" aria-hidden />)}
+                      </button>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {result.rows.map((row, ri) => (
+                {rows.map((row, ri) => (
                   <tr
                     key={ri}
                     className="odd:bg-surface even:bg-surface-raised/40 hover:bg-surface-overlay/50"
@@ -209,13 +226,13 @@ function ResultBody({
                     })}
                   </tr>
                 ))}
-                {result.rows.length === 0 && (
+                {rows.length === 0 && (
                   <tr>
                     <td
                       colSpan={result.columns.length + 1}
                       className="px-3 py-6 text-center text-ink-faint"
                     >
-                      Query returned 0 rows.
+                      {result.rows.length ? "No rows match the filter." : "Query returned 0 rows."}
                     </td>
                   </tr>
                 )}

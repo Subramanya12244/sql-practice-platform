@@ -273,3 +273,19 @@ html.dark .prose-site .tok-n { color: #fcd34d; }
 .scroll-fade-x::-webkit-scrollbar {
   display: none;
 }
+
+/* React Flow chrome in theme colours (mind maps, query diagrams). */
+.react-flow__controls-button {
+  background: rgb(var(--color-surface-raised));
+  border-bottom-color: var(--color-border);
+  fill: rgb(var(--color-ink));
+  color: rgb(var(--color-ink));
+}
+.react-flow__controls-button:hover {
+  background: rgb(var(--color-surface-overlay));
+}
+.react-flow__controls {
+  box-shadow: var(--shadow-panel);
+  border-radius: 8px;
+  overflow: hidden;
+}

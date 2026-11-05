@@ -1,7 +1,7 @@
 """Run every runnable Python example and every Python task in the site content.
 
 - ```python blocks in notes must exit 0 within 5 s (no network, run in a temp dir).
-- python tasks (exercises and projects): solution + tests must pass; starter + tests must fail.
+- python tasks (exercises and projects): solution + visible + hidden tests must pass; starter + tests must fail.
 Usage: python3 scripts/check_python_blocks.py   (needs pandas + numpy)
 """
 import json
@@ -41,7 +41,7 @@ def main() -> int:
             if t.get("type") != "python":
                 continue
             tasks += 1
-            ok, msg = run(t["solution"] + "\n" + t["tests"], timeout=20)
+            ok, msg = run(t["solution"] + "\n" + t["tests"] + "\n" + t.get("hidden", ""), timeout=20)
             if not ok:
                 failures.append(f"{rel} task {t['id']}: solution fails — {msg}")
             ok, _ = run(t["starter"] + "\n" + t["tests"], timeout=20)

@@ -57,6 +57,19 @@ function stripComments(sql: string): string {
     .replace(/'(?:[^']|'')*'/g, "''");
 }
 
+/**
+ * Errors from the worker lose PostgreSQL's `position`. Recover it only when the message names a
+ * quoted identifier that appears exactly once in the SQL as a whole word; otherwise return null
+ * (no marker beats a wrong marker).
+ */
+export function errorPositionFromMessage(sql: string, message: string): number | null {
+  const name = message.match(/"([^"]{1,63})"/)?.[1];
+  if (!name) return null;
+  const re = new RegExp(`(?<![\\w."])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w"])`, "gi");
+  const hits = [...sql.matchAll(re)];
+  return hits.length === 1 ? hits[0].index! + 1 : null;
+}
+
 export async function execute(db: SqlDb, sql: string): Promise<ExecuteResult> {
   if (!sql.trim()) {
     return { success: false, columns: [], rows: [], error_type: "EMPTY", message: "Write a query first." };
@@ -79,10 +92,32 @@ export async function execute(db: SqlDb, sql: string): Promise<ExecuteResult> {
       rows: [],
       error_type: "SQL_ERROR",
       message: err instanceof Error ? err.message : String(err),
+      error_position: Number((err as { position?: string | number }).position) || errorPositionFromMessage(sql, err instanceof Error ? err.message : String(err)),
       execution_time_ms: Math.round(performance.now() - started),
     };
   }
 }
+
+/**
+ * Hidden test data, added inside the same rolled-back transaction as the graded query. It follows the
+ * dataset's own patterns (region is always NULL; some orders aren't shipped) and adds:
+ * - a customer with two orders on a new latest date (ties; anything hard-coded to "latest" breaks)
+ * - a customer with no orders (inner vs outer join)
+ * - a product with zero stock
+ * Northwind only: other datasets skip the hidden check.
+ */
+export const HIDDEN_ROWS = `
+INSERT INTO customers (customer_id, company_name, contact_name, contact_title, address, city, region, postal_code, country, phone) VALUES
+  ('ZZEDG', 'Edge Analytics Co', 'Rae Moss', 'Owner', '1 Rue Test', 'Lyon', NULL, '69001', 'France', '04-7212-0001'),
+  ('ZZQUI', 'Quiet Trading Ltd', 'Ola Berg', 'Sales Manager', '9 Fjord Gate', 'Oslo', NULL, '0150', 'Norway', '22-11-0002');
+INSERT INTO products (product_id, product_name, supplier_id, category_id, quantity_per_unit, unit_price, units_in_stock, units_on_order, reorder_level, discontinued) VALUES
+  (78, 'Edge Tea Blend', 1, 1, '10 boxes x 20 bags', 18.00, 0, 10, 5, false);
+INSERT INTO orders (order_id, customer_id, employee_id, order_date, required_date, shipped_date, ship_via, freight, ship_name, ship_address, ship_city, ship_region, ship_postal_code, ship_country) VALUES
+  (90001, 'ZZEDG', 3, '1998-12-30', '1999-01-27', NULL, 2, 48.50, 'Edge Analytics Co', '1 Rue Test', 'Lyon', NULL, '69001', 'France'),
+  (90002, 'ZZEDG', 3, '1998-12-30', '1999-01-27', '1999-01-04', 1, 12.00, 'Edge Analytics Co', '1 Rue Test', 'Lyon', NULL, '69001', 'France');
+INSERT INTO order_details (order_id, product_id, unit_price, quantity, discount) VALUES
+  (90001, 11, 21.00, 30, 0), (90001, 42, 14.00, 15, 0.1), (90002, 72, 34.80, 5, 0), (90002, 78, 18.00, 2, 0);
+`;
 
 export async function submit(
   db: SqlDb,
@@ -90,6 +125,7 @@ export async function submit(
   referenceSql: string,
   sortRequired: boolean,
   orderBy: OrderKey[] | null = null,
+  hiddenRows: string | null = null,
 ): Promise<SubmitResult> {
   const fail = (message: string, feedback: string[] = []): SubmitResult => ({
     correct: false,
@@ -107,6 +143,27 @@ export async function submit(
   }
   const expected = await runRaw(db, referenceSql);
   const cmp = compareResults(user.columns, user.rows, expected.columns, expected.rows, sortRequired, orderBy);
+  // Hidden test: the same comparison on data the learner hasn't seen. Only after the visible check passes.
+  if (cmp.match && hiddenRows) {
+    try {
+      const [hu, he] = [await runRaw(db, `${hiddenRows};\n${userSql}`), await runRaw(db, `${hiddenRows};\n${referenceSql}`)];
+      const h = compareResults(hu.columns, hu.rows, he.columns, he.rows, sortRequired, orderBy);
+      if (!h.match) {
+        return {
+          correct: false,
+          message: "Matches the sample data, but fails a hidden test case.",
+          feedback: [
+            "Your query gives a different result on hidden test data (new rows the reference handles).",
+            "Check for hard-coded values (ids, dates, names), assumptions about ties, and rows that have no match in a join.",
+          ],
+          hidden_failed: true,
+          level_changed: false,
+        };
+      }
+    } catch (err) {
+      return fail("Your query errors on the hidden test data.", [err instanceof Error ? err.message : String(err)]);
+    }
+  }
   return {
     correct: cmp.match,
     message: cmp.message,

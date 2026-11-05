@@ -29,8 +29,8 @@ Every page is prerendered to static HTML with JSON-LD, a sitemap and `robots.txt
 - `/data-engineering`: 7 tracks with 102 topics (Python, ETL/ELT, data warehousing, Spark, Airflow, dbt, cloud). Each topic has notes, an architecture diagram, exercises and interview questions. The registry is `frontend/src/site/content/tracks.json`.
 
 **Practice**
-- `/questions`: 133 graded SQL questions on Northwind. A result is correct when its rows match the reference result, not its SQL text.
-- `/practice/python`: 20 Python exercises, graded by tests in Pyodide (10 s limit, in-memory files, no network, `js` and `micropip` imports blocked).
+- `/questions`: 150 graded SQL questions on Northwind (50 Easy, 60 Medium, 40 Hard). A result is correct when its rows match the reference result on the visible data and on hidden test rows added in a rolled-back transaction, so hard-coded answers fail.
+- `/practice/python`: 150 Python problems (PY-001 to PY-150; 50 Easy, 60 Medium, 40 Hard), graded by visible and hidden tests in Pyodide (10 s limit, in-memory files, no network, `js` and `micropip` imports blocked). Each has input/output format, constraints, examples, hints and an explanation shown after you pass. `scripts/check_python_blocks.py` proves every solution passes and every starter fails.
 - `/interview`: question sets by role. `/scenarios`: 16 business scenarios. `/challenge`: weekly challenge.
 - `/playground`: six practice databases, each isolated, with schema explorer, ER diagram, history and export.
 
@@ -41,7 +41,7 @@ Every page is prerendered to static HTML with JSON-LD, a sitemap and `robots.txt
 
 **Query intelligence** (all in the browser)
 - **Visualize query** and **History** tabs on every SQL question and scenario. Each step is labelled Executed (real rows from your own clauses), Parsed (from a PostgreSQL AST) or Plan (from EXPLAIN). Queries using `random()`, `now()` and similar get explanations only, never derived rows.
-- `/ai-tutor`: 5-level hints, rule-based explanations and database-verified result checks. AI chat is off unless `VITE_TUTOR_ENDPOINT` points to a server-side proxy; see [docs/INTELLIGENCE_PLAN.md](docs/INTELLIGENCE_PLAN.md).
+- `/ai-tutor` (query helper): 5-level hints, rule-based explanations and database-verified result checks. There is no AI chat and no AI API.
 - `/query-visualizer`, `/solution-comparison`, `/readiness`.
 
 **Career**

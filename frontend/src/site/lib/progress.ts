@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { track } from "./activity";
 
 /** Per-visitor progress, kept in localStorage. Every access is guarded: storage may be unavailable. */
 
@@ -213,6 +214,7 @@ export function reviewQuestion(num: number, correct: boolean) {
 }
 
 export function recordMock(entry: { solved: number; total: number; usedSec: number; durationMin: number }) {
+  track("assessment_completed", "mock", { solved: entry.solved, total: entry.total, usedSec: entry.usedSec });
   const p = read();
   const mock = { date: new Date().toISOString(), ...entry };
   write({

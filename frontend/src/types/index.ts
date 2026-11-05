@@ -54,6 +54,8 @@ export interface ExecuteResult {
   error_type?: string | null;
   message?: string | null;
   truncated?: boolean;
+  /** 1-based character offset of a SQL error in the statement text, when PostgreSQL reports one. */
+  error_position?: number | null;
 }
 
 export type RunScope = "all" | "selection";
@@ -72,6 +74,8 @@ export interface SubmitResult {
   level_changed: boolean;
   /** Sample of rows only in your result / only in the expected one (public site). */
   diff?: { columns: string[]; missing: unknown[][]; extra: unknown[][]; missingCount: number; extraCount: number } | null;
+  /** Passed the visible data but failed the hidden test data. */
+  hidden_failed?: boolean;
 }
 
 export interface ResultTab {

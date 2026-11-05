@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, GitBranch, Loader2, Stethoscope } from "lucide-react";
+import { BookOpen, CheckCircle2, GitBranch, Loader2, Maximize2, Minimize2, Plus, Stethoscope, X } from "lucide-react";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { ReferencePanel } from "./ReferencePanel";
 import { Link } from "react-router-dom";
 import { SqlEditor, type RunRequest } from "../../components/SqlEditor";
 import { ResultsPanel } from "../../components/ResultsPanel";
@@ -10,6 +12,7 @@ import { completeExercise, recordAttempt, saveDraft, useProgress } from "../lib/
 import { explainError } from "../lib/errorHelp";
 import { PlanTree, parsePlan, type PlanNode } from "./PlanTree";
 import { FORGE_THEMES, defineForgeThemes } from "../lib/monacoTheme";
+import { track } from "../lib/activity";
 
 /** Editor + results for one question. Browser only — loaded lazily. */
 export default function PracticePanel({
@@ -57,6 +60,31 @@ export default function PracticePanel({
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
   const draftTimer = useRef<ReturnType<typeof setTimeout>>();
   const [plan, setPlan] = useState<{ node: PlanNode | null; error?: string } | null>(null);
+  const [full, setFull] = useState(false);
+  const [showRef, setShowRef] = useState(false);
+
+  // Extra query tabs (scratch queries) per question/exercise. Tab "main" is the saved draft that
+  // Submit grades by default; any tab can be run or submitted.
+  const tabsKey = lessonKey ? `sqlp.qtabs.${lessonKey}` : playground ? `sqlp.qtabs.pg.${dataset}` : `sqlp.qtabs.q${question.number}`;
+  const [qtabs, setQtabs] = useState<{ id: string; name: string; sql: string }[]>([]);
+  const [activeQ, setActiveQ] = useState("main");
+  useEffect(() => {
+    try { setQtabs(JSON.parse(localStorage.getItem(tabsKey) ?? "[]")); } catch { setQtabs([]); }
+    setActiveQ("main");
+  }, [tabsKey]);
+  const saveTabs = (next: { id: string; name: string; sql: string }[]) => {
+    setQtabs(next);
+    try { localStorage.setItem(tabsKey, JSON.stringify(next.slice(0, 5))); } catch { /* ignore */ }
+  };
+  const current = activeQ === "main" ? sql : qtabs.find((t) => t.id === activeQ)?.sql ?? "";
+
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFull(false);
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [full]);
 
   // Restore the visitor's last draft for this question once storage is readable.
   const restored = useRef(false);
@@ -98,6 +126,7 @@ export default function PracticePanel({
       setSubmitResult(null);
       const result = await runQuery(text, dataset);
       onRan?.(text, result);
+      track("sql_executed", lessonKey ? `lesson:${lessonKey}` : playground ? `playground:${dataset}` : `q${question.number}`, { ok: result.success });
       const reuseId = target === "same" ? (tabs.find((t) => t.id === activeTab) ?? tabs[tabs.length - 1])?.id : undefined;
       if (reuseId) {
         setTabs(tabs.map((t) => (t.id === reuseId ? { ...t, sql: text, scope, result } : t)));
@@ -113,15 +142,16 @@ export default function PracticePanel({
   );
 
   const onExplain = useCallback(async () => {
-    const body = sql.replace(/--.*$/gm, "").trim().replace(/;\s*$/, "");
+    const body = current.replace(/--.*$/gm, "").trim().replace(/;\s*$/, "");
     if (!body) return;
     if (body.includes(";")) return setPlan({ node: null, error: "EXPLAIN works on a single statement." });
     const res = await runQuery(`EXPLAIN (FORMAT JSON) ${body}`, dataset);
     setPlan(res.success ? { node: parsePlan(res.rows[0]?.[0]) } : { node: null, error: res.message ?? "Could not explain this query." });
-  }, [sql, dataset]);
+  }, [current, dataset]);
 
   const onSubmit = useCallback(async () => {
     setSubmitting(true);
+    const sql = current;
     const result = await submitQuery(sql, question.referenceQuery, question.sortRequired, question.orderBy ?? null, dataset);
     if (lessonKey) {
       if (result.correct) completeExercise(lessonKey);
@@ -132,12 +162,26 @@ export default function PracticePanel({
     }
     setSubmitResult(result);
     setSubmitting(false);
+    track("sql_submitted", lessonKey ? `lesson:${lessonKey}` : `q${question.number}`, { passed: result.correct, hidden_failed: Boolean(result.hidden_failed) });
+    if (lessonKey && result.correct) track("lesson_completed", `lesson:${lessonKey}`);
     onSolved?.(result, sql);
-  }, [sql, question, onSolved, lessonKey, dataset]);
+  }, [current, question, onSolved, lessonKey, dataset]);
+
+  const onEditorChange = (next: string) => {
+    if (activeQ === "main") onChange(next);
+    else saveTabs(qtabs.map((t) => (t.id === activeQ ? { ...t, sql: next } : t)));
+  };
+  const activeResult = (tabs.find((t) => t.id === activeTab) ?? tabs[tabs.length - 1]);
+  const errorMarker = activeResult?.result && !activeResult.result.success && activeResult.result.error_position
+    ? { sql: activeResult.sql, position: activeResult.result.error_position, message: activeResult.result.message ?? "SQL error" }
+    : null;
+  const tabBtn = (on: boolean) => `inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${on ? "bg-surface-raised text-ink shadow-panel" : "text-ink-muted hover:text-ink"}`;
 
   return (
     <div
-      className={`flex flex-col overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel ${fill ? "lg:min-h-full lg:shrink-0" : ""}`}
+      className={full
+        ? "fixed inset-0 z-50 flex flex-col overflow-hidden bg-surface-raised"
+        : `flex flex-col overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel ${fill ? "lg:min-h-full lg:shrink-0" : ""}`}
       onPointerDownCapture={() => setWantDb(true)}
       onFocusCapture={() => setWantDb(true)}
     >
@@ -158,45 +202,84 @@ export default function PracticePanel({
           </>
         )}
         {ready === "error" && <span className="text-danger">Could not start the database. Reload the page to try again.</span>}
-        {ready === "ready" && (
-          <button type="button" onClick={onExplain} className="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title="Show how PostgreSQL will run this query">
-            <GitBranch className="h-3.5 w-3.5" aria-hidden /> Explain plan
+        <span className="ml-auto flex items-center gap-0.5">
+          {ready === "ready" && (
+            <button type="button" onClick={onExplain} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title="Show how PostgreSQL will run this query">
+              <GitBranch className="h-3.5 w-3.5" aria-hidden /> Explain plan
+            </button>
+          )}
+          <button type="button" onClick={() => setShowRef((v) => !v)} aria-pressed={showRef} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title="SQL reference">
+            <BookOpen className="h-3.5 w-3.5" aria-hidden /> <span className="hidden sm:inline">Reference</span>
           </button>
-        )}
+          <button type="button" onClick={() => setFull((v) => !v)} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title={full ? "Exit full screen (Esc)" : "Full screen"} aria-label={full ? "Exit full screen" : "Full screen"}>
+            {full ? <Minimize2 className="h-3.5 w-3.5" aria-hidden /> : <Maximize2 className="h-3.5 w-3.5" aria-hidden />}
+          </button>
+        </span>
         {(saved?.solvedAt || exerciseDone) && (
           <span className={`${ready === "ready" ? "" : "ml-auto "}inline-flex items-center gap-1 font-medium text-success`}>
             <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Solved
           </span>
         )}
       </div>
-      <div className={fill ? "h-[320px] sm:h-[360px] lg:h-[46vh] lg:min-h-[260px]" : "h-[320px] sm:h-[360px]"}>
-        <SqlEditor
-          value={sql}
-          onChange={onChange}
-          onRun={onRun}
-          onSubmit={playground ? undefined : onSubmit}
-          running={running || ready === "loading"}
-          submitting={submitting || ready === "loading"}
-          starterSql={starter(question)}
-          schemas={schemas}
-          resultTarget={target}
-          onResultTargetChange={setTarget}
-          submitLabel="Submit"
-          themes={{ ...FORGE_THEMES, define: defineForgeThemes }}
-        />
-      </div>
-      <div className="min-h-[220px] border-t border-surface-border">
-        <ResultsPanel
-          tabs={tabs}
-          activeTabId={activeTab}
-          onSelectTab={setActiveTab}
-          onCloseTab={(id) => setTabs((prev) => prev.filter((t) => t.id !== id))}
-          submitResult={submitResult}
-          loading={running || submitting}
-        />
+      <div className={`relative flex min-h-0 ${full ? "flex-1" : fill ? "h-[680px] lg:h-[80vh] lg:min-h-[560px]" : "h-[620px]"}`}>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div role="tablist" aria-label="Query tabs" className="scroll-fade-x flex shrink-0 items-center gap-1 overflow-x-auto border-b border-surface-border bg-surface-overlay px-2 py-1">
+            <button type="button" role="tab" aria-selected={activeQ === "main"} onClick={() => setActiveQ("main")} className={tabBtn(activeQ === "main")}>Query 1</button>
+            {qtabs.map((t) => (
+              <span key={t.id} className={tabBtn(activeQ === t.id)}>
+                <button type="button" role="tab" aria-selected={activeQ === t.id} onClick={() => setActiveQ(t.id)}>{t.name}</button>
+                <button type="button" aria-label={`Close ${t.name}`} className="rounded text-ink-faint hover:text-danger" onClick={() => { saveTabs(qtabs.filter((x) => x.id !== t.id)); if (activeQ === t.id) setActiveQ("main"); }}><X className="h-3 w-3" /></button>
+              </span>
+            ))}
+            {qtabs.length < 4 && (
+              <button type="button" aria-label="New query tab" title="New query tab" className="rounded p-1 text-ink-muted hover:bg-hover/5 hover:text-ink"
+                onClick={() => { const t = { id: crypto.randomUUID(), name: `Query ${qtabs.length + 2}`, sql: "-- Scratch query\n" }; saveTabs([...qtabs, t]); setActiveQ(t.id); }}>
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <PanelGroup direction="vertical" autoSaveId="df-practice-split" className="min-h-0 flex-1">
+            <Panel defaultSize={58} minSize={25}>
+              <SqlEditor
+                key={activeQ}
+                value={current}
+                onChange={onEditorChange}
+                onRun={onRun}
+                onSubmit={playground ? undefined : onSubmit}
+                running={running || ready === "loading"}
+                submitting={submitting || ready === "loading"}
+                starterSql={activeQ === "main" ? starter(question) : ""}
+                schemas={schemas}
+                resultTarget={target}
+                onResultTargetChange={setTarget}
+                submitLabel="Submit"
+                themes={{ ...FORGE_THEMES, define: defineForgeThemes }}
+                errorMarker={errorMarker}
+              />
+            </Panel>
+            <PanelResizeHandle className="group relative h-2 shrink-0 border-y border-surface-border bg-surface-overlay hover:bg-accent/20" aria-label="Resize editor and results">
+              <span className="absolute left-1/2 top-1/2 h-1 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink-faint/50 group-hover:bg-accent" aria-hidden />
+            </PanelResizeHandle>
+            <Panel defaultSize={42} minSize={15} className="min-h-0 overflow-auto">
+              <ResultsPanel
+                tabs={tabs}
+                activeTabId={activeTab}
+                onSelectTab={setActiveTab}
+                onCloseTab={(id) => setTabs((prev) => prev.filter((t) => t.id !== id))}
+                submitResult={submitResult}
+                loading={running || submitting}
+              />
+            </Panel>
+          </PanelGroup>
+        </div>
+        {showRef && (
+          <div className="absolute inset-0 z-10 sm:static sm:w-80 sm:shrink-0">
+            <ReferencePanel onClose={() => setShowRef(false)} onInsert={(text) => onEditorChange(`${current.replace(/\s*$/, "")}\n\n${text}\n`)} />
+          </div>
+        )}
       </div>
       <Coach
-        runError={(tabs.find((t) => t.id === activeTab) ?? tabs[tabs.length - 1])?.result}
+        runError={activeResult?.result}
         submit={submitResult}
       />
       {plan && (

@@ -21,6 +21,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/learn", label: "Learning dashboard", desc: "Goals, streak, what to do next" },
       { to: "/progress", label: "Progress", desc: "Solved questions and activity" },
       { to: "/achievements", label: "Achievements & missions", desc: "XP, level, streak, daily missions" },
+      { to: "/history", label: "History & revision", desc: "Submissions, mistakes, saved solutions" },
       { to: "/review", label: "Revision queue", desc: "Spaced review of what you solved" },
     ],
   },
@@ -29,6 +30,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Learn",
     items: [
       { to: "/notes", label: "SQL notes", desc: "65 topics, beginner to expert" },
+      { to: "/study-notes", label: "Visual study notes", desc: "PDFs of your completed problems" },
       { to: "/data-engineering", label: "Data engineering tracks", desc: "Python, ETL, warehousing, Spark, Airflow, dbt, cloud" },
       { to: "/patterns", label: "SQL patterns" },
       { to: "/concepts", label: "Concept guides" },
@@ -41,11 +43,12 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "practice",
     label: "Practice",
     items: [
-      { to: "/questions", label: "SQL practice", desc: "133 graded questions" },
+      { to: "/questions", label: "SQL practice", desc: "150 graded questions" },
       { to: "/practice/python", label: "Python practice", desc: "Runs in your browser" },
       { to: "/scenarios", label: "Business scenarios" },
       { to: "/interview", label: "Interview sets", desc: "Question sets by role" },
       { to: "/mock-interview", label: "Mock interview", desc: "Timed, graded" },
+      { to: "/practice/python/assessment", label: "Python assessment", desc: "Timed, three problems" },
       { to: "/playground", label: "SQL playground", desc: "Six practice databases" },
     ],
   },
@@ -63,7 +66,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "ai",
     label: "Intelligence",
     items: [
-      { to: "/ai-tutor", label: "AI tutor", desc: "Hints and explanations" },
+      { to: "/ai-tutor", label: "Query helper", desc: "Hints, explanations and result checks" },
       { to: "/query-visualizer", label: "Query visualizer" },
       { to: "/solution-comparison", label: "Solution comparison" },
       { to: "/readiness", label: "Interview readiness", desc: "Evidence-based estimate" },

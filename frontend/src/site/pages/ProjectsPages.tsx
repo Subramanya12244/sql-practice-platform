@@ -12,6 +12,7 @@ import { runPython } from "../lib/pyRunner";
 import { runPythonTask, runSqlTask, type Task, type TaskResult } from "../lib/tasks";
 import { getProjectProgress, isRepoUrl, projectStatus, saveProjectProgress, type Project, type ProjectProgress, type ProjectStatus } from "../lib/projects";
 import type { ExecuteResult } from "../../types";
+import { track } from "../lib/activity";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
 
@@ -213,6 +214,10 @@ export function ProjectPage() {
   }, [project.slug, project.dataset]);
 
   const update = (p: ProjectProgress, submitted = false) => {
+    const before = projectStatus(project, progress);
+    const after = projectStatus(project, p);
+    if (before === "Not started" && after !== "Not started") track("project_started", project.slug);
+    if (after === "Completed" && before !== "Completed") track("project_completed", project.slug);
     setProgress(p);
     saveProjectProgress(project.slug, p, submitted);
   };

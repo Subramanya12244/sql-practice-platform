@@ -16,6 +16,8 @@ import { PracticeNext } from "./ReviewPage";
 import { BarChart3, BookOpen, Bookmark, Flame, Network, Play, Puzzle, Repeat, Sparkles, Target, Trophy, Zap } from "lucide-react";
 import { useEffect } from "react";
 import type { Lesson, LessonExercise, Question } from "../types";
+import { DailyChallenge } from "../components/DailyChallenge";
+import { activeMinutes, formatMinutes, subscribeActivity, summarizeMinutes, track } from "../lib/activity";
 
 const PracticePanel = lazy(() => import("../components/PracticePanel"));
 
@@ -152,6 +154,7 @@ function Exercise({ lesson, ex }: { lesson: Lesson; ex: LessonExercise }) {
 export function LessonPage() {
   const { data } = usePage();
   const l = data.lesson!;
+  useEffect(() => track("lesson_opened", `lesson:${l.slug}`), [l.slug]);
   const all = data.lessons ?? [];
   const progress = useProgress();
   const path = `/learn/${l.slug}`;
@@ -269,6 +272,9 @@ function LearnDashboard() {
   const continueItem = progress.recent?.[0];
   const isNew = mounted && g.xp === 0 && !progress.recent?.length;
   const name = profile?.username;
+  const [minutes, setMinutes] = useState<string[]>([]);
+  useEffect(() => { setMinutes(activeMinutes()); return subscribeActivity(() => setMinutes(activeMinutes())); }, []);
+  const time = day ? summarizeMinutes(minutes, new Date().toISOString().slice(0, 10)) : null;
 
   return (
     <div className="space-y-6">
@@ -329,9 +335,17 @@ function LearnDashboard() {
         <StatCard icon={CheckCircle2} label="SQL solved" value={mounted ? `${sqlSolved}/${data.index.length}` : "—"} hint="Includes solves imported from your repo" />
       </div>
 
+      <DailyChallenge />
+      <p className="-mt-2 text-sm"><Link to="/study-notes" className="font-semibold text-accent hover:underline">Visual study notes</Link> <span className="text-ink-muted">· turn what you have solved into a PDF study guide</span></p>
+
       <div className="grid gap-4 lg:grid-cols-5">
         <Card as="section" className="lg:col-span-3">
           <SectionHeader title="This week" description={mounted ? `${weekTotal} learning action${weekTotal === 1 ? "" : "s"} in the last 7 days` : "Learning actions per day"} />
+          {time && (
+            <p className="-mt-2 mb-4 text-xs text-ink-muted" title="Minutes with keyboard, mouse or touch activity in a focused tab; idle time is not counted">
+              Active time: <span className="font-semibold text-ink">{formatMinutes(time.todayMin)}</span> today · {formatMinutes(time.weekMin)} this week · {formatMinutes(time.totalMin)} total on this device
+            </p>
+          )}
           {mounted && weekTotal === 0 ? (
             <EmptyState icon={BarChart3} title="No activity this week yet">Solve a question, read a note or review flashcards and your week fills in here.</EmptyState>
           ) : (
