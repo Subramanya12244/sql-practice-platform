@@ -17,7 +17,10 @@ window.matchMedia ??= ((q: string) => ({ matches: false, media: q, addEventListe
 
 describe("navigation", () => {
   it("maps paths to the right group", () => {
-    expect(activeGroup("/")).toBe("overview");
+    expect(activeGroup("/")).toBeNull();
+    expect(activeGroup("/learn")).toBe("dashboard");
+    expect(activeGroup("/career/planner")).toBe("career");
+    expect(activeGroup("/leaderboard")).toBe("community");
     expect(activeGroup("/notes/left-join")).toBe("learn");
     expect(activeGroup("/questions/q25-x")).toBe("practice");
     expect(activeGroup("/projects-lab/abc")).toBe("projects");
@@ -26,9 +29,8 @@ describe("navigation", () => {
   it("highlights only the current group and brands the header", () => {
     const html = render("/notes/left-join");
     expect(html).toContain("DataForge");
-    const overview = html.match(/<a[^>]*href="\/"[^>]*>Overview<\/a>/)![0];
-    expect(overview).not.toContain("aria-current");
+    expect(html).not.toMatch(/aria-haspopup="true" class="[^"]*bg-accent-dim[^"]*">Practice/);
     expect(html).toMatch(/aria-expanded="false" aria-haspopup="true" class="[^"]*bg-accent-dim[^"]*">Learn/);
-    expect(NAV_GROUPS.map((g) => g.label)).toEqual(["Overview", "Learn", "Practice", "Data Engineering", "Projects", "Data Quality", "AI & Intelligence", "Assessments", "Career", "Progress"]);
+    expect(NAV_GROUPS.map((g) => g.label)).toEqual(["Dashboard", "Learn", "Practice", "Projects", "Intelligence", "Career", "Community"]);
   });
 });

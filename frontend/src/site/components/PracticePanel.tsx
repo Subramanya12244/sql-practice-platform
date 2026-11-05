@@ -9,6 +9,7 @@ import { getDb, getSchemas, runQuery, submitQuery } from "../lib/browserDb";
 import { completeExercise, recordAttempt, saveDraft, useProgress } from "../lib/progress";
 import { explainError } from "../lib/errorHelp";
 import { PlanTree, parsePlan, type PlanNode } from "./PlanTree";
+import { FORGE_THEMES, defineForgeThemes } from "../lib/monacoTheme";
 
 /** Editor + results for one question. Browser only — loaded lazily. */
 export default function PracticePanel({
@@ -181,6 +182,7 @@ export default function PracticePanel({
           resultTarget={target}
           onResultTargetChange={setTarget}
           submitLabel="Submit"
+          themes={{ ...FORGE_THEMES, define: defineForgeThemes }}
         />
       </div>
       <div className="min-h-[220px] border-t border-surface-border">

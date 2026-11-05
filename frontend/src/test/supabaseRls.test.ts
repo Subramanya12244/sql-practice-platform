@@ -11,6 +11,9 @@ import m002 from "../../../supabase/migrations/002_community.sql?raw";
 import m003 from "../../../supabase/migrations/003_dataforge.sql?raw";
 import m004 from "../../../supabase/migrations/004_submission_review.sql?raw";
 import m005 from "../../../supabase/migrations/005_public_portfolio.sql?raw";
+import m006 from "../../../supabase/migrations/006_gamification.sql?raw";
+import { ACHIEVEMENTS, MISSIONS, XP } from "../site/lib/gamification";
+import registry from "../site/content/tracks.json";
 
 const A = "00000000-0000-0000-0000-00000000000a";
 const B = "00000000-0000-0000-0000-00000000000b";
@@ -31,7 +34,7 @@ const fails = (p: Promise<unknown>) => expect(p).rejects.toThrow();
 
 beforeAll(async () => {
   pg = new PGlite({ extensions: { citext, pgcrypto } });
-  for (const m of [stub, m001, m002, m003, m004, m005]) await pg.exec(m);
+  for (const m of [stub, m001, m002, m003, m004, m005, m006]) await pg.exec(m);
   // Re-applying must be safe (no data loss, no errors).
   await pg.exec(m003);
   await pg.exec(m004);
@@ -152,5 +155,101 @@ describe("public portfolio (005)", () => {
     expect(JSON.stringify(p)).not.toMatch(/secret notes|@x\.test/);
     await as(A, "update profiles set public_profile = false where id = auth.uid()");
     expect(await pub(null)).toBeNull();
+  });
+});
+
+describe("gamification (006)", () => {
+  const C = "00000000-0000-0000-0000-00000000000c";
+  const D = "00000000-0000-0000-0000-00000000000d";
+  const xpOf = async (u: string) => (await pg.query<{ n: number }>(`select coalesce(sum(xp), 0)::int as n from xp_events where user_id = '${u}'`)).rows[0].n;
+  const keys = async (u: string) => (await pg.query<{ source_key: string }>(`select source_key from xp_events where user_id = '${u}' order by id`)).rows.map((r) => r.source_key);
+  const state = (u: string, st: object) => as(u, `update profiles set state = $1 where id = auth.uid()`, [JSON.stringify(st)]);
+
+  beforeAll(async () => {
+    await pg.exec(`insert into auth.users (id, email, raw_user_meta_data) values
+      ('${C}', 'c@x.test', '{"username":"gamer_c"}'), ('${D}', 'd@x.test', '{"username":"gamer_d"}')`);
+  });
+
+  it("matches the browser rules exactly", async () => {
+    const defs = (await pg.query<{ id: string; xp: number; counter: string; target: number }>("select id, xp, counter, target from achievement_definitions order by id")).rows;
+    expect(defs).toEqual(ACHIEVEMENTS.map(({ id, xp, counter, target }) => ({ id, xp, counter, target })).sort((a, b) => a.id.localeCompare(b.id)));
+    const ms = (await pg.query<{ id: string; period: string; kind: string; target: number; xp: number }>("select id, period, kind, target, xp from mission_definitions order by id")).rows;
+    expect(ms).toEqual(MISSIONS.map(({ id, period, kind, target, xp }) => ({ id, period, kind, target, xp })).sort((a, b) => a.id.localeCompare(b.id)));
+    const topics = (await pg.query<{ n: number }>("select count(*)::int as n from track_topics")).rows[0].n;
+    expect(topics).toBe(registry.tracks.reduce((s, t) => s + t.topics.length, 0));
+    expect(XP).toMatchObject({ sql: 20, sqlRevealed: 10, python: 15, lesson: 10, scenario: 15, note: 5, card: 2, cardDailyCap: 20, task: 10, project: 100, mockPassed: 30, mockFinished: 10, track: 50, day: 5 });
+  });
+
+  it("clients can't write XP, achievements, or call the award engine", async () => {
+    await fails(as(C, "insert into xp_events (user_id, source_key, kind, xp) values (auth.uid(), 'cheat', 'sql', 9999)"));
+    await fails(as(C, "insert into user_achievements (user_id, achievement_id, unlocked_at) values (auth.uid(), 'sql-50', now())"));
+    await fails(as(C, `select award_xp(auth.uid(), 'cheat2', 'sql', 9999, now())`));
+    await fails(as(C, `select gm_state(auth.uid(), '{}'::jsonb, '{}'::jsonb)`));
+    await fails(as(null, `select award_xp('${C}', 'cheat3', 'sql', 9999, now())`));
+    expect(await xpOf(C)).toBe(0);
+  });
+
+  it("awards a practised solve once; imported solves earn nothing", async () => {
+    await as(C, "insert into progress (user_id, question_number, attempts, solved_at) values (auth.uid(), 25, 1, '2026-11-05T10:00:00Z'), (auth.uid(), 26, 1, '2026-11-05T10:05:00Z')");
+    expect(await xpOf(C)).toBe(0); // no practised flag yet (looks like an import)
+    await state(C, { qmeta: { 25: { practiced: true } } });
+    expect(await keys(C)).toEqual(["sql:25", "day:2026-11-05", "achievement:first-query"]);
+    expect(await xpOf(C)).toBe(20 + 5 + 10);
+    // Re-sync, re-solve and re-save change nothing.
+    await as(C, "update progress set attempts = 3, solved_at = '2026-11-05T11:00:00Z' where user_id = auth.uid() and question_number = 25");
+    await state(C, { qmeta: { 25: { practiced: true } }, dailyGoal: 3 });
+    expect(await xpOf(C)).toBe(35);
+  });
+
+  it("completes the daily SQL mission and the note mission, each once", async () => {
+    await state(C, { qmeta: { 25: { practiced: true }, 26: { practiced: true }, 27: { practiced: true } }, read: { "left-join": "2026-11-05T12:00:00Z" } });
+    await as(C, "insert into progress (user_id, question_number, attempts, solved_at) values (auth.uid(), 27, 1, '2026-11-05T12:30:00Z')");
+    const k = await keys(C);
+    expect(k.filter((x) => x.startsWith("mission:"))).toEqual(["mission:note1:2026-11-05", "mission:sql3:2026-11-05"]);
+    expect(k.filter((x) => x === "day:2026-11-05")).toHaveLength(1);
+  });
+
+  it("rejects future-dated client timestamps and caps flashcard XP per day", async () => {
+    await state(C, { qmeta: {}, lessons: { "py:a": "2099-01-01T00:00:00Z" }, reviews: { "2026-11-05": Array.from({ length: 30 }, (_, i) => `c${i}`) } });
+    const py = (await pg.query<{ created_at: Date }>(`select created_at from xp_events where user_id = '${C}' and source_key = 'py:a'`)).rows[0];
+    expect(py.created_at.getTime()).toBeLessThanOrEqual(Date.now());
+    const cards = (await pg.query<{ n: number }>(`select count(*)::int as n from xp_events where user_id = '${C}' and kind = 'card'`)).rows[0].n;
+    expect(cards).toBe(20);
+  });
+
+  it("scores mocks and completes projects by checks (no manual steps) or by admin approval", async () => {
+    await as(D, "insert into mock_sessions (user_id, solved, total, used_sec, duration_min) values (auth.uid(), 3, 5, 600, 30), (auth.uid(), 1, 5, 600, 30)");
+    const mocks = (await pg.query<{ xp: number }>(`select xp from xp_events where user_id = '${D}' and kind = 'mock' order by id`)).rows.map((r) => r.xp);
+    expect(mocks).toEqual([30, 10]);
+    const tasks = (await pg.query<{ task_id: string }>("select task_id from project_auto_tasks where project_slug = 'data-validation-pipeline'")).rows;
+    for (const t of tasks) await as(D, `insert into project_progress (user_id, project_slug, task_id, passed) values (auth.uid(), 'data-validation-pipeline', '${t.task_id}', true)`);
+    expect(await keys(D)).toContain("project:data-validation-pipeline");
+    expect(await keys(D)).toContain("achievement:first-project");
+    // A project with a manual step needs an admin's approval.
+    const [{ id }] = await as<{ id: number }>(D, "insert into project_submissions (user_id, project_slug) values (auth.uid(), 'csv-to-postgres-etl') returning id");
+    expect(await keys(D)).not.toContain("project:csv-to-postgres-etl");
+    await as(ADMIN, `update project_submissions set status = 'Completed' where id = ${id}`);
+    expect(await keys(D)).toContain("project:csv-to-postgres-etl");
+  });
+
+  it("isolates ledgers and keeps the leaderboard to public profiles, without emails", async () => {
+    expect(await as(C, `select * from xp_events where user_id = '${D}'`)).toEqual([]);
+    expect(await as(null, "select * from xp_events")).toEqual([]);
+    expect(await as(null, "select * from xp_leaderboard('all')")).toEqual([]);
+    await pg.exec(`update profiles set public_profile = true where id = '${C}'`);
+    const board = await as<{ username: string; xp: number }>(null, "select * from xp_leaderboard('all')");
+    expect(board.map((r) => r.username)).toEqual(["gamer_c"]);
+    expect(JSON.stringify(board)).not.toMatch(/@x\.test/);
+    const [{ me }] = await as<{ me: { total: number; public: boolean; weekRank: number | null } }>(C, "select my_xp() as me");
+    expect(me.total).toBe(await xpOf(C));
+    expect(me.public).toBe(true);
+    const [{ me: d }] = await as<{ me: { public: boolean; weekRank: number | null } }>(D, "select my_xp() as me");
+    expect(d).toMatchObject({ public: false, weekRank: null });
+  });
+
+  it("re-applying the migration (backfill) awards nothing new", async () => {
+    const before = (await pg.query<{ n: number }>("select count(*)::int as n from xp_events")).rows[0].n;
+    await pg.exec(m006);
+    expect((await pg.query<{ n: number }>("select count(*)::int as n from xp_events")).rows[0].n).toBe(before);
   });
 });

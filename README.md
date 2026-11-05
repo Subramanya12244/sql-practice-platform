@@ -76,6 +76,7 @@ Without Supabase the site works anonymously. With it:
 - **Password reset.** `/reset-password` emails a reset link. It works only for accounts created with an email; username-only accounts need an admin.
 - **Review notifications.** When an admin reviews a project submission, the learner sees a badge in the header and the decision with its comment on `/account`.
 - **Public profile.** Opt in on `/account`. `/profile?u=<username>` then shows solved counts, activity, the portfolio name and reviewer-approved projects, never the email. The same profile is listed on `/leaderboard`.
+- **XP, levels and achievements.** `/achievements` shows level (Beginner to DataForge Master), XP, current and longest streak, a five-week calendar, daily and weekly missions and 12 achievements. Accounts earn XP on the server (migration 006), once per action; anonymous visitors see the same rules computed in the browser. `/leaderboard` ranks public profiles by weekly, monthly or all-time XP.
 - **Admin dashboard.** `/admin` shows users, activity, roles, the audit log, comment moderation, the weekly challenge and project submission review (approve, request changes, reject, with history). Click a username to see that learner's solves by topic, project checks, submissions and recent activity. Users, the audit log and submissions export to CSV.
 
 The database enforces every rule through row-level security (RLS). The frontend only hides what a visitor can't use.
@@ -89,6 +90,7 @@ The database enforces every rule through row-level security (RLS). The frontend 
    3. `supabase/migrations/003_dataforge.sql`: visualization sessions, project progress and submissions, data quality
    4. `supabase/migrations/004_submission_review.sql`: review comments, review history, reviewer stamping
    5. `supabase/migrations/005_public_portfolio.sql`: approved projects and portfolio name on public profiles
+   6. `supabase/migrations/006_gamification.sql`: XP ledger, achievements, missions and XP leaderboard
 3. **Authentication → Sign In / Providers → Email:** turn on email and turn off "Confirm email". Username accounts sign in with a synthetic `@users.sqlpractice.local` address that can't receive mail.
 4. **Authentication → URL Configuration:** set the Site URL to the live site, and add `https://<site>/**` and `http://localhost:4176/**` as redirect URLs.
 5. Create the owner and admin accounts from your own shell. Never commit these values:

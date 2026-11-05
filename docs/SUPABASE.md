@@ -25,6 +25,7 @@ objects only; none drops tables or deletes rows.
    submissions, data quality rules and runs.
 4. `supabase/migrations/004_submission_review.sql`: admin review of project submissions.
 5. `supabase/migrations/005_public_portfolio.sql`: public profiles also list reviewer-approved projects and the portfolio name and headline. It replaces one function and changes no tables.
+6. `supabase/migrations/006_gamification.sql`: XP ledger, achievements, missions, streak bonus and the XP leaderboard (see "Gamification" below).
 
 Re-running 002 after 004 resets the audit-action list to 002's list. If you do, run 004 again.
 
@@ -130,3 +131,25 @@ Use two separate browser profiles (or one normal and one private window) so sess
 - The admin list loads the newest 200 submissions matching the filters.
 - Learners see review results on their next page load, with no notification.
 - Uploaded files aren't supported; submissions carry a repository link and notes.
+
+## Gamification (migration 006)
+
+Tables:
+- `xp_events`: one row per reward, `unique (user_id, source_key)`. Keys look like `sql:25`, `py:<slug>`, `note:<slug>`, `card:<key>:<day>`, `task:<project>:<task>`, `project:<slug>`, `mock:<id>`, `track:<id>`, `day:<date>`, `achievement:<id>`, `mission:<id>:<period start>`.
+- `user_achievements`: unlock time per achievement.
+- `achievement_definitions`, `mission_definitions`: the rules, the same numbers as `frontend/src/site/lib/gamification.ts`.
+- `track_topics`, `project_auto_tasks`, `project_catalog`: reference data generated from the content files, so the database can recognise finished tracks and projects.
+
+How awards happen:
+- Triggers on `progress`, `profiles.state`, `mock_sessions`, `project_progress` and `project_submissions` call `award_xp`, which ignores duplicates. Each new base award also grants the once-a-day bonus and re-checks achievements and missions.
+- SQL XP needs both a solved progress row and the practised flag in profile state. Solves imported from the GitHub history have no such flag, so they earn nothing.
+- Client timestamps are clamped to now. Flashcard XP is capped at 20 reviews per day.
+- On apply, a backfill replays existing records. Re-applying awards nothing new.
+
+Security:
+- `xp_events` and `user_achievements` have SELECT policies only (own rows; admins all). Clients can't insert, edit or delete XP.
+- `award_xp` and the `gm_*` helpers are revoked from `public`, `anon` and `authenticated`.
+- `xp_leaderboard(period)` returns usernames and XP of public profiles only. `my_xp()` returns the caller's totals and, if public, their weekly rank.
+- Limit: grading runs in the browser, so the source rows are learner-written; XP can't be written directly, but a determined user could forge a solved row. Admin-approved projects are the trustworthy signal.
+
+Anonymous visitors get the same rules computed in the browser from local progress.

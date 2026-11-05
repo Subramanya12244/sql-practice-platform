@@ -54,6 +54,8 @@ export interface Progress {
   answers?: Record<string, import("./career").AnswerState>;
   /** Name and headline shown on the portfolio. */
   portfolio?: { name: string; headline: string };
+  /** Flashcard keys reviewed per day (UTC), for review XP and missions; last 30 days kept. */
+  reviews?: Record<string, string[]>;
   /** One-off data migrations already applied to this record. */
   migrations?: string[];
 }
@@ -184,9 +186,15 @@ export function reviewCard(num: number | string, knewIt: boolean) {
   const prevBox = p.cards[num]?.box ?? 1;
   const box = knewIt ? Math.min(5, prevBox + 1) : 1;
   const due = new Date(Date.now() + BOX_DAYS[box] * 86_400_000).toISOString().slice(0, 10);
+  const d = today();
+  const dayKeys = p.reviews?.[d] ?? [];
+  const reviews = Object.fromEntries(
+    Object.entries({ ...(p.reviews ?? {}), [d]: dayKeys.includes(String(num)) ? dayKeys : [...dayKeys, String(num)] }).sort().slice(-30),
+  );
   write({
     ...p,
     cards: { ...p.cards, [num]: { box, due } },
+    reviews,
     ...bump(p),
   });
   sink?.state(current);

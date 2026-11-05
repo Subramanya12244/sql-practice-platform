@@ -18,6 +18,10 @@ export default {
           dim: "rgb(var(--color-accent) / 0.14)",
           glow: "rgb(var(--color-accent) / 0.35)",
         },
+        secondary: {
+          DEFAULT: "rgb(var(--color-secondary, 139 92 246) / <alpha-value>)",
+          dim: "rgb(var(--color-secondary, 139 92 246) / 0.14)",
+        },
         success: {
           DEFAULT: "rgb(var(--color-success) / <alpha-value>)",
           dim: "rgb(var(--color-success) / 0.12)",

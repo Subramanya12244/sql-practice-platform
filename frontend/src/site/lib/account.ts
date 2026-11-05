@@ -39,6 +39,7 @@ export interface RemoteState {
   plan?: Progress["plan"];
   answers?: Progress["answers"];
   portfolio?: Progress["portfolio"];
+  reviews?: Progress["reviews"];
   /** Per-question evidence that has no column on the progress table. */
   qmeta?: Record<string, Pick<QuestionProgress, "practiced" | "imported" | "hintLevel" | "assisted" | "startedAt" | "solveSec" | "errorKinds">>;
 }
@@ -111,6 +112,7 @@ export function mergeProgress(local: Progress, rows: ProgressRow[], state: Remot
     plan: local.plan ?? state.plan,
     answers: mergeAnswers(local.answers, state.answers),
     portfolio: local.portfolio ?? state.portfolio,
+    reviews: mergeReviews(local.reviews, state.reviews),
   };
 }
 
@@ -122,6 +124,14 @@ function mergeAnswers(a: Progress["answers"] = {}, b: Progress["answers"] = {}) 
     if (!o || v.attempts > o.attempts || (v.attempts === o.attempts && v.at > o.at)) out[k] = v;
   }
   return Object.keys(out).length ? out : undefined;
+}
+
+/** Union of reviewed card keys per day, last 30 days. */
+function mergeReviews(a: Progress["reviews"] = {}, b: Progress["reviews"] = {}) {
+  const out: Record<string, string[]> = {};
+  for (const d of new Set([...Object.keys(a), ...Object.keys(b)])) out[d] = [...new Set([...(a[d] ?? []), ...(b[d] ?? [])])];
+  const days = Object.keys(out).sort().slice(-30);
+  return days.length ? Object.fromEntries(days.map((d) => [d, out[d]])) : undefined;
 }
 
 function mergeCounts(a: Record<string, number> = {}, b: Record<string, number> = {}) {

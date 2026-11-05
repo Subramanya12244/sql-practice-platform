@@ -44,6 +44,7 @@ import {
 } from "./lib/learning";
 import { ChallengePage, LeaderboardPage, ProfilePage } from "./pages/CommunityPages";
 import { InterviewSetPage, InterviewSetsPage } from "./pages/InterviewSetPages";
+import { AchievementsPage } from "./pages/AchievementsPage";
 import { AnswerPracticePage, CareerPage, CompanyPrepPage, PlannerPage, PortfolioPage } from "./pages/CareerPages";
 import { COMPANY_TYPES } from "./lib/career";
 
@@ -160,7 +161,10 @@ export const routes: SiteRoute[] = [
   {
     path: "/learn",
     element: <LearnPage />,
-    load: async () => ({ ...(await base()), ...(await library()), lessons: await loadLessonSummaries() }),
+    load: async () => ({
+      ...(await base()), ...(await library()), lessons: await loadLessonSummaries(), exercises: await loadExerciseIndex(),
+      projectTasks: (await loadAllProjects()).map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type }) as never) })),
+    }),
     paths: one("/learn"),
   },
   {
@@ -250,6 +254,12 @@ export const routes: SiteRoute[] = [
     load: async () => ({ ...(await base()), notes: await loadNoteIndex(), mindmaps: await loadMapIndex() }),
     paths: one("/data-engineering"),
   },
+  {
+    path: "/achievements",
+    element: <AchievementsPage />,
+    load: async () => ({ ...(await base()), projectTasks: (await loadAllProjects()).map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type }) as never) })) }),
+    paths: one("/achievements"),
+  },
   { path: "/career", element: <CareerPage />, load: base, paths: one("/career") },
   { path: "/career/planner", element: <PlannerPage />, load: careerData, paths: one("/career/planner") },
   { path: "/career/companies", element: <CompanyPrepPage />, load: careerData, paths: one("/career/companies") },
@@ -288,7 +298,7 @@ export const routes: SiteRoute[] = [
     element: <PythonExercisePage />,
     load: async ({ slug }) => {
       const exercise = await loadExercise(slug!);
-      return exercise ? { ...(await base()), exercise, notes: await loadNoteIndex() } : null;
+      return exercise ? { ...(await base()), exercise, notes: await loadNoteIndex(), exercises: await loadExerciseIndex() } : null;
     },
     paths: async () => (await loadExerciseIndex()).map((e) => `/practice/python/${e.slug}`),
   },

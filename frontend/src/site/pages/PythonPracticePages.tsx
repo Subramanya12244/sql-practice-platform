@@ -1,9 +1,9 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, FlaskConical, Loader2, Play, RotateCcw } from "lucide-react";
+import { ArrowRight, CheckCircle2, Circle, FileCode2, FlaskConical, Lightbulb, Loader2, Play, RotateCcw, Timer, XCircle } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
-import { Container, Difficulty, PageHeader, Skeleton } from "../components/ui";
+import { Button, ButtonLink, Card, Container, Difficulty, PageHeader, Skeleton, Tabs } from "../components/ui";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { completeExercise, useProgress } from "../lib/progress";
 import { runPython, resetPython, PY_TIMEOUT_MS } from "../lib/pyRunner";
@@ -65,6 +65,9 @@ export function PythonExercisePage() {
   const [out, setOut] = useState<{ kind: "run" | "check"; text: string; result?: TaskResult } | null>(null);
   const [history, setHistory] = useState<Run[]>([]);
   const [showSolution, setShowSolution] = useState(false);
+  const [view, setView] = useState<"tests" | "output">("tests");
+  const all = data.exercises ?? [];
+  const next = all[all.findIndex((e) => e.slug === ex.slug) + 1];
   const done = Boolean(progress.lessons?.[key(ex.slug)]);
   const topic = data.notes?.find((n) => n.slug === ex.topic);
 
@@ -90,6 +93,7 @@ export function PythonExercisePage() {
     setBusy("run");
     const r = await runPython(code);
     setOut({ kind: "run", text: [r.stdout, r.error].filter(Boolean).join("\n") || "(no output)" });
+    setView("output");
     log({ at: new Date().toISOString(), kind: "run", ok: r.ok, message: r.ok ? "ran" : r.error?.split("\n").pop() ?? "error" });
     setBusy(null);
   }
@@ -98,6 +102,7 @@ export function PythonExercisePage() {
     setBusy("check");
     const res = await runPythonTask(task, code, runPython);
     setOut({ kind: "check", text: res.output ?? "", result: res });
+    setView("tests");
     log({ at: new Date().toISOString(), kind: "check", ok: res.ok, message: res.message });
     if (res.ok) completeExercise(key(ex.slug));
     setBusy(null);
@@ -150,31 +155,70 @@ export function PythonExercisePage() {
           )}
         </article>
 
-        <div className="min-w-0 space-y-3">
-          {mounted ? (
-            <Suspense fallback={<Skeleton className="h-[360px]" />}>
-              <CodeEditor value={code} onChange={change} onRun={check} height={360} label="Python editor" language="python" />
-            </Suspense>
-          ) : <Skeleton className="h-[360px]" />}
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={run} disabled={!!busy} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border px-3 py-2 text-sm text-ink disabled:opacity-60">
-              {busy === "run" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />} Run
-            </button>
-            <button type="button" onClick={check} disabled={!!busy || !task} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
-              {busy === "check" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FlaskConical className="h-4 w-4" aria-hidden />} Check
-            </button>
-            <button type="button" onClick={() => { if (confirm("Replace your code with the starter?")) change(task?.starter ?? ""); }} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-ink-muted hover:text-ink">
-              <RotateCcw className="h-4 w-4" aria-hidden /> Reset
-            </button>
-            <button type="button" onClick={() => { resetPython(); setOut({ kind: "run", text: "Python restarted." }); }} className="text-xs text-ink-faint underline">Restart Python</button>
-          </div>
-          <p className="text-xs text-ink-faint">Sandboxed in your browser · {PY_TIMEOUT_MS / 1000}s limit · no network or file access · the first run downloads Python (~10 MB, then cached).</p>
-          {out && (
-            <div role="status" className={`rounded-card border p-3 text-sm ${out.result ? (out.result.ok ? "border-success/30 bg-success-dim" : "border-danger/30 bg-danger-dim") : "border-surface-border bg-surface-raised"}`}>
-              {out.result && <p className="font-semibold text-ink">{out.result.ok ? "✅ " : "❌ "}{out.result.message}</p>}
-              {out.text && <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs text-ink">{out.text}</pre>}
+        <div className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
+          <Card pad="none" className="overflow-hidden">
+            <div className="flex items-center justify-between gap-2 border-b border-surface-border bg-surface-overlay px-4 py-2">
+              <span className="inline-flex items-center gap-2 font-mono text-xs text-ink-muted"><FileCode2 className="h-4 w-4 text-accent" aria-hidden /> solution.py</span>
+              <span className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={() => { if (confirm("Replace your code with the starter?")) change(task?.starter ?? ""); }}><RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset</Button>
+                <Button variant="ghost" size="sm" onClick={() => { resetPython(); setOut({ kind: "run", text: "Python restarted." }); setView("output"); }}>Restart Python</Button>
+              </span>
+            </div>
+            {mounted ? (
+              <Suspense fallback={<Skeleton className="h-[360px] rounded-none" />}>
+                <CodeEditor value={code} onChange={change} onRun={check} height={360} label="Python editor" language="python" />
+              </Suspense>
+            ) : <Skeleton className="h-[360px] rounded-none" />}
+            <div className="flex flex-wrap items-center gap-2 border-t border-surface-border px-4 py-3">
+              <Button variant="secondary" onClick={run} disabled={!!busy}>
+                {busy === "run" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />} Run
+              </Button>
+              <Button onClick={check} disabled={!!busy || !task}>
+                {busy === "check" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FlaskConical className="h-4 w-4" aria-hidden />} Check against tests
+              </Button>
+              <span className="ml-auto inline-flex items-center gap-1 text-xs text-ink-faint"><Timer className="h-3.5 w-3.5" aria-hidden /> {PY_TIMEOUT_MS / 1000}s limit · ⌘/Ctrl+Enter checks</span>
+            </div>
+          </Card>
+
+          <Card pad="none" as="section">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border px-4 py-2">
+              <h2 className="text-sm font-semibold text-ink">Results</h2>
+              <Tabs label="Result view" value={view} onChange={setView} tabs={[{ id: "tests", label: "Tests" }, { id: "output", label: "Output" }]} />
+            </div>
+            <div className="p-4" role="status" aria-live="polite">
+              {view === "tests" ? (
+                out?.result ? (
+                  <>
+                    <ul className="space-y-2 text-sm">
+                      {[
+                        { label: "Your code runs", state: /raised an error|could not start/.test(out.result.message) ? "fail" : /Timed out|Stopped after/.test(out.result.message) ? "fail" : "pass" },
+                        { label: "All tests pass", state: out.result.ok ? "pass" : /raised an error|could not start|Timed out|Stopped after/.test(out.result.message) ? "skip" : "fail" },
+                      ].map((s) => (
+                        <li key={s.label} className="flex items-center gap-2">
+                          {s.state === "pass" ? <CheckCircle2 className="h-4 w-4 text-success" aria-hidden /> : s.state === "fail" ? <XCircle className="h-4 w-4 text-danger" aria-hidden /> : <Circle className="h-4 w-4 text-ink-faint" aria-hidden />}
+                          <span className={s.state === "skip" ? "text-ink-faint" : "text-ink"}>{s.label}{s.state === "skip" ? " (not reached)" : ""}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className={`mt-3 rounded-lg px-3 py-2 text-sm font-medium ${out.result.ok ? "bg-success-dim text-success" : "bg-danger-dim text-danger"}`}>
+                      {out.result.message}{out.result.ms !== undefined ? <span className="font-normal text-ink-muted"> · {Math.round(out.result.ms)} ms</span> : null}
+                    </p>
+                  </>
+                ) : <p className="text-sm text-ink-muted">Press <strong className="text-ink">Check against tests</strong> to grade your code. The tests run together in a sandbox; the solution passes when every one of them does.</p>
+              ) : out?.text ? (
+                <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-surface-overlay p-3 font-mono text-xs text-ink">{out.text}</pre>
+              ) : <p className="text-sm text-ink-muted">Press <strong className="text-ink">Run</strong> to see what your code prints.</p>}
+            </div>
+          </Card>
+
+          {(done || out?.result?.ok) && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-success/30 bg-success-dim p-4">
+              <p className="flex items-center gap-2 text-sm font-semibold text-success"><CheckCircle2 className="h-5 w-5" aria-hidden /> Exercise complete</p>
+              {next ? <ButtonLink to={`/practice/python/${next.slug}`} size="sm">Next: {next.title} <ArrowRight className="h-4 w-4" aria-hidden /></ButtonLink>
+                : <ButtonLink to="/practice/python" size="sm" variant="secondary">All exercises</ButtonLink>}
             </div>
           )}
+          <p className="flex items-start gap-1.5 text-xs text-ink-faint"><Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> Sandboxed in your browser: no network or file access. The first run downloads Python (about 10 MB, then cached).</p>
         </div>
       </div>
     </Container>

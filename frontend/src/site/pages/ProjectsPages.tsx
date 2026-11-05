@@ -1,10 +1,10 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, CircleDashed, FlaskConical, Loader2, Play, Send } from "lucide-react";
+import { CheckCircle2, CircleDashed, FlaskConical, Loader2, Play, Send, FolderGit2 } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { SampleTable } from "../components/SampleTable";
-import { Container, PageHeader, Skeleton } from "../components/ui";
+import { Badge, Container, EmptyState, PageHeader, ProgressBar, Skeleton, StatCard, Tabs } from "../components/ui";
 import { LevelBadge } from "../components/LearnUi";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { registerDataset, runQuery } from "../lib/browserDb";
@@ -25,17 +25,25 @@ const STATUS_TONE: Record<ProjectStatus, string> = {
   Rejected: "bg-danger-dim text-danger",
 };
 function StatusChip({ s }: { s: ProjectStatus }) {
-  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_TONE[s]}`}>{s}</span>;
+  return <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_TONE[s]}`}>{s}</span>;
 }
 
 export function ProjectsIndexPage() {
   const { data } = usePage();
   const all = data.projects ?? [];
   const [statuses, setStatuses] = useState<Record<string, ProjectStatus>>({});
+  const [passed, setPassed] = useState<Record<string, number>>({});
   const [mine, setMine] = useState(false);
   useEffect(() => {
-    setStatuses(Object.fromEntries((data.projectTasks ?? []).map((p) => [p.slug, projectStatus({ tasks: p.tasks }, getProjectProgress(p.slug))])));
+    const tasks = data.projectTasks ?? [];
+    setStatuses(Object.fromEntries(tasks.map((p) => [p.slug, projectStatus({ tasks: p.tasks }, getProjectProgress(p.slug))])));
+    setPassed(Object.fromEntries(tasks.map((p) => {
+      const pr = getProjectProgress(p.slug);
+      return [p.slug, p.tasks.filter((t) => t.type !== "checklist" && pr.tasks[t.id]?.passed).length];
+    })));
   }, [data.projectTasks]);
+  const done = Object.values(statuses).filter((s) => s === "Completed").length;
+  const active = Object.values(statuses).filter((s) => s !== "Not started" && s !== "Completed").length;
   const shown = mine ? all.filter((p) => (statuses[p.slug] ?? "Not started") !== "Not started") : all;
 
   return (
@@ -51,11 +59,15 @@ export function ProjectsIndexPage() {
         title="Projects lab"
         intro="Build real pipelines step by step. SQL steps are checked against a real PostgreSQL database and Python steps run tests in a sandbox — a project is only Completed when its checks pass."
       />
-      <div className="mb-4 flex gap-2 text-sm" role="tablist">
-        <button type="button" role="tab" aria-selected={!mine} onClick={() => setMine(false)} className={`rounded-lg px-3 py-1.5 ${!mine ? "bg-accent text-white" : "border border-surface-border text-ink-muted"}`}>Project library</button>
-        <button type="button" role="tab" aria-selected={mine} onClick={() => setMine(true)} className={`rounded-lg px-3 py-1.5 ${mine ? "bg-accent text-white" : "border border-surface-border text-ink-muted"}`}>My projects</button>
+      <div className="mb-6 grid grid-cols-3 gap-3">
+        <StatCard label="Projects" value={all.length} hint={`${all.reduce((s, p) => s + p.taskCount, 0)} tasks in total`} />
+        <StatCard label="In progress" value={active} hint="Started, not yet completed" />
+        <StatCard label="Completed" value={done} hint="All checks passed or approved" />
       </div>
-      {mine && !shown.length && <p className="text-sm text-ink-muted">Start a task in any project and it will show up here.</p>}
+      <div className="mb-5">
+        <Tabs label="Projects view" value={mine ? "mine" : "all"} onChange={(v) => setMine(v === "mine")} tabs={[{ id: "all", label: "Project library" }, { id: "mine", label: `My projects${active + done ? ` (${active + done})` : ""}` }]} />
+      </div>
+      {mine && !shown.length && <EmptyState icon={FolderGit2} title="No projects started yet" action={<button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => setMine(false)}>Browse the library</button>}>Start any task in a project and it shows up here with its progress.</EmptyState>}
       {["Beginner", "Intermediate", "Advanced"].map((level) => {
         const group = shown.filter((p) => p.level === level);
         if (!group.length) return null;
@@ -65,10 +77,14 @@ export function ProjectsIndexPage() {
             <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {group.map((p) => (
                 <li key={p.slug}>
-                  <Link to={`/projects-lab/${p.slug}`} className="flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 hover:border-accent/40">
-                    <span className="flex items-start justify-between gap-2"><span className="font-semibold text-ink">{p.title}</span><StatusChip s={statuses[p.slug] ?? "Not started"} /></span>
-                    <span className="mt-1 text-sm text-ink-muted">{p.description}</span>
-                    <span className="mt-auto pt-2 text-xs text-ink-faint">{p.technologies.join(" · ")} · {p.automated} auto-checked, {p.manual} manual step{p.manual === 1 ? "" : "s"}</span>
+                  <Link to={`/projects-lab/${p.slug}`} className="group flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-5 shadow-panel transition duration-fast hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow">
+                    <span className="flex items-start justify-between gap-3"><span className="font-semibold text-ink group-hover:text-accent">{p.title}</span><StatusChip s={statuses[p.slug] ?? "Not started"} /></span>
+                    <span className="mt-1.5 line-clamp-3 text-sm text-ink-muted">{p.description}</span>
+                    <span className="mt-3 flex flex-wrap gap-1">{p.technologies.map((t) => <Badge key={t}>{t}</Badge>)}</span>
+                    <span className="mt-auto pt-4">
+                      <span className="mb-1 flex justify-between text-[11px] text-ink-faint"><span>{p.automated} auto-checked · {p.manual} manual</span><span className="tabular-nums">{passed[p.slug] ?? 0}/{p.automated} passed</span></span>
+                      <ProgressBar value={passed[p.slug] ?? 0} max={p.automated || 1} label={`${p.title} checks passed`} tone={statuses[p.slug] === "Completed" ? "success" : "accent"} />
+                    </span>
                   </Link>
                 </li>
               ))}

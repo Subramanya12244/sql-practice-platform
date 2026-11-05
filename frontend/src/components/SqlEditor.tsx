@@ -90,6 +90,8 @@ interface Props {
   resultTarget: ResultTarget;
   onResultTargetChange: (target: ResultTarget) => void;
   submitLabel?: string;
+  /** Custom Monaco themes (public site). Omitted in the local app, which keeps vs / vs-dark. */
+  themes?: { dark: string; light: string; define: (monaco: typeof import("monaco-editor")) => void };
 }
 
 export function SqlEditor({
@@ -104,6 +106,7 @@ export function SqlEditor({
   resultTarget,
   onResultTargetChange,
   submitLabel,
+  themes,
 }: Props) {
   const toast = useToast();
   const { resolved: theme } = useTheme();
@@ -118,9 +121,10 @@ export function SqlEditor({
   valueRef.current = value;
   const [hasSelection, setHasSelection] = useState(false);
 
+  const themeName = theme === "dark" ? themes?.dark ?? "vs-dark" : themes?.light ?? "vs";
   useEffect(() => {
-    monacoRef.current?.editor.setTheme(theme === "dark" ? "vs-dark" : "vs");
-  }, [theme]);
+    monacoRef.current?.editor.setTheme(themeName);
+  }, [themeName]);
 
   const getSelectionSql = useCallback(() => {
     const editor = editorRef.current;
@@ -380,7 +384,8 @@ export function SqlEditor({
         <Editor
           height="100%"
           defaultLanguage="sql"
-          theme={theme === "dark" ? "vs-dark" : "vs"}
+          theme={themeName}
+          beforeMount={themes ? (m) => themes.define(m as unknown as typeof import("monaco-editor")) : undefined}
           value={value}
           onChange={(v) => onChange(v ?? "")}
           onMount={handleMount}

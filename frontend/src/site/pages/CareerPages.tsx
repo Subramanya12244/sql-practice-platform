@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, CalendarRange, CheckCircle2, Circle, Download, MessageSquareText, Printer, Share2, UserRound } from "lucide-react";
+import { Briefcase, CalendarRange, CheckCircle2, Circle, Download, FolderGit2, MessageSquareText, Printer, Share2, UserRound } from "lucide-react";
 import { usePage } from "../SiteApp";
-import { Container, PageHeader } from "../components/ui";
+import { Container, EmptyState, PageHeader, ProgressBar } from "../components/ui";
 import { Seo } from "../lib/seo";
 import { recordAnswer, setPlan, setPortfolioInfo, today, useProgress } from "../lib/progress";
 import {
@@ -94,6 +94,11 @@ export function PlannerPage() {
   const expected = weeks.slice(0, Math.min(currentWeek, weeks.length)).reduce((s, w) => s + w.items.length, 0);
   const need = hoursNeeded(items, plan.weeks);
   const role = ROLE_PATHS.find((r) => r.id === plan.role)!;
+  // Per-stage completion for the roadmap, in the role's stage order.
+  const stages = role.stages.map((st) => {
+    const flat = weeks.flatMap((w, wi) => w.items.map((it, ii) => ({ it, done: status[wi][ii] }))).filter((x) => x.it.stage === st.title);
+    return { title: st.title, total: flat.length, done: flat.filter((x) => x.done).length };
+  });
 
   return (
     <Container>
@@ -129,6 +134,25 @@ export function PlannerPage() {
         <div className={card}><p className="text-xs uppercase tracking-wider text-ink-faint">Pace</p><p className="mt-1 font-display text-2xl font-bold text-ink">{!saved || !mounted ? "—" : doneCount >= expected ? "On track" : "Behind"}</p>
           {saved && mounted && <p className="text-xs text-ink-muted">Week {Math.min(currentWeek + 1, weeks.length)} of {weeks.length}; {expected} items were due by now.</p>}</div>
       </div>
+
+      <section aria-labelledby="roadmap" className={`${card} mt-4`}>
+        <h2 id="roadmap" className="font-display text-lg font-bold text-ink">{role.title} roadmap</h2>
+        <ol className="mt-4 grid gap-3 md:grid-cols-5">
+          {stages.map((st, i) => {
+            const complete = st.total > 0 && st.done === st.total;
+            return (
+              <li key={st.title} className="relative rounded-lg border border-surface-border bg-surface-overlay p-3">
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${complete ? "bg-success text-white" : st.done ? "bg-accent text-white" : "bg-surface-soft text-ink-muted"}`} aria-hidden>
+                  {complete ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
+                </span>
+                <p className="mt-2 text-sm font-semibold text-ink">{st.title}</p>
+                <p className="text-xs text-ink-faint">{mounted ? `${st.done}/${st.total}` : `0/${st.total}`} items</p>
+                <ProgressBar className="mt-2" value={mounted ? st.done : 0} max={st.total || 1} label={`${st.title} progress`} tone={complete ? "success" : "accent"} />
+              </li>
+            );
+          })}
+        </ol>
+      </section>
 
       <ol className="mt-6 space-y-4">
         {weeks.map((w, wi) => (
@@ -410,7 +434,7 @@ export function PortfolioPage() {
             </li>
           ))}
         </ul>
-      ) : <p className="mt-2 text-sm text-ink-muted">No projects started yet. <Link to="/projects-lab" className="text-accent underline">Open the Projects Lab</Link>.</p>}
+      ) : <div className="mt-2"><EmptyState icon={FolderGit2} title="No projects yet" action={<Link to="/projects-lab" className="text-sm font-medium text-accent hover:underline">Open the Projects Lab</Link>}>Projects you start appear here with their checks, repository link and reviewer approval.</EmptyState></div>}
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         <section>

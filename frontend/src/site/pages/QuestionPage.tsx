@@ -178,7 +178,7 @@ export function QuestionPage() {
       {/* Laptop and up: a fixed-height workspace where each side scrolls on its own. */}
       <div className="mt-3 grid gap-4 lg:h-[calc(100dvh-9.75rem)] lg:min-h-[560px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <section className="flex min-h-0 flex-col overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel" aria-label="Question">
-          <div role="tablist" aria-label="Question sections" className="flex shrink-0 gap-1 overflow-x-auto border-b border-surface-border px-2 pt-2">
+          <div role="tablist" aria-label="Question sections" className="scroll-fade-x flex shrink-0 gap-0.5 overflow-x-auto border-b border-surface-border px-2 pt-2">
             {tabs.map((t) => (
               <button
                 key={t.id}
@@ -188,7 +188,7 @@ export function QuestionPage() {
                 aria-selected={tab === t.id}
                 aria-controls={`panel-${t.id}`}
                 onClick={() => setTab(t.id)}
-                className={`whitespace-nowrap rounded-t-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`whitespace-nowrap rounded-t-lg px-2.5 py-2 text-[13px] font-medium transition-colors ${
                   tab === t.id ? "border-b-2 border-accent text-accent" : "text-ink-muted hover:text-ink"
                 }`}
               >

@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Shuffle } from "lucide-react";
+import { Search, SearchX, Shuffle } from "lucide-react";
 import { usePage } from "../SiteApp";
-import { Container, PageHeader, QuestionCard } from "../components/ui";
+import { Card, Container, EmptyState, PageHeader, ProgressBar, QuestionCard } from "../components/ui";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { useProgress } from "../lib/progress";
 
@@ -32,6 +32,12 @@ export function QuestionsPage() {
   }, [data.index, query, level, trapsOnly, unsolvedOnly, progress.questions]);
 
   const filtering = query || level !== "All" || trapsOnly || unsolvedOnly;
+  const isSolved = (n: number) => Boolean(progress.questions[n]?.solvedAt);
+  const solvedTotal = data.index.filter((q) => isSolved(q.number)).length;
+  const byLevel = (["Easy", "Medium", "Hard"] as const).map((l) => {
+    const qs = data.index.filter((q) => (l === "Hard" ? ["Hard", "Advanced", "Expert"].includes(q.difficulty) : q.difficulty === l));
+    return { level: l, solved: qs.filter((q) => isSolved(q.number)).length, total: qs.length };
+  });
 
   /** Jump to a random question from the current filter (or all, if nothing matches). */
   const random = () => {
@@ -53,7 +59,35 @@ export function QuestionsPage() {
         intro={`${data.index.length} questions grouped by topic. Pick any one — your query runs on a real PostgreSQL copy of Northwind in your browser.`}
       />
 
-      <div className="sticky top-14 z-30 -mx-4 mb-6 flex flex-wrap items-center gap-2 border-b border-surface-border bg-surface/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-card sm:border sm:px-3">
+      <Card className="mb-4 grid gap-5 sm:grid-cols-[1.2fr_2fr] sm:items-center">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Your progress</p>
+          <p className="mt-1 font-display text-3xl font-bold tabular-nums text-ink">{solvedTotal}<span className="text-lg text-ink-faint">/{data.index.length}</span></p>
+          <ProgressBar className="mt-2" value={solvedTotal} max={data.index.length} label="Questions solved" />
+        </div>
+        <ul className="grid grid-cols-3 gap-3">
+          {byLevel.map((l) => (
+            <li key={l.level} className="rounded-lg bg-surface-overlay p-3">
+              <p className={`text-xs font-semibold ${l.level === "Easy" ? "text-success" : l.level === "Medium" ? "text-warn" : "text-danger"}`}>{l.level}</p>
+              <p className="mt-0.5 font-display text-lg font-bold tabular-nums text-ink">{l.solved}<span className="text-sm text-ink-faint">/{l.total}</span></p>
+            </li>
+          ))}
+        </ul>
+      </Card>
+
+      <nav aria-label="Topics" className="scroll-fade-x -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        {data.topics.map((t) => {
+          const qs = data.index.filter((q) => q.topic === t.slug);
+          const done = qs.filter((q) => isSolved(q.number)).length;
+          return (
+            <a key={t.slug} href={`#t-${t.slug}`} className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-fast hover:border-accent/40 hover:text-ink ${done === qs.length && qs.length ? "border-success/30 bg-success-dim text-success" : "border-surface-border bg-surface-raised text-ink-muted"}`}>
+              {t.label} <span className="tabular-nums text-ink-faint">{done}/{qs.length}</span>
+            </a>
+          );
+        })}
+      </nav>
+
+      <div className="sticky top-16 z-30 -mx-4 mb-6 flex flex-wrap items-center gap-2 border-b border-surface-border bg-surface/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-card sm:border sm:px-3">
         <label className="relative min-w-[200px] flex-1">
           <span className="sr-only">Search questions</span>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" aria-hidden />
@@ -98,12 +132,12 @@ export function QuestionsPage() {
               {filtered.map((q) => <QuestionCard key={q.slug} q={q} solved={!!progress.questions[q.number]?.solvedAt} />)}
             </div>
           ) : (
-            <p className="rounded-card border border-dashed border-surface-border p-8 text-center text-ink-muted">No questions match. Try a different word or clear the filters.</p>
+            <EmptyState icon={SearchX} title="No questions match" action={<button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => { setQuery(""); setLevel("All"); setTrapsOnly(false); setUnsolvedOnly(false); }}>Clear all filters</button>}>Try a different word, or loosen the filters.</EmptyState>
           )}
         </>
       ) : (
         data.topics.map((t) => (
-          <section key={t.slug} className="mb-10" aria-labelledby={`t-${t.slug}`}>
+          <section key={t.slug} className="mb-10 scroll-mt-36" aria-labelledby={`t-${t.slug}`}>
             <div className="mb-3 flex items-baseline justify-between gap-3">
               <h2 id={`t-${t.slug}`} className="font-display text-xl font-bold text-ink">{t.label}</h2>
               <Link to={`/topics/${t.slug}`} className="text-sm text-accent hover:underline">Topic page</Link>

@@ -1,11 +1,99 @@
-/* Light theme: a deeper indigo so accent text and white-on-accent buttons meet WCAG AA (4.5:1). */
+/*
+ * DataForge design tokens (public site only; the local workspace keeps src/index.css as is).
+ * Surfaces: deep navy / charcoal. Primary: teal-cyan. Secondary: violet.
+ * Every value is "R G B" so Tailwind's `bg-accent/20`-style opacity works.
+ * --color-on-accent is the text colour on filled accent/status buttons: dark navy in the dark
+ * theme (bright teal needs dark text for AA contrast), white in the light theme.
+ */
 :root,
 html.light {
-  --color-accent: 79 70 229;
-  --color-accent-muted: 67 56 202;
+  color-scheme: light;
+  --color-surface: 246 248 251;
+  --color-surface-raised: 255 255 255;
+  --color-surface-overlay: 239 243 248;
+  --color-surface-soft: 226 232 240;
+  --color-border: rgba(15, 23, 42, 0.1);
+  --color-accent: 15 118 110;
+  --color-accent-muted: 14 116 144;
+  --color-secondary: 109 40 217;
+  --color-on-accent: 255 255 255;
   --color-success: 4 120 87;
   --color-warn: 146 64 14;
   --color-danger: 185 28 28;
+  --color-ink: 15 23 42;
+  --color-ink-muted: 51 65 85;
+  --color-ink-faint: 100 116 139;
+  --color-hover: 15 23 42;
+  --bg: #f6f8fb;
+  --bg-glow-1: rgba(20, 184, 166, 0.07);
+  --bg-glow-2: rgba(139, 92, 246, 0.05);
+  --shadow-panel: 0 0 0 1px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --shadow-glow: 0 0 0 1px rgba(15, 118, 110, 0.25), 0 8px 24px rgba(15, 118, 110, 0.12);
+  --chart-grid: #e2e8f0;
+  --chart-tick: #64748b;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e2e8f0;
+  --chart-bar-muted: #e2e8f0;
+  --chart-bar-accent: #0f766e;
+  --chart-bar-success: #047857;
+}
+
+html.dark {
+  color-scheme: dark;
+  --color-surface: 7 11 20;
+  --color-surface-raised: 13 19 33;
+  --color-surface-overlay: 18 26 44;
+  --color-surface-soft: 27 38 61;
+  --color-border: rgba(148, 163, 184, 0.13);
+  --color-accent: 45 212 191;
+  --color-accent-muted: 34 211 238;
+  --color-secondary: 167 139 250;
+  --color-on-accent: 4 17 28;
+  --color-success: 52 211 153;
+  --color-warn: 251 191 36;
+  --color-danger: 248 113 113;
+  --color-ink: 226 232 240;
+  --color-ink-muted: 148 163 184;
+  --color-ink-faint: 100 116 139;
+  --color-hover: 226 232 240;
+  --bg: #070b14;
+  --bg-glow-1: rgba(45, 212, 191, 0.07);
+  --bg-glow-2: rgba(167, 139, 250, 0.06);
+  --shadow-panel: 0 0 0 1px rgba(148, 163, 184, 0.1), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 0 1px rgba(45, 212, 191, 0.28), 0 8px 28px rgba(45, 212, 191, 0.12);
+  --chart-grid: #1e293b;
+  --chart-tick: #94a3b8;
+  --chart-tooltip-bg: #0d1321;
+  --chart-tooltip-border: #1e293b;
+  --chart-bar-muted: #1e293b;
+  --chart-bar-accent: #2dd4bf;
+  --chart-bar-success: #34d399;
+}
+
+/* Filled accent/status buttons use the theme's on-accent text, not hard-coded white. */
+.bg-accent.text-white,
+.bg-success.text-white,
+.bg-warn.text-white,
+.bg-danger.text-white {
+  color: rgb(var(--color-on-accent));
+}
+
+/* Consistent, visible keyboard focus everywhere on the site. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid rgb(var(--color-accent));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Public site: document scrolls normally (the local app uses full-height panes). */
@@ -176,3 +264,12 @@ html.dark .prose-site .tok-n { color: #fcd34d; }
 .prose-site .mermaid-svg svg { margin: 0 auto; max-width: 100%; height: auto; }
 
 .viz-clause-highlight { background: rgba(99, 102, 241, 0.22); border-radius: 2px; }
+
+/* Horizontal scrollers (tab strips): fade the trailing edge so overflow is visible, hide the bar. */
+.scroll-fade-x {
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+.scroll-fade-x::-webkit-scrollbar {
+  display: none;
+}

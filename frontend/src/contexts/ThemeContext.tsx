@@ -21,14 +21,14 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function readStoredPreference(): ThemePreference {
+function readStoredPreference(fallback: ThemePreference = "system"): ThemePreference {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw === "light" || raw === "dark" || raw === "system") return raw;
   } catch {
     /* ignore */
   }
-  return "system";
+  return fallback;
 }
 
 function getSystemTheme(): ResolvedTheme {
@@ -48,10 +48,11 @@ export function applyResolvedTheme(resolved: ResolvedTheme) {
   root.dataset.theme = resolved;
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreferenceState] = useState<ThemePreference>(readStoredPreference);
+/** `defaultPreference` applies only when nothing is stored; the local app keeps "system". */
+export function ThemeProvider({ children, defaultPreference = "system" }: { children: ReactNode; defaultPreference?: ThemePreference }) {
+  const [preference, setPreferenceState] = useState<ThemePreference>(() => readStoredPreference(defaultPreference));
   const [resolved, setResolved] = useState<ResolvedTheme>(() =>
-    resolveTheme(readStoredPreference()),
+    resolveTheme(readStoredPreference(defaultPreference)),
   );
 
   const setPreference = useCallback((next: ThemePreference) => {

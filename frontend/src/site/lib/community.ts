@@ -55,6 +55,8 @@ export const listComments = (q: number) => rpc<CommentRow[]>("question_comments"
 export const listSolutions = (q: number) => rpc<SolutionRow[]>("question_solutions", { q });
 export const leaderboard = (period: "week" | "month" | "all") => rpc<LeaderRow[]>("leaderboard", { period });
 export const challengeRanking = () => rpc<LeaderRow[]>("challenge_ranking");
+export const xpLeaderboard = (period: "week" | "month" | "all") => rpc<{ username: string; xp: number }[]>("xp_leaderboard", { period });
+export const myXp = () => rpc<{ total: number; week: number; month: number; public: boolean; weekRank: number | null }>("my_xp");
 export const publicProfile = (u: string) => rpc<PublicProfile | null>("public_profile", { u });
 
 export async function addComment(userId: string, q: number, body: string) {

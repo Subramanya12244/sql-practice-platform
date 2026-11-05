@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Download, Loader2, Play, Plus, ShieldCheck, Trash2, Wand2 } from "lucide-react";
-import { Container, PageHeader } from "../components/ui";
+import { Container, EmptyState, PageHeader } from "../components/ui";
 import { SampleTable } from "../components/SampleTable";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { runQuery } from "../lib/browserDb";
@@ -232,9 +232,18 @@ export function DataQualityPage() {
         <section aria-labelledby="dq-results" className="min-w-0 space-y-4">
           <h2 id="dq-results" className="font-display text-xl font-bold text-ink">Validation results</h2>
           {!totals ? (
-            <p className="text-sm text-ink-muted">Run the rules to see the dashboard.</p>
+            <EmptyState icon={ShieldCheck} title="No results yet">Press <strong className="text-ink">Run all rules</strong> to check this dataset. You'll get a quality score, failing records for each rule and downloadable reports.</EmptyState>
           ) : (
             <>
+              {totals.passedRules + totals.failedRules > 0 && (
+                <div>
+                  <div className="mb-1 flex justify-between text-xs text-ink-muted"><span>{totals.passedRules} rules pass</span><span>{totals.failedRules} fail</span></div>
+                  <div className="flex h-2.5 overflow-hidden rounded-full bg-surface-soft" role="img" aria-label={`${totals.passedRules} rules pass, ${totals.failedRules} fail`}>
+                    <div className="bg-success" style={{ width: `${(100 * totals.passedRules) / (totals.passedRules + totals.failedRules)}%` }} />
+                    <div className="bg-danger" style={{ width: `${(100 * totals.failedRules) / (totals.passedRules + totals.failedRules)}%` }} />
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {[["Quality score", totals.score === null ? "—" : `${totals.score}%`], ["Records checked", totals.checked], ["Passed", totals.checked - totals.failed], ["Failed", totals.failed], ["NULLs", totals.nulls], ["Duplicates", totals.dupes], ["Invalid", totals.invalid], ["Rules pass / fail", `${totals.passedRules} / ${totals.failedRules}${totals.errors ? ` (+${totals.errors} error)` : ""}`]].map(([k, v]) => (
                   <div key={String(k)} className="rounded-card border border-surface-border bg-surface-raised p-3">

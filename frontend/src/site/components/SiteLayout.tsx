@@ -1,17 +1,113 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, Github, Menu, Search, Settings, Shield, UserRound, X } from "lucide-react";
+import { Bell, ChevronDown, Github, LogOut, Menu, Moon, Search, Settings, Shield, Sun, UserRound, X } from "lucide-react";
 import { BrandMark } from "../../components/BrandMark";
 import { BRAND } from "../../brand";
 import { NAV_GROUPS, activeGroup } from "../lib/navigation";
 import { SearchDialog } from "./SearchDialog";
-import { ThemeToggle } from "../../components/ThemeToggle";
+import { useTheme } from "../../contexts/ThemeContext";
 import { SITE_NAME } from "../lib/seo";
 import { useMyReviews } from "../lib/reviews";
 import { Container } from "./ui";
 import { useAuth } from "../lib/auth";
 
 const REPO_URL = "https://github.com/Subramanya12244/northwind-sql-practice";
+
+/** Close a popover on outside click or Escape, returning focus to its trigger. */
+function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLElement>) {
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && close();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      close();
+      ref.current?.querySelector<HTMLElement>("button")?.focus();
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, close, ref]);
+}
+
+function NavDropdown({ group, active, open, onToggle, onClose }: {
+  group: (typeof NAV_GROUPS)[number]; active: boolean; open: boolean; onToggle: () => void; onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useDismiss(open, onClose, ref);
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={onToggle} aria-expanded={open} aria-haspopup="true"
+        className={`relative inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-fast ${active ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"}`}>
+        {group.short ?? group.label}
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-fast ${open ? "rotate-180" : ""}`} aria-hidden />
+        {active && <span className="absolute inset-x-2.5 -bottom-[9px] h-0.5 rounded-full bg-accent" aria-hidden />}
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-2 w-72 animate-fade-in rounded-card border border-surface-border bg-surface-raised p-1.5 shadow-soft" role="menu" aria-label={group.label}>
+          {group.items!.map((n) => (
+            <NavLink key={n.to} to={n.to} role="menuitem" end
+              className={({ isActive }) => `block rounded-lg px-3 py-2 transition-colors duration-fast ${isActive ? "bg-accent-dim" : "hover:bg-hover/5"}`}>
+              <span className="block text-sm font-medium text-ink">{n.label}</span>
+              {n.desc && <span className="block text-xs text-ink-faint">{n.desc}</span>}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Light/dark switch. The prerendered HTML can't know the visitor's theme, so both icons are
+ * rendered and CSS (`dark:`) picks one; markup is identical on server and client.
+ */
+function ThemeButton() {
+  const { resolved, setPreference } = useTheme();
+  return (
+    <button type="button" onClick={() => setPreference(resolved === "dark" ? "light" : "dark")} aria-label="Toggle light or dark theme" title="Toggle theme"
+      className="rounded-lg p-2 text-ink-muted transition-colors duration-fast hover:bg-hover/5 hover:text-ink">
+      <Sun className="hidden h-4 w-4 dark:block" aria-hidden />
+      <Moon className="h-4 w-4 dark:hidden" aria-hidden />
+    </button>
+  );
+}
+
+function AccountMenu({ unseen }: { unseen: number }) {
+  const { profile, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  useEffect(() => setOpen(false), [location.pathname]);
+  useDismiss(open, () => setOpen(false), ref);
+  const name = profile?.username ?? "Account";
+  const item = "flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink hover:bg-hover/5";
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="true" aria-label={`Account menu for ${name}`}
+        className="inline-flex items-center gap-2 rounded-full border border-surface-border py-1 pl-1 pr-2.5 text-sm font-medium text-ink hover:border-accent/40">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-accent to-secondary text-xs font-bold text-white" aria-hidden>{name.slice(0, 1).toUpperCase()}</span>
+        <span className="hidden max-w-[8rem] truncate sm:inline">{name}</span>
+        <ChevronDown className="h-3.5 w-3.5 text-ink-faint" aria-hidden />
+      </button>
+      {open && (
+        <div role="menu" aria-label="Account" className="absolute right-0 top-full z-50 mt-2 w-56 animate-fade-in rounded-card border border-surface-border bg-surface-raised p-1.5 shadow-soft">
+          <p className="truncate px-3 py-2 text-xs text-ink-faint">Signed in as <span className="font-semibold text-ink">{name}</span></p>
+          <Link role="menuitem" to="/account" className={item}><UserRound className="h-4 w-4 text-ink-faint" aria-hidden /> Account{unseen > 0 && <span className="ml-auto rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">{unseen}</span>}</Link>
+          <Link role="menuitem" to="/progress" className={item}>Progress</Link>
+          <Link role="menuitem" to="/portfolio" className={item}>Portfolio</Link>
+          {profile?.role === "admin" && <Link role="menuitem" to="/admin" className={item}><Shield className="h-4 w-4 text-ink-faint" aria-hidden /> Admin</Link>}
+          <Link role="menuitem" to="/settings" className={item}><Settings className="h-4 w-4 text-ink-faint" aria-hidden /> Settings</Link>
+          <div className="my-1 h-px bg-surface-border" />
+          <button role="menuitem" type="button" className={`${item} w-full`} onClick={() => void signOut().then(() => navigate("/"))}><LogOut className="h-4 w-4 text-ink-faint" aria-hidden /> Sign out</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function SiteLayout({ children, loading, error }: { children: ReactNode; loading: boolean; error: string | null }) {
   const [open, setOpen] = useState(false);
@@ -37,13 +133,6 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  const searchButton = (
-    <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search (Ctrl+K)"
-      className="inline-flex items-center gap-2 rounded-lg border border-surface-border px-2.5 py-1.5 text-sm text-ink-faint hover:text-ink">
-      <Search className="h-4 w-4" aria-hidden /> <span className="hidden 2xl:inline">Search</span>
-      <kbd className="hidden rounded border border-surface-border px-1 font-mono text-[10px] 2xl:inline">⌘K</kbd>
-    </button>
-  );
   const { enabled, session, profile } = useAuth();
   const { unseen } = useMyReviews(session?.user.id);
   const navigate = useNavigate();
@@ -52,111 +141,85 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
     if (profile?.must_change_password && location.pathname !== "/account") navigate("/account", { replace: true });
   }, [profile, location.pathname, navigate]);
 
-  const account = !enabled ? null : session ? (
-    <span className="flex items-center gap-1">
-      {profile?.role === "admin" && (
-        <NavLink to="/admin" className="rounded-lg p-2 text-ink-muted hover:bg-hover/5 hover:text-ink" aria-label="Admin" title="Admin">
-          <Shield className="h-4 w-4" />
-        </NavLink>
-      )}
-      <NavLink to="/account" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-hover/5 hover:text-ink">
-        <UserRound className="h-4 w-4" aria-hidden /> {profile?.username ?? "Account"}
-        {unseen > 0 && <span className="ml-0.5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-white" aria-label={`${unseen} new project review${unseen > 1 ? "s" : ""}`}>{unseen}</span>}
-      </NavLink>
-    </span>
-  ) : (
-    <Link to={["/", "/login", "/signup", "/reset-password"].includes(location.pathname) ? "/login" : `/login?next=${encodeURIComponent(location.pathname)}`}
-      className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white">Sign in</Link>
+  const searchButton = (
+    <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search (Ctrl+K)"
+      className="inline-flex min-h-[36px] items-center gap-2 rounded-lg border border-surface-border bg-surface-overlay/60 px-2.5 text-sm text-ink-faint transition-colors duration-fast hover:border-accent/40 hover:text-ink">
+      <Search className="h-4 w-4" aria-hidden /> <span className="hidden 2xl:inline">Search</span>
+      <kbd className="hidden rounded border border-surface-border px-1 font-mono text-[10px] 2xl:inline">⌘K</kbd>
+    </button>
   );
-
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-fast ${
-      isActive ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"
-    }`;
+  const bell = enabled && session ? (
+    <Link to="/account#acc-reviews" aria-label={unseen ? `${unseen} new project review${unseen > 1 ? "s" : ""}` : "Notifications: no new reviews"} title="Project reviews"
+      className="relative rounded-lg p-2 text-ink-muted transition-colors duration-fast hover:bg-hover/5 hover:text-ink">
+      <Bell className="h-4 w-4" aria-hidden />
+      {unseen > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white" aria-hidden>{unseen}</span>}
+    </Link>
+  ) : null;
+  const account = !enabled ? null : session ? <AccountMenu unseen={unseen} /> : (
+    <Link to={["/", "/login", "/signup", "/reset-password"].includes(location.pathname) ? "/login" : `/login?next=${encodeURIComponent(location.pathname)}`}
+      className="inline-flex min-h-[36px] items-center rounded-lg bg-accent px-3 text-sm font-semibold text-white hover:brightness-110">Sign in</Link>
+  );
 
   return (
     <div className="flex min-h-full flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-white">
         Skip to content
       </a>
-      <header className="sticky top-0 z-40 border-b border-surface-border bg-surface/85 backdrop-blur">
-        <Container wide className="flex h-14 items-center gap-3">
-          <Link to="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap font-display text-base font-bold text-ink">
-            <BrandMark size={28} />
+      <header className="sticky top-0 z-40 border-b border-surface-border bg-surface/80 backdrop-blur-md">
+        <Container wide className="flex h-16 items-center gap-3">
+          <Link to="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap font-display text-base font-bold tracking-tight text-ink">
+            <BrandMark tone="site" size={30} />
             {SITE_NAME}
           </Link>
-          <nav className="ml-2 hidden items-center gap-0.5 whitespace-nowrap xl:flex" aria-label="Main">
-            {NAV_GROUPS.map((g) =>
-              g.to ? (
-                <NavLink key={g.id} to={g.to} end={g.to === "/"} className={linkClass}>{g.label}</NavLink>
-              ) : (
-                <div key={g.id} className="relative" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpenGroup(null)}>
-                  <button type="button" onClick={() => setOpenGroup((v) => (v === g.id ? null : g.id))} aria-expanded={openGroup === g.id} aria-haspopup="true"
-                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium ${current === g.id ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"}`}>
-                    {g.short ?? g.label} <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+          <nav className="ml-3 hidden items-center gap-0.5 whitespace-nowrap lg:flex" aria-label="Main">
+            {NAV_GROUPS.map((g) => (
+              <NavDropdown key={g.id} group={g} active={current === g.id} open={openGroup === g.id}
+                onToggle={() => setOpenGroup((v) => (v === g.id ? null : g.id))} onClose={() => setOpenGroup(null)} />
+            ))}
+          </nav>
+          <div className="ml-auto hidden items-center gap-1.5 lg:flex">
+            {searchButton}
+            <ThemeButton />
+            {bell}
+            {account}
+          </div>
+          <div className="ml-auto flex items-center gap-1 lg:hidden">
+            <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search" className="rounded-lg p-2.5 text-ink-muted hover:bg-hover/5">
+              <Search className="h-5 w-5" />
+            </button>
+            {bell}
+            <button type="button" className="rounded-lg p-2.5 text-ink-muted hover:bg-hover/5" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls="mobile-nav" aria-label={open ? "Close menu" : "Open menu"}>
+              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+        </Container>
+        {open && (
+          <nav id="mobile-nav" className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-surface-border lg:hidden" aria-label="Mobile">
+            <Container className="flex flex-col gap-1 py-3">
+              {NAV_GROUPS.map((g) => (
+                <div key={g.id}>
+                  <button type="button" onClick={() => setMobileGroup((v) => (v === g.id ? null : g.id))} aria-expanded={mobileGroup === g.id}
+                    className={`flex min-h-[44px] w-full items-center justify-between rounded-lg px-3 text-sm font-medium hover:bg-hover/5 ${current === g.id ? "text-accent" : "text-ink"}`}>
+                    {g.label} <ChevronDown className={`h-4 w-4 transition-transform ${mobileGroup === g.id ? "rotate-180" : ""}`} aria-hidden />
                   </button>
-                  {openGroup === g.id && (
-                    <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-card border border-surface-border bg-surface-raised p-1 shadow-panel" role="menu" aria-label={g.label}>
-                      {g.items!.map((n) => (
-                        <Link key={n.to} to={n.to} role="menuitem" className="block rounded-lg px-3 py-2 hover:bg-hover/5">
-                          <span className="block text-sm text-ink">{n.label}</span>
-                          {n.desc && <span className="block text-xs text-ink-faint">{n.desc}</span>}
-                        </Link>
-                      ))}
+                  {mobileGroup === g.id && (
+                    <div className="ml-3 flex flex-col border-l border-surface-border pl-2">
+                      {g.items!.map((n) => <Link key={n.to} to={n.to} className="flex min-h-[40px] items-center rounded-lg px-3 text-sm text-ink-muted hover:text-ink">{n.label}</Link>)}
                     </div>
                   )}
                 </div>
-              ),
-            )}
-          </nav>
-          <div className="ml-auto hidden items-center gap-2 xl:flex">
-            {searchButton}
-            {account}
-            <NavLink to="/settings" aria-label="Settings" title="Settings" className="rounded-lg p-2 text-ink-muted hover:bg-hover/5 hover:text-ink"><Settings className="h-4 w-4" /></NavLink>
-          </div>
-          <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search" className="ml-auto rounded-lg p-2 text-ink-muted hover:bg-hover/5 xl:hidden">
-            <Search className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            className="rounded-lg p-2 text-ink-muted hover:bg-hover/5 xl:hidden"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-label={open ? "Close menu" : "Open menu"}
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </Container>
-        {open && (
-          <nav className="border-t border-surface-border xl:hidden" aria-label="Mobile">
-            <Container className="flex flex-col gap-1 py-3">
-              <div className="pb-1">{searchButton}</div>
-              {NAV_GROUPS.map((g) =>
-                g.to ? (
-                  <NavLink key={g.id} to={g.to} end={g.to === "/"} className={linkClass}>{g.label}</NavLink>
-                ) : (
-                  <div key={g.id}>
-                    <button type="button" onClick={() => setMobileGroup((v) => (v === g.id ? null : g.id))} aria-expanded={mobileGroup === g.id}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-ink-muted hover:bg-hover/5">
-                      {g.label} <ChevronDown className={`h-4 w-4 transition-transform ${mobileGroup === g.id ? "rotate-180" : ""}`} aria-hidden />
-                    </button>
-                    {mobileGroup === g.id && (
-                      <div className="ml-3 flex flex-col border-l border-surface-border pl-2">
-                        {g.items!.map((n) => <Link key={n.to} to={n.to} className="rounded-lg px-3 py-1.5 text-sm text-ink-muted hover:text-ink">{n.label}</Link>)}
-                      </div>
-                    )}
-                  </div>
-                ),
-              )}
-              <NavLink to="/settings" className={linkClass}>Settings</NavLink>
-              <div className="flex items-center gap-2 pt-2">
+              ))}
+              <div className="mt-2 flex items-center justify-between gap-2 border-t border-surface-border pt-3">
                 {account}
-                <ThemeToggle />
+                <span className="flex items-center gap-1">
+                  <NavLink to="/settings" aria-label="Settings" className="rounded-lg p-2.5 text-ink-muted hover:bg-hover/5"><Settings className="h-4 w-4" /></NavLink>
+                  <ThemeButton />
+                </span>
               </div>
             </Container>
           </nav>
         )}
-        <div className={`h-0.5 bg-accent transition-opacity duration-base ${loading ? "animate-pulse opacity-100" : "opacity-0"}`} aria-hidden />
+        <div className={`h-0.5 bg-gradient-to-r from-accent via-accent-muted to-secondary transition-opacity duration-base ${loading ? "animate-pulse opacity-100" : "opacity-0"}`} aria-hidden />
       </header>
 
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
@@ -171,45 +234,32 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
         {children}
       </main>
 
-      <footer className="mt-16 border-t border-surface-border py-10 text-sm text-ink-muted">
-        <Container className="grid gap-8 sm:grid-cols-3">
-          <div>
-            <p className="font-semibold text-ink">{SITE_NAME}</p>
-            <p className="mt-2 max-w-xs">
-              {BRAND.tagline} SQL, Python and data engineering practice with real PostgreSQL and Python in your browser — sign-up optional.
+      <footer className="mt-16 border-t border-surface-border bg-surface-raised/40 py-12 text-sm text-ink-muted">
+        <Container className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="lg:col-span-2">
+            <p className="flex items-center gap-2 font-display font-bold text-ink"><BrandMark tone="site" size={24} /> {SITE_NAME}</p>
+            <p className="mt-3 max-w-sm">
+              {BRAND.tagline} SQL, Python and data engineering practice with real PostgreSQL and Python in your browser. Sign-up is optional.
             </p>
-          </div>
-          <div>
-            <p className="font-semibold text-ink">Learn</p>
-            <ul className="mt-2 space-y-1.5">
-              <li><Link className="hover:text-ink" to="/learn">Learn SQL (free course)</Link></li>
-              <li><Link className="hover:text-ink" to="/notes">SQL theory notes</Link></li>
-              <li><Link className="hover:text-ink" to="/patterns">SQL patterns</Link></li>
-              <li><Link className="hover:text-ink" to="/mindmaps">SQL mind maps</Link></li>
-              <li><Link className="hover:text-ink" to="/shortcuts">SQL shortcuts</Link></li>
-              <li><Link className="hover:text-ink" to="/scenarios">Business SQL scenarios</Link></li>
-              <li><Link className="hover:text-ink" to="/data-generator">SQL data generator</Link></li>
-              <li><Link className="hover:text-ink" to="/query-visualizer">SQL query visualizer</Link></li>
-              <li><Link className="hover:text-ink" to="/solution-comparison">Compare SQL solutions</Link></li>
-              <li><Link className="hover:text-ink" to="/questions">All practice questions</Link></li>
-              <li><Link className="hover:text-ink" to="/interview">SQL interview sets by role</Link></li>
-              <li><Link className="hover:text-ink" to="/mock-interview">SQL mock interview</Link></li>
-              <li><Link className="hover:text-ink" to="/review">Review queue</Link></li>
-              <li><Link className="hover:text-ink" to="/challenge">Weekly SQL challenge</Link></li>
-              <li><Link className="hover:text-ink" to="/leaderboard">Leaderboard</Link></li>
-              <li><Link className="hover:text-ink" to="/concepts">SQL concept guides</Link></li>
-              <li><Link className="hover:text-ink" to="/cheatsheet">SQL cheat sheet</Link></li>
-              <li><Link className="hover:text-ink" to="/flashcards">Flashcards</Link></li>
-              <li><Link className="hover:text-ink" to="/playground">Online SQL playground</Link></li>
-              <li><Link className="hover:text-ink" to="/schema">Northwind schema</Link></li>
-            </ul>
-          </div>
-          <div>
-            <p className="font-semibold text-ink">Source</p>
-            <a className="mt-2 inline-flex items-center gap-1.5 hover:text-ink" href={REPO_URL} rel="noopener">
+            <a className="mt-4 inline-flex items-center gap-1.5 hover:text-ink" href={REPO_URL} rel="noopener">
               <Github className="h-4 w-4" aria-hidden /> Questions on GitHub
             </a>
           </div>
+          {[
+            { title: "Learn", links: [["/learn", "Learn SQL (free course)"], ["/notes", "SQL theory notes"], ["/data-engineering", "Data engineering tracks"], ["/patterns", "SQL patterns"], ["/mindmaps", "SQL mind maps"], ["/shortcuts", "SQL shortcuts"], ["/concepts", "SQL concept guides"], ["/cheatsheet", "SQL cheat sheet"], ["/flashcards", "Flashcards"]] },
+            { title: "Practice", links: [["/questions", "All practice questions"], ["/practice/python", "Python practice"], ["/scenarios", "Business SQL scenarios"], ["/interview", "SQL interview sets by role"], ["/mock-interview", "SQL mock interview"], ["/review", "Review queue"], ["/playground", "Online SQL playground"], ["/schema", "Northwind schema"]] },
+            { title: "Build & grow", links: [["/projects-lab", "Projects lab"], ["/data-quality", "Data quality lab"], ["/data-generator", "SQL data generator"], ["/query-visualizer", "SQL query visualizer"], ["/solution-comparison", "Compare SQL solutions"], ["/career/planner", "Study planner"], ["/portfolio", "Portfolio"], ["/challenge", "Weekly SQL challenge"], ["/leaderboard", "Leaderboard"]] },
+          ].map((col) => (
+            <div key={col.title}>
+              <p className="font-semibold text-ink">{col.title}</p>
+              <ul className="mt-3 space-y-1.5">
+                {col.links.map(([to, label]) => <li key={to}><Link className="hover:text-ink" to={to}>{label}</Link></li>)}
+              </ul>
+            </div>
+          ))}
+        </Container>
+        <Container className="mt-10 border-t border-surface-border pt-6 text-xs text-ink-faint">
+          © {SITE_NAME}. Free to use. Your practice runs in your browser.
         </Container>
       </footer>
     </div>

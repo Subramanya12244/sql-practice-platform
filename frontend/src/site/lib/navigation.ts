@@ -14,21 +14,24 @@ export interface NavGroup {
 }
 
 export const NAV_GROUPS: NavGroup[] = [
-  { id: "overview", label: "Overview", to: "/" },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    items: [
+      { to: "/learn", label: "Learning dashboard", desc: "Goals, streak, what to do next" },
+      { to: "/progress", label: "Progress", desc: "Solved questions and activity" },
+      { to: "/achievements", label: "Achievements & missions", desc: "XP, level, streak, daily missions" },
+      { to: "/review", label: "Revision queue", desc: "Spaced review of what you solved" },
+    ],
+  },
   {
     id: "learn",
     label: "Learn",
     items: [
-      { to: "/learn", label: "Learning dashboard", desc: "Goals, roadmap, recommendations" },
       { to: "/notes", label: "SQL notes", desc: "65 topics, beginner to expert" },
-      { to: "/data-engineering#python", label: "Python" },
-      { to: "/data-engineering#etl", label: "ETL / ELT" },
-      { to: "/data-engineering#warehousing", label: "Data warehousing" },
-      { to: "/data-engineering#spark", label: "Apache Spark" },
-      { to: "/data-engineering#airflow", label: "Apache Airflow" },
-      { to: "/data-engineering#dbt", label: "dbt" },
-      { to: "/data-engineering#cloud", label: "Cloud" },
+      { to: "/data-engineering", label: "Data engineering tracks", desc: "Python, ETL, warehousing, Spark, Airflow, dbt, cloud" },
       { to: "/patterns", label: "SQL patterns" },
+      { to: "/concepts", label: "Concept guides" },
       { to: "/mindmaps", label: "Mind maps" },
       { to: "/shortcuts", label: "Shortcuts & cheat sheets" },
       { to: "/flashcards", label: "Flashcards" },
@@ -40,53 +43,30 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/questions", label: "SQL practice", desc: "133 graded questions" },
       { to: "/practice/python", label: "Python practice", desc: "Runs in your browser" },
-      { to: "/interview", label: "Interview questions", desc: "Sets by role" },
       { to: "/scenarios", label: "Business scenarios" },
-      { to: "/challenge", label: "Weekly challenge" },
+      { to: "/interview", label: "Interview sets", desc: "Question sets by role" },
+      { to: "/mock-interview", label: "Mock interview", desc: "Timed, graded" },
       { to: "/playground", label: "SQL playground", desc: "Six practice databases" },
     ],
   },
   {
-    id: "de",
-    label: "Data Engineering",
-    short: "Data Eng.",
+    id: "projects",
+    label: "Projects",
     items: [
-      { to: "/data-engineering", label: "Learning tracks" },
-      { to: "/data-engineering#etl", label: "Pipelines (ETL / ELT)" },
-      { to: "/data-engineering#warehousing", label: "Data modelling" },
-      { to: "/data-engineering#airflow", label: "Orchestration" },
-      { to: "/data-engineering#spark", label: "Data processing" },
-      { to: "/data-engineering#cloud", label: "Cloud data services" },
-    ],
-  },
-  { id: "projects", label: "Projects", to: "/projects-lab" },
-  {
-    id: "dq",
-    label: "Data Quality",
-    items: [
+      { to: "/projects-lab", label: "Projects lab", desc: "12 guided data projects" },
       { to: "/data-quality", label: "Data quality lab", desc: "Rules, runs, reports" },
       { to: "/data-generator", label: "Dataset generator" },
+      { to: "/schema", label: "Northwind schema" },
     ],
   },
   {
     id: "ai",
-    label: "AI & Intelligence",
-    short: "AI Tools",
+    label: "Intelligence",
     items: [
-      { to: "/ai-tutor", label: "AI tutor" },
+      { to: "/ai-tutor", label: "AI tutor", desc: "Hints and explanations" },
       { to: "/query-visualizer", label: "Query visualizer" },
       { to: "/solution-comparison", label: "Solution comparison" },
-      { to: "/learn#practice-next", label: "Recommendations" },
-    ],
-  },
-  {
-    id: "assess",
-    label: "Assessments",
-    short: "Assess",
-    items: [
-      { to: "/mock-interview", label: "Mock interview" },
-      { to: "/readiness", label: "Interview readiness" },
-      { to: "/review", label: "Revision queue" },
+      { to: "/readiness", label: "Interview readiness", desc: "Evidence-based estimate" },
     ],
   },
   {
@@ -99,7 +79,14 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/portfolio", label: "Portfolio", desc: "Export your verified work" },
     ],
   },
-  { id: "progress", label: "Progress", to: "/progress" },
+  {
+    id: "community",
+    label: "Community",
+    items: [
+      { to: "/challenge", label: "Weekly challenge" },
+      { to: "/leaderboard", label: "Leaderboard" },
+    ],
+  },
 ];
 
 /** Which group the current path belongs to (for highlighting). */

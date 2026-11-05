@@ -92,7 +92,7 @@ function AuthShell({ title, intro, children }: { title: string; intro: string; c
       <div className="mx-auto grid max-w-4xl overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel md:grid-cols-2">
         <aside className="hidden flex-col justify-between bg-[radial-gradient(80%_80%_at_0%_0%,rgb(var(--color-accent)/0.18),transparent)] p-8 md:flex">
           <div>
-            <div className="flex items-center gap-2"><BrandMark size={32} /><span className="font-display text-xl font-bold text-ink">{BRAND.name}</span></div>
+            <div className="flex items-center gap-2"><BrandMark tone="site" size={32} /><span className="font-display text-xl font-bold text-ink">{BRAND.name}</span></div>
             <p className="mt-2 text-sm text-ink-muted">{BRAND.tagline}</p>
           </div>
           <ul className="mt-8 space-y-4">
@@ -103,7 +103,7 @@ function AuthShell({ title, intro, children }: { title: string; intro: string; c
           <p className="mt-8 text-xs text-ink-faint">No account needed to practise. Without one, progress stays in this browser.</p>
         </aside>
         <div className="p-6 sm:p-8">
-          <div className="mb-4 flex items-center gap-2 md:hidden"><BrandMark size={24} /><span className="font-display font-bold text-ink">{BRAND.name}</span></div>
+          <div className="mb-4 flex items-center gap-2 md:hidden"><BrandMark tone="site" size={24} /><span className="font-display font-bold text-ink">{BRAND.name}</span></div>
           <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
           <p className="mt-1 text-sm text-ink-muted">{intro}</p>
           <div className="mt-6">{children}</div>

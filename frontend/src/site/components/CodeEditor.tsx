@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "../../contexts/ThemeContext";
+import { FORGE_THEMES, defineForgeThemes } from "../lib/monacoTheme";
 
 /** Small Monaco editor (SQL or Python, no toolbar). Ctrl/⌘+Enter calls onRun. Loaded lazily. */
 export default function CodeEditor({ value, onChange, onRun, height = 220, label, language = "sql" }: {
@@ -21,7 +22,8 @@ export default function CodeEditor({ value, onChange, onRun, height = 220, label
         height={height}
         defaultLanguage={language}
         value={value}
-        theme={resolved === "dark" ? "vs-dark" : "vs"}
+        theme={resolved === "dark" ? FORGE_THEMES.dark : FORGE_THEMES.light}
+        beforeMount={defineForgeThemes}
         onChange={(v) => onChange(v ?? "")}
         onMount={(editor, monaco) => {
           editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => runRef.current?.());

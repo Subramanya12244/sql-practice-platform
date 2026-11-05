@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Flame, Trophy } from "lucide-react";
 import { usePage } from "../SiteApp";
-import { Container, PageHeader, QuestionCard } from "../components/ui";
+import { Container, PageHeader, QuestionCard, Tabs } from "../components/ui";
 import { Seo } from "../lib/seo";
 import { useAuth } from "../lib/auth";
 import { streak, useProgress } from "../lib/progress";
 import {
   challengeRanking, currentChallenge, fallbackChallenge, leaderboard, publicProfile, weekStart,
   type LeaderRow, type PublicProfile,
+  myXp, xpLeaderboard,
 } from "../lib/community";
 
 function NeedsAccounts() {
@@ -32,30 +33,52 @@ function Board({ rows, empty }: { rows: LeaderRow[] | null; empty: string }) {
 }
 
 export function LeaderboardPage() {
-  const { enabled, profile } = useAuth();
+  const { enabled, profile, session } = useAuth();
   const [period, setPeriod] = useState<"week" | "month" | "all">("week");
+  const [metric, setMetric] = useState<"xp" | "solved">("xp");
   const [rows, setRows] = useState<LeaderRow[] | null>(null);
+  const [xpRows, setXpRows] = useState<{ username: string; xp: number }[] | null>(null);
+  const [me, setMe] = useState<{ total: number; week: number; month: number; public: boolean; weekRank: number | null } | null>(null);
   useEffect(() => {
     if (!enabled) return;
     setRows(null);
-    leaderboard(period).then(setRows).catch(() => setRows([]));
-  }, [enabled, period]);
+    setXpRows(null);
+    if (metric === "solved") leaderboard(period).then(setRows).catch(() => setRows([]));
+    else xpLeaderboard(period).then(setXpRows).catch(() => setXpRows([]));
+  }, [enabled, period, metric]);
+  useEffect(() => {
+    if (enabled && session) myXp().then(setMe).catch(() => setMe(null));
+  }, [enabled, session]);
+  const myName = profile?.username;
+  const myIndex = xpRows?.findIndex((r) => r.username === myName) ?? -1;
 
   return (
     <Container>
       <Seo title="SQL Practice Leaderboard" description="Weekly, monthly and all-time leaderboard for SQL practice questions solved." path="/leaderboard" noindex />
-      <PageHeader eyebrow="Community" title="Leaderboard" intro="Questions solved. Only people with a public profile are listed." />
+      <PageHeader eyebrow="Community" title="Leaderboard" intro="XP and questions solved. Only people who turned on a public profile are listed, by username; emails are never shown." />
       {!enabled ? <NeedsAccounts /> : (
         <>
-          <div className="mb-4 flex gap-2 text-sm" role="tablist">
-            {(["week", "month", "all"] as const).map((p) => (
-              <button key={p} type="button" role="tab" aria-selected={period === p} onClick={() => setPeriod(p)}
-                className={`rounded-lg px-3 py-1.5 ${period === p ? "bg-accent text-white" : "border border-surface-border text-ink-muted"}`}>
-                {p === "all" ? "All time" : `This ${p}`}
-              </button>
-            ))}
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Tabs label="Ranking" value={metric} onChange={setMetric} tabs={[{ id: "xp", label: "XP" }, { id: "solved", label: "Questions solved" }]} />
+            <Tabs label="Period" value={period} onChange={setPeriod} tabs={[{ id: "week", label: "This week" }, { id: "month", label: "This month" }, { id: "all", label: "All time" }]} />
           </div>
-          <Board rows={rows} empty="No solves yet in this period." />
+          {me && (
+            <p className="mb-4 rounded-card border border-surface-border bg-surface-raised px-4 py-3 text-sm text-ink">
+              You: <strong>{(period === "week" ? me.week : period === "month" ? me.month : me.total).toLocaleString()} XP</strong>
+              {metric === "xp" && (me.public ? (myIndex >= 0 ? ` · #${myIndex + 1}` : " · outside the top 50") : " · not ranked (private profile)")}
+            </p>
+          )}
+          {metric === "solved" ? <Board rows={rows} empty="No solves yet in this period." /> : xpRows === null ? <p className="text-sm text-ink-muted">Loading…</p> : !xpRows.length ? <p className="text-sm text-ink-muted">No XP earned yet in this period.</p> : (
+            <ol className="divide-y divide-surface-border overflow-hidden rounded-card border border-surface-border">
+              {xpRows.map((r, i) => (
+                <li key={r.username} className={`flex items-center gap-3 px-4 py-2.5 text-sm ${r.username === myName ? "bg-accent-dim" : "bg-surface-raised"}`}>
+                  <span className={`w-6 text-right font-mono ${i < 3 ? "font-bold text-accent" : "text-ink-faint"}`}>{i + 1}</span>
+                  <Link to={`/profile?u=${encodeURIComponent(r.username)}`} className="font-medium text-ink hover:underline">{r.username}</Link>
+                  <span className="ml-auto font-semibold tabular-nums text-ink">{Number(r.xp).toLocaleString()} XP</span>
+                </li>
+              ))}
+            </ol>
+          )}
           {profile && <p className="mt-4 text-sm text-ink-muted">Not listed? Turn on your public profile on the <Link to="/account" className="text-accent underline">account page</Link>.</p>}
         </>
       )}
