@@ -21,5 +21,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: "./src/test/setup.ts",
+    // Node 25+ has its own localStorage global that hides jsdom's; turn it off (Node 22+ accepts the flag).
+    poolOptions: { forks: { execArgv: ["--no-experimental-webstorage"] }, threads: { execArgv: ["--no-experimental-webstorage"] } },
   },
 });

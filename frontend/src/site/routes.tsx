@@ -82,7 +82,7 @@ const careerData = async (): Promise<PageData> => {
 };
 
 export const routes: SiteRoute[] = [
-  { path: "/", element: <HomePage />, load: base, paths: one("/") },
+  { path: "/", element: <HomePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex(), projects: await loadProjectIndex() }), paths: one("/") },
   { path: "/questions", element: <QuestionsPage />, load: base, paths: one("/questions") },
   {
     path: "/questions/:slug",

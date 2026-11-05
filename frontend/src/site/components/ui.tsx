@@ -1,3 +1,4 @@
+import { InlineMarkdown } from "./Markdown";
 import type { ButtonHTMLAttributes, ComponentType, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -59,7 +60,7 @@ export function QuestionCard({ q, solved }: { q: QuestionSummary; solved?: boole
         </span>
       </div>
       <h3 className="font-semibold text-ink group-hover:text-accent">{q.title}</h3>
-      {q.problemShort && <p className="line-clamp-2 text-sm text-ink-muted">{q.problemShort}</p>}
+      {q.problemShort && <p className="line-clamp-2 text-sm text-ink-muted"><InlineMarkdown source={q.problemShort} /></p>}
     </Link>
   );
 }

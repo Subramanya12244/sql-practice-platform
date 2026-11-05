@@ -289,3 +289,6 @@ html.dark .prose-site .tok-n { color: #fcd34d; }
   border-radius: 8px;
   overflow: hidden;
 }
+
+/* Long inline code (method chains, paths) wraps instead of widening the page on phones. */
+.prose-site :not(pre) > code { overflow-wrap: anywhere; }

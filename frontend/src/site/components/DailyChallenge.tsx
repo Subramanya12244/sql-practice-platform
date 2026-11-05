@@ -24,8 +24,8 @@ export function DailyChallenge() {
     c.python && { icon: Code2, kind: "Python", title: `${c.python.code} ${c.python.title}`, path: `/practice/python/${c.python.slug}`, level: c.python.difficulty, done: pyDone, ever: Boolean(pyAt) },
   ].filter((r) => !!r);
   return (
-    <Card as="section" pad="md" aria-labelledby="daily">
-      <div className="flex items-baseline justify-between gap-2">
+    <Card as="section" pad="md" className="min-w-0" aria-labelledby="daily">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
         <h2 id="daily" className="flex items-center gap-2 font-display text-lg font-bold text-ink"><CalendarCheck className="h-5 w-5 text-accent" aria-hidden /> Today's challenges</h2>
         <span className="text-xs text-ink-faint">{day} · {c.level} day · new at 00:00 UTC</span>
       </div>
@@ -34,7 +34,7 @@ export function DailyChallenge() {
           <li key={r.kind}>
             <Link to={r.path} className="flex items-center gap-3 rounded-lg border border-surface-border px-3 py-2 hover:border-accent/40">
               <r.icon className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
-              <span className="w-12 shrink-0 text-xs font-semibold uppercase tracking-wider text-ink-faint">{r.kind}</span>
+              <span className="hidden w-12 shrink-0 text-xs font-semibold uppercase tracking-wider text-ink-faint sm:inline">{r.kind}</span>
               <span className="min-w-0 flex-1 truncate text-sm text-ink">{r.title}</span>
               <Difficulty level={r.level} />
               {r.done ? <span className="inline-flex items-center gap-1 text-xs text-success"><CheckCircle2 className="h-4 w-4" aria-hidden /> done today</span>
