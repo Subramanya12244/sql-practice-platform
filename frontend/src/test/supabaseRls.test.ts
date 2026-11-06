@@ -16,6 +16,7 @@ import m007 from "../../../supabase/migrations/007_activity_tracking.sql?raw";
 import m008 from "../../../supabase/migrations/008_admin_analytics.sql?raw";
 import m009 from "../../../supabase/migrations/009_study_notes.sql?raw";
 import m010 from "../../../supabase/migrations/010_content_management.sql?raw";
+import m011 from "../../../supabase/migrations/011_assessments.sql?raw";
 
 /** Minimal stand-in for Supabase Storage (bucket + object tables and storage.foldername). */
 const STORAGE_STUB = `
@@ -51,13 +52,14 @@ const fails = (p: Promise<unknown>) => expect(p).rejects.toThrow();
 
 beforeAll(async () => {
   pg = new PGlite({ extensions: { citext, pgcrypto } });
-  for (const m of [stub, m001, m002, m003, m004, m005, m006, m007, m008, STORAGE_STUB, m009, m010]) await pg.exec(m);
+  for (const m of [stub, m001, m002, m003, m004, m005, m006, m007, m008, STORAGE_STUB, m009, m010, m011]) await pg.exec(m);
   // Re-applying must be safe (no data loss, no errors).
   await pg.exec(m003);
   await pg.exec(m004);
   await pg.exec(m008); // re-runnable, and restores the full audit action list
   await pg.exec(m009);
   await pg.exec(m010);
+  await pg.exec(m011);
   await pg.exec(`
     grant usage on schema public to anon, authenticated;
     grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -420,5 +422,52 @@ describe("content management (010)", () => {
     await as(ADMIN, "update custom_questions set published = true where slug = 'top-shippers'");
     expect(await as(null, "select slug, version from custom_questions")).toEqual([{ slug: "top-shippers", version: 2 }]);
     await fails(as(ADMIN, "insert into custom_questions (slug, title, difficulty, topic, problem, objective, reference_query) values ('Bad Slug!', 'x', 'Easy', 'x', 'x', 'x', 'x')"));
+  });
+});
+
+describe("assessments (011)", () => {
+  type Started = { id: string; deadline: string; items: { id: string; kind: string; problem: string; cases?: string[]; answer?: unknown; reference?: unknown }[] };
+  const start = async (who: string, kind = "sql", n = 3) => (await as<{ r: Started }>(who, `select start_assessment('${kind}', null, null, ${n}, 30) as r`))[0].r;
+  it("never exposes answers or references before submission", async () => {
+    // RLS with no policies: the table reads as empty for every role (answers stay in the database).
+    for (const who of [A, ADMIN, null]) expect(await as(who, "select answer from assessment_items")).toEqual([]);
+    const cat = await as<{ id: string }>(null, "select * from assessment_catalog()");
+    expect(cat.length).toBe(36);
+    await fails(as(null, "select start_assessment('sql', null, null, 3, 30)"));
+    const s = await start(A);
+    expect(s.items).toHaveLength(3);
+    for (const it of s.items) { expect(it.answer).toBeUndefined(); expect(it.reference).toBeUndefined(); expect(it.problem).toBeTruthy(); }
+    expect(JSON.stringify(s)).not.toMatch(/"sql":\s*"[0-9a-f]{64}"|SELECT /);
+    expect(await as(A, `select save_assessment_answer('${s.id}', '${s.items[0].id}', '{"sql":"nope"}') as r`)).toEqual([{ r: "saved" }]);
+  });
+  it("scores against the stored fingerprints only at submit, then returns references", async () => {
+    const s = await start(A, "python", 2);
+    const [first, second] = s.items;
+    const right = (await pg.query<{ a: unknown }>(`select answer as a from assessment_items where id = '${first.id}'`)).rows[0].a as { cases: string[] };
+    await as(A, `select save_assessment_answer('${s.id}', '${first.id}', '${JSON.stringify({ cases: right.cases })}')`);
+    const right2 = (await pg.query<{ a: unknown }>(`select answer as a from assessment_items where id = '${second.id}'`)).rows[0].a as { cases: string[] };
+    const wrong = right2.cases.map((h, i) => (i === 0 ? "0".repeat(64) : h));
+    await as(A, `select save_assessment_answer('${s.id}', '${second.id}', '${JSON.stringify({ cases: wrong })}')`);
+    const [{ r }] = await as<{ r: { score: number; total: number; items: { id: string; passed: boolean; cases_passed: number; reference: string }[] } }>(A, `select submit_assessment('${s.id}') as r`);
+    expect([r.score, r.total]).toEqual([1, 2]);
+    expect(r.items.find((x) => x.id === first.id)).toMatchObject({ passed: true });
+    expect(r.items.find((x) => x.id === second.id)).toMatchObject({ passed: false, cases_passed: right2.cases.length - 1 });
+    expect(r.items[0].reference).toMatch(/def /);
+    await fails(as(A, `select save_assessment_answer('${s.id}', '${first.id}', '{}')`));
+    expect((await as<{ r: { score: number } }>(A, `select submit_assessment('${s.id}') as r`))[0].r.score).toBe(1);
+  });
+  it("enforces ownership and the server-side deadline; learners can't write attempts directly", async () => {
+    const s = await start(A);
+    await fails(as(B, `select save_assessment_answer('${s.id}', '${s.items[0].id}', '{}')`));
+    await fails(as(B, `select submit_assessment('${s.id}')`));
+    expect(await as(B, "select * from assessment_attempts")).toEqual([]);
+    expect((await as(ADMIN, `select id from assessment_attempts where id = '${s.id}'`)).length).toBe(1);
+    await fails(as(A, `update assessment_attempts set score = 99 where id = '${s.id}'`).then((r) => { if (!r.length) throw new Error("no rows"); }));
+    await fails(as(A, "insert into assessment_attempts (user_id, config, items, deadline, total) values (auth.uid(), '{}', '{}', now(), 0)"));
+    await pg.query(`update assessment_attempts set deadline = now() - interval '5 minutes' where id = '${s.id}'`);
+    await fails(as(A, `select save_assessment_answer('${s.id}', '${s.items[0].id}', '{}')`));
+    expect((await as<{ r: { score: number } }>(A, `select submit_assessment('${s.id}') as r`))[0].r.score).toBe(0);
+    await fails(as(A, "select start_assessment('sql', null, null, 50, 30)"));
+    await fails(as(A, "select start_assessment('sql', 'Impossible', null, 3, 30)"));
   });
 });

@@ -14,7 +14,7 @@ export interface ComparisonResult {
 const MISMATCH = "Your query runs successfully, but the result does not match the expected result.";
 const CORRECT = "Correct! Your query produces the expected result.";
 
-function normalizeValue(value: unknown): unknown {
+export function normalizeValue(value: unknown): unknown {
   if (value === null || value === undefined) return null;
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return Number.isInteger(value) ? value : Math.round(value * 1e6) / 1e6;
