@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { track } from "./activity";
+import { RULES, nextRevision } from "./revision";
 
 /** Per-visitor progress, kept in localStorage. Every access is guarded: storage may be unavailable. */
 
@@ -59,6 +60,10 @@ export interface Progress {
   reviews?: Record<string, string[]>;
   /** One-off data migrations already applied to this record. */
   migrations?: string[];
+  /** Revision schedule per problem ("sql:25", "py:<slug>"), see lib/revision.ts. */
+  revision?: Record<string, import("./revision").RevItem>;
+  /** Concepts or topics the learner marked for revision. */
+  revisionMarks?: string[];
 }
 
 /** Receives every change so a signed-in account can mirror it; null when anonymous. */
@@ -149,6 +154,9 @@ export function recordAttempt(num: number, sql: string, correct: boolean, errorK
     ...p,
     questions: { ...p.questions, [num]: q },
     ...(correct ? bump(p) : { activeDays: p.activeDays }),
+    // A wrong submit schedules a revision tomorrow; the first solve is scheduled by speed.
+    // Later correct submits outside the review queue don't move an existing schedule.
+    ...(!correct || firstSolve ? { revision: { ...p.revision, [`sql:${num}`]: nextRevision(p.revision?.[`sql:${num}`], { correct, slow: firstSolve && (q.solveSec ?? 0) > RULES.slowMinutes * 60 }) } } : {}),
   });
   sink?.question(num, q, correct && !prev.solvedAt);
   // Every submit, not only correct ones: the account keeps the latest query text (qmeta.lastSql).
@@ -210,7 +218,8 @@ export function reviewQuestion(num: number, correct: boolean) {
   const box = correct ? Math.min(5, (prev.reviewBox ?? 1) + 1) : 1;
   const due = new Date(Date.now() + BOX_DAYS[box] * 86_400_000).toISOString().slice(0, 10);
   const q = { ...prev, reviewBox: box, reviewDue: due };
-  write({ ...p, questions: { ...p.questions, [num]: q }, activeDays: addDay(p.activeDays, today()) });
+  const revision = { ...p.revision, [`sql:${num}`]: nextRevision(p.revision?.[`sql:${num}`], { correct }) };
+  write({ ...p, questions: { ...p.questions, [num]: q }, activeDays: addDay(p.activeDays, today()), revision });
   sink?.question(num, q, false);
 }
 
@@ -356,4 +365,22 @@ function subscribe(cb: () => void) {
 /** Server render and first client render both see EMPTY, so hydration matches; real data follows. */
 export function useProgress(): Progress {
   return useSyncExternalStore(subscribe, read, () => EMPTY);
+}
+
+/** Python check outcome → revision schedule (correct after many failed checks counts as slow). */
+export function schedulePython(slug: string, ok: boolean, failedBefore: number) {
+  const p = read();
+  const key = `py:${slug}`;
+  write({ ...p, revision: { ...p.revision, [key]: nextRevision(p.revision?.[key], { correct: ok, slow: ok && failedBefore >= RULES.slowFailedChecks }) } });
+  sink?.state(current);
+}
+
+/** Mark or unmark a concept/topic for revision (its problems join today's queue). */
+export function toggleRevisionMark(concept: string) {
+  const p = read();
+  const c = concept.trim();
+  if (!c) return;
+  const has = (p.revisionMarks ?? []).some((m) => m.toLowerCase() === c.toLowerCase());
+  write({ ...p, revisionMarks: has ? (p.revisionMarks ?? []).filter((m) => m.toLowerCase() !== c.toLowerCase()) : [...(p.revisionMarks ?? []), c].slice(0, 50) });
+  sink?.state(current);
 }

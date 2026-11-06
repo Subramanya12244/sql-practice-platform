@@ -141,7 +141,7 @@ export const routes: SiteRoute[] = [
     paths: one("/cheatsheet"),
   },
   { path: "/progress", element: <ProgressPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/progress") },
-  { path: "/review", element: <ReviewPage />, load: base, paths: one("/review") },
+  { path: "/review", element: <ReviewPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/review") },
   { path: "/challenge", element: <ChallengePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/challenge") },
   { path: "/leaderboard", element: <LeaderboardPage />, load: base, paths: one("/leaderboard") },
   { path: "/profile", element: <ProfilePage />, load: async () => ({ ...(await base()), projects: await loadProjectIndex() }), paths: one("/profile") },

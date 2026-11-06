@@ -64,13 +64,15 @@ export function dueQuestions(index: QuestionSummary[], p: Progress, today: strin
   return index
     .filter((q) => {
       const s = p.questions[q.number];
+      const r = p.revision?.[`sql:${q.number}`];
+      if (r) return r.due <= today;
       if (!s?.solvedAt) return false;
       const due = s.reviewDue ?? addDays(s.solvedAt.slice(0, 10), 3);
       return due <= today;
     })
     .sort((a, b) => {
-      const da = p.questions[a.number].reviewDue ?? "";
-      const db = p.questions[b.number].reviewDue ?? "";
+      const da = p.revision?.[`sql:${a.number}`]?.due ?? p.questions[a.number]?.reviewDue ?? "";
+      const db = p.revision?.[`sql:${b.number}`]?.due ?? p.questions[b.number]?.reviewDue ?? "";
       return da.localeCompare(db) || a.number - b.number;
     });
 }

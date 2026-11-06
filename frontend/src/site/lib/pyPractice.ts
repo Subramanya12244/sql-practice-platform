@@ -7,6 +7,7 @@
  * `python_submitted` learning event, so the server keeps the full attempt history.
  */
 import type { PyExerciseMeta } from "./pyExercises";
+import { schedulePython } from "./progress";
 
 export const PY_CATEGORIES = [
   { slug: "fundamentals", label: "Python Fundamentals for Data Engineering", short: "Fundamentals" },
@@ -36,6 +37,8 @@ export function readStats(): Record<string, PyStat> {
 export function recordPyAttempt(slug: string, ok: boolean, at = new Date().toISOString()) {
   const all = readStats();
   const s = all[slug] ?? { attempts: 0, passes: 0, lastAt: at, lastOk: false };
+  // Revision schedule: failed checks since the last pass decide whether a pass was "slow".
+  schedulePython(slug, ok, s.lastOk ? 0 : s.attempts - s.passes);
   all[slug] = { attempts: s.attempts + 1, passes: s.passes + (ok ? 1 : 0), firstSolvedAt: s.firstSolvedAt ?? (ok ? at : undefined), lastAt: at, lastOk: ok };
   try { localStorage.setItem(STATS, JSON.stringify(all)); } catch { /* storage full or blocked */ }
   BUS.forEach((f) => f());
