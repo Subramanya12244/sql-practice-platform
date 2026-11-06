@@ -13,8 +13,8 @@ html.light {
   --color-surface-overlay: 239 243 248;
   --color-surface-soft: 226 232 240;
   --color-border: rgba(15, 23, 42, 0.1);
-  --color-accent: 15 118 110;
-  --color-accent-muted: 14 116 144;
+  --color-accent: 12 104 97;
+  --color-accent-muted: 17 99 124;
   --color-secondary: 109 40 217;
   --color-on-accent: 255 255 255;
   --color-success: 4 120 87;
@@ -22,7 +22,7 @@ html.light {
   --color-danger: 185 28 28;
   --color-ink: 15 23 42;
   --color-ink-muted: 51 65 85;
-  --color-ink-faint: 100 116 139;
+  --color-ink-faint: 84 98 118;
   --color-hover: 15 23 42;
   --bg: #f6f8fb;
   --bg-glow-1: rgba(20, 184, 166, 0.07);
@@ -55,7 +55,7 @@ html.dark {
   --color-danger: 248 113 113;
   --color-ink: 226 232 240;
   --color-ink-muted: 148 163 184;
-  --color-ink-faint: 100 116 139;
+  --color-ink-faint: 134 149 172;
   --color-hover: 226 232 240;
   --bg: #070b14;
   --bg-glow-1: rgba(45, 212, 191, 0.07);

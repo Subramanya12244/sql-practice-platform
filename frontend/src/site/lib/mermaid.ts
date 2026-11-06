@@ -30,7 +30,13 @@ export async function renderMermaidIn(root: HTMLElement) {
       fig.setAttribute("role", "img");
       fig.setAttribute("aria-label", "Diagram");
       el.prepend(fig);
-      el.querySelector("pre")?.classList.add("sr-only");
+      // Keep the diagram source for screen readers, as plain text (a hidden <pre> is a scroll region).
+      const desc = document.createElement("div");
+      desc.className = "sr-only";
+      desc.id = `mmd-src-${seq}`;
+      desc.textContent = src;
+      el.querySelector("pre")?.replaceWith(desc);
+      fig.setAttribute("aria-describedby", desc.id);
     } catch {
       el.dataset.error = "1"; // leave the text source as the fallback
     }

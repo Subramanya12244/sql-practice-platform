@@ -159,7 +159,7 @@ export function StudyNotesPage() {
               <span className="text-ink-muted">{picked.length} selected (max {MAX_ITEMS})</span>
             </div>
             {mounted && !rows.length ? (
-              <div className="mt-3"><EmptyState icon={BookOpen} title={status === "completed" ? "No completed problems here yet" : "Nothing matches"}>{status === "completed" ? <>Solve some {kind === "sql" ? <Link to="/questions" className="text-accent hover:underline">SQL questions</Link> : <Link to="/practice/python" className="text-accent hover:underline">Python problems</Link>} first, or switch Status to All problems.</> : "Change the filters."}</EmptyState></div>
+              <div className="mt-3"><EmptyState icon={BookOpen} title={status === "completed" ? "No completed problems here yet" : "Nothing matches"}>{status === "completed" ? <>Solve some {kind === "sql" ? <Link to="/questions" className="text-accent underline">SQL questions</Link> : <Link to="/practice/python" className="text-accent underline">Python problems</Link>} first, or switch Status to All problems.</> : "Change the filters."}</EmptyState></div>
             ) : (
               <ul className="mt-3 max-h-[420px] divide-y divide-surface-border overflow-y-auto rounded-lg border border-surface-border">
                 {rows.map((r) => (

@@ -42,7 +42,7 @@ marked.use({
       const actions = `<div class="code-actions"><button type="button" data-copy>Copy</button>${
         lang === "sql" ? `<button type="button" data-run>Run in playground</button>` : ""
       }</div>`;
-      return `<div class="code-block">${actions}<pre><code class="language-${esc(lang || "text")}">${body}</code></pre></div>`;
+      return `<div class="code-block">${actions}<pre tabindex="0"><code class="language-${esc(lang || "text")}">${body}</code></pre></div>`;
     },
     heading({ tokens, depth, text }: Tokens.Heading) {
       const inner = this.parser.parseInline(tokens);
@@ -59,7 +59,7 @@ export function InlineMarkdown({ source }: { source: string }) {
 
 /** Renders trusted Markdown from this repo's own content files, with copy/run buttons on code. */
 export function Markdown({ source, className = "" }: { source: string; className?: string }) {
-  const html = useMemo(() => marked.parse(source, { async: false }) as string, [source]);
+  const html = useMemo(() => (marked.parse(source, { async: false }) as string).replace(/<table>/g, "<table tabindex=\"0\">"), [source]);
   const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {

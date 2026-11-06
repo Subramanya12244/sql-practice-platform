@@ -4,7 +4,7 @@ const cell = (v: unknown) => (v === null || v === undefined ? "NULL" : typeof v 
 export function SampleTable({ columns, rows, caption, max = 20 }: { columns: string[]; rows: unknown[][]; caption?: string; max?: number }) {
   if (!columns.length) return null;
   return (
-    <div className="overflow-x-auto rounded-lg border border-surface-border">
+    <div tabIndex={0} className="overflow-x-auto rounded-lg border border-surface-border">
       <table className="min-w-full text-xs">
         {caption && <caption className="px-2 py-1 text-left text-ink-faint">{caption}</caption>}
         <thead className="bg-surface-soft">

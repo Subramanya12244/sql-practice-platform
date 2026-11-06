@@ -241,11 +241,11 @@ export default function PracticePanel({
       </div>
       <div className={`relative flex min-h-0 ${full ? "flex-1" : fill ? "h-[680px] lg:h-[80vh] lg:min-h-[560px]" : "h-[620px]"}`}>
         <div className="flex min-w-0 flex-1 flex-col">
-          <div role="tablist" aria-label="Query tabs" className="scroll-fade-x flex shrink-0 items-center gap-1 overflow-x-auto border-b border-surface-border bg-surface-overlay px-2 py-1">
-            <button type="button" role="tab" aria-selected={activeQ === "main"} onClick={() => setActiveQ("main")} className={tabBtn(activeQ === "main")}>Query 1</button>
+          <div role="group" aria-label="Query tabs" className="scroll-fade-x flex shrink-0 items-center gap-1 overflow-x-auto border-b border-surface-border bg-surface-overlay px-2 py-1">
+            <button type="button" aria-pressed={activeQ === "main"} onClick={() => setActiveQ("main")} className={tabBtn(activeQ === "main")}>Query 1</button>
             {qtabs.map((t) => (
               <span key={t.id} className={tabBtn(activeQ === t.id)}>
-                <button type="button" role="tab" aria-selected={activeQ === t.id} onClick={() => setActiveQ(t.id)}>{t.name}</button>
+                <button type="button" aria-pressed={activeQ === t.id} onClick={() => setActiveQ(t.id)}>{t.name}</button>
                 <button type="button" aria-label={`Close ${t.name}`} className="rounded text-ink-faint hover:text-danger" onClick={() => { saveTabs(qtabs.filter((x) => x.id !== t.id)); if (activeQ === t.id) setActiveQ("main"); }}><X className="h-3 w-3" /></button>
               </span>
             ))}

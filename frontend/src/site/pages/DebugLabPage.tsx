@@ -147,12 +147,12 @@ function ScenarioView({ s, solved, onBack }: { s: Scenario; solved: boolean; onB
               <Button onClick={() => void validate()} disabled={!!busy}>{busy === "check" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FlaskConical className="h-4 w-4" aria-hidden />} 4. Run validation</Button>
             </div>
           </Card>
-          {ranOutput !== null && <Card pad="sm" as="section" aria-label="Output"><p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Output</p><pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-xs text-ink">{ranOutput}</pre></Card>}
+          {ranOutput !== null && <Card pad="sm" as="section" aria-label="Output"><p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Output</p><pre tabIndex={0} className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-xs text-ink">{ranOutput}</pre></Card>}
           {result && (
             <Card pad="md" as="section" aria-label="Validation result">
               <p className={`flex items-center gap-2 font-semibold ${result.ok ? "text-success" : "text-danger"}`}>{result.ok ? <CheckCircle2 className="h-5 w-5" aria-hidden /> : <XCircle className="h-5 w-5" aria-hidden />} {result.ok ? "Pipeline fixed: every validation check passes." : result.message}</p>
               {v && <p className="mt-1 text-xs text-ink-muted">{v.passed} of {v.total} validation checks passed.</p>}
-              {v?.failures.slice(0, 2).map((f, i) => <pre key={i} className="mt-2 overflow-x-auto rounded bg-surface-overlay p-2 font-mono text-xs"><span className="text-ink">{f.test}</span>{"\n"}<span className="text-danger">{f.error}</span></pre>)}
+              {v?.failures.slice(0, 2).map((f, i) => <pre key={i} tabIndex={0} className="mt-2 overflow-x-auto rounded bg-surface-overlay p-2 font-mono text-xs"><span className="text-ink">{f.test}</span>{"\n"}<span className="text-danger">{f.error}</span></pre>)}
               {result.ok && <p className="mt-2 text-sm text-ink">{s.explanation}</p>}
             </Card>
           )}

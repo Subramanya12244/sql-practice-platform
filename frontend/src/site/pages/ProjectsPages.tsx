@@ -189,7 +189,7 @@ function TaskPanel({ task, project, progress, onChange, mounted }: {
           </div>
           {result && <p role="status" className={`text-sm ${result.ok ? "text-success" : "text-danger"}`}>{result.ok ? "✅ " : "❌ "}{result.message}</p>}
           {preview && (preview.success ? <SampleTable caption={`Result of the last statement (${preview.row_count ?? preview.rows.length} rows; rolled back)`} columns={preview.columns} rows={preview.rows} /> : <p className="text-sm text-danger">{preview.message}</p>)}
-          {output && <pre className="max-h-48 overflow-auto rounded bg-surface-soft p-2 font-mono text-xs text-ink">{output}</pre>}
+          {output && <pre tabIndex={0} className="max-h-48 overflow-auto rounded bg-surface-soft p-2 font-mono text-xs text-ink">{output}</pre>}
         </div>
       )}
     </section>
@@ -258,7 +258,7 @@ export function ProjectPage() {
         {project.technologies.join(" · ")} · about {Math.round(project.minutes / 60 * 10) / 10} h · dataset <Link to={`/playground?db=${project.dataset}`} className="text-accent hover:underline">{project.dataset}</Link>
         {prereqs.length > 0 && <> · before you start: {prereqs.map((n, i) => <span key={n.slug}><Link to={`/notes/${n.slug}`} className="text-accent hover:underline">{n.title}</Link>{i < prereqs.length - 1 ? ", " : ""}</span>)}</>}
       </p>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-soft" aria-label={`${passed} of ${automated.length} automated checks passed`}>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-soft" role="img" aria-label={`${passed} of ${automated.length} automated checks passed`}>
         <div className="h-full bg-success" style={{ width: `${automated.length ? (100 * passed) / automated.length : 0}%` }} />
       </div>
       <p className="mt-1 text-xs text-ink-faint">{passed}/{automated.length} automated checks passed · progress is saved in this browser</p>

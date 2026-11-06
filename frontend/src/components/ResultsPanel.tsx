@@ -178,7 +178,7 @@ function ResultBody({
       {result?.success && (
         <>
           <p className="mb-2 text-xs text-accent">{result.message}</p>
-          <div className="overflow-auto rounded-md border border-surface-border">
+          <div tabIndex={0} className="overflow-auto rounded-md border border-surface-border">
             <table className="min-w-full border-collapse text-left text-sm">
               <thead className="sticky top-0 bg-surface-overlay">
                 <tr>
