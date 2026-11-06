@@ -71,3 +71,22 @@ describe("query diagrams from the AST", () => {
     expect(await buildGraphs("select 1; select 2")).toMatchObject({ ok: false, reason: "Diagrams work on one statement at a time." });
   });
 });
+
+describe("diagram stage → SQL clause ranges", () => {
+  it("points every main stage at its own clause text", async () => {
+    const { buildGraphs } = await import("../site/lib/queryGraph");
+    const sql = "WITH big AS (SELECT customer_id FROM orders WHERE freight > 50)\nSELECT c.country, COUNT(*) AS n FROM customers c JOIN big b ON b.customer_id = c.customer_id WHERE c.city IS NOT NULL GROUP BY c.country HAVING COUNT(*) > 1 ORDER BY n DESC LIMIT 5";
+    const g = await buildGraphs(sql);
+    if (!g.ok) throw new Error(g.reason);
+    const at = (title: string) => { const n = g.flow.nodes.find((x) => x.title === title)!; return n.range ? sql.slice(n.range[0], n.range[1]) : null; };
+    expect(at("CTE big")).toBe("SELECT customer_id FROM orders WHERE freight > 50");
+    expect(at("WHERE")).toBe("c.city IS NOT NULL");
+    expect(at("GROUP BY")).toBe("c.country");
+    expect(at("HAVING")).toBe("COUNT(*) > 1");
+    expect(at("ORDER BY")).toBe("n");
+    expect(at("LIMIT / OFFSET")).toBe("5");
+    expect(at("SELECT")).toBe("c.country, COUNT(*) AS n");
+    expect(at("INNER JOIN")).toContain("b.customer_id = c.customer_id");
+    expect(at("Result")).toBeNull();
+  });
+});

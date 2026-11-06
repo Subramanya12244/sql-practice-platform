@@ -102,6 +102,7 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
   onClause?: (range: [number, number] | null) => void;
 }) {
   const [busy, setBusy] = useState(true);
+  const [picked, setPicked] = useState<[number, number] | null>(null);
   const [v, setV] = useState<Visualization | null>(null);
   const [st, setSt] = useState<Structure | null>(null);
   const [plan, setPlan] = useState<{ node: PlanNode | null; error?: string } | null>(null);
@@ -202,10 +203,11 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
           : !graphs.ok ? <p role="status" className="rounded-lg border border-surface-border bg-surface-overlay px-3 py-2 text-sm text-ink-muted">{graphs.reason}</p>
             : (
               <div className="space-y-2">
-                <p className="text-xs text-ink-faint">{tab === "flow" ? `${graphs.statement}. ${graphs.notes[0]}` : "Tables this query reads, with each join's type and columns. PK/FK markers come from the database catalog; dashed lines are foreign keys the query doesn't join on."}</p>
+                <p className="text-xs text-ink-faint">{tab === "flow" ? `${graphs.statement}. ${graphs.notes[0]} Click a box to highlight its clause.` : "Tables this query reads, with each join's type and columns. PK/FK markers come from the database catalog; dashed lines are foreign keys the query doesn't join on."}</p>
                 <Suspense fallback={<p className="text-sm text-ink-muted">Loading diagram…</p>}>
-                  <QueryDiagrams mode={tab} flow={graphs.flow} rel={graphs.rel} dataset={dataset} />
+                  <QueryDiagrams mode={tab} flow={graphs.flow} rel={graphs.rel} dataset={dataset} onSelect={(r) => { setPicked(r); onClause?.(r); }} />
                 </Suspense>
+                {tab === "flow" && picked && <HighlightedSql sql={body} range={picked} />}
               </div>
             )
       )}

@@ -13,7 +13,11 @@
 type Ast = Record<string, unknown> & { type?: string; _location?: { start: number; end: number } };
 
 export type FlowKind = "cte" | "source" | "subquery" | "join" | "where" | "group" | "having" | "window" | "select" | "distinct" | "order" | "limit" | "setop" | "branch" | "result";
-export interface FlowNode { id: string; kind: FlowKind; title: string; detail: string[] }
+export interface FlowNode {
+  id: string; kind: FlowKind; title: string; detail: string[];
+  /** Character range of the clause in the (trimmed, semicolon-free) query text, when known. */
+  range?: [number, number];
+}
 export interface FlowEdge { from: string; to: string; label?: string }
 export interface FlowGraph { nodes: FlowNode[]; edges: FlowEdge[] }
 
@@ -60,9 +64,14 @@ export async function buildGraphs(sql: string): Promise<GraphResult> {
   const tables = new Map<string, RelTable>();
   const joins: RelJoin[] = [];
   let seq = 0;
-  const add = (kind: FlowKind, title: string, detail: string[] = []) => {
+  /** Span from the start of the first AST node to the end of the last one (all from `text`). */
+  const span = (...ns: unknown[]): [number, number] | undefined => {
+    const locs = ns.flat(2).map((n) => (n as Ast | undefined)?._location).filter((l): l is { start: number; end: number } => !!l);
+    return locs.length ? [Math.min(...locs.map((l) => l.start)), Math.max(...locs.map((l) => l.end))] : undefined;
+  };
+  const add = (kind: FlowKind, title: string, detail: string[] = [], range?: [number, number]) => {
     const id = `${kind}-${seq++}`;
-    nodes.push({ id, kind, title, detail });
+    nodes.push({ id, kind, title, detail, ...(range ? { range } : {}) });
     return id;
   };
   const link = (from: string, to: string, label?: string) => edges.push({ from, to, label });
@@ -84,7 +93,7 @@ export async function buildGraphs(sql: string): Promise<GraphResult> {
       const name = String((b.alias as Ast).name).toLowerCase();
       const reads: string[] = [];
       walk(b.statement, (n) => { if (n.type === "table") reads.push(String((n.name as Ast).name).toLowerCase()); });
-      const id = add("cte", `CTE ${name}`, [root.type === "with recursive" && reads.includes(name) ? "recursive" : "", `reads: ${[...new Set(reads)].join(", ") || "—"}`, clip(src(b.statement), 120)].filter(Boolean));
+      const id = add("cte", `CTE ${name}`, [root.type === "with recursive" && reads.includes(name) ? "recursive" : "", `reads: ${[...new Set(reads)].join(", ") || "—"}`, clip(src(b.statement), 120)].filter(Boolean), span(b.statement));
       cteNodes.set(name, id);
       noteTable(name, undefined, true);
       for (const r of new Set(reads)) {
@@ -140,16 +149,16 @@ export async function buildGraphs(sql: string): Promise<GraphResult> {
       if (f.type === "table") {
         const nm = String((f.name as Ast).name);
         const al = (f.name as Ast).alias ? String((f.name as Ast).alias) : undefined;
-        sid = add("source", nm, [al ? `alias ${al}` : "", cteNames.has(nm.toLowerCase()) ? "from CTE" : "table"].filter(Boolean));
+        sid = add("source", nm, [al ? `alias ${al}` : "", cteNames.has(nm.toLowerCase()) ? "from CTE" : "table"].filter(Boolean), span(f.name ?? f));
         const c = cteNodes.get(nm.toLowerCase());
         if (c) link(c, sid, "reads");
       } else {
-        sid = add("subquery", `Subquery ${f.alias ? String(f.alias) : ""}`.trim(), [clip(src(f.statement ?? f), 120)]);
+        sid = add("subquery", `Subquery ${f.alias ? String(f.alias) : ""}`.trim(), [clip(src(f.statement ?? f), 120)], span(f.statement ?? f));
       }
       const j = f.join as Ast | undefined;
       if (i === 0) last = sid;
       else {
-        const jid = add("join", j ? String(j.type) : "CROSS JOIN", [j?.on ? `ON ${clip(src(j.on), 110)}` : j?.using ? `USING (${((j.using as Ast[]) ?? []).map((u) => String(u.name)).join(", ")})` : "no condition (Cartesian product)"]);
+        const jid = add("join", j ? String(j.type) : "CROSS JOIN", [j?.on ? `ON ${clip(src(j.on), 110)}` : j?.using ? `USING (${((j.using as Ast[]) ?? []).map((u) => String(u.name)).join(", ")})` : "no condition (Cartesian product)"], span(f, j?.on));
         link(last, jid);
         link(sid, jid);
         last = jid;
@@ -164,7 +173,7 @@ export async function buildGraphs(sql: string): Promise<GraphResult> {
     };
     if (sel.where) {
       const sq = subqueriesIn(sel.where);
-      const w = add("where", "WHERE", [clip(src(sel.where), 120), sq ? `${sq} subquery${sq > 1 ? "ies" : ""} inside` : ""].filter(Boolean));
+      const w = add("where", "WHERE", [clip(src(sel.where), 120), sq ? `${sq} subquery${sq > 1 ? "ies" : ""} inside` : ""].filter(Boolean), span(sel.where));
       link(last, w, "rows");
       last = w;
     }
@@ -183,12 +192,12 @@ export async function buildGraphs(sql: string): Promise<GraphResult> {
       const g = add("group", (sel.groupBy as Ast[] | undefined)?.length ? "GROUP BY" : "Aggregate (one group)", [
         (sel.groupBy as Ast[] | undefined)?.length ? `by ${(sel.groupBy as Ast[]).map(src).join(", ")}` : "",
         aggs.length ? `aggregates: ${[...new Set(aggs)].join(", ")}` : "",
-      ].filter(Boolean));
+      ].filter(Boolean), span(sel.groupBy ?? []));
       link(last, g, "rows");
       last = g;
     }
     if (sel.having) {
-      const h = add("having", "HAVING", [clip(src(sel.having), 120)]);
+      const h = add("having", "HAVING", [clip(src(sel.having), 120)], span(sel.having));
       link(last, h, "groups");
       last = h;
     }
@@ -198,7 +207,7 @@ export async function buildGraphs(sql: string): Promise<GraphResult> {
       last = w;
     }
     const sq = subqueriesIn(cols);
-    const s = add("select", label ? `SELECT ${label}` : "SELECT", [clip(cols.map((c) => src(c)).join(", "), 140), sq ? `${sq} scalar subquer${sq > 1 ? "ies" : "y"}` : ""].filter(Boolean));
+    const s = add("select", label ? `SELECT ${label}` : "SELECT", [clip(cols.map((c) => src(c)).join(", "), 140), sq ? `${sq} scalar subquer${sq > 1 ? "ies" : "y"}` : ""].filter(Boolean), span(cols));
     link(last, s);
     last = s;
     if (sel.distinct) {
@@ -212,13 +221,13 @@ export async function buildGraphs(sql: string): Promise<GraphResult> {
 
   function tail(n: Ast, last: string): string {
     if ((n.orderBy as Ast[] | undefined)?.length) {
-      const o = add("order", "ORDER BY", [(n.orderBy as Ast[]).map((x) => `${src(x.by)}${x.order ? ` ${String(x.order)}` : ""}`).join(", ")]);
+      const o = add("order", "ORDER BY", [(n.orderBy as Ast[]).map((x) => `${src(x.by)}${x.order ? ` ${String(x.order)}` : ""}`).join(", ")], span((n.orderBy as Ast[]).map((x) => x.by)));
       link(last, o);
       last = o;
     }
     const lim = n.limit as Ast | undefined;
     if (lim && (lim.limit || lim.offset)) {
-      const l = add("limit", "LIMIT / OFFSET", [lim.limit ? `limit ${src(lim.limit)}` : "", lim.offset ? `offset ${src(lim.offset)}` : ""].filter(Boolean));
+      const l = add("limit", "LIMIT / OFFSET", [lim.limit ? `limit ${src(lim.limit)}` : "", lim.offset ? `offset ${src(lim.offset)}` : ""].filter(Boolean), span(lim.limit, lim.offset));
       link(last, l);
       last = l;
     }

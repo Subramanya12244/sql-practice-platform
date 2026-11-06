@@ -52,7 +52,7 @@ function layout(g: FlowGraph) {
   return pos;
 }
 
-export function FlowDiagram({ graph }: { graph: FlowGraph }) {
+export function FlowDiagram({ graph, onSelect }: { graph: FlowGraph; onSelect?: (range: [number, number] | null) => void }) {
   const { nodes, edges } = useMemo(() => {
     const pos = layout(graph);
     return {
@@ -62,7 +62,8 @@ export function FlowDiagram({ graph }: { graph: FlowGraph }) {
   }, [graph]);
   return (
     <div className="h-[520px] overflow-hidden rounded-card border border-surface-border bg-surface" role="img" aria-label={`Logical query flow: ${graph.nodes.map((n) => n.title).join(", then ")}`}>
-      <ReactFlow nodes={nodes} edges={edges} fitView minZoom={0.2} proOptions={{ hideAttribution: true }} nodesConnectable={false}>
+      <ReactFlow nodes={nodes} edges={edges} fitView minZoom={0.2} proOptions={{ hideAttribution: true }} nodesConnectable={false}
+        onNodeClick={(_, n) => onSelect?.(graph.nodes.find((x) => x.id === n.id)?.range ?? null)} onPaneClick={() => onSelect?.(null)}>
         <Background gap={20} size={1} />
         <Controls showInteractive={false} />
       </ReactFlow>
@@ -140,7 +141,7 @@ export function useSchemaKeys(dataset: string, enabled: boolean) {
   return s;
 }
 
-export default function QueryDiagrams({ mode, flow, rel, dataset }: { mode: "flow" | "rel"; flow: FlowGraph; rel: RelGraph; dataset: string }) {
+export default function QueryDiagrams({ mode, flow, rel, dataset, onSelect }: { mode: "flow" | "rel"; flow: FlowGraph; rel: RelGraph; dataset: string; onSelect?: (range: [number, number] | null) => void }) {
   const { schemas, keys } = useSchemaKeys(dataset, mode === "rel");
-  return mode === "flow" ? <FlowDiagram graph={flow} /> : <RelationshipDiagram rel={rel} schemas={schemas} keys={keys} />;
+  return mode === "flow" ? <FlowDiagram graph={flow} onSelect={onSelect} /> : <RelationshipDiagram rel={rel} schemas={schemas} keys={keys} />;
 }
