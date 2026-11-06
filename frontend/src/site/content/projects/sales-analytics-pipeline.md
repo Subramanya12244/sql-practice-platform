@@ -121,6 +121,54 @@ Build the fact first, then the marts. Each task runs in its own rolled-back tran
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-grain",
+  "title": "Choosing the fact grain",
+  "type": "decision",
+  "instructions": "Analysts want revenue by product, by store and by day, and sometimes per order line.",
+  "options": [
+    "One row per order",
+    "One row per order line (product × order)",
+    "One row per day per store",
+    "One row per month"
+  ],
+  "answer": 1,
+  "why": [
+    "Products can't be analysed: an order has many products.",
+    "The lowest grain answers every question; daily and monthly views are aggregations of it.",
+    "Loses product and order detail forever.",
+    "Far too coarse for the daily questions."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-currency",
+  "title": "Multi-currency revenue",
+  "type": "decision",
+  "instructions": "Stores sell in EUR, GBP and USD. Finance reports in EUR using the rate of the order date.",
+  "options": [
+    "Convert with today's rate in the report",
+    "Store the original amount and currency, plus the EUR amount converted at the order-date rate",
+    "Store only EUR",
+    "Ignore currencies and sum the numbers"
+  ],
+  "answer": 1,
+  "why": [
+    "Historical revenue changes every day as rates move.",
+    "Keeps the source truth and a stable reporting value; reconversion stays possible if rates are corrected.",
+    "Loses the original amounts needed for audits and local reports.",
+    "Adds euros to pounds: the totals are meaningless."
+  ]
+}
+```
+
 ## Expected output
 
 - `fact_order_lines`: 1471 lines

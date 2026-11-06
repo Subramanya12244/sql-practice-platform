@@ -111,6 +111,54 @@ Each pandas task notes the PySpark code it mirrors. Each task runs in its own ro
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-skew",
+  "title": "A skewed join",
+  "type": "decision",
+  "instructions": "Joining 2 billion events to 5 million users: one 'anonymous' user owns 30% of events and one task runs for hours.",
+  "options": [
+    "Add more executors",
+    "Salt the hot key (or filter/handle it separately) and broadcast the small side where possible",
+    "Collect both sides to the driver",
+    "Repartition by a random column after the join"
+  ],
+  "answer": 1,
+  "why": [
+    "The single hot partition is still processed by one task.",
+    "Spreading the hot key across partitions, or handling it separately, removes the straggler; broadcasting avoids the shuffle.",
+    "Will not fit in driver memory.",
+    "Too late: the skew happens during the join shuffle."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-file-format",
+  "title": "Output format for the lake",
+  "type": "decision",
+  "instructions": "Analysts query a few columns of very wide tables, filtered by date.",
+  "options": [
+    "CSV",
+    "JSON lines",
+    "Parquet partitioned by date",
+    "One big text file"
+  ],
+  "answer": 2,
+  "why": [
+    "Row-oriented, no types and no column pruning.",
+    "Readable but large and slow to scan.",
+    "Columnar storage reads only the needed columns, and date partitions let queries skip whole folders.",
+    "Unsplittable and unqueryable at scale."
+  ]
+}
+```
+
 ## Expected output
 
 - `revenue_by_country_month` returns 4 rows (USA and UK × Jan/Feb 2025)

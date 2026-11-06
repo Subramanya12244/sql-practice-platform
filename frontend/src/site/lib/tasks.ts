@@ -3,6 +3,7 @@
  * - sql: learner SQL + `check` run in ONE rolled-back transaction on the task's dataset.
  * - python: learner code + `tests` (asserts) run in the Pyodide sandbox.
  * - checklist: manual steps; never sufficient on their own for "Completed".
+ * - decision: a pipeline-design choice with one correct option, graded in the browser.
  */
 import type { ExecuteResult } from "../../types";
 
@@ -15,7 +16,14 @@ export interface PythonTask {
   explanation?: string;
 }
 export interface ChecklistTask { id: string; title: string; type: "checklist"; instructions: string; items: string[] }
-export type Task = SqlTask | PythonTask | ChecklistTask;
+/** A design decision: pick the option that fits the scenario; every option explains itself. */
+export interface DecisionTask {
+  id: string; title: string; type: "decision"; instructions: string;
+  options: string[]; answer: number;
+  /** Why each option is right or wrong, shown after answering (same order as options). */
+  why: string[];
+}
+export type Task = SqlTask | PythonTask | ChecklistTask | DecisionTask;
 
 export interface TaskResult {
   ok: boolean;

@@ -1,0 +1,98 @@
+{
+  "csv-to-postgres-etl": [
+    {"id": "d-reject-rows", "title": "Bad rows in the nightly CSV", "instructions": "About 0.5% of rows in the supplier's CSV fail validation (bad dates, missing ids). The business still needs the other 99.5% loaded by 7am.",
+     "options": ["Fail the whole load until the supplier fixes the file", "Load the valid rows and write rejected rows, with the reason, to a quarantine table", "Silently skip invalid rows", "Load everything and fix the data in reports"], "answer": 1,
+     "why": ["Blocks the business on a tiny fraction of data; nobody gets the 99.5% that is fine.", "Keeps the load on time, makes every rejected row visible and re-loadable, and gives the supplier a precise list to fix.", "Data disappears without a trace: totals drift and nobody knows why.", "Pushes bad data downstream where every consumer has to clean it again."]},
+    {"id": "d-load-strategy", "title": "Re-running a failed load", "instructions": "The load crashed half-way last night. You need a strategy that makes re-running the job safe.",
+     "options": ["Append the file again; duplicates can be removed later", "Load into a staging table, then replace the day's rows in one transaction", "Delete the whole target table and reload all history", "Re-run only the rows after the line where it crashed"], "answer": 1,
+     "why": ["Creates duplicates every time the job is retried.", "Staging plus a single swap transaction is idempotent: a re-run gives the same result and readers never see half a load.", "Correct but slow and risky as history grows; one failure can leave the table empty.", "Fragile: line numbers are not stable identifiers and partial rows may already be committed."]}
+  ],
+  "python-data-cleaning": [
+    {"id": "d-missing-values", "title": "Missing customer ages", "instructions": "15% of customer records have no age. The marketing model uses age; finance reports average order value by age band.",
+     "options": ["Fill missing ages with the mean age", "Drop customers with no age", "Keep the age missing and add an 'unknown' age band", "Fill with 0"], "answer": 2,
+     "why": ["Invents data and distorts both the age distribution and the age-band report.", "Loses 15% of customers and their revenue from every report.", "Keeps every customer, stays honest about what is unknown, and lets each consumer decide how to treat it.", "0 is a real-looking value: averages and bands become wrong."]},
+    {"id": "d-dedupe-key", "title": "Choosing the duplicate key", "instructions": "The CRM export has duplicate customers created by repeated sign-ups. Emails differ only in case and spaces; names are often misspelled.",
+     "options": ["Deduplicate on the full row", "Deduplicate on normalised email (trimmed, lower-cased)", "Deduplicate on name", "Deduplicate on the CRM row id"], "answer": 1,
+     "why": ["Rows that differ in any field (e.g. a timestamp) are never detected as duplicates.", "Normalising the stable natural identifier catches the real duplicates without merging different people.", "Names are not unique and are often misspelled: merges different people and misses real duplicates.", "Each sign-up got a new row id, so duplicates all have different ids."]}
+  ],
+  "data-validation-pipeline": [
+    {"id": "d-where-validate", "title": "Where to validate", "instructions": "Orders arrive from three source systems. Bad data has reached the finance dashboard twice this quarter.",
+     "options": ["Validate in the dashboard queries", "Validate at ingestion, before data reaches the shared tables, and record results", "Ask each source team to validate", "Validate once a month with a manual review"], "answer": 1,
+     "why": ["Every dashboard re-implements the checks, and other consumers still get bad data.", "One gate at the boundary protects every consumer, and recorded results show trends and which source is failing.", "Useful, but you can't rely on three teams; the warehouse still needs its own gate.", "Bad data is visible for weeks before anyone notices."]},
+    {"id": "d-severity", "title": "Blocking versus warning checks", "instructions": "A check finds that 2% of orders have a NULL discount. Another finds duplicate order ids.",
+     "options": ["Block the load on both", "Warn on both", "Warn on NULL discounts (default to 0 downstream, alert), block on duplicate order ids", "Ignore both until a user complains"], "answer": 2,
+     "why": ["Stops the business for a recoverable quality issue.", "Duplicate keys corrupt every total; a warning is not enough.", "Severity follows impact: a defaultable gap is a warning, broken uniqueness of the key is a blocking error.", "Quality problems compound silently."]}
+  ],
+  "rest-api-to-postgres": [
+    {"id": "d-pagination", "title": "Paginating a changing API", "instructions": "The API returns customers 100 per page. New customers are inserted while you page through.",
+     "options": ["Use page numbers (?page=1,2,3)", "Use the API's cursor (next token) or keyset (updated_after + id)", "Request one huge page", "Page until an error"], "answer": 1,
+     "why": ["Inserts shift offsets, so rows are skipped or repeated between pages.", "A cursor or keyset position is stable under concurrent inserts, so every row is read exactly once.", "Usually capped by the API and times out.", "Errors are not a reliable end-of-data signal and hide real failures."]},
+    {"id": "d-rate-limit", "title": "HTTP 429 Too Many Requests", "instructions": "During the nightly sync the API starts returning 429 after ~300 calls.",
+     "options": ["Retry immediately in a loop", "Respect Retry-After, back off exponentially with jitter, and cap the attempts", "Abort the whole sync", "Run more parallel workers to finish faster"], "answer": 1,
+     "why": ["Hammers the API and extends the throttling.", "Backing off is what the API asks for; jitter avoids synchronised retries and a cap stops endless loops.", "One throttled call loses the whole night's data.", "More requests make the throttling worse."]}
+  ],
+  "incremental-loading": [
+    {"id": "d-watermark", "title": "Choosing the watermark column", "instructions": "Transactions can be corrected days later; corrections update the row and set updated_at.",
+     "options": ["Use created_at", "Use updated_at, with a small lookback window for late commits", "Use the largest id loaded", "Reload the last 7 days fully every night"], "answer": 1,
+     "why": ["Misses every correction, because corrections keep the old created_at.", "updated_at captures inserts and corrections; a lookback catches transactions committed late, and upserts make the overlap harmless.", "Ids don't change on correction, so updates are missed.", "Works but wastes work and misses corrections older than 7 days."]},
+    {"id": "d-upsert", "title": "Applying corrected rows", "instructions": "A re-sent transaction already exists in the warehouse with an older amount.",
+     "options": ["INSERT and let the unique key error stop the job", "INSERT … ON CONFLICT (id) DO UPDATE when the incoming updated_at is newer", "DELETE all rows for that day, then INSERT", "Keep both rows and pick the latest in reports"], "answer": 1,
+     "why": ["The job fails on every correction.", "A conditional upsert applies the correction once, ignores stale replays and stays idempotent.", "Heavy and risky: a failure between the two steps loses data.", "Pushes deduplication onto every report."]}
+  ],
+  "sales-analytics-pipeline": [
+    {"id": "d-grain", "title": "Choosing the fact grain", "instructions": "Analysts want revenue by product, by store and by day, and sometimes per order line.",
+     "options": ["One row per order", "One row per order line (product × order)", "One row per day per store", "One row per month"], "answer": 1,
+     "why": ["Products can't be analysed: an order has many products.", "The lowest grain answers every question; daily and monthly views are aggregations of it.", "Loses product and order detail forever.", "Far too coarse for the daily questions."]},
+    {"id": "d-currency", "title": "Multi-currency revenue", "instructions": "Stores sell in EUR, GBP and USD. Finance reports in EUR using the rate of the order date.",
+     "options": ["Convert with today's rate in the report", "Store the original amount and currency, plus the EUR amount converted at the order-date rate", "Store only EUR", "Ignore currencies and sum the numbers"], "answer": 1,
+     "why": ["Historical revenue changes every day as rates move.", "Keeps the source truth and a stable reporting value; reconversion stays possible if rates are corrected.", "Loses the original amounts needed for audits and local reports.", "Adds euros to pounds: the totals are meaningless."]}
+  ],
+  "hr-analytics-warehouse": [
+    {"id": "d-scd", "title": "Tracking department changes", "instructions": "Employees move between departments. HR wants headcount by department as it was at any month end.",
+     "options": ["Overwrite the department on the employee row (SCD type 1)", "Add a new dimension row per change with valid_from/valid_to (SCD type 2)", "Keep only the hire department", "Recompute from emails"], "answer": 1,
+     "why": ["History is lost: past headcounts move with each transfer.", "Each version keeps its validity period, so any month end can be reconstructed with a date-range join.", "Wrong for anyone who has moved.", "Not a reliable source of organisational data."]},
+    {"id": "d-pii", "title": "Personal data in the warehouse", "instructions": "Analysts need headcount and salary bands. A few HR staff need individual salaries.",
+     "options": ["Give everyone the full employee table", "Expose aggregated views and salary bands broadly; restrict raw salary columns to an HR role", "Delete salaries from the warehouse", "Share an export file by email"], "answer": 1,
+     "why": ["Exposes sensitive personal data to everyone who can query.", "Least privilege: most users get what they need from aggregates, and access to raw values is limited and auditable.", "Blocks legitimate HR analysis.", "Uncontrolled copies of personal data."]}
+  ],
+  "star-schema-warehouse": [
+    {"id": "d-surrogate", "title": "Keys for the customer dimension", "instructions": "Customer ids come from two source systems that reuse the same numbers for different customers.",
+     "options": ["Use the source customer id as the key", "Generate a warehouse surrogate key and keep (source_system, source_id) as attributes", "Concatenate name and city", "Use the email address"], "answer": 1,
+     "why": ["Ids collide across the two systems.", "Surrogate keys are unique, stable and system-independent; source ids stay available for lineage and lookups.", "Not unique, and changes when a customer moves.", "Emails change and can be missing."]},
+    {"id": "d-date-dim", "title": "Do you need a date dimension?", "instructions": "Analysts filter by fiscal quarter, holiday and weekday, and the fiscal year starts in April.",
+     "options": ["No: compute everything from the timestamp in each query", "Yes: a date dimension with fiscal period, holiday and weekday attributes", "Store the fiscal quarter only on the fact table", "Ask analysts to remember the fiscal calendar"], "answer": 1,
+     "why": ["Every query re-implements the fiscal logic, and holidays can't be derived.", "Centralises the calendar logic once, so every report agrees, and makes filters simple joins.", "Covers one attribute, and every new one needs a fact table change.", "Inconsistent reports guaranteed."]}
+  ],
+  "pyspark-transformation": [
+    {"id": "d-skew", "title": "A skewed join", "instructions": "Joining 2 billion events to 5 million users: one 'anonymous' user owns 30% of events and one task runs for hours.",
+     "options": ["Add more executors", "Salt the hot key (or filter/handle it separately) and broadcast the small side where possible", "Collect both sides to the driver", "Repartition by a random column after the join"], "answer": 1,
+     "why": ["The single hot partition is still processed by one task.", "Spreading the hot key across partitions, or handling it separately, removes the straggler; broadcasting avoids the shuffle.", "Will not fit in driver memory.", "Too late: the skew happens during the join shuffle."]},
+    {"id": "d-file-format", "title": "Output format for the lake", "instructions": "Analysts query a few columns of very wide tables, filtered by date.",
+     "options": ["CSV", "JSON lines", "Parquet partitioned by date", "One big text file"], "answer": 2,
+     "why": ["Row-oriented, no types and no column pruning.", "Readable but large and slow to scan.", "Columnar storage reads only the needed columns, and date partitions let queries skip whole folders.", "Unsplittable and unqueryable at scale."]}
+  ],
+  "airflow-etl-pipeline": [
+    {"id": "d-idempotent-task", "title": "Making a DAG task safe to retry", "instructions": "The 'load_daily_sales' task appends rows; Airflow retries it after a network blip.",
+     "options": ["Disable retries", "Make the task write the partition for its logical date (delete-insert or merge for that date)", "Lower the retry delay", "Add a sensor before the task"], "answer": 1,
+     "why": ["Hides failures that a retry would have fixed.", "Writing exactly the logical date's partition makes retries and backfills produce the same result.", "Retries still duplicate rows.", "Doesn't change what the task writes."]},
+    {"id": "d-backfill", "title": "Backfilling a year", "instructions": "A bug corrupted last year's daily aggregates; the fix is merged.",
+     "options": ["Run one giant job for the whole year", "Clear and re-run the DAG for the affected dates (backfill), with limited concurrency", "Patch the numbers by hand", "Only fix data from today onwards"], "answer": 1,
+     "why": ["A single failure restarts everything and the code path differs from the daily runs.", "Reuses the tested daily logic per date, can be resumed, and concurrency limits protect the source systems.", "Unrepeatable and undocumented.", "Leaves a year of wrong history in reports."]}
+  ],
+  "dbt-analytics-project": [
+    {"id": "d-materialization", "title": "Materialising a large model", "instructions": "fct_events has 800 million rows and gains 2 million a day; a full rebuild takes 3 hours.",
+     "options": ["view", "table rebuilt every run", "incremental model with a unique_key and an is_incremental() filter", "ephemeral"], "answer": 2,
+     "why": ["Every query re-scans the source: too slow for dashboards.", "Correct but rebuilds 800M rows nightly.", "Processes only new or changed rows and merges them on the unique key, keeping runs short.", "Ephemeral models are inlined CTEs and are never stored."]},
+    {"id": "d-tests", "title": "Which tests protect a fact table", "instructions": "fct_orders joins to dim_customers and must have one row per order.",
+     "options": ["No tests: the SQL is reviewed", "unique and not_null on order_id, a relationships test to dim_customers, accepted_values on status", "Only a row-count test", "Visual check in the dashboard"], "answer": 1,
+     "why": ["Reviews don't catch data changes upstream.", "These encode the grain, the foreign key and the domain, so the build fails on the most common breakages.", "Doesn't detect duplicates or orphaned keys.", "Too late, and manual."]}
+  ],
+  "end-to-end-pipeline": [
+    {"id": "d-layers", "title": "Organising the warehouse", "instructions": "Raw data from five sources lands daily; analysts need clean, joined tables they can trust.",
+     "options": ["Load raw data straight into the reporting tables", "Raw (as received) → staging (cleaned, typed) → marts (business models)", "One table per analyst", "Clean the data in spreadsheets"], "answer": 1,
+     "why": ["Any source change breaks reports, and there is no way to reprocess.", "Raw keeps an audit trail and allows replays, staging standardises once, and marts serve the business: each layer has one job.", "Duplicated logic and conflicting numbers.", "Unrepeatable and unscalable."]},
+    {"id": "d-monitoring", "title": "Knowing the pipeline is healthy", "instructions": "Last month the pipeline 'succeeded' for three days while loading zero rows from one source.",
+     "options": ["Check the job status only", "Track freshness, row counts against expectations and data-quality results per source, and alert on anomalies", "Ask analysts to report problems", "Re-run everything daily just in case"], "answer": 1,
+     "why": ["A green job can still load nothing.", "Data-level signals catch silent failures like empty loads and stale sources, close to when they happen.", "Problems surface late and from the wrong people.", "Doesn't detect the problem at all."]}
+  ]
+}

@@ -157,3 +157,23 @@ describe("python practice library", () => {
     expect(new Set(all.map((x) => norm(x.ex.task!.instructions))).size).toBe(150);
   });
 });
+
+describe("project design decisions", () => {
+  it("every project has well-formed decisions", async () => {
+    const { parseProject } = await import("../site/lib/projects");
+    const files = Object.entries(import.meta.glob<string>("../site/content/projects/*.md", { eager: true, query: "?raw", import: "default" }));
+    for (const [p, raw] of files) {
+      const proj = parseProject(raw, p.split("/").pop()!.replace(/\.md$/, ""));
+      const ds = proj.tasks.filter((t) => t.type === "decision");
+      expect(ds.length, proj.slug).toBeGreaterThanOrEqual(2);
+      for (const d of ds) {
+        if (d.type !== "decision") continue;
+        expect(d.options.length, d.id).toBeGreaterThanOrEqual(3);
+        expect(d.answer).toBeGreaterThanOrEqual(0);
+        expect(d.answer).toBeLessThan(d.options.length);
+        expect(d.why).toHaveLength(d.options.length);
+      }
+      expect(new Set(proj.tasks.map((t) => t.id)).size, `${proj.slug} task ids`).toBe(proj.tasks.length);
+    }
+  });
+});

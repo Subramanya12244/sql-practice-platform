@@ -107,6 +107,54 @@ Write the SQL rules first, then the Python engine. Each task runs in its own rol
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-where-validate",
+  "title": "Where to validate",
+  "type": "decision",
+  "instructions": "Orders arrive from three source systems. Bad data has reached the finance dashboard twice this quarter.",
+  "options": [
+    "Validate in the dashboard queries",
+    "Validate at ingestion, before data reaches the shared tables, and record results",
+    "Ask each source team to validate",
+    "Validate once a month with a manual review"
+  ],
+  "answer": 1,
+  "why": [
+    "Every dashboard re-implements the checks, and other consumers still get bad data.",
+    "One gate at the boundary protects every consumer, and recorded results show trends and which source is failing.",
+    "Useful, but you can't rely on three teams; the warehouse still needs its own gate.",
+    "Bad data is visible for weeks before anyone notices."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-severity",
+  "title": "Blocking versus warning checks",
+  "type": "decision",
+  "instructions": "A check finds that 2% of orders have a NULL discount. Another finds duplicate order ids.",
+  "options": [
+    "Block the load on both",
+    "Warn on both",
+    "Warn on NULL discounts (default to 0 downstream, alert), block on duplicate order ids",
+    "Ignore both until a user complains"
+  ],
+  "answer": 2,
+  "why": [
+    "Stops the business for a recoverable quality issue.",
+    "Duplicate keys corrupt every total; a warning is not enough.",
+    "Severity follows impact: a defaultable gap is a warning, broken uniqueness of the key is a blocking error.",
+    "Quality problems compound silently."
+  ]
+}
+```
+
 ## Expected output
 
 - `dq_results`: 5 rules; `products_category_not_null` fails 2 rows, `suppliers_email_not_null` warns on 3

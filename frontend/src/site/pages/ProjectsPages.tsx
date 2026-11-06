@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, CircleDashed, FlaskConical, Loader2, Play, Send, FolderGit2 } from "lucide-react";
+import { CheckCircle2, CircleDashed, FlaskConical, Loader2, Play, Scale, Send, FolderGit2 } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { SampleTable } from "../components/SampleTable";
@@ -146,13 +146,15 @@ function TaskPanel({ task, project, progress, onChange, mounted }: {
     <section className="my-6 rounded-card border border-surface-border bg-surface-raised p-4" aria-labelledby={`task-${task.id}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id={`task-${task.id}`} className="flex items-center gap-2 font-semibold text-ink">
-          {task.type === "checklist" ? <CircleDashed className="h-4 w-4 text-ink-faint" aria-hidden /> : result?.ok ? <CheckCircle2 className="h-4 w-4 text-success" aria-hidden /> : <FlaskConical className="h-4 w-4 text-accent" aria-hidden />}
+          {task.type === "checklist" ? <CircleDashed className="h-4 w-4 text-ink-faint" aria-hidden /> : task.type === "decision" ? (result?.ok ? <CheckCircle2 className="h-4 w-4 text-success" aria-hidden /> : <Scale className="h-4 w-4 text-accent" aria-hidden />) : result?.ok ? <CheckCircle2 className="h-4 w-4 text-success" aria-hidden /> : <FlaskConical className="h-4 w-4 text-accent" aria-hidden />}
           {task.title}
         </h3>
-        <span className="text-[11px] uppercase tracking-wider text-ink-faint">{task.type === "sql" ? `SQL · ${project.dataset}` : task.type === "python" ? "Python" : "Manual step"}</span>
+        <span className="text-[11px] uppercase tracking-wider text-ink-faint">{task.type === "sql" ? `SQL · ${project.dataset}` : task.type === "python" ? "Python" : task.type === "decision" ? "Design decision" : "Manual step"}</span>
       </div>
       <Markdown source={task.instructions} className="mt-2 text-sm" />
-      {task.type === "checklist" ? (
+      {task.type === "decision" ? (
+        <DecisionBlock task={task} result={result} onAnswer={(ok) => record({ ok, message: ok ? "Good choice." : "Not the best fit here: read why below." })} />
+      ) : task.type === "checklist" ? (
         <ul className="mt-2 space-y-1 text-sm">
           {task.items.map((item, i) => (
             <li key={i}>
@@ -299,5 +301,33 @@ export function ProjectPage() {
         )}
       </section>
     </Container>
+  );
+}
+
+/** Pick one option; after answering, every option shows why it is or isn't the right call. */
+function DecisionBlock({ task, result, onAnswer }: { task: import("../lib/tasks").DecisionTask; result: { ok: boolean } | null | undefined; onAnswer: (ok: boolean) => void }) {
+  const [picked, setPicked] = useState<number | null>(null);
+  const answered = picked !== null;
+  return (
+    <div className="mt-3 space-y-2">
+      <fieldset className="space-y-1.5" disabled={answered}>
+        <legend className="sr-only">{task.title}</legend>
+        {task.options.map((o, i) => {
+          const right = i === task.answer;
+          const tone = !answered ? "border-surface-border hover:border-accent/40" : right ? "border-success/50 bg-success-dim" : i === picked ? "border-danger/50 bg-danger-dim" : "border-surface-border opacity-80";
+          return (
+            <label key={i} className={`block rounded-lg border p-2.5 text-sm ${tone}`}>
+              <span className="flex items-start gap-2">
+                <input type="radio" name={`d-${task.id}`} className="mt-1" checked={picked === i} onChange={() => { setPicked(i); onAnswer(i === task.answer); }} />
+                <span className="text-ink"><Markdown source={o} className="inline" /></span>
+              </span>
+              {answered && <span className={`mt-1 block pl-6 text-xs ${right ? "text-success" : "text-ink-muted"}`}>{right ? "Best fit: " : ""}{task.why[i]}</span>}
+            </label>
+          );
+        })}
+      </fieldset>
+      {answered && <button type="button" className="text-xs text-ink-muted underline hover:text-ink" onClick={() => setPicked(null)}>Try again</button>}
+      {!answered && result?.ok && <p className="text-xs text-success">Answered correctly before.</p>}
+    </div>
   );
 }

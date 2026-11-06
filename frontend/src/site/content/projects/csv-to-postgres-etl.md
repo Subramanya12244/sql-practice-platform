@@ -123,6 +123,54 @@ Work through the tasks in order. Python tasks run in your browser. Each task run
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-reject-rows",
+  "title": "Bad rows in the nightly CSV",
+  "type": "decision",
+  "instructions": "About 0.5% of rows in the supplier's CSV fail validation (bad dates, missing ids). The business still needs the other 99.5% loaded by 7am.",
+  "options": [
+    "Fail the whole load until the supplier fixes the file",
+    "Load the valid rows and write rejected rows, with the reason, to a quarantine table",
+    "Silently skip invalid rows",
+    "Load everything and fix the data in reports"
+  ],
+  "answer": 1,
+  "why": [
+    "Blocks the business on a tiny fraction of data; nobody gets the 99.5% that is fine.",
+    "Keeps the load on time, makes every rejected row visible and re-loadable, and gives the supplier a precise list to fix.",
+    "Data disappears without a trace: totals drift and nobody knows why.",
+    "Pushes bad data downstream where every consumer has to clean it again."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-load-strategy",
+  "title": "Re-running a failed load",
+  "type": "decision",
+  "instructions": "The load crashed half-way last night. You need a strategy that makes re-running the job safe.",
+  "options": [
+    "Append the file again; duplicates can be removed later",
+    "Load into a staging table, then replace the day's rows in one transaction",
+    "Delete the whole target table and reload all history",
+    "Re-run only the rows after the line where it crashed"
+  ],
+  "answer": 1,
+  "why": [
+    "Creates duplicates every time the job is retried.",
+    "Staging plus a single swap transaction is idempotent: a re-run gives the same result and readers never see half a load.",
+    "Correct but slow and risky as history grows; one failure can leave the table empty.",
+    "Fragile: line numbers are not stable identifiers and partial rows may already be committed."
+  ]
+}
+```
+
 ## Expected output
 
 - `parse_orders` returns 3 clean rows from the sample CSV

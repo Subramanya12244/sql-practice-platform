@@ -106,6 +106,54 @@ Each task builds on the previous one; paste the earlier SQL at the top. Each tas
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-watermark",
+  "title": "Choosing the watermark column",
+  "type": "decision",
+  "instructions": "Transactions can be corrected days later; corrections update the row and set updated_at.",
+  "options": [
+    "Use created_at",
+    "Use updated_at, with a small lookback window for late commits",
+    "Use the largest id loaded",
+    "Reload the last 7 days fully every night"
+  ],
+  "answer": 1,
+  "why": [
+    "Misses every correction, because corrections keep the old created_at.",
+    "updated_at captures inserts and corrections; a lookback catches transactions committed late, and upserts make the overlap harmless.",
+    "Ids don't change on correction, so updates are missed.",
+    "Works but wastes work and misses corrections older than 7 days."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-upsert",
+  "title": "Applying corrected rows",
+  "type": "decision",
+  "instructions": "A re-sent transaction already exists in the warehouse with an older amount.",
+  "options": [
+    "INSERT and let the unique key error stop the job",
+    "INSERT … ON CONFLICT (id) DO UPDATE when the incoming updated_at is newer",
+    "DELETE all rows for that day, then INSERT",
+    "Keep both rows and pick the latest in reports"
+  ],
+  "answer": 1,
+  "why": [
+    "The job fails on every correction.",
+    "A conditional upsert applies the correction once, ignores stale replays and stays idempotent.",
+    "Heavy and risky: a failure between the two steps loses data.",
+    "Pushes deduplication onto every report."
+  ]
+}
+```
+
 ## Expected output
 
 - After the initial load: 1499 rows and a watermark of 2025-06-30 12:09:43

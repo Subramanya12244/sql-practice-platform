@@ -117,6 +117,54 @@ Build each dimension, then the fact. Each task runs in its own rolled-back trans
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-surrogate",
+  "title": "Keys for the customer dimension",
+  "type": "decision",
+  "instructions": "Customer ids come from two source systems that reuse the same numbers for different customers.",
+  "options": [
+    "Use the source customer id as the key",
+    "Generate a warehouse surrogate key and keep (source_system, source_id) as attributes",
+    "Concatenate name and city",
+    "Use the email address"
+  ],
+  "answer": 1,
+  "why": [
+    "Ids collide across the two systems.",
+    "Surrogate keys are unique, stable and system-independent; source ids stay available for lineage and lookups.",
+    "Not unique, and changes when a customer moves.",
+    "Emails change and can be missing."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-date-dim",
+  "title": "Do you need a date dimension?",
+  "type": "decision",
+  "instructions": "Analysts filter by fiscal quarter, holiday and weekday, and the fiscal year starts in April.",
+  "options": [
+    "No: compute everything from the timestamp in each query",
+    "Yes: a date dimension with fiscal period, holiday and weekday attributes",
+    "Store the fiscal quarter only on the fact table",
+    "Ask analysts to remember the fiscal calendar"
+  ],
+  "answer": 1,
+  "why": [
+    "Every query re-implements the fiscal logic, and holidays can't be derived.",
+    "Centralises the calendar logic once, so every report agrees, and makes filters simple joins.",
+    "Covers one attribute, and every new one needs a fact table change.",
+    "Inconsistent reports guaranteed."
+  ]
+}
+```
+
 ## Expected output
 
 - `dim_date`: 711 days

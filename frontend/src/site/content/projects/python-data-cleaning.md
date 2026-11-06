@@ -106,6 +106,54 @@ Start with the pandas tasks, then port the rules to SQL. Each task runs in its o
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-missing-values",
+  "title": "Missing customer ages",
+  "type": "decision",
+  "instructions": "15% of customer records have no age. The marketing model uses age; finance reports average order value by age band.",
+  "options": [
+    "Fill missing ages with the mean age",
+    "Drop customers with no age",
+    "Keep the age missing and add an 'unknown' age band",
+    "Fill with 0"
+  ],
+  "answer": 2,
+  "why": [
+    "Invents data and distorts both the age distribution and the age-band report.",
+    "Loses 15% of customers and their revenue from every report.",
+    "Keeps every customer, stays honest about what is unknown, and lets each consumer decide how to treat it.",
+    "0 is a real-looking value: averages and bands become wrong."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-dedupe-key",
+  "title": "Choosing the duplicate key",
+  "type": "decision",
+  "instructions": "The CRM export has duplicate customers created by repeated sign-ups. Emails differ only in case and spaces; names are often misspelled.",
+  "options": [
+    "Deduplicate on the full row",
+    "Deduplicate on normalised email (trimmed, lower-cased)",
+    "Deduplicate on name",
+    "Deduplicate on the CRM row id"
+  ],
+  "answer": 1,
+  "why": [
+    "Rows that differ in any field (e.g. a timestamp) are never detected as duplicates.",
+    "Normalising the stable natural identifier catches the real duplicates without merging different people.",
+    "Names are not unique and are often misspelled: merges different people and misses real duplicates.",
+    "Each sign-up got a new row id, so duplicates all have different ids."
+  ]
+}
+```
+
 ## Expected output
 
 - `clean_employees` returns 4 rows with tidy names, lowercase emails, digit-only phones and numeric salaries

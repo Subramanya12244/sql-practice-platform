@@ -125,6 +125,54 @@ Build the layers in order; each SQL task repeats the earlier layers it needs. Ea
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-layers",
+  "title": "Organising the warehouse",
+  "type": "decision",
+  "instructions": "Raw data from five sources lands daily; analysts need clean, joined tables they can trust.",
+  "options": [
+    "Load raw data straight into the reporting tables",
+    "Raw (as received) → staging (cleaned, typed) → marts (business models)",
+    "One table per analyst",
+    "Clean the data in spreadsheets"
+  ],
+  "answer": 1,
+  "why": [
+    "Any source change breaks reports, and there is no way to reprocess.",
+    "Raw keeps an audit trail and allows replays, staging standardises once, and marts serve the business: each layer has one job.",
+    "Duplicated logic and conflicting numbers.",
+    "Unrepeatable and unscalable."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-monitoring",
+  "title": "Knowing the pipeline is healthy",
+  "type": "decision",
+  "instructions": "Last month the pipeline 'succeeded' for three days while loading zero rows from one source.",
+  "options": [
+    "Check the job status only",
+    "Track freshness, row counts against expectations and data-quality results per source, and alert on anomalies",
+    "Ask analysts to report problems",
+    "Re-run everything daily just in case"
+  ],
+  "answer": 1,
+  "why": [
+    "A green job can still load nothing.",
+    "Data-level signals catch silent failures like empty loads and stale sources, close to when they happen.",
+    "Problems surface late and from the wrong people.",
+    "Doesn't detect the problem at all."
+  ]
+}
+```
+
 ## Expected output
 
 - `validate_extract`: 3 valid rows and 3 rejects with reasons

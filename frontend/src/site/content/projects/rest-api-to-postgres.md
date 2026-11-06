@@ -135,6 +135,54 @@ First the client, then the database side. Each task runs in its own rolled-back 
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-pagination",
+  "title": "Paginating a changing API",
+  "type": "decision",
+  "instructions": "The API returns customers 100 per page. New customers are inserted while you page through.",
+  "options": [
+    "Use page numbers (?page=1,2,3)",
+    "Use the API's cursor (next token) or keyset (updated_after + id)",
+    "Request one huge page",
+    "Page until an error"
+  ],
+  "answer": 1,
+  "why": [
+    "Inserts shift offsets, so rows are skipped or repeated between pages.",
+    "A cursor or keyset position is stable under concurrent inserts, so every row is read exactly once.",
+    "Usually capped by the API and times out.",
+    "Errors are not a reliable end-of-data signal and hide real failures."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-rate-limit",
+  "title": "HTTP 429 Too Many Requests",
+  "type": "decision",
+  "instructions": "During the nightly sync the API starts returning 429 after ~300 calls.",
+  "options": [
+    "Retry immediately in a loop",
+    "Respect Retry-After, back off exponentially with jitter, and cap the attempts",
+    "Abort the whole sync",
+    "Run more parallel workers to finish faster"
+  ],
+  "answer": 1,
+  "why": [
+    "Hammers the API and extends the throttling.",
+    "Backing off is what the API asks for; jitter avoids synchronised retries and a cap stops endless loops.",
+    "One throttled call loses the whole night's data.",
+    "More requests make the throttling worse."
+  ]
+}
+```
+
 ## Expected output
 
 - `fetch_all` returns 7 records from 3 pages

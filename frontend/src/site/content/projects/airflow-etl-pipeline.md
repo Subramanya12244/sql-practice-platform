@@ -125,6 +125,54 @@ The Python tasks model what Airflow does for you; the SQL tasks are the statemen
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-idempotent-task",
+  "title": "Making a DAG task safe to retry",
+  "type": "decision",
+  "instructions": "The 'load_daily_sales' task appends rows; Airflow retries it after a network blip.",
+  "options": [
+    "Disable retries",
+    "Make the task write the partition for its logical date (delete-insert or merge for that date)",
+    "Lower the retry delay",
+    "Add a sensor before the task"
+  ],
+  "answer": 1,
+  "why": [
+    "Hides failures that a retry would have fixed.",
+    "Writing exactly the logical date's partition makes retries and backfills produce the same result.",
+    "Retries still duplicate rows.",
+    "Doesn't change what the task writes."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-backfill",
+  "title": "Backfilling a year",
+  "type": "decision",
+  "instructions": "A bug corrupted last year's daily aggregates; the fix is merged.",
+  "options": [
+    "Run one giant job for the whole year",
+    "Clear and re-run the DAG for the affected dates (backfill), with limited concurrency",
+    "Patch the numbers by hand",
+    "Only fix data from today onwards"
+  ],
+  "answer": 1,
+  "why": [
+    "A single failure restarts everything and the code path differs from the daily runs.",
+    "Reuses the tested daily logic per date, can be resumed, and concurrency limits protect the source systems.",
+    "Unrepeatable and undocumented.",
+    "Leaves a year of wrong history in reports."
+  ]
+}
+```
+
 ## Expected output
 
 - `topo_order` returns a valid order for the 6-task DAG and raises on a cycle

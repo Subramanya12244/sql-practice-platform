@@ -107,6 +107,54 @@ Build the warehouse layer by layer. Each task runs in its own rolled-back transa
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-scd",
+  "title": "Tracking department changes",
+  "type": "decision",
+  "instructions": "Employees move between departments. HR wants headcount by department as it was at any month end.",
+  "options": [
+    "Overwrite the department on the employee row (SCD type 1)",
+    "Add a new dimension row per change with valid_from/valid_to (SCD type 2)",
+    "Keep only the hire department",
+    "Recompute from emails"
+  ],
+  "answer": 1,
+  "why": [
+    "History is lost: past headcounts move with each transfer.",
+    "Each version keeps its validity period, so any month end can be reconstructed with a date-range join.",
+    "Wrong for anyone who has moved.",
+    "Not a reliable source of organisational data."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-pii",
+  "title": "Personal data in the warehouse",
+  "type": "decision",
+  "instructions": "Analysts need headcount and salary bands. A few HR staff need individual salaries.",
+  "options": [
+    "Give everyone the full employee table",
+    "Expose aggregated views and salary bands broadly; restrict raw salary columns to an HR role",
+    "Delete salaries from the warehouse",
+    "Share an export file by email"
+  ],
+  "answer": 1,
+  "why": [
+    "Exposes sensitive personal data to everyone who can query.",
+    "Least privilege: most users get what they need from aggregates, and access to raw values is limited and auditable.",
+    "Blocks legitimate HR analysis.",
+    "Uncontrolled copies of personal data."
+  ]
+}
+```
+
 ## Expected output
 
 - `dim_department`: 11 rows including the `-1 Unknown` member

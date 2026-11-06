@@ -129,6 +129,54 @@ Each SQL task is the compiled output of a dbt model or test. Each task runs in i
 }
 ```
 
+## Design decisions
+
+Real pipelines are mostly decisions. Pick the option that fits each scenario; every option explains itself once you answer.
+
+```task
+{
+  "id": "d-materialization",
+  "title": "Materialising a large model",
+  "type": "decision",
+  "instructions": "fct_events has 800 million rows and gains 2 million a day; a full rebuild takes 3 hours.",
+  "options": [
+    "view",
+    "table rebuilt every run",
+    "incremental model with a unique_key and an is_incremental() filter",
+    "ephemeral"
+  ],
+  "answer": 2,
+  "why": [
+    "Every query re-scans the source: too slow for dashboards.",
+    "Correct but rebuilds 800M rows nightly.",
+    "Processes only new or changed rows and merges them on the unique key, keeping runs short.",
+    "Ephemeral models are inlined CTEs and are never stored."
+  ]
+}
+```
+
+```task
+{
+  "id": "d-tests",
+  "title": "Which tests protect a fact table",
+  "type": "decision",
+  "instructions": "fct_orders joins to dim_customers and must have one row per order.",
+  "options": [
+    "No tests: the SQL is reviewed",
+    "unique and not_null on order_id, a relationships test to dim_customers, accepted_values on status",
+    "Only a row-count test",
+    "Visual check in the dashboard"
+  ],
+  "answer": 1,
+  "why": [
+    "Reviews don't catch data changes upstream.",
+    "These encode the grain, the foreign key and the domain, so the build fails on the most common breakages.",
+    "Doesn't detect duplicates or orphaned keys.",
+    "Too late, and manual."
+  ]
+}
+```
+
 ## Expected output
 
 - `stg_orders` and `stg_order_details` are views
