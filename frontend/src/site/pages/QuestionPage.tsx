@@ -13,6 +13,7 @@ import { ShareButton } from "../components/ShareButton";
 import { SchemaPanel } from "../components/SchemaPanel";
 import { SITE_NAME, Seo, breadcrumbs, canonical, clip, faqPage } from "../lib/seo";
 import { getProgress, markRevealed, recordHint, useProgress } from "../lib/progress";
+import { overrideKey, useContent } from "../lib/contentOverrides";
 import { track } from "../lib/activity";
 
 const PracticePanel = lazy(() => import("../components/PracticePanel"));
@@ -52,6 +53,8 @@ export function QuestionPage() {
   const q = data.question!;
   const progress = useProgress();
   const [mounted, setMounted] = useState(false);
+  const content = useContent();
+  const override = content.overrides.get(overrideKey("sql", q.number));
   const [justSolved, setJustSolved] = useState(false);
   const [tab, setTab] = useState<Tab>("description");
   const navigate = useNavigate();
@@ -405,7 +408,9 @@ export function QuestionPage() {
         </section>
 
         <div ref={panelRef} id="editor" className="flex min-h-0 scroll-mt-16 flex-col gap-3 lg:overflow-y-auto">
-          {mounted ? (
+          {override?.disabled ? (
+            <p role="status" className="rounded-card border border-warn/40 bg-warn-dim p-4 text-sm text-ink">This question is temporarily unavailable while it is being reviewed. <Link to="/questions" className="text-accent hover:underline">Choose another question</Link>.</p>
+          ) : mounted ? (
             <Suspense fallback={<Skeleton className="h-[580px]" />}>
               <PracticePanel question={q} fill onRan={onRan} onSolved={(r) => {
                 if (r.correct) setJustSolved(true);

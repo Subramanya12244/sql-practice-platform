@@ -8,6 +8,7 @@ import { setChallenge, setHidden, weekStart } from "../lib/community";
 import { AdminSubmissions } from "./AdminSubmissions";
 import { AdminUserDetail } from "./AdminUserDetail";
 import { AdminAnalytics } from "../components/AdminAnalytics";
+import { AdminContent } from "../components/AdminContent";
 import { downloadCsv, toCsv } from "../lib/csv";
 
 interface CommentAdminRow {
@@ -229,6 +230,7 @@ export function AdminPage() {
           <button type="button" disabled={!hasMore} onClick={() => setPage((p) => p + 1)} className="rounded-lg border border-surface-border px-3 py-1.5 disabled:opacity-50">Older</button>
         </div>
         <AdminSubmissions name={name} users={users} onChange={() => void loadAudit()} />
+        <AdminContent />
         <Moderation name={name} onChange={() => void loadAudit()} />
       </>
     );

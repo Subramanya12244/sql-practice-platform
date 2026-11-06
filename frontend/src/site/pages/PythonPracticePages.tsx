@@ -11,6 +11,7 @@ import { runPythonTask, type TaskResult, type TestCounts } from "../lib/tasks";
 import { PY_CATEGORIES, PY_SKILLS, accuracy, categoryLabel, feedbackFor, filterExercises, overview, readStats, recordPyAttempt, splitHints, statusOf, subscribeStats, type PyFilter, type PyStat } from "../lib/pyPractice";
 import { track } from "../lib/activity";
 import { downloadText, formatPython } from "../lib/workspace";
+import { applyOverride, overrideKey, useContent } from "../lib/contentOverrides";
 import { SnippetsTab } from "../components/WorkspaceSide";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
@@ -34,7 +35,9 @@ const SELECT = "rounded-lg border border-surface-border bg-surface px-2 py-1.5 t
 export function PythonPracticeIndexPage() {
   const { data } = usePage();
   const progress = useProgress();
-  const all = data.exercises ?? [];
+  const content = useContent();
+  // Admin overrides (migration 010) hide disabled problems and apply title/difficulty edits.
+  const all = (data.exercises ?? []).flatMap((e) => applyOverride(e, content.overrides.get(overrideKey("python", e.slug))) ?? []);
   const { stats, mounted } = useStats();
   const done = mounted ? progress.lessons : undefined;
   const [f, setF] = useState<PyFilter>({ q: "", difficulty: "", category: "", skill: "", status: "" });
@@ -170,6 +173,7 @@ export function PythonExercisePage() {
   const { data } = usePage();
   const ex = data.exercise!;
   const task = ex.task;
+  const pyOverride = useContent().overrides.get(overrideKey("python", ex.slug));
   const progress = useProgress();
   const path = `/practice/python/${ex.slug}`;
   const [code, setCode] = useState(task?.starter ?? "");
@@ -264,6 +268,7 @@ export function PythonExercisePage() {
       <div className="mt-2 flex flex-wrap items-center gap-3">
         {ex.code && <span className="rounded-md bg-surface-soft px-2 py-0.5 font-mono text-xs text-ink-muted">{ex.code}</span>}
         <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">{ex.title}</h1>
+        {pyOverride?.disabled && <p role="status" className="w-full rounded-lg border border-warn/40 bg-warn-dim px-3 py-2 text-sm text-ink">This problem is temporarily unavailable while it is being reviewed; checks are turned off.</p>}
         <Difficulty level={ex.difficulty} />
         {done && <span className="inline-flex items-center gap-1 text-sm text-success"><CheckCircle2 className="h-4 w-4" aria-hidden /> Completed</span>}
         <span className="ml-auto flex items-center gap-1">
@@ -361,7 +366,7 @@ export function PythonExercisePage() {
                 {busy === "run" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />} Run
               </Button>
               {busy && <Button variant="danger" onClick={() => { stopPython(); setBusy(null); setOut({ kind: "run", text: "Stopped." }); }}>Stop</Button>}
-              <Button onClick={check} disabled={!!busy || !task}>
+              <Button onClick={check} disabled={!!busy || !task || !!pyOverride?.disabled}>
                 {busy === "check" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FlaskConical className="h-4 w-4" aria-hidden />} Check against tests
               </Button>
               <span className="ml-auto inline-flex items-center gap-1 text-xs text-ink-faint"><Timer className="h-3.5 w-3.5" aria-hidden /> {PY_TIMEOUT_MS / 1000}s limit · ⌘/Ctrl+Enter checks</span>

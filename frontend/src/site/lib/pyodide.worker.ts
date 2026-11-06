@@ -55,6 +55,9 @@ self.onmessage = async (e: MessageEvent<{ id: number; code: string; tests?: stri
     await p.runPythonAsync(GUARD, { globals: ns });
     // Standard input for input()/sys.stdin. JSON string literals are valid Python string literals.
     await p.runPythonAsync(`import sys as _s, io as _io\n_s.stdin = _io.StringIO(${JSON.stringify(stdin ?? "")})`, { globals: ns });
+    // Every run starts in a new, empty working directory: files written by an earlier run (or
+    // another problem) in the in-memory filesystem must not affect this one.
+    await p.runPythonAsync(`import os as _os, tempfile as _tf\n_os.chdir(_tf.mkdtemp(prefix="run-"))`, { globals: ns });
     let phase: "code" | "tests" = "code";
     try {
       await p.runPythonAsync(code, { globals: ns });

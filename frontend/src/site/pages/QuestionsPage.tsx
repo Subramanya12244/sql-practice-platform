@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, SearchX, Shuffle } from "lucide-react";
 import { usePage } from "../SiteApp";
-import { Card, Container, EmptyState, PageHeader, ProgressBar, QuestionCard } from "../components/ui";
+import { Card, Container, Difficulty, EmptyState, PageHeader, ProgressBar, QuestionCard } from "../components/ui";
+import { applyOverride, overrideKey, useContent } from "../lib/contentOverrides";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { useProgress } from "../lib/progress";
 
@@ -16,10 +17,13 @@ export function QuestionsPage() {
   const [trapsOnly, setTrapsOnly] = useState(false);
   const [unsolvedOnly, setUnsolvedOnly] = useState(false);
   const navigate = useNavigate();
+  const content = useContent();
+  // Admin overrides (migration 010): disabled questions leave the lists; title/difficulty edits apply.
+  const index = useMemo(() => data.index.flatMap((q) => applyOverride(q, content.overrides.get(overrideKey("sql", q.number))) ?? []), [data.index, content.overrides]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return data.index.filter((item) => {
+    return index.filter((item) => {
       if (level !== "All") {
         const hard = ["Hard", "Advanced", "Expert"].includes(item.difficulty);
         if (level === "Hard" ? !hard : item.difficulty !== level) return false;
@@ -29,7 +33,7 @@ export function QuestionsPage() {
       if (!q) return true;
       return [item.title, item.topicLabel, ...item.concepts].join(" ").toLowerCase().includes(q) || `q${item.number}` === q;
     });
-  }, [data.index, query, level, trapsOnly, unsolvedOnly, progress.questions]);
+  }, [index, query, level, trapsOnly, unsolvedOnly, progress.questions]);
 
   const filtering = query || level !== "All" || trapsOnly || unsolvedOnly;
   const isSolved = (n: number) => Boolean(progress.questions[n]?.solvedAt);
@@ -144,12 +148,26 @@ export function QuestionsPage() {
               <Link to={`/topics/${t.slug}`} className="text-sm text-accent hover:underline">Topic page</Link>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {data.index
+              {index
                 .filter((q) => q.topic === t.slug)
                 .map((q) => <QuestionCard key={q.slug} q={q} solved={!!progress.questions[q.number]?.solvedAt} />)}
             </div>
           </section>
         ))
+      )}
+      {content.custom.length > 0 && (
+        <section className="mb-10" aria-labelledby="more-questions">
+          <h2 id="more-questions" className="mb-3 font-display text-xl font-bold text-ink">More questions</h2>
+          <p className="mb-3 text-sm text-ink-muted">Added by the DataForge team; graded on the same Northwind database.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {content.custom.map((c) => (
+              <Link key={c.slug} to={`/questions/custom?q=${c.slug}`} className="flex items-center justify-between gap-3 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel hover:border-accent/40">
+                <span className="min-w-0"><span className="block truncate font-semibold text-ink">{c.title}</span><span className="text-xs text-ink-muted">{c.topic}</span></span>
+                <Difficulty level={c.difficulty} />
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
     </Container>
   );

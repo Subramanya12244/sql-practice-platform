@@ -15,6 +15,7 @@ import m006 from "../../../supabase/migrations/006_gamification.sql?raw";
 import m007 from "../../../supabase/migrations/007_activity_tracking.sql?raw";
 import m008 from "../../../supabase/migrations/008_admin_analytics.sql?raw";
 import m009 from "../../../supabase/migrations/009_study_notes.sql?raw";
+import m010 from "../../../supabase/migrations/010_content_management.sql?raw";
 
 /** Minimal stand-in for Supabase Storage (bucket + object tables and storage.foldername). */
 const STORAGE_STUB = `
@@ -50,12 +51,13 @@ const fails = (p: Promise<unknown>) => expect(p).rejects.toThrow();
 
 beforeAll(async () => {
   pg = new PGlite({ extensions: { citext, pgcrypto } });
-  for (const m of [stub, m001, m002, m003, m004, m005, m006, m007, m008, STORAGE_STUB, m009]) await pg.exec(m);
+  for (const m of [stub, m001, m002, m003, m004, m005, m006, m007, m008, STORAGE_STUB, m009, m010]) await pg.exec(m);
   // Re-applying must be safe (no data loss, no errors).
   await pg.exec(m003);
   await pg.exec(m004);
   await pg.exec(m008); // re-runnable, and restores the full audit action list
   await pg.exec(m009);
+  await pg.exec(m010);
   await pg.exec(`
     grant usage on schema public to anon, authenticated;
     grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -388,5 +390,35 @@ describe("study notes (009)", () => {
     expect(await as(B, "delete from storage.objects returning 1")).toEqual([]);
     expect(await as(A, `delete from study_notes where id = '${N1}' returning 1`)).toHaveLength(1);
     expect(await as(A, "delete from storage.objects returning 1")).toHaveLength(1);
+  });
+});
+
+describe("content management (010)", () => {
+  const Q = `insert into custom_questions (slug, title, difficulty, topic, problem, objective, reference_query) values ('top-shippers', 'Top shippers', 'Easy', 'Aggregations', 'List the shippers by order count.', 'Return shipper and count.', 'SELECT 1')`;
+  it("lets only admins override built-in questions; everyone can read overrides", async () => {
+    await fails(as(A, "insert into question_overrides (kind, ref, disabled) values ('sql', '25', true)"));
+    await as(ADMIN, "insert into question_overrides (kind, ref, disabled, note) values ('sql', '25', true, 'wrong expected output')");
+    expect(await as(null, "select kind, ref, disabled from question_overrides")).toEqual([{ kind: "sql", ref: "25", disabled: true }]);
+    expect(await as(A, "update question_overrides set disabled = false returning 1")).toEqual([]);
+    await as(ADMIN, "update question_overrides set disabled = false, title = 'Customers and orders' where kind = 'sql' and ref = '25'");
+    const [o] = await as<{ version: number; updated_by: string }>(ADMIN, "select version, updated_by from question_overrides");
+    expect(o).toEqual({ version: 2, updated_by: ADMIN });
+  });
+  it("keeps every version, admin-only, and audits content edits", async () => {
+    const v = await as<{ version: number; disabled: boolean }>(ADMIN, "select version, (data->>'disabled')::boolean as disabled from question_versions where ref = 'sql:25' order by version");
+    expect(v).toEqual([{ version: 1, disabled: true }, { version: 2, disabled: false }]);
+    expect(await as(A, "select * from question_versions")).toEqual([]);
+    const audits = await pg.query<{ n: number }>("select count(*)::int as n from audit_log where action = 'content_edit'");
+    expect(audits.rows[0].n).toBe(2);
+    await fails(as(A, "insert into audit_log (user_id, action) values (auth.uid(), 'content_edit')"));
+  });
+  it("hides unpublished custom questions from learners and anonymous visitors", async () => {
+    await fails(as(A, Q));
+    await as(ADMIN, Q);
+    expect(await as(A, "select slug from custom_questions")).toEqual([]);
+    expect(await as(null, "select slug from custom_questions")).toEqual([]);
+    await as(ADMIN, "update custom_questions set published = true where slug = 'top-shippers'");
+    expect(await as(null, "select slug, version from custom_questions")).toEqual([{ slug: "top-shippers", version: 2 }]);
+    await fails(as(ADMIN, "insert into custom_questions (slug, title, difficulty, topic, problem, objective, reference_query) values ('Bad Slug!', 'x', 'Easy', 'x', 'x', 'x', 'x')"));
   });
 });
