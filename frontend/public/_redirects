@@ -45,3 +45,7 @@
 /questions/q140-create-order-and-lines-with-chained-cte-inserts /questions/q189-create-order-and-lines-with-chained-cte-inserts 301
 /questions/q141-create-customer-revenue-summary-table-as-select /questions/q190-create-customer-revenue-summary-table-as-select 301
 /questions/q142-add-column-and-check-constraint-to-products /questions/q191-add-column-and-check-constraint-to-products 301
+# Q30, Q44 and Q45 were retitled (2026-11-06) so their titles no longer repeat Q29, Q27 and Q31.
+/questions/q30-products-never-ordered /questions/q30-products-never-ordered-join-key-filter 301
+/questions/q44-products-and-total-quantity-sold /questions/q44-products-and-total-quantity-sold-right-join 301
+/questions/q45-customers-and-total-revenue /questions/q45-customers-and-total-revenue-right-join 301

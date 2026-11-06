@@ -3,7 +3,8 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "vite";
+import { createHash } from "node:crypto";
+import { build, loadEnv } from "vite";
 import { Resvg } from "@resvg/resvg-js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -34,6 +35,7 @@ server.setJsonFetcher(async (p) => JSON.parse(await readFile(join(out, p), "utf8
 const template = await readFile(join(out, "site.html"), "utf8");
 const paths = await server.allPaths();
 const indexable = [];
+const inlineHashes = new Set(); // executable inline scripts, allowed by hash in the CSP
 
 for (const path of paths) {
   const { html, head, noindex, page } = await server.render(path);
@@ -44,13 +46,18 @@ for (const path of paths) {
     // Function replacers: a string replacement would expand "$'" / "$&" found in content.
     .replace("<!--head-->", () => head + extraHead)
     .replace("<!--app-->", () => html)
-    .replace("<!--page-data-->", () => `<script>window.__PAGE__=${embedded}</script>${beacon}`);
-  if (!doc.includes(`window.__PAGE__=${embedded}</script>`) || !doc.includes(html)) {
+    .replace("<!--page-data-->", () => `<script type="application/json" id="__PAGE__">${embedded}</script>${beacon}`);
+  if (!doc.includes(`id="__PAGE__">${embedded}</script>`) || !doc.includes(html)) {
     throw new Error(`Prerender of ${path} mangled its content`);
   }
   const file = path === "/404" ? join(out, "404.html") : join(out, path, "index.html");
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, doc);
+  for (const m of doc.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
+    const attrs = m[1] ?? "";
+    if (/\bsrc=/.test(attrs) || /type="application\/(ld\+)?json"/.test(attrs)) continue;
+    inlineHashes.add(`'sha256-${createHash("sha256").update(m[2]).digest("base64")}'`);
+  }
   if (!noindex) indexable.push(path);
 }
 
@@ -97,6 +104,29 @@ ${title}
   await writeFile(join(out, "og", `${q.slug}.png`), png);
 }
 await writeFile(join(out, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`);
+// Content-Security-Policy. Inline scripts are allowed only by hash; data scripts are JSON and never run.
+// Outside origins: jsdelivr (Pyodide, Monaco), Google Fonts, Supabase, GitHub API (portfolio push),
+// Cloudflare Web Analytics. 'wasm-unsafe-eval' lets PGlite and Pyodide compile WebAssembly.
+if (inlineHashes.size > 5) throw new Error(`Unexpected inline scripts: ${inlineHashes.size} distinct (page data must stay JSON)`);
+const supabase = (process.env.VITE_SUPABASE_URL || loadEnv("production", root, "VITE_").VITE_SUPABASE_URL || "").replace(/\/$/, "");
+const supa = supabase ? new URL(supabase).origin : "";
+const csp = [
+  "default-src 'self'",
+  `script-src 'self' 'wasm-unsafe-eval' ${[...inlineHashes].join(" ")} https://cdn.jsdelivr.net https://static.cloudflareinsights.com`,
+  "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+  "font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  `connect-src 'self' https://cdn.jsdelivr.net https://api.github.com https://cloudflareinsights.com${supa ? ` ${supa} ${supa.replace(/^https/, "wss")}` : ""}`,
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+const headersFile = join(out, "_headers");
+const headers = await readFile(headersFile, "utf8");
+if (!headers.includes("\n/*\n")) throw new Error("_headers has no /* block for the CSP");
+await writeFile(headersFile, headers.replace("\n/*\n", `\n/*\n  Content-Security-Policy: ${csp}\n`));
 await rm(join(out, "site.html"));
 await rm(ssrOut, { recursive: true, force: true });
 

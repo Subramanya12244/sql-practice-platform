@@ -8,12 +8,6 @@ import { loadIndex, loadTopics } from "./lib/data";
 import "../index.css";
 import "./site.css";
 
-declare global {
-  interface Window {
-    __PAGE__?: InitialPage;
-  }
-}
-
 const root = document.getElementById("root")!;
 
 function app(initial: InitialPage) {
@@ -28,7 +22,8 @@ function app(initial: InitialPage) {
   );
 }
 
-const embedded = window.__PAGE__;
+const pageData = document.getElementById("__PAGE__")?.textContent;
+const embedded: InitialPage | undefined = pageData ? JSON.parse(pageData) : undefined;
 if (embedded) {
   // Prerendered page. The shared index/topics are left out of the HTML to keep
   // it small; fetch them (browser-cached across pages) so hydration matches.
