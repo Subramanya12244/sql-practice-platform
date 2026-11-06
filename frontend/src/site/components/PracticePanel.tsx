@@ -61,7 +61,8 @@ export default function PracticePanel({
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
   const draftTimer = useRef<ReturnType<typeof setTimeout>>();
-  const [plan, setPlan] = useState<{ node: PlanNode | null; error?: string } | null>(null);
+  const [plan, setPlan] = useState<{ node: PlanNode | null; error?: string; busy?: boolean } | null>(null);
+  const planRef = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false);
   const [side, setSide] = useState<SideTab | null>(null);
   // History of this problem's runs and submits (kept in this browser).
@@ -157,11 +158,16 @@ export default function PracticePanel({
 
   const onExplain = useCallback(async () => {
     const body = current.replace(/--.*$/gm, "").trim().replace(/;\s*$/, "");
-    if (!body) return;
+    setWantDb(true); // the plan needs the database; runQuery waits for it to start
+    if (!body) return setPlan({ node: null, error: "Write a query first, then explain it." });
     if (body.includes(";")) return setPlan({ node: null, error: "EXPLAIN works on a single statement." });
+    setPlan({ node: null, busy: true });
     const res = await runQuery(`EXPLAIN (FORMAT JSON) ${body}`, dataset);
     setPlan(res.success ? { node: parsePlan(res.rows[0]?.[0]) } : { node: null, error: res.message ?? "Could not explain this query." });
   }, [current, dataset]);
+
+  // The plan renders under the editor panel, usually below the fold: bring it into view.
+  useEffect(() => { if (plan) planRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [plan]);
 
   const onSubmit = useCallback(async () => {
     setSubmitting(true);
@@ -218,8 +224,8 @@ export default function PracticePanel({
         )}
         {ready === "error" && <span className="text-danger">Could not start the database. Reload the page to try again.</span>}
         <span className="ml-auto flex items-center gap-0.5">
-          {ready === "ready" && (
-            <button type="button" onClick={onExplain} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title="Show how PostgreSQL will run this query">
+          {ready !== "error" && (
+            <button type="button" onClick={() => void onExplain()} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title="Show how PostgreSQL will run this query">
               <GitBranch className="h-3.5 w-3.5" aria-hidden /> Explain plan
             </button>
           )}
@@ -304,12 +310,13 @@ export default function PracticePanel({
         submit={submitResult}
       />
       {plan && (
-        <div className="border-t border-surface-border px-4 py-3">
+        <div ref={planRef} className="max-h-[45vh] shrink-0 scroll-mt-20 overflow-auto border-t border-surface-border px-4 py-3" aria-live="polite">
           <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-ink-faint">
             Query plan
             <button type="button" onClick={() => setPlan(null)} className="normal-case tracking-normal hover:text-ink">Close</button>
           </div>
-          {plan.node ? <PlanTree plan={plan.node} /> : <p className="text-sm text-danger">{plan.error}</p>}
+          {plan.busy ? <p className="flex items-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Asking PostgreSQL for the plan…</p>
+            : plan.node ? <PlanTree plan={plan.node} /> : <p className="text-sm text-danger">{plan.error}</p>}
         </div>
       )}
     </div>
