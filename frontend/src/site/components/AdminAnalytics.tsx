@@ -5,7 +5,7 @@ import { usePage } from "../SiteApp";
 import { getSupabase } from "../lib/supabase";
 import { downloadCsv, toCsv } from "../lib/csv";
 import {
-  difficultTopics, failedProblems, filterLearners, inactiveLearners, learnerAccuracy, pct, presetRange, toLearner, validRange,
+  describeProblem, difficultTopics, failedProblems, filterLearners, inactiveLearners, learnerAccuracy, pct, presetRange, toLearner, validRange,
   type Learner, type LearnerFilter, type LearnerSort, type Overview, type ProblemLookup, type ProblemStat,
 } from "../lib/adminAnalytics";
 import { PY_CATEGORIES } from "../lib/pyPractice";
@@ -73,6 +73,8 @@ export function AdminAnalytics({ onSelect, onRole, selfId, refreshKey }: {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [learners, setLearners] = useState<Learner[]>([]);
   const [stats, setStats] = useState<ProblemStat[]>([]);
+  const [insights, setInsights] = useState<QuestionInsight[]>([]);
+  const [extras, setExtras] = useState<Map<string, LearnerExtra>>(new Map());
   const [err, setErr] = useState<string | null>(null);
   const [f, setF] = useState<LearnerFilter>({ q: "", role: "", activity: "", sort: "created_at", desc: true });
 
@@ -87,6 +89,10 @@ export function AdminAnalytics({ onSelect, onRole, selfId, refreshKey }: {
     setOverview(o.data as Overview);
     setLearners(((l.data ?? []) as Record<string, unknown>[]).map(toLearner));
     setStats(((p.data ?? []) as ProblemStat[]).map((s) => ({ ...s, submits: Number(s.submits), passed: Number(s.passed), hidden_failed: Number(s.hidden_failed), learners: Number(s.learners) })));
+    // Migration 012 (optional): question insights and per-learner extras.
+    const [qi, ex] = await Promise.all([sb.rpc("admin_question_insights", args), sb.rpc("admin_learner_extras")]);
+    setInsights(qi.error ? [] : ((qi.data ?? []) as Record<string, unknown>[]).map(toInsight));
+    setExtras(ex.error ? new Map() : new Map(((ex.data ?? []) as Record<string, unknown>[]).map((r) => [String(r.id), { assessments: Number(r.assessments), avg_score: r.avg_score === null ? null : Number(r.avg_score), projects_started: Number(r.projects_started), projects_completed: Number(r.projects_completed), revision_due: Number(r.revision_due) }])));
   }, [range]);
   useEffect(() => { void load(); }, [load, refreshKey]);
 
@@ -182,7 +188,7 @@ export function AdminAnalytics({ onSelect, onRole, selfId, refreshKey }: {
               <tr>
                 <SortHead label="Username" k="username" f={f} set={setF} /><th className={th}>Role</th>
                 <SortHead label="SQL solved" k="sql_solved" f={f} set={setF} /><SortHead label="Python solved" k="py_solved" f={f} set={setF} />
-                <SortHead label="Accuracy" k="accuracy" f={f} set={setF} /><SortHead label="Active 30d" k="active_min_30d" f={f} set={setF} />
+                <SortHead label="Accuracy" k="accuracy" f={f} set={setF} /><SortHead label="Active 30d" k="active_min_30d" f={f} set={setF} /><th className={th}>Assessments</th><th className={th}>Projects</th>
                 <SortHead label="Joined" k="created_at" f={f} set={setF} /><SortHead label="Last active" k="last_activity_at" f={f} set={setF} /><th className={th} />
               </tr>
             </thead>
@@ -195,6 +201,8 @@ export function AdminAnalytics({ onSelect, onRole, selfId, refreshKey }: {
                   <td className={`${td} tabular-nums`}>{l.py_solved}</td>
                   <td className={`${td} tabular-nums`}>{n(learnerAccuracy(l), "%")}</td>
                   <td className={`${td} tabular-nums`}>{l.active_min_30d} min</td>
+                  <td className={`${td} tabular-nums`}>{extras.get(l.id)?.assessments ? `${extras.get(l.id)!.assessments} · ${n(extras.get(l.id)!.avg_score, "%")}` : "—"}</td>
+                  <td className={`${td} tabular-nums`}>{extras.get(l.id) ? `${extras.get(l.id)!.projects_completed}/${extras.get(l.id)!.projects_started}` : "—"}</td>
                   <td className={td}>{fmtDay(l.created_at)}</td>
                   <td className={td}>{fmtDay(l.last_activity_at ?? l.last_seen_at)}</td>
                   <td className={td}>
@@ -204,7 +212,7 @@ export function AdminAnalytics({ onSelect, onRole, selfId, refreshKey }: {
                   </td>
                 </tr>
               ))}
-              {!shown.length && <tr><td className={td} colSpan={9}>No learners match.</td></tr>}
+              {!shown.length && <tr><td className={td} colSpan={11}>No learners match.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -241,6 +249,40 @@ export function AdminAnalytics({ onSelect, onRole, selfId, refreshKey }: {
           </ul>
         </Card>
       </div>
+      {insights.length > 0 && <QuestionInsights rows={insights} lookup={lookup} />}
     </section>
+  );
+}
+
+interface QuestionInsight { kind: "sql" | "python"; ref: string; opened_by: number; submits: number; passed: number; hidden_failed: number; learners: number; median_solve_sec: number | null }
+interface LearnerExtra { assessments: number; avg_score: number | null; projects_started: number; projects_completed: number; revision_due: number }
+const toInsight = (r: Record<string, unknown>): QuestionInsight => ({ kind: r.kind as "sql" | "python", ref: String(r.ref), opened_by: Number(r.opened_by), submits: Number(r.submits), passed: Number(r.passed), hidden_failed: Number(r.hidden_failed), learners: Number(r.learners), median_solve_sec: r.median_solve_sec === null ? null : Number(r.median_solve_sec) });
+
+/**
+ * Rules (visible to admins): slow = median first solve over 20 minutes (SQL); low engagement =
+ * opened by 3+ learners but checked by under a third of them; possibly faulty = 5+ checks with a
+ * pass rate of 10% or less, or most failures coming from hidden tests.
+ */
+function QuestionInsights({ rows, lookup }: { rows: QuestionInsight[]; lookup: ProblemLookup }) {
+  const title = (r: QuestionInsight) => describeProblem({ kind: r.kind, ref: r.ref, submits: 0, passed: 0, hidden_failed: 0, learners: 0 }, lookup).title;
+  const slow = rows.filter((r) => (r.median_solve_sec ?? 0) > 1200).sort((a, b) => (b.median_solve_sec ?? 0) - (a.median_solve_sec ?? 0)).slice(0, 8);
+  const low = rows.filter((r) => r.opened_by >= 3 && r.learners < r.opened_by / 3).sort((a, b) => b.opened_by - a.opened_by).slice(0, 8);
+  const faulty = rows.filter((r) => r.submits >= 5 && (r.passed / r.submits <= 0.1 || r.hidden_failed > (r.submits - r.passed) / 2)).sort((a, b) => a.passed / a.submits - b.passed / b.submits).slice(0, 8);
+  const col = (label: string, hint: string, items: QuestionInsight[], value: (r: QuestionInsight) => string) => (
+    <Card pad="sm" as="section" className="min-w-0" aria-label={label}>
+      <h3 className="text-sm font-semibold text-ink">{label}</h3>
+      <p className="text-[11px] text-ink-faint">{hint}</p>
+      <ul className="mt-2 space-y-1 text-sm">
+        {items.map((r) => <li key={r.kind + r.ref} className="flex justify-between gap-2"><span className="truncate text-ink">{title(r)}</span><span className="shrink-0 text-xs tabular-nums text-ink-muted">{value(r)}</span></li>)}
+        {!items.length && <li className="text-xs text-ink-muted">None in this range.</li>}
+      </ul>
+    </Card>
+  );
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      {col("Slow to solve", "Median first-solve time over 20 min (SQL, all time).", slow, (r) => `${Math.round((r.median_solve_sec ?? 0) / 60)} min median`)}
+      {col("Low engagement", "Opened by 3+ learners, checked by under a third of them.", low, (r) => `${r.learners}/${r.opened_by} tried`)}
+      {col("Possibly faulty", "5+ checks with ≤10% passing, or failures mostly on hidden tests: review the question.", faulty, (r) => `${Math.round((r.passed / r.submits) * 100)}% pass · ${r.hidden_failed} hidden`)}
+    </div>
   );
 }

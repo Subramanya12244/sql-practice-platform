@@ -11,6 +11,7 @@ import { MASTERY, personalReportHtml, pyMastery, sqlMastery, sqlRevision, type M
 import { PY_CATEGORIES, accuracy, overview, readStats, type PyStat } from "../lib/pyPractice";
 import { activeMinutes, formatMinutes, summarizeMinutes } from "../lib/activity";
 import { useAuth } from "../lib/auth";
+import { LearningAnalytics } from "../components/LearningAnalytics";
 
 const TONE: Record<Mastery, string> = { "Not started": "text-ink-faint", Learning: "text-ink-muted", Practising: "text-ink", Proficient: "text-accent", Mastered: "text-success" };
 
@@ -119,6 +120,8 @@ export function ProgressPage() {
         <ShareButton kind="progress" solved={solvedNums.size} total={data.index.length} streak={days} />
         <Link to="/review" className="ml-3 text-sm font-semibold text-accent hover:underline">Open review queue →</Link>
       </div>
+
+      <LearningAnalytics />
 
       <PracticeNext />
 

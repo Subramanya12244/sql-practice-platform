@@ -17,6 +17,7 @@ import m008 from "../../../supabase/migrations/008_admin_analytics.sql?raw";
 import m009 from "../../../supabase/migrations/009_study_notes.sql?raw";
 import m010 from "../../../supabase/migrations/010_content_management.sql?raw";
 import m011 from "../../../supabase/migrations/011_assessments.sql?raw";
+import m012 from "../../../supabase/migrations/012_admin_insights.sql?raw";
 
 /** Minimal stand-in for Supabase Storage (bucket + object tables and storage.foldername). */
 const STORAGE_STUB = `
@@ -52,7 +53,7 @@ const fails = (p: Promise<unknown>) => expect(p).rejects.toThrow();
 
 beforeAll(async () => {
   pg = new PGlite({ extensions: { citext, pgcrypto } });
-  for (const m of [stub, m001, m002, m003, m004, m005, m006, m007, m008, STORAGE_STUB, m009, m010, m011]) await pg.exec(m);
+  for (const m of [stub, m001, m002, m003, m004, m005, m006, m007, m008, STORAGE_STUB, m009, m010, m011, m012]) await pg.exec(m);
   // Re-applying must be safe (no data loss, no errors).
   await pg.exec(m003);
   await pg.exec(m004);
@@ -469,5 +470,28 @@ describe("assessments (011)", () => {
     expect((await as<{ r: { score: number } }>(A, `select submit_assessment('${s.id}') as r`))[0].r.score).toBe(0);
     await fails(as(A, "select start_assessment('sql', null, null, 50, 30)"));
     await fails(as(A, "select start_assessment('sql', 'Impossible', null, 3, 30)"));
+  });
+});
+
+describe("admin insights (012)", () => {
+  const day = new Date().toISOString().slice(0, 10);
+  const range = `'${new Date(Date.now() - 6 * 86_400_000).toISOString().slice(0, 10)}'::date, '${day}'::date`;
+  it("refuses learners and anonymous callers", async () => {
+    for (const c of [`admin_question_insights(${range})`, "admin_learner_extras()"]) { await fails(as(A, `select * from ${c}`)); await fails(as(null, `select * from ${c}`)); }
+  });
+  it("combines opens, checks and median solve times per question", async () => {
+    await as(A, `insert into learning_events (id, user_id, type, ref, at) values (gen_random_uuid(), auth.uid(), 'sql_opened', 'q7', now())`);
+    await as(B, `insert into learning_events (id, user_id, type, ref, at) values (gen_random_uuid(), auth.uid(), 'sql_opened', 'q7', now())`);
+    await pg.query(`update profiles set state = jsonb_set(state, '{qmeta}', '{"7": {"solveSec": 600}}') where id = '${A}'`);
+    await pg.query(`update profiles set state = jsonb_set(state, '{qmeta}', '{"7": {"solveSec": 1200}}') where id = '${B}'`);
+    const rows = await as<{ kind: string; ref: string; opened_by: number; submits: number; median_solve_sec: number }>(ADMIN, `select * from admin_question_insights(${range}) where ref = 'q7'`);
+    expect(rows).toHaveLength(1);
+    expect([Number(rows[0].opened_by), Number(rows[0].submits), Number(rows[0].median_solve_sec)]).toEqual([2, 3, 900]);
+  });
+  it("reports assessments, projects and revision backlog per learner", async () => {
+    await pg.query(`update profiles set state = jsonb_set(state, '{revision}', '{"sql:7": {"due": "2000-01-01"}, "sql:8": {"due": "2999-01-01"}}') where id = '${A}'`);
+    const [r] = await as<{ assessments: number; avg_score: number; revision_due: number }>(ADMIN, `select * from admin_learner_extras() where id = '${A}'`);
+    expect(Number(r.assessments)).toBeGreaterThanOrEqual(1);
+    expect(Number(r.revision_due)).toBe(1);
   });
 });
