@@ -48,6 +48,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/scenarios", label: "Business scenarios" },
       { to: "/interview", label: "Interview sets", desc: "Question sets by role" },
       { to: "/assessments", label: "Assessments", desc: "Timed, server-graded SQL and Python" },
+      { to: "/debug-lab", label: "Pipeline debugging lab", desc: "Fix broken data pipelines" },
       { to: "/mock-interview", label: "Mock interview", desc: "Timed, graded" },
       { to: "/practice/python/assessment", label: "Python assessment", desc: "Timed, three problems" },
       { to: "/playground", label: "SQL playground", desc: "Six practice databases" },

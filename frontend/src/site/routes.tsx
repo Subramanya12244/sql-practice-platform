@@ -32,6 +32,7 @@ import { HistoryPage } from "./pages/HistoryPage";
 import { StudyNotesPage } from "./pages/StudyNotesPage";
 import { CustomQuestionPage } from "./pages/CustomQuestionPage";
 import { AssessmentsPage } from "./pages/AssessmentsPage";
+import { DebugLabPage } from "./pages/DebugLabPage";
 import { PythonAssessmentPage } from "./pages/PythonAssessmentPage";
 import { DataGeneratorPage } from "./pages/DataGeneratorPage";
 import { DataEngineeringPage } from "./pages/DataEngineeringPage";
@@ -85,6 +86,7 @@ const careerData = async (): Promise<PageData> => {
 
 export const routes: SiteRoute[] = [
   { path: "/", element: <HomePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex(), projects: await loadProjectIndex() }), paths: one("/") },
+  { path: "/debug-lab", element: <DebugLabPage />, load: base, paths: one("/debug-lab") },
   { path: "/assessments", element: <AssessmentsPage />, load: base, paths: one("/assessments") },
   { path: "/questions/custom", element: <CustomQuestionPage />, load: base, paths: one("/questions/custom") },
   { path: "/questions", element: <QuestionsPage />, load: base, paths: one("/questions") },

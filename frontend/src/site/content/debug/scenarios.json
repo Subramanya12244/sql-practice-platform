@@ -1,0 +1,281 @@
+[
+ {
+  "id": "duplicate-orders",
+  "level": "Beginner",
+  "title": "Revenue is double-counted",
+  "scenario": "A nightly job loads order events and reports revenue per day. Finance says Tuesday's revenue is far higher than the payment provider's report.",
+  "symptom": "daily_revenue() reports 2024-05-07 as 350.0; the payment provider says 225.0.",
+  "pipeline": "EVENTS = [\n    {\"event_id\": \"e1\", \"order_id\": 101, \"day\": \"2024-05-07\", \"amount\": 100.0},\n    {\"event_id\": \"e2\", \"order_id\": 102, \"day\": \"2024-05-07\", \"amount\": 125.0},\n    # the message queue redelivered e2 after a consumer restart\n    {\"event_id\": \"e2\", \"order_id\": 102, \"day\": \"2024-05-07\", \"amount\": 125.0},\n    {\"event_id\": \"e3\", \"order_id\": 103, \"day\": \"2024-05-08\", \"amount\": 80.0},\n]\n\n\ndef daily_revenue(events):\n    totals = {}\n    for e in events:\n        totals[e[\"day\"]] = totals.get(e[\"day\"], 0) + e[\"amount\"]\n    return totals\n\n\nprint(daily_revenue(EVENTS))\n",
+  "fixed": "EVENTS = [\n    {\"event_id\": \"e1\", \"order_id\": 101, \"day\": \"2024-05-07\", \"amount\": 100.0},\n    {\"event_id\": \"e2\", \"order_id\": 102, \"day\": \"2024-05-07\", \"amount\": 125.0},\n    # the message queue redelivered e2 after a consumer restart\n    {\"event_id\": \"e2\", \"order_id\": 102, \"day\": \"2024-05-07\", \"amount\": 125.0},\n    {\"event_id\": \"e3\", \"order_id\": 103, \"day\": \"2024-05-08\", \"amount\": 80.0},\n]\n\n\ndef daily_revenue(events):\n    totals, seen = {}, set()\n    for e in events:\n        if e[\"event_id\"] in seen:\n            continue\n        seen.add(e[\"event_id\"])\n        totals[e[\"day\"]] = totals.get(e[\"day\"], 0) + e[\"amount\"]\n    return totals\n\n\nprint(daily_revenue(EVENTS))\n",
+  "diagnosis": {
+   "question": "What causes the inflated total?",
+   "options": [
+    "Amounts are stored as floats",
+    "A redelivered event is counted twice",
+    "Days are compared as strings",
+    "The 08 May event is assigned to the 7th"
+   ],
+   "answer": 1,
+   "why": [
+    "Float rounding can't add 125 to a total.",
+    "Queues deliver at least once: the same event_id arrives twice and both copies are summed.",
+    "String dates compare correctly here.",
+    "The 8th is reported separately and correctly."
+   ]
+  },
+  "tests": "assert daily_revenue(EVENTS) == {\"2024-05-07\": 225.0, \"2024-05-08\": 80.0}\nassert daily_revenue([]) == {}\nassert daily_revenue([EVENTS[0], EVENTS[0], EVENTS[0]]) == {\"2024-05-07\": 100.0}\n",
+  "hints": [
+   "Compare the event ids in the input.",
+   "Keep a set of event ids you've already counted."
+  ],
+  "explanation": "At-least-once delivery means duplicates are normal; deduplicate on the event's unique id before aggregating. Deduplicating on the whole row would also work here, but the event id is the reliable key."
+ },
+ {
+  "id": "missing-discounts",
+  "level": "Beginner",
+  "title": "The job crashes on missing values",
+  "scenario": "The pricing feed sometimes omits the discount field. The net-price job has failed three nights this week.",
+  "symptom": "TypeError: unsupported operand type(s) for -: 'int' and 'NoneType'",
+  "pipeline": "ITEMS = [\n    {\"sku\": \"A1\", \"price\": 20.0, \"discount\": 0.25},\n    {\"sku\": \"B2\", \"price\": 10.0, \"discount\": None},\n    {\"sku\": \"C3\", \"price\": 8.0},\n]\n\n\ndef net_prices(items):\n    return {i[\"sku\"]: round(i[\"price\"] * (1 - i.get(\"discount\")), 2) for i in items}\n\n\nprint(net_prices(ITEMS))\n",
+  "fixed": "ITEMS = [\n    {\"sku\": \"A1\", \"price\": 20.0, \"discount\": 0.25},\n    {\"sku\": \"B2\", \"price\": 10.0, \"discount\": None},\n    {\"sku\": \"C3\", \"price\": 8.0},\n]\n\n\ndef net_prices(items):\n    return {i[\"sku\"]: round(i[\"price\"] * (1 - (i.get(\"discount\") or 0)), 2) for i in items}\n\n\nprint(net_prices(ITEMS))\n",
+  "diagnosis": {
+   "question": "Why does the job crash?",
+   "options": [
+    "price is missing for some items",
+    "discount is None or absent for some items, and None can't be subtracted",
+    "The dictionary comprehension is invalid syntax",
+    "round() needs an integer"
+   ],
+   "answer": 1,
+   "why": [
+    "Every item has a price.",
+    "dict.get returns None for a missing key and the feed sends explicit nulls too; both reach the arithmetic.",
+    "The comprehension is valid.",
+    "round() accepts floats with a number of digits."
+   ]
+  },
+  "tests": "assert net_prices(ITEMS) == {\"A1\": 15.0, \"B2\": 10.0, \"C3\": 8.0}\nassert net_prices([]) == {}\nassert net_prices([{\"sku\": \"Z\", \"price\": 5.0, \"discount\": 0.1}]) == {\"Z\": 4.5}\n",
+  "hints": [
+   "Look at what i.get(\"discount\") returns for B2 and C3.",
+   "Decide what a missing discount means for the business: here, no discount."
+  ],
+  "explanation": "Missing values need an explicit rule. Defaulting a missing discount to 0 matches the business meaning (no discount); `or 0` covers both an absent key and an explicit None."
+ },
+ {
+  "id": "string-amounts",
+  "level": "Beginner",
+  "title": "Totals that look like text",
+  "scenario": "A CSV export is parsed and amounts are summed per customer. The dashboard shows totals like '50.0010.00'.",
+  "symptom": "customer_totals() returns {'c1': '50.0010.00', 'c2': '7.5'}",
+  "pipeline": "import csv, io\n\nRAW = \"customer,amount\\nc1,50.00\\nc2,7.5\\nc1,10.00\\n\"\n\n\ndef customer_totals(text):\n    totals = {}\n    for row in csv.DictReader(io.StringIO(text)):\n        totals[row[\"customer\"]] = totals.get(row[\"customer\"], \"\") + row[\"amount\"]\n    return totals\n\n\nprint(customer_totals(RAW))\n",
+  "fixed": "import csv, io\n\nRAW = \"customer,amount\\nc1,50.00\\nc2,7.5\\nc1,10.00\\n\"\n\n\ndef customer_totals(text):\n    totals = {}\n    for row in csv.DictReader(io.StringIO(text)):\n        totals[row[\"customer\"]] = round(totals.get(row[\"customer\"], 0.0) + float(row[\"amount\"]), 2)\n    return totals\n\n\nprint(customer_totals(RAW))\n",
+  "diagnosis": {
+   "question": "What is wrong with the data types?",
+   "options": [
+    "CSV fields are strings, so + concatenates instead of adding",
+    "csv.DictReader skips the header",
+    "The amounts have too many decimals",
+    "Customer ids are case-sensitive"
+   ],
+   "answer": 0,
+   "why": [
+    "Every CSV value is text until you convert it; '50.00' + '10.00' is '50.0010.00'.",
+    "The header is used for the keys, correctly.",
+    "Decimals are fine once the values are numbers.",
+    "Not related to the concatenated totals."
+   ]
+  },
+  "tests": "assert customer_totals(RAW) == {\"c1\": 60.0, \"c2\": 7.5}\nassert customer_totals(\"customer,amount\\n\") == {}\nassert customer_totals(\"customer,amount\\nx,0.1\\nx,0.2\\n\") == {\"x\": 0.3}\n",
+  "hints": [
+   "What type does csv give you for row[\"amount\"]?",
+   "Convert to a number before adding; round the total."
+  ],
+  "explanation": "File formats like CSV carry no types: convert each field to its type at the boundary (float here, Decimal for money in production) before doing arithmetic."
+ },
+ {
+  "id": "pagination-skips",
+  "level": "Intermediate",
+  "title": "The API sync misses customers",
+  "scenario": "A sync pulls customers from a paginated API (3 per page). The API says there are 8 customers; the warehouse has 6.",
+  "symptom": "fetch_all() returns 6 customers instead of 8.",
+  "pipeline": "DATA = [{\"id\": n} for n in range(1, 9)]\n\n\ndef api(page, size=3):\n    \"\"\"Fake API: pages start at 1; 'next' is None on the last page.\"\"\"\n    start = (page - 1) * size\n    rows = DATA[start:start + size]\n    return {\"rows\": rows, \"next\": page + 1 if start + size < len(DATA) else None}\n\n\ndef fetch_all():\n    out, page = [], 1\n    while True:\n        resp = api(page)\n        if resp[\"next\"] is None:\n            break\n        out.extend(resp[\"rows\"])\n        page = resp[\"next\"]\n    return out\n\n\nprint(len(fetch_all()), \"customers\")\n",
+  "fixed": "DATA = [{\"id\": n} for n in range(1, 9)]\n\n\ndef api(page, size=3):\n    \"\"\"Fake API: pages start at 1; 'next' is None on the last page.\"\"\"\n    start = (page - 1) * size\n    rows = DATA[start:start + size]\n    return {\"rows\": rows, \"next\": page + 1 if start + size < len(DATA) else None}\n\n\ndef fetch_all():\n    out, page = [], 1\n    while page is not None:\n        resp = api(page)\n        out.extend(resp[\"rows\"])\n        page = resp[\"next\"]\n    return out\n\n\nprint(len(fetch_all()), \"customers\")\n",
+  "diagnosis": {
+   "question": "Which rows are missing, and why?",
+   "options": [
+    "The first page, because pages start at 0",
+    "The last page, because the loop stops before adding the rows of the page whose next is None",
+    "Random rows, because the API is not sorted",
+    "Every third row, because of the page size"
+   ],
+   "answer": 1,
+   "why": [
+    "The first page is fetched and kept.",
+    "The check for the end runs before extend, so the final page's rows (7 and 8) are thrown away.",
+    "The fake API is deterministic and ordered.",
+    "Rows are lost as a block at the end, not periodically."
+   ]
+  },
+  "tests": "ids = [r[\"id\"] for r in fetch_all()]\nassert ids == list(range(1, 9))\nDATA[:] = [{\"id\": 1}]\nassert [r[\"id\"] for r in fetch_all()] == [1]\nDATA[:] = []\nassert fetch_all() == []\n",
+  "hints": [
+   "Check which ids are missing.",
+   "Always keep the rows of the page you just fetched, then decide whether to continue."
+  ],
+  "explanation": "Pagination loops must process every page, including the last, and stop on the API's own end signal. Keep the rows first, then follow `next` until it is None."
+ },
+ {
+  "id": "incremental-gap",
+  "level": "Intermediate",
+  "title": "The incremental load keeps reloading the same rows",
+  "scenario": "An hourly job copies new transactions after the last watermark. Each run loads more rows than expected, and some rows appear several times in the target.",
+  "symptom": "Running load() twice loads every transaction twice: TARGET ends up with t1, t2, t3, t1, t2, t3.",
+  "pipeline": "SOURCE = [\n    {\"id\": \"t1\", \"ts\": \"2024-06-01T10:00\"},\n    {\"id\": \"t2\", \"ts\": \"2024-06-01T11:00\"},\n    {\"id\": \"t3\", \"ts\": \"2024-06-01T12:00\"},\n]\nTARGET = []\nSTATE = {\"watermark\": \"2024-06-01T10:00\"}\n\n\ndef load():\n    new = [r for r in SOURCE if r[\"ts\"] >= STATE[\"watermark\"]]\n    TARGET.extend(new)\n    return len(new)\n\n\nprint(load(), load(), [r[\"id\"] for r in TARGET])\n",
+  "fixed": "SOURCE = [\n    {\"id\": \"t1\", \"ts\": \"2024-06-01T10:00\"},\n    {\"id\": \"t2\", \"ts\": \"2024-06-01T11:00\"},\n    {\"id\": \"t3\", \"ts\": \"2024-06-01T12:00\"},\n]\nTARGET = []\nSTATE = {\"watermark\": \"2024-06-01T10:00\"}\n\n\ndef load():\n    new = sorted((r for r in SOURCE if r[\"ts\"] > STATE[\"watermark\"]), key=lambda r: (r[\"ts\"], r[\"id\"]))\n    TARGET.extend(new)\n    if new:\n        STATE[\"watermark\"] = new[-1][\"ts\"]\n    return len(new)\n\n\nprint(load(), load(), [r[\"id\"] for r in TARGET])\n",
+  "diagnosis": {
+   "question": "Which two mistakes cause the re-loads?",
+   "options": [
+    "The source is not sorted",
+    "The filter uses >= (reloads the boundary row) and the watermark is never advanced",
+    "TARGET is a list instead of a table",
+    "Timestamps are strings"
+   ],
+   "answer": 1,
+   "why": [
+    "Sorting matters for the watermark value but isn't what duplicates rows.",
+    "With >= the last-loaded row matches again, and without advancing the watermark every run starts from the same point.",
+    "A list is fine for the simulation.",
+    "ISO timestamps compare correctly as strings."
+   ]
+  },
+  "tests": "TARGET.clear()\nSTATE[\"watermark\"] = \"2024-06-01T10:00\"\nassert load() == 2\nassert load() == 0\nassert [r[\"id\"] for r in TARGET] == [\"t2\", \"t3\"]\nassert STATE[\"watermark\"] == \"2024-06-01T12:00\"\nSOURCE.append({\"id\": \"t4\", \"ts\": \"2024-06-01T13:00\"})\nassert load() == 1 and TARGET[-1][\"id\"] == \"t4\"\n",
+  "hints": [
+   "Run load() twice and watch STATE.",
+   "Use a strict comparison and move the watermark to the newest row you loaded."
+  ],
+  "explanation": "An incremental load needs both a strict lower bound and a watermark that advances to the newest loaded value; otherwise every run reloads old rows. In production, add upserts so a late-arriving row at the same timestamp is still safe."
+ },
+ {
+  "id": "schema-drift",
+  "level": "Intermediate",
+  "title": "A renamed field breaks the load",
+  "scenario": "The upstream team renamed `email` to `email_address` in their API. The customer load now rejects every new record.",
+  "symptom": "validate() rejects all of today's records as 'missing email'.",
+  "pipeline": "REQUIRED = {\"id\": int, \"email\": str}\n\nRECORDS = [\n    {\"id\": 1, \"email\": \"a@x.com\"},\n    {\"id\": 2, \"email_address\": \"b@x.com\"},\n    {\"id\": \"3\", \"email_address\": \"c@x.com\"},\n]\n\n\ndef validate(records):\n    good, bad = [], []\n    for r in records:\n        missing = [f for f, t in REQUIRED.items() if not isinstance(r.get(f), t)]\n        (bad if missing else good).append(r)\n    return good, bad\n\n\nprint(validate(RECORDS))\n",
+  "fixed": "REQUIRED = {\"id\": int, \"email\": str}\nALIASES = {\"email_address\": \"email\"}\n\nRECORDS = [\n    {\"id\": 1, \"email\": \"a@x.com\"},\n    {\"id\": 2, \"email_address\": \"b@x.com\"},\n    {\"id\": \"3\", \"email_address\": \"c@x.com\"},\n]\n\n\ndef normalise(r):\n    return {ALIASES.get(k, k): v for k, v in r.items()}\n\n\ndef validate(records):\n    good, bad = [], []\n    for r in map(normalise, records):\n        missing = [f for f, t in REQUIRED.items() if not isinstance(r.get(f), t)]\n        (bad if missing else good).append(r)\n    return good, bad\n\n\nprint(validate(RECORDS))\n",
+  "diagnosis": {
+   "question": "What is the right fix?",
+   "options": [
+    "Remove the email check",
+    "Map the new field name to the canonical one before validating, and keep rejecting records that are really invalid",
+    "Accept any record with an id",
+    "Convert every id with int()"
+   ],
+   "answer": 1,
+   "why": [
+    "Lets genuinely broken records through.",
+    "A rename is schema drift: normalise field names at the boundary, then validation still catches real problems like the string id.",
+    "Same problem as removing the check.",
+    "Silently coercing types hides upstream bugs; the bad id should still be rejected and reported."
+   ]
+  },
+  "tests": "good, bad = validate(RECORDS)\nassert [r[\"id\"] for r in good] == [1, 2]\nassert good[1] == {\"id\": 2, \"email\": \"b@x.com\"}\nassert [r[\"id\"] for r in bad] == [\"3\"]\nassert validate([]) == ([], [])\n",
+  "hints": [
+   "Compare the keys of record 1 and record 2.",
+   "Translate known aliases to the canonical names before checking types."
+  ],
+  "explanation": "Handle schema drift explicitly: map known aliases to canonical names, keep validating types, and alert on unknown changes. Record 3 is still rejected because its id is a string."
+ },
+ {
+  "id": "average-of-averages",
+  "level": "Advanced",
+  "title": "The average order value is wrong",
+  "scenario": "A two-stage pipeline computes average order value per store per day, then rolls the daily figures up to a monthly average per store.",
+  "symptom": "Store S1's monthly AOV is 62.5; a direct calculation over its orders gives 40.0.",
+  "pipeline": "ORDERS = [\n    {\"store\": \"S1\", \"day\": \"2024-07-01\", \"total\": 100.0},\n    {\"store\": \"S1\", \"day\": \"2024-07-02\", \"total\": 10.0},\n    {\"store\": \"S1\", \"day\": \"2024-07-02\", \"total\": 10.0},\n    {\"store\": \"S1\", \"day\": \"2024-07-02\", \"total\": 10.0},\n    {\"store\": \"S1\", \"day\": \"2024-07-02\", \"total\": 70.0},\n]\n\n\ndef daily_aov(orders):\n    acc = {}\n    for o in orders:\n        s, n = acc.get((o[\"store\"], o[\"day\"]), (0.0, 0))\n        acc[(o[\"store\"], o[\"day\"])] = (s + o[\"total\"], n + 1)\n    return {k: s / n for k, (s, n) in acc.items()}\n\n\ndef monthly_aov(orders):\n    daily = daily_aov(orders)\n    acc = {}\n    for (store, _day), aov in daily.items():\n        s, n = acc.get(store, (0.0, 0))\n        acc[store] = (s + aov, n + 1)\n    return {k: round(s / n, 2) for k, (s, n) in acc.items()}\n\n\nprint(monthly_aov(ORDERS))\n",
+  "fixed": "ORDERS = [\n    {\"store\": \"S1\", \"day\": \"2024-07-01\", \"total\": 100.0},\n    {\"store\": \"S1\", \"day\": \"2024-07-02\", \"total\": 10.0},\n    {\"store\": \"S1\", \"day\": \"2024-07-02\", \"total\": 10.0},\n    {\"store\": \"S1\", \"day\": \"2024-07-02\", \"total\": 10.0},\n    {\"store\": \"S1\", \"day\": \"2024-07-02\", \"total\": 70.0},\n]\n\n\ndef daily_sums(orders):\n    acc = {}\n    for o in orders:\n        s, n = acc.get((o[\"store\"], o[\"day\"]), (0.0, 0))\n        acc[(o[\"store\"], o[\"day\"])] = (s + o[\"total\"], n + 1)\n    return acc\n\n\ndef monthly_aov(orders):\n    acc = {}\n    for (store, _day), (s, n) in daily_sums(orders).items():\n        ts, tn = acc.get(store, (0.0, 0))\n        acc[store] = (ts + s, tn + n)\n    return {k: round(s / n, 2) for k, (s, n) in acc.items()}\n\n\nprint(monthly_aov(ORDERS))\n",
+  "diagnosis": {
+   "question": "Why does the monthly figure disagree?",
+   "options": [
+    "Floating-point error",
+    "It averages the daily averages, so a day with 1 order weighs as much as a day with 4",
+    "The day key is wrong",
+    "round() is applied too early"
+   ],
+   "answer": 1,
+   "why": [
+    "The difference is 15.0, far beyond rounding error.",
+    "Averages don't compose: (100 + 25) / 2 = 62.5 ≠ 200 / 5 = 40. Roll up sums and counts, then divide once.",
+    "Grouping by store and day is correct for the daily stage.",
+    "Rounding only happens at the end."
+   ]
+  },
+  "tests": "assert monthly_aov(ORDERS) == {\"S1\": 40.0}\nassert monthly_aov([]) == {}\nassert monthly_aov(ORDERS + [{\"store\": \"S2\", \"day\": \"2024-07-01\", \"total\": 9.0}]) == {\"S1\": 40.0, \"S2\": 9.0}\n",
+  "hints": [
+   "Compute the true average by hand: total revenue ÷ number of orders.",
+   "Carry (sum, count) through every stage and divide only at the end."
+  ],
+  "explanation": "Ratios such as averages are not additive. Pipelines that roll data up in stages must carry the additive parts (sum and count) and compute the ratio once at the final grain."
+ },
+ {
+  "id": "reconcile-types",
+  "level": "Advanced",
+  "title": "Reconciliation reports everything missing",
+  "scenario": "A daily check compares orders in the source database with orders in the warehouse. Today it reports every order as missing, although the counts match.",
+  "symptom": "reconcile() returns missing=[1, 2, 3] and extra=['1', '2', '3'].",
+  "pipeline": "SOURCE = [{\"order_id\": 1, \"total\": 10.0}, {\"order_id\": 2, \"total\": 5.5}, {\"order_id\": 3, \"total\": 7.25}]\n# The warehouse extract arrives as CSV text, so every value is a string.\nWAREHOUSE = [{\"order_id\": \"1\", \"total\": \"10.00\"}, {\"order_id\": \"2\", \"total\": \"5.50\"}, {\"order_id\": \"3\", \"total\": \"7.20\"}]\n\n\ndef reconcile(source, target):\n    s = {r[\"order_id\"]: r for r in source}\n    t = {r[\"order_id\"]: r for r in target}\n    return {\n        \"missing\": sorted(s.keys() - t.keys()),\n        \"extra\": sorted(t.keys() - s.keys()),\n        \"mismatched\": sorted(k for k in s.keys() & t.keys() if s[k][\"total\"] != t[k][\"total\"]),\n    }\n\n\nprint(reconcile(SOURCE, WAREHOUSE))\n",
+  "fixed": "SOURCE = [{\"order_id\": 1, \"total\": 10.0}, {\"order_id\": 2, \"total\": 5.5}, {\"order_id\": 3, \"total\": 7.25}]\n# The warehouse extract arrives as CSV text, so every value is a string.\nWAREHOUSE = [{\"order_id\": \"1\", \"total\": \"10.00\"}, {\"order_id\": \"2\", \"total\": \"5.50\"}, {\"order_id\": \"3\", \"total\": \"7.20\"}]\n\n\ndef canon(r):\n    return int(r[\"order_id\"]), round(float(r[\"total\"]), 2)\n\n\ndef reconcile(source, target):\n    s = dict(map(canon, source))\n    t = dict(map(canon, target))\n    return {\n        \"missing\": sorted(s.keys() - t.keys()),\n        \"extra\": sorted(t.keys() - s.keys()),\n        \"mismatched\": sorted(k for k in s.keys() & t.keys() if s[k] != t[k]),\n    }\n\n\nprint(reconcile(SOURCE, WAREHOUSE))\n",
+  "diagnosis": {
+   "question": "Why does every order look missing?",
+   "options": [
+    "The warehouse lost every order",
+    "The keys have different types (1 vs '1'), so no key matches; totals also need the same type before comparing",
+    "Sets can't be subtracted",
+    "The source has duplicates"
+   ],
+   "answer": 1,
+   "why": [
+    "The counts match: the orders are there.",
+    "1 != '1' in Python, so the key sets don't intersect. Canonicalise keys and values (int ids, rounded floats) before comparing; then the real difference, order 3, appears.",
+    "dict key views support set operations.",
+    "Each order id appears once."
+   ]
+  },
+  "tests": "assert reconcile(SOURCE, WAREHOUSE) == {\"missing\": [], \"extra\": [], \"mismatched\": [3]}\nassert reconcile([], []) == {\"missing\": [], \"extra\": [], \"mismatched\": []}\nassert reconcile(SOURCE, WAREHOUSE[:2])[\"missing\"] == [3]\n",
+  "hints": [
+   "Print type(SOURCE[0]['order_id']) and type(WAREHOUSE[0]['order_id']).",
+   "Convert both sides to the same types before building the key sets and comparing totals."
+  ],
+  "explanation": "Reconciliation must compare like with like: canonicalise keys and values from every source first. Only then do the real discrepancies (order 3: 7.25 vs 7.20) surface instead of noise."
+ },
+ {
+  "id": "ingestion-crash",
+  "level": "Advanced",
+  "title": "One bad line stops the whole ingestion",
+  "scenario": "A log ingestion job parses JSON lines from a file. Yesterday one truncated line made the job crash and nothing was loaded.",
+  "symptom": "json.decoder.JSONDecodeError: Unterminated string ... and 0 events loaded.",
+  "pipeline": "import json\n\nLINES = [\n    '{\"user\": \"u1\", \"action\": \"login\"}',\n    '{\"user\": \"u2\", \"action\": \"view\"}',\n    '{\"user\": \"u3\", \"act',\n    '',\n    '{\"user\": \"u1\", \"action\": \"logout\"}',\n]\n\n\ndef ingest(lines):\n    events = [json.loads(line) for line in lines]\n    return {\"loaded\": events, \"rejected\": []}\n\n\nresult = ingest(LINES)\nprint(len(result[\"loaded\"]), \"loaded\", len(result[\"rejected\"]), \"rejected\")\n",
+  "fixed": "import json\n\nLINES = [\n    '{\"user\": \"u1\", \"action\": \"login\"}',\n    '{\"user\": \"u2\", \"action\": \"view\"}',\n    '{\"user\": \"u3\", \"act',\n    '',\n    '{\"user\": \"u1\", \"action\": \"logout\"}',\n]\n\n\ndef ingest(lines):\n    loaded, rejected = [], []\n    for n, line in enumerate(lines, 1):\n        if not line.strip():\n            continue\n        try:\n            loaded.append(json.loads(line))\n        except json.JSONDecodeError as e:\n            rejected.append({\"line\": n, \"error\": e.msg, \"raw\": line})\n    return {\"loaded\": loaded, \"rejected\": rejected}\n\n\nresult = ingest(LINES)\nprint(len(result[\"loaded\"]), \"loaded\", len(result[\"rejected\"]), \"rejected\")\n",
+  "diagnosis": {
+   "question": "What should the job do with the truncated line?",
+   "options": [
+    "Crash so someone notices",
+    "Skip blank lines, load the valid ones and send the bad line (with its line number and error) to a reject list",
+    "Try to repair the JSON automatically",
+    "Drop the whole file"
+   ],
+   "answer": 1,
+   "why": [
+    "One bad line costs the whole day's data; a reject list makes the problem visible without losing everything.",
+    "Fault isolation: the good records load, the bad one is quarantined with enough context to investigate and replay.",
+    "Guessing the missing content invents data.",
+    "Loses all the good events too."
+   ]
+  },
+  "tests": "r = ingest(LINES)\nassert [e[\"action\"] for e in r[\"loaded\"]] == [\"login\", \"view\", \"logout\"]\nassert [x[\"line\"] for x in r[\"rejected\"]] == [3]\nassert r[\"rejected\"][0][\"raw\"].startswith('{\"user\": \"u3\"')\nassert ingest([]) == {\"loaded\": [], \"rejected\": []}\n",
+  "hints": [
+   "Parse line by line instead of all at once.",
+   "Catch json.JSONDecodeError per line; record the line number and the error."
+  ],
+  "explanation": "Ingestion should isolate failures per record: blank lines are skipped, malformed ones are quarantined with their position and error, and the rest of the batch still loads. Alert on the reject count."
+ }
+]
