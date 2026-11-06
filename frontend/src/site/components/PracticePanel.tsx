@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BookOpen, CheckCircle2, GitBranch, Loader2, Maximize2, Minimize2, Plus, Stethoscope, X } from "lucide-react";
+import { CheckCircle2, Download, GitBranch, Loader2, Maximize2, Minimize2, PanelRight, Plus, Stethoscope, X } from "lucide-react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { ReferencePanel } from "./ReferencePanel";
+import { WorkspaceSide, type SideTab } from "./WorkspaceSide";
+import { downloadText, safeName } from "../lib/workspace";
+import { addExec } from "../lib/vizHistory";
 import { Link } from "react-router-dom";
 import { SqlEditor, type RunRequest } from "../../components/SqlEditor";
 import { ResultsPanel } from "../../components/ResultsPanel";
 import type { ResultTab, ResultTarget, SubmitResult, TableSchema } from "../../types";
 import type { Question } from "../types";
 import { getDb, getSchemas, runQuery, submitQuery } from "../lib/browserDb";
-import { completeExercise, recordAttempt, saveDraft, useProgress } from "../lib/progress";
+import { completeExercise, getProgress, recordAttempt, saveDraft, useProgress } from "../lib/progress";
 import { explainError } from "../lib/errorHelp";
 import { PlanTree, parsePlan, type PlanNode } from "./PlanTree";
 import { FORGE_THEMES, defineForgeThemes } from "../lib/monacoTheme";
@@ -61,7 +63,15 @@ export default function PracticePanel({
   const draftTimer = useRef<ReturnType<typeof setTimeout>>();
   const [plan, setPlan] = useState<{ node: PlanNode | null; error?: string } | null>(null);
   const [full, setFull] = useState(false);
-  const [showRef, setShowRef] = useState(false);
+  const [side, setSide] = useState<SideTab | null>(null);
+  // History of this problem's runs and submits (kept in this browser).
+  const historyKey = lessonKey ? `lesson:${lessonKey}` : playground ? `pg:${dataset}` : `q${question.number}`;
+  const [historyVersion, setHistoryVersion] = useState(0);
+  /** One writer for the execution history (sqlp.exec.<key>), shown here and on the question's History tab. */
+  const logRun = (kind: "run" | "submit", code: string, ok: boolean, rows?: number, correct?: boolean) => {
+    addExec(historyKey, { at: new Date().toISOString(), kind, sql: code, ok, rows, correct, attempt: lessonKey || playground ? 0 : getProgress().questions[question.number]?.attempts ?? 0 });
+    setHistoryVersion((v) => v + 1);
+  };
 
   // Extra query tabs (scratch queries) per question/exercise. Tab "main" is the saved draft that
   // Submit grades by default; any tab can be run or submitted.
@@ -86,13 +96,16 @@ export default function PracticePanel({
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
   }, [full]);
 
-  // Restore the visitor's last draft for this question once storage is readable.
-  const restored = useRef(false);
+  // Restore the visitor's last draft for this question. Effects run only in the browser, after
+  // hydration, so read storage directly: during hydration `saved` still comes from the
+  // prerendered (empty) snapshot, and restoring from it would show the starter query.
+  const restored = useRef<number | null>(null);
   useEffect(() => {
-    if (restored.current) return;
-    restored.current = true;
-    setSql((!fresh && saved?.lastSql) || starter(question));
-  }, [saved, question, fresh]);
+    if (restored.current === question.number) return;
+    restored.current = question.number;
+    const draft = lessonKey ? undefined : getProgress().questions[question.number]?.lastSql;
+    setSql((!fresh && draft) || starter(question));
+  }, [question, fresh, lessonKey]);
 
   useEffect(() => {
     if (!wantDb) return;
@@ -125,6 +138,7 @@ export default function PracticePanel({
       setRunning(true);
       setSubmitResult(null);
       const result = await runQuery(text, dataset);
+      logRun("run", text, result.success, result.success ? result.row_count ?? result.rows.length : undefined);
       onRan?.(text, result);
       track("sql_executed", lessonKey ? `lesson:${lessonKey}` : playground ? `playground:${dataset}` : `q${question.number}`, { ok: result.success });
       const reuseId = target === "same" ? (tabs.find((t) => t.id === activeTab) ?? tabs[tabs.length - 1])?.id : undefined;
@@ -162,6 +176,7 @@ export default function PracticePanel({
     }
     setSubmitResult(result);
     setSubmitting(false);
+    logRun("submit", sql, true, result.your_row_count ?? undefined, result.correct);
     track("sql_submitted", lessonKey ? `lesson:${lessonKey}` : `q${question.number}`, { passed: result.correct, hidden_failed: Boolean(result.hidden_failed) });
     if (lessonKey && result.correct) track("lesson_completed", `lesson:${lessonKey}`);
     onSolved?.(result, sql);
@@ -208,8 +223,11 @@ export default function PracticePanel({
               <GitBranch className="h-3.5 w-3.5" aria-hidden /> Explain plan
             </button>
           )}
-          <button type="button" onClick={() => setShowRef((v) => !v)} aria-pressed={showRef} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title="SQL reference">
-            <BookOpen className="h-3.5 w-3.5" aria-hidden /> <span className="hidden sm:inline">Reference</span>
+          <button type="button" onClick={() => setSide((v) => (v ? null : "schema"))} aria-pressed={!!side} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title="Schema, history, snippets and reference">
+            <PanelRight className="h-3.5 w-3.5" aria-hidden /> <span className="hidden sm:inline">Tools</span>
+          </button>
+          <button type="button" onClick={() => downloadText(`${playground ? `playground-${dataset}` : safeName(question.slug || `q${question.number}`)}.sql`, current, "application/sql")} disabled={!current.trim()} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink disabled:opacity-40" title="Download this query as a .sql file" aria-label="Download query">
+            <Download className="h-3.5 w-3.5" aria-hidden />
           </button>
           <button type="button" onClick={() => setFull((v) => !v)} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title={full ? "Exit full screen (Esc)" : "Full screen"} aria-label={full ? "Exit full screen" : "Full screen"}>
             {full ? <Minimize2 className="h-3.5 w-3.5" aria-hidden /> : <Maximize2 className="h-3.5 w-3.5" aria-hidden />}
@@ -272,9 +290,12 @@ export default function PracticePanel({
             </Panel>
           </PanelGroup>
         </div>
-        {showRef && (
+        {side && (
           <div className="absolute inset-0 z-10 sm:static sm:w-80 sm:shrink-0">
-            <ReferencePanel onClose={() => setShowRef(false)} onInsert={(text) => onEditorChange(`${current.replace(/\s*$/, "")}\n\n${text}\n`)} />
+            <WorkspaceSide tab={side} onTab={setSide} onClose={() => setSide(null)} schemas={schemas} dataset={dataset} datasetLabel={datasetLabel}
+              historyKey={historyKey} historyVersion={historyVersion} current={current}
+              onInsert={(text) => onEditorChange(/^[\w.]+$/.test(text) ? `${current.replace(/\s*$/, "")} ${text}` : `${current.replace(/\s*$/, "")}\n\n${text}\n`)}
+              onReplace={onEditorChange} />
           </div>
         )}
       </div>

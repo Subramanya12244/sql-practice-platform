@@ -41,7 +41,7 @@ export interface RemoteState {
   portfolio?: Progress["portfolio"];
   reviews?: Progress["reviews"];
   /** Per-question evidence that has no column on the progress table. */
-  qmeta?: Record<string, Pick<QuestionProgress, "practiced" | "imported" | "hintLevel" | "assisted" | "startedAt" | "solveSec" | "errorKinds">>;
+  qmeta?: Record<string, Pick<QuestionProgress, "practiced" | "imported" | "hintLevel" | "assisted" | "startedAt" | "solveSec" | "errorKinds" | "lastSql">>;
 }
 
 const earliest = (a?: string, b?: string) => (!a ? b : !b ? a : a < b ? a : b);
@@ -69,6 +69,8 @@ export function mergeProgress(local: Progress, rows: ProgressRow[], state: Remot
   const questions = { ...local.questions };
   for (const row of rows) questions[row.question_number] = mergeQuestion(questions[row.question_number], row);
   for (const [k, meta] of Object.entries(state.qmeta ?? {})) {
+    // A saved query restores even on a device that has no other progress for the question.
+    if (!questions[k] && meta.lastSql) questions[k] = { attempts: 0 };
     const q = questions[k];
     if (!q) continue;
     questions[k] = {
@@ -78,6 +80,8 @@ export function mergeProgress(local: Progress, rows: ProgressRow[], state: Remot
       imported: q.practiced || meta.practiced ? undefined : q.imported ?? meta.imported,
       hintLevel: Math.max(q.hintLevel ?? 0, meta.hintLevel ?? 0) || undefined,
       assisted: q.solvedAt === undefined ? meta.assisted : q.assisted ?? meta.assisted,
+      // This browser's draft wins; otherwise use the account's copy.
+      lastSql: q.lastSql || meta.lastSql || undefined,
     };
   }
 

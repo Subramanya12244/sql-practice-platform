@@ -74,8 +74,10 @@ const remoteState = (p: Progress): RemoteState => ({
   plan: p.plan, answers: p.answers, portfolio: p.portfolio, reviews: p.reviews,
   qmeta: Object.fromEntries(
     Object.entries(p.questions)
-      .filter(([, q]) => q.practiced || q.imported || q.hintLevel || q.errorKinds)
-      .map(([k, q]) => [k, { practiced: q.practiced, imported: q.imported, hintLevel: q.hintLevel, assisted: q.assisted, startedAt: q.startedAt, solveSec: q.solveSec, errorKinds: q.errorKinds }]),
+      .filter(([, q]) => q.practiced || q.imported || q.hintLevel || q.errorKinds || q.lastSql)
+      .map(([k, q]) => [k, { practiced: q.practiced, imported: q.imported, hintLevel: q.hintLevel, assisted: q.assisted, startedAt: q.startedAt, solveSec: q.solveSec, errorKinds: q.errorKinds,
+        // The saved query, so it survives sign-out and appears on other devices (capped for the profile row size).
+        lastSql: q.lastSql ? q.lastSql.slice(0, 8000) : undefined }]),
   ),
 });
 

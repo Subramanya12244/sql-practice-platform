@@ -2,8 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom";
 import { sendTo } from "../lib/handoff";
 import { VizView } from "../components/VizView";
-import { addExec, addSession, getExecs, getSessions, highlightInEditor, type ExecRecord, type VizSession } from "../lib/vizHistory";
-import type { ExecuteResult } from "../../types";
+import { addSession, getExecs, getSessions, highlightInEditor, type ExecRecord, type VizSession } from "../lib/vizHistory";
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { HintLadder } from "../components/HintLadder";
 import { Comments, CommunitySolutions } from "../components/Community";
@@ -67,8 +66,8 @@ export function QuestionPage() {
     track("sql_opened", histKey);
   }, [histKey]);
   const latest = execs[0]?.sql ?? progress.questions[q.number]?.lastSql ?? "";
-  const onRan = useCallback((sql: string, res: ExecuteResult) => {
-    addExec(histKey, { at: new Date().toISOString(), kind: "run", sql, ok: res.success, rows: res.row_count ?? undefined, attempt: getProgress().questions[q.number]?.attempts ?? 0 });
+  // PracticePanel records each run and submit in the execution history; refresh the list.
+  const onRan = useCallback(() => {
     setExecs(getExecs(histKey));
   }, [histKey, q.number]);
   const visualizeNow = (sql: string) => {
@@ -408,9 +407,8 @@ export function QuestionPage() {
         <div ref={panelRef} id="editor" className="flex min-h-0 scroll-mt-16 flex-col gap-3 lg:overflow-y-auto">
           {mounted ? (
             <Suspense fallback={<Skeleton className="h-[580px]" />}>
-              <PracticePanel question={q} fill onRan={onRan} onSolved={(r, sql) => {
+              <PracticePanel question={q} fill onRan={onRan} onSolved={(r) => {
                 if (r.correct) setJustSolved(true);
-                addExec(histKey, { at: new Date().toISOString(), kind: "submit", sql, ok: true, correct: r.correct, rows: r.your_row_count ?? undefined, attempt: getProgress().questions[q.number]?.attempts ?? 0 });
                 setExecs(getExecs(histKey));
               }} />
             </Suspense>

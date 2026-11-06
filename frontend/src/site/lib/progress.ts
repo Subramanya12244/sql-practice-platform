@@ -151,7 +151,8 @@ export function recordAttempt(num: number, sql: string, correct: boolean, errorK
     ...(correct ? bump(p) : { activeDays: p.activeDays }),
   });
   sink?.question(num, q, correct && !prev.solvedAt);
-  if (correct) sink?.state(current);
+  // Every submit, not only correct ones: the account keeps the latest query text (qmeta.lastSql).
+  sink?.state(current);
 }
 
 export function saveDraft(num: number, sql: string) {

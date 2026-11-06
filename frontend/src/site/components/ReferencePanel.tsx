@@ -6,7 +6,7 @@ import { loadShortcuts, type ShortcutCategory } from "../lib/learning";
  * Searchable SQL reference beside the editor, built from the shortcuts library
  * (content/shortcuts/*.json). Static documentation; nothing is generated.
  */
-export function ReferencePanel({ onClose, onInsert }: { onClose: () => void; onInsert?: (text: string) => void }) {
+export function ReferencePanel({ onClose, onInsert, embedded = false }: { onClose: () => void; onInsert?: (text: string) => void; embedded?: boolean }) {
   const [cats, setCats] = useState<ShortcutCategory[] | null>(null);
   const [q, setQ] = useState("");
   useEffect(() => {
@@ -20,15 +20,15 @@ export function ReferencePanel({ onClose, onInsert }: { onClose: () => void; onI
   }, [cats, q]);
 
   return (
-    <aside aria-label="SQL reference" className="flex h-full min-h-0 flex-col border-l border-surface-border bg-surface">
-      <div className="flex items-center gap-2 border-b border-surface-border px-3 py-2">
+    <aside aria-label="SQL reference" className={`flex h-full min-h-0 flex-col bg-surface ${embedded ? "" : "border-l border-surface-border"}`}>
+      <div className={`items-center gap-2 border-b border-surface-border px-3 py-2 ${embedded ? "hidden" : "flex"}`}>
         <span className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Reference</span>
         <button type="button" onClick={onClose} className="ml-auto rounded p-1 text-ink-muted hover:bg-hover/5 hover:text-ink" aria-label="Close reference"><X className="h-4 w-4" /></button>
       </div>
       <label className="relative mx-3 my-2 block">
         <span className="sr-only">Search SQL reference</span>
         <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" aria-hidden />
-        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search: window, coalesce, date…"
+        <input autoFocus={!embedded} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search: window, coalesce, date…"
           className="w-full rounded-lg border border-surface-border bg-surface-raised py-1.5 pl-8 pr-2 text-sm text-ink outline-none focus:border-accent" />
       </label>
       <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3">

@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, CheckCircle2, Circle, CircleDot, Eraser, FileCode2, FlaskConical, Lightbulb, Loader2, Maximize2, Minimize2, Play, RotateCcw, Search, Timer, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, CheckCircle2, Circle, CircleDot, Copy, Download, Eraser, FileCode2, FlaskConical, Lightbulb, Loader2, Maximize2, Minimize2, Play, RotateCcw, Save, Search, Timer, Wand2, XCircle } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { Badge, Button, ButtonLink, Card, Container, Difficulty, EmptyState, PageHeader, ProgressBar, Skeleton, Tabs } from "../components/ui";
@@ -10,6 +10,8 @@ import { runPython, resetPython, stopPython, PY_TIMEOUT_MS } from "../lib/pyRunn
 import { runPythonTask, type TaskResult, type TestCounts } from "../lib/tasks";
 import { PY_CATEGORIES, PY_SKILLS, accuracy, categoryLabel, feedbackFor, filterExercises, overview, readStats, recordPyAttempt, splitHints, statusOf, subscribeStats, type PyFilter, type PyStat } from "../lib/pyPractice";
 import { track } from "../lib/activity";
+import { downloadText, formatPython } from "../lib/workspace";
+import { SnippetsTab } from "../components/WorkspaceSide";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
 const key = (slug: string) => `py:${slug}`;
@@ -175,6 +177,9 @@ export function PythonExercisePage() {
   const [busy, setBusy] = useState<"run" | "check" | null>(null);
   const [out, setOut] = useState<{ kind: "run" | "check"; text: string; result?: TaskResult & { counts?: Record<string, TestCounts> } } | null>(null);
   const [hintsShown, setHintsShown] = useState(0);
+  const [snippets, setSnippets] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const flash = (s: string) => { setNote(s); setTimeout(() => setNote(null), 2500); };
   const [history, setHistory] = useState<Run[]>([]);
   const [showSolution, setShowSolution] = useState(false);
   const [view, setView] = useState<"tests" | "output">("tests");
@@ -327,9 +332,13 @@ export function PythonExercisePage() {
 
         <div className={full ? "fixed inset-0 z-50 space-y-4 overflow-y-auto bg-surface p-4" : "min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start"}>
           <Card pad="none" className="overflow-hidden">
-            <div className="flex items-center justify-between gap-2 border-b border-surface-border bg-surface-overlay px-4 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-overlay px-4 py-2">
               <span className="inline-flex items-center gap-2 font-mono text-xs text-ink-muted"><FileCode2 className="h-4 w-4 text-accent" aria-hidden /> solution.py</span>
-              <span className="flex items-center gap-1">
+              <span className="flex flex-wrap items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={() => { const f = formatPython(code); if (f === null) flash("Mixed indentation: fix it by hand first."); else if (f === code) flash("Already formatted."); else { change(f); flash("Formatted."); } }} title="Tidy indentation, blank lines and trailing spaces"><Wand2 className="h-3.5 w-3.5" aria-hidden /> Format</Button>
+                <Button variant="ghost" size="sm" onClick={() => { void navigator.clipboard?.writeText(code); flash("Copied."); }} aria-label="Copy code"><Copy className="h-3.5 w-3.5" aria-hidden /></Button>
+                <Button variant="ghost" size="sm" onClick={() => downloadText(`${ex.slug.replace(/-/g, "_")}.py`, code, "text/x-python")} aria-label="Download as .py"><Download className="h-3.5 w-3.5" aria-hidden /></Button>
+                <Button variant="ghost" size="sm" onClick={() => setSnippets((v) => !v)} aria-pressed={snippets} aria-label="Snippets"><Save className="h-3.5 w-3.5" aria-hidden /></Button>
                 <Button variant="ghost" size="sm" onClick={() => { if (confirm("Replace your code with the starter?")) change(task?.starter ?? ""); }}><RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset</Button>
                 <Button variant="ghost" size="sm" onClick={() => { resetPython(); setOut({ kind: "run", text: "Python restarted." }); setView("output"); }}>Restart Python</Button>
                 <Button variant="ghost" size="sm" onClick={() => setFull((v) => !v)} aria-label={full ? "Exit full screen" : "Full screen"}>{full ? <Minimize2 className="h-3.5 w-3.5" aria-hidden /> : <Maximize2 className="h-3.5 w-3.5" aria-hidden />}</Button>
@@ -340,6 +349,8 @@ export function PythonExercisePage() {
                 <CodeEditor value={code} onChange={(v) => { change(v); setErrorLine(null); }} onRun={check} height={full ? 520 : 360} label="Python editor" language="python" errorLine={errorLine} errorMessage={out?.result?.message ?? out?.text.split("\n").filter(Boolean).pop()} />
               </Suspense>
             ) : <Skeleton className="h-[360px] rounded-none" />}
+            {note && <p role="status" className="border-t border-surface-border px-4 py-1.5 text-xs text-ink-muted">{note}</p>}
+            {snippets && <div className="h-64 border-t border-surface-border"><SnippetsTab lang="python" current={code} onInsert={(t) => change(`${code.replace(/\s*$/, "")}\n\n${t}\n`)} /></div>}
             <details className="border-t border-surface-border px-4 py-2 text-sm">
               <summary className="cursor-pointer select-none text-xs font-medium text-ink-muted">Standard input {stdin ? `(${stdin.split("\n").length} line${stdin.split("\n").length === 1 ? "" : "s"})` : "(for input())"}</summary>
               <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} rows={3} aria-label="Standard input" placeholder="Lines your program reads with input() when you press Run"

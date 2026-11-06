@@ -119,3 +119,16 @@ describe("review notifications", () => {
     expect(unseenCount(rows, "2026-11-05T10:00:00Z")).toBe(0);
   });
 });
+
+describe("saved SQL drafts in the account", () => {
+  const empty = { version: 1 as const, questions: {}, activeDays: [], cards: {} };
+  it("restores the account's last query on a device that has none, and keeps this browser's own draft", () => {
+    const fresh = mergeProgress(empty, [{ question_number: 25, attempts: 2, solved_at: "2026-11-01T00:00:00Z", revealed: false }] as never,
+      { qmeta: { 25: { practiced: true, lastSql: "SELECT 1 AS from_account" }, 26: { lastSql: "SELECT 2 -- draft only" } } }, []);
+    expect(fresh.questions[25].lastSql).toBe("SELECT 1 AS from_account");
+    expect(fresh.questions[26]).toMatchObject({ attempts: 0, lastSql: "SELECT 2 -- draft only" });
+    const local = { ...empty, questions: { 25: { attempts: 3, lastSql: "SELECT 3 AS mine", practiced: true } } };
+    const kept = mergeProgress(local, [], { qmeta: { 25: { lastSql: "SELECT 1 AS from_account" } } }, []);
+    expect(kept.questions[25].lastSql).toBe("SELECT 3 AS mine");
+  });
+});
