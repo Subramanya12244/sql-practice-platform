@@ -176,3 +176,14 @@ Notes made without an account stay in the browser (IndexedDB). After signing in 
 4. In the app, sign in, generate a note, press **Save to My Study Notes**, and confirm it appears under My Study Notes as an account note; download and delete it. With a second account, confirm the first account's note isn't listed.
 
 To remove the feature's data: delete the notes from the app (which removes both the row and the file), then drop the bucket from the Storage UI. Deleting `study_notes` rows with SQL alone leaves the files in Storage.
+
+## GitHub export (optional)
+
+`/portfolio/export` always offers a ZIP download. To also let learners create a repository on their own GitHub account:
+
+1. On GitHub: Settings → Developer settings → OAuth Apps → New OAuth App. Homepage: the site URL. Authorization callback URL: `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. In Supabase: Authentication → Providers → GitHub → enable it and paste the Client ID and Client Secret.
+3. In Supabase: Authentication → Settings → enable **Manual linking** (learners link GitHub to their existing account; it is not a sign-in option on the login page).
+4. Add `https://<site>/portfolio/export` to Authentication → URL Configuration → Redirect URLs.
+
+The app requests the `repo` scope only when a learner presses "Connect GitHub". The GitHub token stays in that browser session (Supabase returns it after the redirect) and is used only when the learner confirms "Create repository"; DataForge doesn't store it. Repositories are private unless the learner unticks the box.

@@ -421,6 +421,7 @@ export function PortfolioPage() {
       </div>
       {mounted && pf.sql.imported > 0 && <p className="mt-2 text-xs text-ink-faint">{pf.sql.imported} questions are marked solved from an imported history and aren't counted above.</p>}
 
+      <p className="mt-6 text-sm"><Link to="/portfolio/export" className="font-semibold text-accent hover:underline">Export your work</Link> <span className="text-ink-muted">· a ZIP or a private GitHub repository of your solutions and project write-ups</span></p>
       <h2 className="mt-8 font-display text-xl font-bold text-ink">Projects</h2>
       {mounted && pf.projects.length ? (
         <ul className="mt-2 space-y-2">
