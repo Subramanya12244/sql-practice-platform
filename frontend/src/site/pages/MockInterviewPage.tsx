@@ -4,7 +4,7 @@ import { CheckCircle2, Circle, Clock, Flag, Timer, XCircle } from "lucide-react"
 import { usePage } from "../SiteApp";
 import { InlineMarkdown, Markdown } from "../components/Markdown";
 import { SchemaPanel } from "../components/SchemaPanel";
-import { Container, Difficulty, PageHeader, Skeleton } from "../components/ui";
+import { Badge, Button, Card, Container, Difficulty, PageHeader, RadioCard, SegmentedProgress, Skeleton, StatCard } from "../components/ui";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { loadQuestion } from "../lib/data";
 import { recordMock, useProgress } from "../lib/progress";
@@ -83,34 +83,32 @@ function MockSetup({ onStart }: { onStart: (level: MockLevel, durationMin: numbe
         title="SQL mock interview"
         intro={`${MOCK_SIZE} random questions against the clock. No hints or solutions until you finish — just like the real thing.`}
       />
-      <div className="max-w-xl space-y-6 rounded-card border border-surface-border bg-surface-raised p-6 shadow-panel">
-        <fieldset>
-          <legend className="text-sm font-semibold text-ink">Difficulty</legend>
-          <div className="mt-2 flex flex-wrap gap-2">
+      <Card pad="none" className="max-w-xl space-y-6 p-6">
+        <div>
+          <p id="mock-level" className="text-sm font-semibold text-ink">Difficulty</p>
+          <div role="radiogroup" aria-labelledby="mock-level" className="mt-2 grid gap-2 sm:grid-cols-3">
             {([["easier", "Warm-up"], ["balanced", "Balanced"], ["harder", "Senior"]] as const).map(([v, label]) => (
-              <button key={v} type="button" aria-pressed={level === v} onClick={() => setLevel(v)}
-                className={`rounded-lg border px-4 py-2 text-sm ${level === v ? "border-accent bg-accent-dim font-semibold text-accent" : "border-surface-border text-ink-muted hover:bg-hover/5"}`}>
-                {label}
-              </button>
+              <RadioCard key={v} name="mock-level" value={v} checked={level === v} onChange={() => setLevel(v)} title={label} />
             ))}
           </div>
-        </fieldset>
-        <fieldset>
-          <legend className="text-sm font-semibold text-ink">Time limit</legend>
-          <div className="mt-2 flex flex-wrap gap-2">
+        </div>
+        <div>
+          <p id="mock-time" className="text-sm font-semibold text-ink">Time limit</p>
+          <div role="radiogroup" aria-labelledby="mock-time" className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[20, 30, 45, 60].map((m) => (
-              <button key={m} type="button" aria-pressed={duration === m} onClick={() => setDuration(m)}
-                className={`rounded-lg border px-4 py-2 text-sm ${duration === m ? "border-accent bg-accent-dim font-semibold text-accent" : "border-surface-border text-ink-muted hover:bg-hover/5"}`}>
-                {m} min
-              </button>
+              <RadioCard key={m} name="mock-time" value={String(m)} checked={duration === m} onChange={() => setDuration(m)} title={`${m} min`} />
             ))}
           </div>
-        </fieldset>
-        <button type="button" onClick={() => onStart(level, duration)}
-          className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 font-semibold text-white shadow-glow">
+        </div>
+        <ul className="list-disc space-y-1 pl-5 text-xs text-ink-muted">
+          <li>{MOCK_SIZE} random questions, graded instantly in your browser.</li>
+          <li>No hints or solutions until you finish.</li>
+          <li>The interview finishes automatically when time runs out.</li>
+        </ul>
+        <Button size="lg" onClick={() => onStart(level, duration)}>
           <Timer className="h-4 w-4" aria-hidden /> Start interview
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       {history.length > 0 && (
         <section className="mt-10 max-w-xl" aria-labelledby="past">
@@ -182,8 +180,8 @@ function MockRunner({ session, onChange }: { session: MockSession; onChange: (s:
   return (
     <div className="pt-6">
       <div className="sticky top-14 z-30 -mx-4 flex flex-wrap items-center gap-3 border-b border-surface-border bg-surface/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-card sm:border">
-        <span className={`inline-flex items-center gap-1.5 font-mono text-lg font-bold ${left < 300 ? "text-danger" : "text-ink"}`} role="timer" aria-live="off" aria-label={`${Math.floor(left / 60)} minutes left`}>
-          <Clock className="h-5 w-5" aria-hidden /> {formatClock(left)}
+        <span role="timer" aria-live="off" aria-label={`${Math.floor(left / 60)} minutes left`}>
+          <Badge tone={left < 300 ? "warn" : "neutral"} className="px-3 py-1 font-mono text-base font-bold"><Clock className="h-4 w-4" aria-hidden /> {formatClock(left)}</Badge>
         </span>
         <nav className="flex gap-1.5" aria-label="Interview questions">
           {session.slugs.map((s, i) => {
@@ -197,10 +195,10 @@ function MockRunner({ session, onChange }: { session: MockSession; onChange: (s:
             );
           })}
         </nav>
-        <button type="button" onClick={() => window.confirm("Finish the interview now?") && finish(session)}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-surface-border px-3 py-1.5 text-sm font-medium text-ink hover:border-accent/40">
+        <Button size="sm" variant="secondary" className="ml-auto" onClick={() => window.confirm("Finish the interview now?") && finish(session)}>
           <Flag className="h-4 w-4" aria-hidden /> Finish
-        </button>
+        </Button>
+        <SegmentedProgress className="w-full basis-full" done={session.slugs.filter((s) => session.results[s]?.correct).length} total={session.slugs.length} label="Questions solved" />
       </div>
 
       {!q ? (
@@ -246,7 +244,12 @@ function MockSummary({ session, onAgain }: { session: MockSession; onAgain: () =
   return (
     <>
       <PageHeader eyebrow="Mock interview complete" title={`${solved} of ${total} solved`} intro={`${verdict} Time used: ${formatClock(usedSec)} of ${session.durationMin}:00.`} />
-      <ul className="max-w-2xl divide-y divide-surface-border rounded-card border border-surface-border">
+      <div className="mb-6 grid max-w-2xl grid-cols-3 gap-3">
+        <StatCard label="Score" value={`${Math.round((solved / Math.max(1, total)) * 100)}%`} />
+        <StatCard label="Time" value={formatClock(usedSec)} hint={`of ${session.durationMin}:00`} />
+        <StatCard label="Correct" value={`${solved}/${total}`} />
+      </div>
+      <ul className="max-w-2xl divide-y divide-surface-border rounded-card border border-surface-border bg-surface-raised">
         {session.slugs.map((slug, i) => {
           const meta = data.index.find((x) => x.slug === slug);
           const r = session.results[slug];
@@ -256,6 +259,7 @@ function MockSummary({ session, onAgain }: { session: MockSession; onAgain: () =
               <span className="text-ink-faint">{i + 1}.</span>
               <Link to={`/questions/${slug}`} className="font-medium text-ink hover:text-accent">{meta?.title ?? slug}</Link>
               {meta && <Difficulty level={meta.difficulty} />}
+              <Badge tone={r?.correct ? "success" : "danger"}>{r?.correct ? "Solved" : "Not solved"}</Badge>
               <span className="ml-auto text-ink-faint">
                 {r?.attempts ?? 0} attempt{r?.attempts === 1 ? "" : "s"}{r?.solvedAfterSec != null ? ` · solved at ${formatClock(r.solvedAfterSec)}` : ""}
               </span>
@@ -264,9 +268,9 @@ function MockSummary({ session, onAgain }: { session: MockSession; onAgain: () =
         })}
       </ul>
       <p className="mt-4 text-sm text-ink-muted">Open a question to see its solution, the common traps and interview follow-ups.</p>
-      <button type="button" onClick={onAgain} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 font-semibold text-white shadow-glow">
+      <Button size="lg" className="mt-6" onClick={onAgain}>
         <Timer className="h-4 w-4" aria-hidden /> New mock interview
-      </button>
+      </Button>
     </>
   );
 }

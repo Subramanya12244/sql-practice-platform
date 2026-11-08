@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Circle, ClipboardCheck, Loader2, Play, Save, Timer, Trophy, XCircle } from "lucide-react";
-import { Button, Card, Container, Difficulty, EmptyState, PageHeader, Skeleton } from "../components/ui";
+import { Badge, Button, Card, Container, Difficulty, EmptyState, PageHeader, SegmentedProgress, Skeleton, StatCard } from "../components/ui";
 import { Markdown } from "../components/Markdown";
 import { Seo } from "../lib/seo";
 import { useAuth } from "../lib/auth";
@@ -171,16 +171,23 @@ function Running({ a, onSubmit, busy }: { a: Started; onSubmit: (a: Started) => 
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-16 z-10 flex flex-wrap items-center gap-2 rounded-card border border-surface-border bg-surface-raised p-3 shadow-panel">
+      <div className="sticky top-16 z-10 space-y-3 rounded-card border border-surface-border bg-surface-raised p-3 shadow-panel">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span className="font-semibold text-ink">Assessment · <span className="font-normal text-ink-muted">Question {i + 1} of {a.items.length}</span></span>
+          <span className="text-xs text-ink-muted">{Object.keys(saved).length} of {a.items.length} saved</span>
+        </div>
+        <SegmentedProgress done={Object.keys(saved).length} total={a.items.length} label="Answers saved" />
+        <div className="flex flex-wrap items-center gap-2">
         {a.items.map((it, n) => (
           <Button key={it.id} size="sm" variant={n === i ? "primary" : "secondary"} onClick={() => setI(n)} aria-current={n === i}>
             {saved[it.id] ? <CheckCircle2 className="h-3.5 w-3.5" aria-label="Answer saved" /> : <Circle className="h-3.5 w-3.5" aria-hidden />} {n + 1}
           </Button>
         ))}
-        <span className={`ml-auto inline-flex items-center gap-1.5 font-mono text-lg font-bold ${left < 300 ? "text-danger" : "text-ink"}`} role="timer" aria-label={`${Math.floor(left / 60)} minutes left`}>
-          <Timer className="h-4 w-4" aria-hidden /> {String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}
+        <span className="ml-auto" role="timer" aria-label={`${Math.floor(left / 60)} minutes left`}>
+          <Badge tone={left < 300 ? "warn" : "neutral"} className="px-3 py-1 font-mono text-base font-bold"><Timer className="h-4 w-4" aria-hidden /> {String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}</Badge>
         </span>
         <Button size="sm" variant="danger" disabled={busy} onClick={() => { if (confirm(`Submit now? ${a.items.length - Object.keys(saved).length} question(s) have no saved answer.`)) void onSubmit(a); }}>{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null} Submit</Button>
+        </div>
       </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <article className="min-w-0 space-y-3">
@@ -221,14 +228,19 @@ function Running({ a, onSubmit, busy }: { a: Started; onSubmit: (a: Started) => 
 
 function ResultView({ r }: { r: AttemptResult }) {
   return (
-    <div className="mb-5 rounded-lg border border-accent/30 bg-accent-dim/40 p-3">
+    <div className="mb-5 space-y-3">
       <p className="flex items-center gap-2 font-semibold text-ink"><Trophy className="h-4 w-4 text-accent" aria-hidden /> {r.score} of {r.total} correct · {Math.round((r.score / Math.max(1, r.total)) * 100)}%</p>
+      <div className="grid grid-cols-3 gap-2">
+        <StatCard label="Score" value={`${Math.round((r.score / Math.max(1, r.total)) * 100)}%`} />
+        <StatCard label="Correct" value={`${r.score}/${r.total}`} />
+        <StatCard label="Answered" value={`${r.items.filter((it) => it.answered).length}/${r.total}`} />
+      </div>
       <ul className="mt-2 space-y-2 text-sm">
         {r.items.map((it) => (
           <li key={it.id}>
             <details>
               <summary className="flex cursor-pointer items-center gap-2">{it.passed ? <CheckCircle2 className="h-4 w-4 text-success" aria-label="Correct" /> : <XCircle className="h-4 w-4 text-danger" aria-label="Incorrect" />}
-                <span className="text-ink">{it.id}</span><span className="text-xs text-ink-muted">{!it.answered ? "no answer saved" : it.cases_total ? `${it.cases_passed}/${it.cases_total} hidden cases` : it.passed ? "result matches" : "result differs"}</span></summary>
+                <span className="text-ink">{it.id}</span><Badge tone={it.passed ? "success" : "danger"}>{it.passed ? "Correct" : "Incorrect"}</Badge><span className="text-xs text-ink-muted">{!it.answered ? "no answer saved" : it.cases_total ? `${it.cases_passed}/${it.cases_total} hidden cases` : it.passed ? "result matches" : "result differs"}</span></summary>
               <pre className="mt-1 max-h-48 overflow-auto rounded bg-surface-overlay p-2 font-mono text-xs text-ink">{it.reference}</pre>
               <p className="mt-1 text-xs text-ink-muted">{it.explanation}</p>
             </details>
