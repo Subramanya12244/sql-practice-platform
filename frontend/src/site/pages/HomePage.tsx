@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, Brain, Code2, Database, FileText, FolderKanban, Layers, Play, Sparkles, Timer, Workflow } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { ButtonLink, Card, Container, QuestionCard } from "../components/ui";
+import { CountUp, Reveal } from "../components/Motion";
 import { DailyChallenge } from "../components/DailyChallenge";
 import { SITE_NAME, SITE_URL, Seo } from "../lib/seo";
 import { useProgress } from "../lib/progress";
@@ -43,12 +44,15 @@ export function HomePage() {
 
       <section className="relative overflow-hidden border-b border-surface-border">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_0%,rgb(var(--color-accent)/0.16),transparent)]" aria-hidden />
+        <div className="hero-gradient pointer-events-none absolute inset-0 animate-gradient-pan opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent)]" aria-hidden />
+        <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 animate-float rounded-full bg-[radial-gradient(circle,rgb(var(--color-accent)/0.18),transparent_70%)]" aria-hidden />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 animate-float-slow rounded-full bg-[radial-gradient(circle,rgb(var(--color-secondary)/0.16),transparent_70%)] [animation-delay:-4s]" aria-hidden />
         <Container className="relative py-16 sm:py-24">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-surface-border bg-surface-raised px-3 py-1 text-xs font-medium text-ink-muted">
+          <p className="mb-4 inline-flex animate-fade-in items-center gap-2 rounded-full border border-surface-border bg-surface-raised px-3 py-1 text-xs font-medium text-ink-muted">
             <Sparkles className="h-3.5 w-3.5 text-accent" aria-hidden /> {BRAND.tagline}
           </p>
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-center">
-          <div>
+          <div className="stagger">
           <h1 className="max-w-3xl font-display text-4xl font-bold tracking-tight text-ink sm:text-6xl">
             Learn SQL and data engineering by building
           </h1>
@@ -78,17 +82,17 @@ export function HomePage() {
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wider text-ink-faint">{solved ? "You solved" : "Topics"}</dt>
-              <dd className="font-display text-2xl font-bold tabular-nums text-ink">{solved || data.topics.length}</dd>
+              <dd className="font-display text-2xl font-bold tabular-nums text-ink"><CountUp value={solved || data.topics.length} /></dd>
             </div>
           </dl>
           </div>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1" aria-label="What you can practise">
+          <ul className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-1 [&>*:nth-child(1)]:[animation-delay:200ms] [&>*:nth-child(2)]:[animation-delay:260ms] [&>*:nth-child(3)]:[animation-delay:320ms] [&>*:nth-child(4)]:[animation-delay:380ms]" aria-label="What you can practise">
             {tracks.map(({ icon: Icon, title, body, to }) => (
               <li key={to}>
                 <Link to={to} className="group flex items-start gap-4 rounded-card border border-surface-border bg-surface-raised/80 p-4 shadow-panel backdrop-blur hover:border-accent/40">
                   <span className="rounded-xl bg-accent-dim p-2.5 text-accent"><Icon className="h-5 w-5" aria-hidden /></span>
                   <span className="min-w-0">
-                    <span className="flex items-center gap-1 font-semibold text-ink group-hover:text-accent">{title} <ArrowRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden /></span>
+                    <span className="flex items-center gap-1 font-semibold text-ink group-hover:text-accent">{title} <ArrowRight className="h-3.5 w-3.5 -translate-x-1 opacity-0 transition duration-base ease-out group-hover:translate-x-0 group-hover:opacity-100" aria-hidden /></span>
                     <span className="mt-0.5 block text-sm text-ink-muted">{body}</span>
                   </span>
                 </Link>
@@ -99,6 +103,7 @@ export function HomePage() {
         </Container>
       </section>
 
+      <Reveal>
       <Container className="grid gap-4 pt-14 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <DailyChallenge />
         <Card>
@@ -112,11 +117,13 @@ export function HomePage() {
           </Link>
         </Card>
       </Container>
+      </Reveal>
 
       <Container>
         <PracticeNext onlyIfStarted />
       </Container>
 
+      <Reveal>
       <Container className="py-14">
         <h2 className="font-display text-2xl font-bold text-ink">Learn by topic</h2>
         <p className="mt-2 text-ink-muted">Questions build from simple aggregation up to multi-step analytics.</p>
@@ -140,7 +147,9 @@ export function HomePage() {
         </div>
         <Link to="/questions" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline sm:hidden">All {data.topics.length} topics <ArrowRight className="h-4 w-4" aria-hidden /></Link>
       </Container>
+      </Reveal>
 
+      <Reveal>
       <section aria-labelledby="python" className="border-t border-surface-border">
         <Container className="py-14">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -169,7 +178,9 @@ export function HomePage() {
           </div>
         </Container>
       </section>
+      </Reveal>
 
+      <Reveal>
       <section className="border-y border-surface-border bg-surface-raised/50">
         <Container className="grid gap-6 py-14 md:grid-cols-3">
           {[
@@ -185,7 +196,9 @@ export function HomePage() {
           ))}
         </Container>
       </section>
+      </Reveal>
 
+      <Reveal>
       <Container className="py-14">
         <div className="flex items-end justify-between gap-4">
           <h2 className="font-display text-2xl font-bold text-ink">Popular questions</h2>
@@ -195,6 +208,7 @@ export function HomePage() {
           {featured.map((q) => q && <QuestionCard key={q.slug} q={q} solved={!!progress.questions[q.number]?.solvedAt} />)}
         </div>
       </Container>
+      </Reveal>
     </>
   );
 }

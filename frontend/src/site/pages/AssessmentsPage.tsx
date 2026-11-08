@@ -190,7 +190,7 @@ function Running({ a, onSubmit, busy }: { a: Started; onSubmit: (a: Started) => 
         </div>
       </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-        <article className="min-w-0 space-y-3">
+        <article key={item.id} className="min-w-0 animate-fade-in space-y-3">
           <div className="flex flex-wrap items-center gap-2"><span className="rounded-md bg-surface-soft px-2 py-0.5 text-xs uppercase text-ink-muted">{item.kind}</span><h2 className="font-display text-xl font-bold text-ink">{item.title}</h2><Difficulty level={item.difficulty} /></div>
           <Markdown source={item.problem} className="text-sm" />
           {item.objective && <p className="rounded-lg border-l-2 border-accent bg-surface-raised px-3 py-2 text-sm text-ink"><strong>Return:</strong> <Markdown source={item.objective} className="inline" /></p>}
@@ -229,8 +229,8 @@ function Running({ a, onSubmit, busy }: { a: Started; onSubmit: (a: Started) => 
 function ResultView({ r }: { r: AttemptResult }) {
   return (
     <div className="mb-5 space-y-3">
-      <p className="flex items-center gap-2 font-semibold text-ink"><Trophy className="h-4 w-4 text-accent" aria-hidden /> {r.score} of {r.total} correct · {Math.round((r.score / Math.max(1, r.total)) * 100)}%</p>
-      <div className="grid grid-cols-3 gap-2">
+      <p className="flex items-center gap-2 font-semibold text-ink"><Trophy className="h-4 w-4 animate-pop text-accent" aria-hidden /> {r.score} of {r.total} correct · {Math.round((r.score / Math.max(1, r.total)) * 100)}%</p>
+      <div className="stagger grid grid-cols-3 gap-2">
         <StatCard label="Score" value={`${Math.round((r.score / Math.max(1, r.total)) * 100)}%`} />
         <StatCard label="Correct" value={`${r.score}/${r.total}`} />
         <StatCard label="Answered" value={`${r.items.filter((it) => it.answered).length}/${r.total}`} />

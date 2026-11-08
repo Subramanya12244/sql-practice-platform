@@ -105,7 +105,7 @@ export function ProgressPage() {
       <Seo title="Your SQL Practice Progress" description="Track solved SQL questions, streaks and revision progress. Stored only in your browser." path="/progress" noindex />
       <PageHeader eyebrow="You" title="Your progress" intro={profile ? "Synced to your account and saved in this browser. You can also export it." : "Saved in this browser — sign in to sync it across devices, or export it."} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
           <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} />
         ))}

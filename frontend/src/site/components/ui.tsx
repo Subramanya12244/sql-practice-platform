@@ -1,4 +1,5 @@
 import { InlineMarkdown } from "./Markdown";
+import { CountUp } from "./Motion";
 import type { ButtonHTMLAttributes, ComponentType, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, Minus, TrendingDown, TrendingUp } from "lucide-react";
@@ -46,7 +47,7 @@ export function QuestionCard({ q, solved }: { q: QuestionSummary; solved?: boole
   return (
     <Link
       to={`/questions/${q.slug}`}
-      className="group flex flex-col gap-2 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition duration-fast hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow"
+      className="group flex flex-col gap-2 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow"
     >
       <div className="flex items-center gap-2 text-xs text-ink-faint">
         <span className="font-mono">Q{String(q.number).padStart(2, "0")}</span>
@@ -75,9 +76,9 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 const BTN_BASE =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition duration-fast active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition duration-fast ease-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50";
 const BTN_VARIANT: Record<Variant, string> = {
-  primary: "bg-accent text-on-accent shadow-glow hover:brightness-110",
+  primary: "bg-accent text-on-accent shadow-glow hover:-translate-y-px hover:brightness-110",
   secondary: "border border-surface-border bg-surface-raised text-ink hover:border-accent/40 hover:bg-surface-overlay",
   ghost: "text-ink-muted hover:bg-hover/5 hover:text-ink",
   danger: "bg-danger text-on-accent hover:brightness-110",
@@ -99,7 +100,7 @@ export function ButtonLink({ to, variant = "primary", size = "md", className = "
 const CARD_PAD = { none: "", sm: "p-4", md: "p-5" };
 export function Card({ children, className = "", as: Tag = "div", interactive = false, pad = "md", "aria-label": label, "aria-labelledby": labelledBy }: { children: ReactNode; className?: string; as?: "div" | "section" | "article" | "li"; interactive?: boolean; pad?: keyof typeof CARD_PAD; "aria-label"?: string; "aria-labelledby"?: string }) {
   return (
-    <Tag aria-label={label} aria-labelledby={labelledBy} className={`rounded-card border border-surface-border bg-surface-raised ${CARD_PAD[pad]} shadow-panel ${interactive ? "transition duration-fast hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow" : ""} ${className}`}>
+    <Tag aria-label={label} aria-labelledby={labelledBy} className={`rounded-card border border-surface-border bg-surface-raised ${CARD_PAD[pad]} shadow-panel ${interactive ? "transition duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow" : ""} ${className}`}>
       {children}
     </Tag>
   );
@@ -123,7 +124,7 @@ export function ProgressBar({ value, max = 100, label, tone = "accent", classNam
   const fill = { accent: "bg-gradient-to-r from-accent to-accent-muted", secondary: "bg-secondary", success: "bg-success" }[tone];
   return (
     <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={value} className={`h-2 overflow-hidden rounded-full bg-surface-soft ${className}`}>
-      <div className={`h-full rounded-full ${fill} transition-[width] duration-500 ease-out`} style={{ width: `${pct}%` }} />
+      <div className={`h-full rounded-full ${fill} transition-[width] duration-slow ease-out`} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -154,7 +155,7 @@ export function StatCard({ label, value, hint, icon: Icon, trend }: { label: str
         <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">{label}</p>
         {Icon && <span className="rounded-lg bg-accent-dim p-1.5 text-accent"><Icon className="h-4 w-4" /></span>}
       </div>
-      <p className="mt-2 font-display text-2xl font-bold tabular-nums text-ink">{value}</p>
+      <p className="mt-2 font-display text-2xl font-bold tabular-nums text-ink">{typeof value === "number" ? <CountUp value={value} /> : value}</p>
       {(hint || trend) && (
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
           {trend && TrendIcon && <span className={`inline-flex items-center gap-0.5 font-medium ${trendTone}`}><TrendIcon className="h-3 w-3" aria-hidden />{trend.label}</span>}
@@ -169,7 +170,7 @@ export function StatCard({ label, value, hint, icon: Icon, trend }: { label: str
 export function IconButton({ label, children, active = false, className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; active?: boolean }) {
   return (
     <button type="button" aria-label={label} title={label} {...rest}
-      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control transition duration-fast disabled:pointer-events-none disabled:opacity-50 ${active ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"} ${className}`}>
+      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control transition duration-fast ease-out active:scale-90 disabled:pointer-events-none disabled:opacity-50 ${active ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"} ${className}`}>
       {children}
     </button>
   );
@@ -193,7 +194,7 @@ export function SegmentedProgress({ done, total, label, className = "" }: { done
   return (
     <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={total} aria-valuenow={done} className={`flex gap-1 ${className}`}>
       {Array.from({ length: total }, (_, i) => (
-        <span key={i} className={`h-2 flex-1 rounded-full transition-colors duration-base ${i < done ? "bg-accent" : "bg-surface-soft"}`} />
+        <span key={i} className="relative h-2 flex-1 overflow-hidden rounded-full bg-surface-soft"><span className={`absolute inset-0 origin-left rounded-full bg-accent transition-transform duration-slow ease-out ${i < done ? "scale-x-100" : "scale-x-0"}`} style={{ transitionDelay: `${i * 30}ms` }} /></span>
       ))}
     </div>
   );
@@ -203,10 +204,10 @@ export function SegmentedProgress({ done, total, label, className = "" }: { done
 export function RadioCard({ name, value, checked, onChange, title, description, disabled, tone }: { name: string; value: string; checked: boolean; onChange: (value: string) => void; title: ReactNode; description?: ReactNode; disabled?: boolean; tone?: "success" | "danger" }) {
   const ring = tone === "success" ? "border-success bg-success-dim" : tone === "danger" ? "border-danger bg-danger-dim" : checked ? "border-accent bg-accent-dim" : "border-surface-border bg-surface-raised hover:border-accent/40";
   return (
-    <label className={`flex cursor-pointer items-start gap-3 rounded-card border p-4 transition duration-fast has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${ring} ${disabled ? "cursor-default opacity-80" : ""}`}>
+    <label className={`flex cursor-pointer items-start gap-3 rounded-card border p-4 transition duration-fast ease-out active:scale-[0.99] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${ring} ${disabled ? "cursor-default opacity-80" : ""}`}>
       <input type="radio" className="sr-only" name={name} value={value} checked={checked} disabled={disabled} onChange={() => onChange(value)} />
       <span aria-hidden className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${checked ? "border-accent" : "border-ink-faint"}`}>
-        {checked && <span className="h-2 w-2 rounded-full bg-accent" />}
+        {checked && <span className="h-2 w-2 animate-pop rounded-full bg-accent" />}
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-medium text-ink">{title}</span>
@@ -226,7 +227,7 @@ export function SwitchRow({ label, description, checked, onChange, disabled }: {
       </div>
       <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-fast disabled:opacity-50 ${checked ? "bg-accent" : "bg-surface-soft"}`}>
-        <span className={`inline-block h-5 w-5 rounded-full bg-surface-raised shadow-panel transition-transform duration-fast ${checked ? "translate-x-5" : "translate-x-0.5"}`} />
+        <span className={`inline-block h-5 w-5 rounded-full bg-surface-raised shadow-panel transition-transform duration-base ease-out ${checked ? "translate-x-5" : "translate-x-0.5"}`} />
       </button>
     </div>
   );
@@ -246,7 +247,7 @@ export function SectionHeader({ title, action, id, description }: { title: strin
 
 export function EmptyState({ icon: Icon, title, children, action }: { icon?: ComponentType<{ className?: string }>; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-card border border-dashed border-surface-border bg-surface-raised/50 px-6 py-10 text-center">
+    <div className="flex animate-fade-in flex-col items-center rounded-card border border-dashed border-surface-border bg-surface-raised/50 px-6 py-10 text-center">
       {Icon && <span className="mb-3 rounded-2xl bg-accent-dim p-3 text-accent"><Icon className="h-6 w-6" /></span>}
       <p className="font-semibold text-ink">{title}</p>
       {children && <div className="mt-1 max-w-md text-sm text-ink-muted">{children}</div>}
@@ -257,7 +258,7 @@ export function EmptyState({ icon: Icon, title, children, action }: { icon?: Com
 
 export function ErrorState({ title = "Something went wrong", children, onRetry }: { title?: string; children?: ReactNode; onRetry?: () => void }) {
   return (
-    <div role="alert" className="flex items-start gap-3 rounded-card border border-danger/30 bg-danger-dim p-4 text-sm">
+    <div role="alert" className="flex animate-fade-in items-start gap-3 rounded-card border border-danger/30 bg-danger-dim p-4 text-sm">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden />
       <div className="flex-1">
         <p className="font-semibold text-danger">{title}</p>
@@ -279,7 +280,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs:
       }}>
       {tabs.map((t) => (
         <button key={t.id} type="button" role="tab" aria-selected={t.id === value} tabIndex={t.id === value ? 0 : -1} onClick={() => onChange(t.id)}
-          className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition duration-fast ${t.id === value ? "bg-surface-raised text-ink shadow-panel" : "text-ink-muted hover:text-ink"}`}>
+          className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition duration-fast ease-out ${t.id === value ? "bg-surface-raised text-ink shadow-panel" : "text-ink-muted hover:text-ink"}`}>
           {t.label}
         </button>
       ))}
@@ -292,7 +293,7 @@ export function Tooltip({ tip, children }: { tip: string; children: ReactNode })
   return (
     <span className="group relative inline-flex">
       {children}
-      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-surface-overlay px-2 py-1 text-xs text-ink opacity-0 shadow-soft ring-1 ring-surface-border transition-opacity duration-fast group-focus-within:opacity-100 group-hover:opacity-100">
+      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-surface-overlay px-2 py-1 text-xs text-ink translate-y-1 opacity-0 shadow-soft ring-1 ring-surface-border transition duration-fast ease-out group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100">
         {tip}
       </span>
     </span>

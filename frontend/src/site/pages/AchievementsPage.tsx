@@ -64,7 +64,7 @@ export function AchievementsPage() {
         </p>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="stagger grid gap-4 lg:grid-cols-3">
         <Card as="section" className="lg:col-span-2" aria-label="Level">
           <div className="flex flex-wrap items-center gap-4">
             <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-secondary font-display text-2xl font-bold text-white" aria-hidden>{g.level.index + 1}</span>

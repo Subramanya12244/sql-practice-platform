@@ -38,12 +38,12 @@ export function SchemaPanel({ schema, highlight = [] }: { schema: SchemaTable[];
                 aria-expanded={isOpen}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-hover/5"
               >
-                <ChevronDown className={`h-3.5 w-3.5 text-ink-faint transition-transform ${isOpen ? "" : "-rotate-90"}`} aria-hidden />
+                <ChevronDown className={`h-3.5 w-3.5 text-ink-faint transition-transform duration-base ease-out ${isOpen ? "" : "-rotate-90"}`} aria-hidden />
                 <code className={`font-mono ${used ? "font-semibold text-accent" : "text-ink"}`}>{t.name}</code>
                 {used && <span className="rounded bg-accent-dim px-1.5 text-[10px] font-semibold text-accent">used here</span>}
                 <span className="ml-auto text-xs text-ink-faint">{t.columns.length} cols</span>
               </button>
-              {isOpen && (
+              <div className="collapse-grid" data-open={isOpen ? "true" : "false"} {...(isOpen ? {} : { inert: "" })} aria-hidden={!isOpen}>
                 <ul className="pb-2 pl-9 pr-3">
                   {t.columns.map((c) => (
                     <li key={c.name} className="flex items-center gap-2 py-0.5 font-mono text-xs">
@@ -56,7 +56,7 @@ export function SchemaPanel({ schema, highlight = [] }: { schema: SchemaTable[];
                     </li>
                   ))}
                 </ul>
-              )}
+              </div>
             </li>
           );
         })}

@@ -205,7 +205,7 @@ function MockRunner({ session, onChange }: { session: MockSession; onChange: (s:
         <Skeleton className="mt-6 h-96" />
       ) : (
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-          <article className="min-w-0">
+          <article key={q.slug} className="min-w-0 animate-fade-in">
             <p className="text-xs text-ink-faint">Question {session.current + 1} of {session.slugs.length}</p>
             <h1 className="mt-1 font-display text-2xl font-bold text-ink">{q.title}</h1>
             <div className="mt-2"><Difficulty level={q.difficulty} /></div>
@@ -244,7 +244,7 @@ function MockSummary({ session, onAgain }: { session: MockSession; onAgain: () =
   return (
     <>
       <PageHeader eyebrow="Mock interview complete" title={`${solved} of ${total} solved`} intro={`${verdict} Time used: ${formatClock(usedSec)} of ${session.durationMin}:00.`} />
-      <div className="mb-6 grid max-w-2xl grid-cols-3 gap-3">
+      <div className="stagger mb-6 grid max-w-2xl grid-cols-3 gap-3">
         <StatCard label="Score" value={`${Math.round((solved / Math.max(1, total)) * 100)}%`} />
         <StatCard label="Time" value={formatClock(usedSec)} hint={`of ${session.durationMin}:00`} />
         <StatCard label="Correct" value={`${solved}/${total}`} />

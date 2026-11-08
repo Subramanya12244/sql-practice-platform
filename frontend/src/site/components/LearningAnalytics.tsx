@@ -60,7 +60,7 @@ export function LearningAnalytics() {
   return (
     <section aria-labelledby="analytics" className="mt-10">
       <SectionHeader id="analytics" title="Learning analytics" description="From your own tracked activity. Active time counts focused minutes with keyboard, mouse or touch input in this browser, not how long a tab was open." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-3">
         {tiles.map(([label, value, hint, trend]) => (
           <StatCard key={label} label={label} value={value} hint={hint} trend={trend} />
         ))}

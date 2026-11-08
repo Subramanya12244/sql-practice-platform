@@ -197,7 +197,7 @@ export default function PracticePanel({
   const errorMarker = activeResult?.result && !activeResult.result.success && activeResult.result.error_position
     ? { sql: activeResult.sql, position: activeResult.result.error_position, message: activeResult.result.message ?? "SQL error" }
     : null;
-  const tabBtn = (on: boolean) => `inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${on ? "bg-surface-raised text-ink shadow-panel" : "text-ink-muted hover:text-ink"}`;
+  const tabBtn = (on: boolean) => `inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition duration-fast ease-out ${on ? "bg-surface-raised text-ink shadow-panel" : "text-ink-muted hover:text-ink"}`;
 
   return (
     <div
@@ -283,7 +283,7 @@ export default function PracticePanel({
           </PanelGroup>
         </div>
         {side && (
-          <div className="absolute inset-0 z-10 sm:static sm:w-80 sm:shrink-0">
+          <div className="absolute inset-0 z-10 animate-slide-in sm:static sm:w-80 sm:shrink-0">
             <WorkspaceSide tab={side} onTab={setSide} onClose={() => setSide(null)} schemas={schemas} dataset={dataset} datasetLabel={datasetLabel}
               historyKey={historyKey} historyVersion={historyVersion} current={current}
               onInsert={(text) => onEditorChange(/^[\w.]+$/.test(text) ? `${current.replace(/\s*$/, "")} ${text}` : `${current.replace(/\s*$/, "")}\n\n${text}\n`)}
@@ -296,7 +296,7 @@ export default function PracticePanel({
         submit={submitResult}
       />
       {plan && (
-        <div ref={planRef} className="max-h-[45vh] shrink-0 scroll-mt-20 overflow-auto border-t border-surface-border px-4 py-3" aria-live="polite">
+        <div ref={planRef} className="animate-fade-in max-h-[45vh] shrink-0 scroll-mt-20 overflow-auto border-t border-surface-border px-4 py-3" aria-live="polite">
           <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-ink-faint">
             Query plan
             <button type="button" onClick={() => setPlan(null)} className="normal-case tracking-normal hover:text-ink">Close</button>
@@ -317,7 +317,7 @@ function StatusPill({ ready, datasetLabel }: { ready: "idle" | "loading" | "read
   const body = {
     idle: <><span className="h-2 w-2 rounded-full bg-ink-faint" aria-hidden /> PostgreSQL idle<span className="hidden 2xl:inline">: starts when you click into the editor</span></>,
     loading: <><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Starting PostgreSQL…</>,
-    ready: <><span className="h-2 w-2 rounded-full bg-success" aria-hidden /> Ready · {datasetLabel}</>,
+    ready: <><span className="relative flex h-2 w-2" aria-hidden><span className="absolute inset-0 animate-status-ping rounded-full bg-success" /><span className="relative h-2 w-2 rounded-full bg-success" /></span> Ready · {datasetLabel}</>,
     error: <span className="text-danger">Could not start the database. Reload the page to try again.</span>,
   }[ready];
   return <span role="status" className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-full border border-surface-border bg-surface px-2.5 py-1">{body}</span>;
@@ -327,9 +327,9 @@ function StatusPill({ ready, datasetLabel }: { ready: "idle" | "loading" | "read
 function LastRun({ result, running }: { result: import("../../types").ExecuteResult | null; running: boolean }) {
   if (running) return <span className="inline-flex items-center gap-1.5 text-ink-muted"><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Running…</span>;
   if (!result) return null;
-  if (!result.success) return <span className="inline-flex items-center gap-1 font-medium text-danger"><AlertCircle className="h-3.5 w-3.5" aria-hidden /> Error</span>;
+  if (!result.success) return <span className="inline-flex animate-fade-in items-center gap-1 font-medium text-danger"><AlertCircle className="h-3.5 w-3.5" aria-hidden /> Error</span>;
   return (
-    <span className="hidden items-center gap-3 tabular-nums sm:inline-flex" aria-label="Last run">
+    <span key={`${result.execution_time_ms}-${result.row_count}`} className="hidden animate-fade-in items-center gap-3 tabular-nums sm:inline-flex" aria-label="Last run">
       <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-ink-faint" aria-hidden />{result.execution_time_ms ?? "—"} ms</span>
       <span className="inline-flex items-center gap-1"><Rows3 className="h-3.5 w-3.5 text-ink-faint" aria-hidden />{(result.row_count ?? 0).toLocaleString()} rows</span>
     </span>
@@ -360,7 +360,7 @@ function Coach({ runError, submit }: { runError?: { success: boolean; message?: 
   const diff = submit && !submit.correct ? submit.diff : null;
   if (!help && !diff) return null;
   return (
-    <div className="border-t border-surface-border bg-surface px-4 py-3 text-sm" role="status">
+    <div className="animate-fade-in border-t border-surface-border bg-surface px-4 py-3 text-sm" role="status">
       <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
         <Stethoscope className="h-3.5 w-3.5" aria-hidden /> Coach
       </p>

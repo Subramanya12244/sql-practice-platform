@@ -278,7 +278,7 @@ export function PythonExercisePage() {
         <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">{ex.title}</h1>
         {pyOverride?.disabled && <p role="status" className="w-full rounded-lg border border-warn/40 bg-warn-dim px-3 py-2 text-sm text-ink">This problem is temporarily unavailable while it is being reviewed; checks are turned off.</p>}
         <Difficulty level={ex.difficulty} />
-        {done && <span className="inline-flex items-center gap-1 text-sm text-success"><CheckCircle2 className="h-4 w-4" aria-hidden /> Completed</span>}
+        {done && <span className="inline-flex items-center gap-1 text-sm text-success"><CheckCircle2 className="h-4 w-4 animate-pop" aria-hidden /> Completed</span>}
         <span className="ml-auto flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => toggleBookmark(key(ex.slug))} aria-pressed={bookmarked} aria-label={bookmarked ? "Remove bookmark" : "Bookmark this problem"}>
             {bookmarked ? <BookmarkCheck className="h-4 w-4 text-accent" aria-hidden /> : <Bookmark className="h-4 w-4" aria-hidden />}
@@ -395,14 +395,14 @@ export function PythonExercisePage() {
               {view === "tests" ? (
                 out?.result ? (
                   <>
-                    <ul className="space-y-2 text-sm">
+                    <ul className="stagger space-y-2 text-sm">
                       {[
                         { label: "Your code runs", state: /raised an error|could not start/.test(out.result.message) ? "fail" : /Timed out|Stopped after/.test(out.result.message) ? "fail" : "pass" },
                         { label: `${task?.hidden ? "Visible tests pass" : "All tests pass"}${countText(out.result.counts?.visible)}`, state: out.result.ok || /fails a hidden test/.test(out.result.message) ? "pass" : /raised an error|could not start|Timed out|Stopped after/.test(out.result.message) ? "skip" : "fail" },
                         ...(task?.hidden ? [{ label: `Hidden tests pass${countText(out.result.counts?.hidden)}`, state: out.result.ok ? "pass" : /fails a hidden test/.test(out.result.message) ? "fail" : "skip" }] : []),
                       ].map((s) => (
                         <li key={s.label} className="flex items-center gap-2 rounded-lg border border-surface-border bg-surface px-3 py-2">
-                          {s.state === "pass" ? <CheckCircle2 className="h-4 w-4 shrink-0 text-success" aria-hidden /> : s.state === "fail" ? <XCircle className="h-4 w-4 shrink-0 text-danger" aria-hidden /> : <Circle className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />}
+                          {s.state === "pass" ? <CheckCircle2 className="h-4 w-4 shrink-0 animate-pop text-success" aria-hidden /> : s.state === "fail" ? <XCircle className="h-4 w-4 shrink-0 text-danger" aria-hidden /> : <Circle className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />}
                           <span className={`min-w-0 flex-1 ${s.state === "skip" ? "text-ink-faint" : "text-ink"}`}>{s.label}{s.state === "skip" ? " (not reached)" : ""}</span>
                           <Badge tone={s.state === "pass" ? "success" : s.state === "fail" ? "danger" : "neutral"}>{s.state === "pass" ? "Pass" : s.state === "fail" ? "Fail" : "Skipped"}</Badge>
                         </li>
@@ -415,14 +415,14 @@ export function PythonExercisePage() {
                   </>
                 ) : <p className="text-sm text-ink-muted">Press <strong className="text-ink">Check against tests</strong> to grade your code. The tests run together in a sandbox; the solution passes when every one of them does.</p>
               ) : out?.text ? (
-                <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-surface-overlay p-3 font-mono text-xs text-ink">{out.text}</pre>
+                <pre key={out.text.length} className="animate-fade-in max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-surface-overlay p-3 font-mono text-xs text-ink">{out.text}</pre>
               ) : <p className="text-sm text-ink-muted">Press <strong className="text-ink">Run</strong> to see what your code prints.</p>}
             </div>
           </Card>
 
           {(done || out?.result?.ok) && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-success/30 bg-success-dim p-4">
-              <p className="flex items-center gap-2 text-sm font-semibold text-success"><CheckCircle2 className="h-5 w-5" aria-hidden /> Exercise complete <Link to={`/study-notes?add=py:${ex.slug}`} className="ml-2 text-xs font-medium text-accent hover:underline">Study notes (PDF)</Link></p>
+              <p className="flex items-center gap-2 text-sm font-semibold text-success"><CheckCircle2 className="h-5 w-5 animate-pop" aria-hidden /> Exercise complete <Link to={`/study-notes?add=py:${ex.slug}`} className="ml-2 text-xs font-medium text-accent hover:underline">Study notes (PDF)</Link></p>
               {next ? <ButtonLink to={`/practice/python/${next.slug}`} size="sm">Next: {next.title} <ArrowRight className="h-4 w-4" aria-hidden /></ButtonLink>
                 : <ButtonLink to="/practice/python" size="sm" variant="secondary">All exercises</ButtonLink>}
             </div>

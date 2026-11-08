@@ -48,7 +48,7 @@ export function AppSidebar({ pathname }: { pathname: string }) {
 
   return (
     <aside
-      className={`sticky top-16 hidden h-[calc(100vh-4rem)] shrink-0 flex-col border-r border-surface-border bg-surface-raised/40 transition-[width] duration-base lg:flex ${collapsed ? "w-16" : "w-60"}`}
+      className={`sticky top-16 hidden h-[calc(100vh-4rem)] shrink-0 flex-col border-r border-surface-border bg-surface-raised/40 transition-[width] duration-base ease-out lg:flex ${collapsed ? "w-16" : "w-60"}`}
       aria-label="Sidebar"
     >
       <nav aria-label="Main" className="flex-1 overflow-y-auto overscroll-contain px-2 py-3">
@@ -68,13 +68,14 @@ export function AppSidebar({ pathname }: { pathname: string }) {
                   aria-controls={listId}
                   title={collapsed ? g.label : undefined}
                   onClick={() => (collapsed ? (toggleCollapsed(), setOpenGroups((s) => new Set(s).add(g.id))) : toggleGroup(g.id))}
-                  className={`flex min-h-[40px] w-full items-center gap-2.5 rounded-control px-2.5 text-sm font-medium transition-colors duration-fast ${isActive ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"} ${collapsed ? "justify-center" : ""}`}
+                  className={`group flex min-h-[40px] w-full items-center gap-2.5 rounded-control px-2.5 text-sm font-medium transition-colors duration-fast ${isActive ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"} ${collapsed ? "justify-center" : ""}`}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <Icon className="h-4 w-4 shrink-0 transition-transform duration-fast ease-out group-hover:scale-110" />
                   <span className={collapsed ? "sr-only" : "flex-1 truncate text-left"}>{g.label}</span>
                   {!collapsed && <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-fast ${isOpen ? "rotate-180" : ""}`} aria-hidden />}
                 </button>
-                <ul id={listId} hidden={!isOpen} className="mb-1 ml-[1.15rem] mt-0.5 space-y-0.5 border-l border-surface-border pl-2">
+                <div className="collapse-grid" data-open={isOpen ? "true" : "false"}>
+                <ul id={listId} hidden={!isOpen && collapsed} {...(isOpen ? {} : { inert: "" })} aria-hidden={!isOpen} className="mb-1 ml-[1.15rem] mt-0.5 space-y-0.5 border-l border-surface-border pl-2">
                   {g.items!.map((n) => (
                     <li key={n.to}>
                       <NavLink
@@ -89,6 +90,7 @@ export function AppSidebar({ pathname }: { pathname: string }) {
                     </li>
                   ))}
                 </ul>
+                </div>
               </li>
             );
           })}
