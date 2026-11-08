@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: "class",
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  content: ["./index.html", "./site.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
@@ -42,6 +42,8 @@ export default {
         hover: {
           DEFAULT: "rgb(var(--color-hover) / <alpha-value>)",
         },
+        // Text on filled accent/status surfaces (dark navy in dark theme, white in light).
+        "on-accent": "rgb(var(--color-on-accent, 255 255 255) / <alpha-value>)",
       },
       fontFamily: {
         sans: ['"Inter"', "system-ui", "-apple-system", "sans-serif"],
@@ -55,6 +57,7 @@ export default {
       },
       borderRadius: {
         card: "14px",
+        control: "10px",
       },
       transitionDuration: {
         fast: "160ms",
