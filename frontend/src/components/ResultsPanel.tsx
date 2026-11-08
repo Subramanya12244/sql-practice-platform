@@ -5,6 +5,7 @@ import {
   ChevronUp,
   Copy,
   Download,
+  FileJson,
   X,
   XCircle,
 } from "lucide-react";
@@ -79,6 +80,18 @@ function ResultBody({
     URL.revokeObjectURL(url);
   };
 
+  const exportJson = () => {
+    if (!result?.success) return;
+    const objects = rows.map((row) => Object.fromEntries(result.columns.map((c, i) => [c, row[i] ?? null])));
+    const blob = new Blob([JSON.stringify(objects, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "query-results.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const copyCell = async (value: unknown, key: string) => {
     await navigator.clipboard.writeText(cellDisplay(value));
     setCopiedCell(key);
@@ -114,6 +127,10 @@ function ResultBody({
             <button type="button" className="btn-secondary" onClick={exportCsv}>
               <Download className="h-3.5 w-3.5" />
               CSV
+            </button>
+            <button type="button" className="btn-secondary" onClick={exportJson} title="Download the rows shown as JSON">
+              <FileJson className="h-3.5 w-3.5" />
+              JSON
             </button>
           </div>
         </div>

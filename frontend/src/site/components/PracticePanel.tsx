@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, Download, GitBranch, Loader2, Maximize2, Minimize2, PanelRight, Plus, Stethoscope, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, Download, GitBranch, Loader2, Rows3, Maximize2, Minimize2, PanelRight, Plus, Stethoscope, X } from "lucide-react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { WorkspaceSide, type SideTab } from "./WorkspaceSide";
 import { downloadText, safeName } from "../lib/workspace";
@@ -15,6 +15,7 @@ import { explainError } from "../lib/errorHelp";
 import { PlanTree, parsePlan, type PlanNode } from "./PlanTree";
 import { FORGE_THEMES, defineForgeThemes } from "../lib/monacoTheme";
 import { track } from "../lib/activity";
+import { Badge, IconButton, Toolbar, ToolbarDivider } from "./ui";
 
 /** Editor + results for one question. Browser only — loaded lazily. */
 export default function PracticePanel({
@@ -206,45 +207,30 @@ export default function PracticePanel({
       onPointerDownCapture={() => setWantDb(true)}
       onFocusCapture={() => setWantDb(true)}
     >
-      <div className="flex items-center gap-2 border-b border-surface-border px-3 py-2 text-xs text-ink-muted">
-        {ready === "idle" && (
-          <>
-            <span className="h-2 w-2 rounded-full bg-ink-faint" aria-hidden /> PostgreSQL starts when you click into the editor
-          </>
+      <Toolbar label="Query workspace" className="gap-2 px-3 text-xs text-ink-muted">
+        <StatusPill ready={ready} datasetLabel={datasetLabel} />
+        <LastRun result={running ? null : activeResult?.result ?? null} running={running} />
+        {(saved?.solvedAt || exerciseDone) && (
+          <Badge tone="success"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Solved</Badge>
         )}
-        {ready === "loading" && (
-          <>
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Starting PostgreSQL in your browser…
-          </>
-        )}
-        {ready === "ready" && (
-          <>
-            <span className="h-2 w-2 rounded-full bg-success" aria-hidden /> PostgreSQL ready · {datasetLabel} loaded
-          </>
-        )}
-        {ready === "error" && <span className="text-danger">Could not start the database. Reload the page to try again.</span>}
         <span className="ml-auto flex items-center gap-0.5">
           {ready !== "error" && (
-            <button type="button" onClick={() => void onExplain()} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title="Show how PostgreSQL will run this query">
-              <GitBranch className="h-3.5 w-3.5" aria-hidden /> Explain plan
+            <button type="button" onClick={() => void onExplain()} className={toolBtn(false)} title="Show how PostgreSQL will run this query">
+              <GitBranch className="h-4 w-4" aria-hidden /> <span className="hidden md:inline">Explain plan</span><span className="sr-only md:hidden">Explain plan</span>
             </button>
           )}
-          <button type="button" onClick={() => setSide((v) => (v ? null : "schema"))} aria-pressed={!!side} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title="Schema, history, snippets and reference">
-            <PanelRight className="h-3.5 w-3.5" aria-hidden /> <span className="hidden sm:inline">Tools</span>
+          <button type="button" onClick={() => setSide((v) => (v ? null : "schema"))} aria-pressed={!!side} className={toolBtn(!!side)} title="Schema, history, snippets and reference">
+            <PanelRight className="h-4 w-4" aria-hidden /> <span className="hidden sm:inline">Schema &amp; tools</span><span className="sr-only sm:hidden">Tools</span>
           </button>
-          <button type="button" onClick={() => downloadText(`${playground ? `playground-${dataset}` : safeName(question.slug || `q${question.number}`)}.sql`, current, "application/sql")} disabled={!current.trim()} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink disabled:opacity-40" title="Download this query as a .sql file" aria-label="Download query">
-            <Download className="h-3.5 w-3.5" aria-hidden />
-          </button>
-          <button type="button" onClick={() => setFull((v) => !v)} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-hover/5 hover:text-ink" title={full ? "Exit full screen (Esc)" : "Full screen"} aria-label={full ? "Exit full screen" : "Full screen"}>
-            {full ? <Minimize2 className="h-3.5 w-3.5" aria-hidden /> : <Maximize2 className="h-3.5 w-3.5" aria-hidden />}
-          </button>
+          <ToolbarDivider />
+          <IconButton label="Download query" onClick={() => downloadText(`${playground ? `playground-${dataset}` : safeName(question.slug || `q${question.number}`)}.sql`, current, "application/sql")} disabled={!current.trim()}>
+            <Download className="h-4 w-4" aria-hidden />
+          </IconButton>
+          <IconButton label={full ? "Exit full screen" : "Full screen"} onClick={() => setFull((v) => !v)}>
+            {full ? <Minimize2 className="h-4 w-4" aria-hidden /> : <Maximize2 className="h-4 w-4" aria-hidden />}
+          </IconButton>
         </span>
-        {(saved?.solvedAt || exerciseDone) && (
-          <span className={`${ready === "ready" ? "" : "ml-auto "}inline-flex items-center gap-1 font-medium text-success`}>
-            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Solved
-          </span>
-        )}
-      </div>
+      </Toolbar>
       <div className={`relative flex min-h-0 ${full ? "flex-1" : fill ? "h-[680px] lg:h-[80vh] lg:min-h-[560px]" : "h-[620px]"}`}>
         <div className="flex min-w-0 flex-1 flex-col">
           <div role="group" aria-label="Query tabs" className="scroll-fade-x flex shrink-0 items-center gap-1 overflow-x-auto border-b border-surface-border bg-surface-overlay px-2 py-1">
@@ -320,6 +306,33 @@ export default function PracticePanel({
         </div>
       )}
     </div>
+  );
+}
+
+const toolBtn = (on: boolean) =>
+  `inline-flex min-h-[40px] items-center gap-1.5 rounded-control px-2.5 text-xs font-medium transition-colors duration-fast ${on ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"}`;
+
+/** Database state as a compact pill; live region so screen readers hear "ready". */
+function StatusPill({ ready, datasetLabel }: { ready: "idle" | "loading" | "ready" | "error"; datasetLabel: string }) {
+  const body = {
+    idle: <><span className="h-2 w-2 rounded-full bg-ink-faint" aria-hidden /> PostgreSQL idle<span className="hidden 2xl:inline">: starts when you click into the editor</span></>,
+    loading: <><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Starting PostgreSQL…</>,
+    ready: <><span className="h-2 w-2 rounded-full bg-success" aria-hidden /> Ready · {datasetLabel}</>,
+    error: <span className="text-danger">Could not start the database. Reload the page to try again.</span>,
+  }[ready];
+  return <span role="status" className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-full border border-surface-border bg-surface px-2.5 py-1">{body}</span>;
+}
+
+/** Execution time and row count of the result on screen (or its error). */
+function LastRun({ result, running }: { result: import("../../types").ExecuteResult | null; running: boolean }) {
+  if (running) return <span className="inline-flex items-center gap-1.5 text-ink-muted"><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Running…</span>;
+  if (!result) return null;
+  if (!result.success) return <span className="inline-flex items-center gap-1 font-medium text-danger"><AlertCircle className="h-3.5 w-3.5" aria-hidden /> Error</span>;
+  return (
+    <span className="hidden items-center gap-3 tabular-nums sm:inline-flex" aria-label="Last run">
+      <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-ink-faint" aria-hidden />{result.execution_time_ms ?? "—"} ms</span>
+      <span className="inline-flex items-center gap-1"><Rows3 className="h-3.5 w-3.5 text-ink-faint" aria-hidden />{(result.row_count ?? 0).toLocaleString()} rows</span>
+    </span>
   );
 }
 
