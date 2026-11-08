@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { CheckCircle2, Circle, FlaskConical, Loader2, Timer, Trophy, XCircle } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
-import { Button, Card, Container, Difficulty, PageHeader, Skeleton } from "../components/ui";
+import { Badge, Button, Card, Container, Difficulty, PageHeader, SegmentedProgress, Skeleton, StatCard } from "../components/ui";
 import { Seo } from "../lib/seo";
 import { completeExercise, useProgress } from "../lib/progress";
 import { loadExercise, type PyExercise } from "../lib/pyExercises";
@@ -95,17 +95,26 @@ export function PythonAssessmentPage() {
               <input type="checkbox" checked={includeSolved} onChange={(e) => setIncludeSolved(e.target.checked)} /> Include problems I've already solved
             </label>
             <Button className="mt-4" onClick={start} disabled={!all.length}><Timer className="h-4 w-4" aria-hidden /> Start assessment</Button>
+            <ul className="mt-4 list-disc space-y-1 pl-5 text-xs text-ink-muted">
+              <li>One Easy, one Medium and one Hard problem.</li>
+              <li>Hints and solutions stay hidden until you finish.</li>
+            </ul>
             <p className="mt-2 text-xs text-ink-faint">The timer keeps running if you reload or leave the page. Passing a problem here also marks it completed.</p>
           </Card>
           <Card pad="md" as="section" aria-label="Past assessments">
             {result && (
-              <div className="mb-4 rounded-lg border border-accent/30 bg-accent-dim/40 p-3">
+              <div className="mb-4 space-y-3">
                 <p className="flex items-center gap-2 font-semibold text-ink"><Trophy className="h-4 w-4 text-accent" aria-hidden /> {result.solved} of {result.total} solved in {Math.round(result.usedSec / 60)} min</p>
-                <ul className="mt-2 space-y-1 text-sm">
+                <div className="grid grid-cols-3 gap-2">
+                  <StatCard label="Score" value={`${Math.round((result.solved / Math.max(1, result.total)) * 100)}%`} />
+                  <StatCard label="Time" value={`${Math.round(result.usedSec / 60)} min`} hint={`of ${result.durationMin}`} />
+                  <StatCard label="Correct" value={`${result.solved}/${result.total}`} />
+                </div>
+                <ul className="space-y-1 text-sm">
                   {result.problems.map((p) => { const e = title(p.slug); return (
                     <li key={p.slug} className="flex items-center gap-2">{p.passed ? <CheckCircle2 className="h-4 w-4 text-success" aria-label="Passed" /> : <XCircle className="h-4 w-4 text-danger" aria-label="Not passed" />}
                       <Link to={`/practice/python/${p.slug}`} className="truncate text-ink hover:text-accent">{e ? `${e.code} ${e.title}` : p.slug}</Link>
-                      <span className="ml-auto shrink-0 text-xs text-ink-faint">{p.checks} check{p.checks === 1 ? "" : "s"}</span></li>
+                      <Badge tone={p.passed ? "success" : "danger"} className="ml-auto shrink-0">{p.passed ? "Passed" : "Not passed"}</Badge><span className="shrink-0 text-xs text-ink-faint">{p.checks} check{p.checks === 1 ? "" : "s"}</span></li>
                   ); })}
                 </ul>
                 <p className="mt-2 text-xs text-ink-muted">Open a problem to see its hints, solution and explanation.</p>
@@ -158,16 +167,23 @@ function Running({ active, left, onUpdate, onFinish }: { active: Active; left: n
   const body = ex ? splitHints(ex.body).body.replace(/\n## Why it matters[\s\S]*$/, "") : "";
   return (
     <div className="space-y-4">
-      <div className="sticky top-16 z-10 flex flex-wrap items-center gap-2 rounded-card border border-surface-border bg-surface-raised p-3 shadow-panel">
+      <div className="sticky top-16 z-10 space-y-3 rounded-card border border-surface-border bg-surface-raised p-3 shadow-panel">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span className="font-semibold text-ink">Python assessment · <span className="font-normal text-ink-muted">Problem {i + 1} of {active.slugs.length}</span></span>
+          <span className="text-xs text-ink-muted">{active.slugs.filter((s) => active.passed[s]).length} of {active.slugs.length} passed</span>
+        </div>
+        <SegmentedProgress done={active.slugs.filter((s) => active.passed[s]).length} total={active.slugs.length} label="Problems passed" />
+        <div className="flex flex-wrap items-center gap-2">
         {active.slugs.map((s, n) => (
           <Button key={s} size="sm" variant={n === i ? "primary" : "secondary"} onClick={() => setI(n)} aria-current={n === i}>
             {active.passed[s] ? <CheckCircle2 className="h-3.5 w-3.5" aria-label="Passed" /> : <Circle className="h-3.5 w-3.5" aria-hidden />} Problem {n + 1}
           </Button>
         ))}
-        <span className={`ml-auto inline-flex items-center gap-1.5 font-mono text-lg font-bold ${left < 300 ? "text-danger" : "text-ink"}`} role="timer" aria-label={`${Math.floor(left / 60)} minutes left`}>
-          <Timer className="h-4 w-4" aria-hidden /> {String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}
+        <span className="ml-auto" role="timer" aria-label={`${Math.floor(left / 60)} minutes left`}>
+          <Badge tone={left < 300 ? "warn" : "neutral"} className="px-3 py-1 font-mono text-base font-bold"><Timer className="h-4 w-4" aria-hidden /> {String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}</Badge>
         </span>
         <Button size="sm" variant="danger" onClick={() => { if (confirm("Finish the assessment now?")) onFinish(); }}>Finish</Button>
+        </div>
       </div>
       {!ex ? <Skeleton className="h-96" /> : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">

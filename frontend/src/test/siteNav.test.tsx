@@ -29,8 +29,8 @@ describe("navigation", () => {
   it("highlights only the current group and brands the header", () => {
     const html = render("/notes/left-join");
     expect(html).toContain("DataForge");
-    expect(html).not.toMatch(/aria-haspopup="true" class="[^"]*bg-accent-dim[^"]*">Practice/);
-    expect(html).toMatch(/aria-expanded="false" aria-haspopup="true" class="[^"]*bg-accent-dim[^"]*">Learn/);
+    expect(html).toContain('data-nav-group="learn" data-active="true" aria-expanded="true"');
+    expect(html).toContain('data-nav-group="practice" data-active="false" aria-expanded="false"');
     expect(NAV_GROUPS.map((g) => g.label)).toEqual(["Dashboard", "Learn", "Practice", "Projects", "Intelligence", "Career", "Community"]);
   });
 });

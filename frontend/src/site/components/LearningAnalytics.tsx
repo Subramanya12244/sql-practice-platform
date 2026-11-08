@@ -9,7 +9,7 @@ import { revisionQueue, splitQueue } from "../lib/revision";
 import { getProjectProgress, loadAllProjects, projectStatus } from "../lib/projects";
 import { useAuth } from "../lib/auth";
 import { accountsEnabled, getSupabase } from "../lib/supabase";
-import { Card, ProgressBar } from "./ui";
+import { Card, ProgressBar, SectionHeader, StatCard } from "./ui";
 
 const n = (v: number | null, suffix = "") => (v === null ? "—" : `${v}${suffix}`);
 
@@ -44,13 +44,14 @@ export function LearningAnalytics() {
   const max = Math.max(1, ...a.time.weeks.map((w) => w.minutes));
   const weakest = a.sql.topics.filter((t) => t.submits >= 3 && t.accuracy !== null).sort((x, y) => x.accuracy! - y.accuracy!).slice(0, 3);
 
-  const tiles: [string, string, string][] = [
+  const dir = (now: number, prev: number) => (now > prev ? "up" : now < prev ? "down" : "flat") as "up" | "down" | "flat";
+  const tiles: [string, string, string, { direction: "up" | "down" | "flat"; label: string }?][] = [
     ["SQL solved", `${a.sql.solved}/${a.sql.total}`, `${n(a.sql.accuracy, "%")} of ${a.sql.submits} submits correct`],
     ["Python solved", `${a.python.solved}/${a.python.total}`, `${n(a.python.accuracy, "%")} of ${a.python.checks} checks passed (this browser)`],
     ["First-attempt success", `${n(a.sql.firstTry.of ? Math.round((a.sql.firstTry.n / a.sql.firstTry.of) * 100) : null, "%")} SQL`, `${a.sql.firstTry.n} of ${a.sql.firstTry.of} solves with no wrong submit · Python ${n(a.python.firstTry.of ? Math.round((a.python.firstTry.n / a.python.firstTry.of) * 100) : null, "%")}`],
     ["Time to solve (SQL)", a.sql.avgSolveMin === null ? "—" : `${a.sql.avgSolveMin} min avg`, a.sql.medianSolveMin === null ? "from first look to first correct submit" : `median ${a.sql.medianSolveMin} min, from first look to first correct submit`],
-    ["Active this week", formatMinutes(a.time.thisWeek), `${change(a.time.thisWeek, a.time.lastWeek)} vs the week before`],
-    ["Active last 30 days", formatMinutes(a.time.month), `${change(a.time.month, a.time.prevMonth)} vs the 30 days before`],
+    ["Active this week", formatMinutes(a.time.thisWeek), "vs the week before", { direction: dir(a.time.thisWeek, a.time.lastWeek), label: change(a.time.thisWeek, a.time.lastWeek) }],
+    ["Active last 30 days", formatMinutes(a.time.month), "vs the 30 days before", { direction: dir(a.time.month, a.time.prevMonth), label: change(a.time.month, a.time.prevMonth) }],
     ["Revision", `${q.overdue.length + q.today.length} due`, `${q.overdue.length} overdue · ${q.upcoming.length} upcoming`],
     ["Projects", projects ? `${projects.done}/${projects.total}` : "—", projects ? `${projects.started} started` : ""],
     ...(assess ? [["Assessments", assess.n ? `${assess.avg}% avg` : "none yet", assess.n ? `${assess.n} taken · best ${assess.best}%` : "timed, server-graded"] as [string, string, string]] : []),
@@ -58,11 +59,10 @@ export function LearningAnalytics() {
 
   return (
     <section aria-labelledby="analytics" className="mt-10">
-      <h2 id="analytics" className="font-display text-xl font-bold text-ink">Learning analytics</h2>
-      <p className="mt-1 text-xs text-ink-muted">From your own tracked activity. Active time counts focused minutes with keyboard, mouse or touch input in this browser, not how long a tab was open.</p>
-      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
-        {tiles.map(([label, value, hint]) => (
-          <Card key={label} pad="sm"><p className="text-xs font-medium uppercase tracking-wider text-ink-faint">{label}</p><p className="mt-1 font-display text-xl font-bold tabular-nums text-ink">{value}</p><p className="text-xs text-ink-muted">{hint}</p></Card>
+      <SectionHeader id="analytics" title="Learning analytics" description="From your own tracked activity. Active time counts focused minutes with keyboard, mouse or touch input in this browser, not how long a tab was open." />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        {tiles.map(([label, value, hint, trend]) => (
+          <StatCard key={label} label={label} value={value} hint={hint} trend={trend} />
         ))}
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -89,7 +89,7 @@ export function LearningAnalytics() {
           {weakest.length > 0 && <p className="mt-3 text-xs text-ink-muted">Lowest SQL accuracy: {weakest.map((t, i) => <span key={t.label}>{i ? ", " : ""}<strong className="text-ink">{t.label}</strong> {t.accuracy}%</span>)}. <Link to="/review" className="text-accent hover:underline">Revise</Link></p>}
         </Card>
       </div>
-      <details className="mt-4 rounded-card border border-surface-border bg-surface-raised p-4 text-sm">
+      <details className="mt-4 rounded-card border border-surface-border bg-surface-raised p-4 text-sm shadow-panel">
         <summary className="cursor-pointer font-semibold text-ink">Accuracy by SQL topic</summary>
         <table className="mt-2 w-full text-sm"><thead><tr className="text-left text-xs text-ink-faint"><th className="py-1 font-medium">Topic</th><th className="py-1 font-medium">Solved</th><th className="py-1 font-medium">Submits</th><th className="py-1 text-right font-medium">Accuracy</th></tr></thead>
           <tbody>{a.sql.topics.map((t) => <tr key={t.label} className="border-t border-surface-border"><td className="py-1 text-ink">{t.label}</td><td className="py-1 tabular-nums text-ink-muted">{t.solved}/{t.total}</td><td className="py-1 tabular-nums text-ink-muted">{t.submits}</td><td className={`py-1 text-right tabular-nums ${t.accuracy !== null && t.accuracy < 50 ? "text-danger" : "text-ink"}`}>{n(t.accuracy, "%")}</td></tr>)}</tbody>

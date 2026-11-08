@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, Brain, Code2, Database, FileText, FolderKanban, Layers, Play, Sparkles, Timer, Workflow } from "lucide-react";
 import { usePage } from "../SiteApp";
-import { Container, QuestionCard } from "../components/ui";
+import { ButtonLink, Card, Container, QuestionCard } from "../components/ui";
 import { DailyChallenge } from "../components/DailyChallenge";
 import { SITE_NAME, SITE_URL, Seo } from "../lib/seo";
 import { useProgress } from "../lib/progress";
@@ -57,37 +57,28 @@ export function HomePage() {
             tracks take you through ETL, warehousing, Spark, Airflow, dbt and cloud. No install, and sign-up is optional.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              to={`/questions/${data.index[0]?.slug ?? ""}`}
-              className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 font-semibold text-white shadow-glow transition-transform duration-fast hover:-translate-y-0.5"
-            >
+            <ButtonLink to={`/questions/${data.index[0]?.slug ?? ""}`} size="lg">
               <Play className="h-4 w-4" aria-hidden /> Start practicing
-            </Link>
-            <Link
-              to="/questions"
-              className="inline-flex items-center gap-2 rounded-xl border border-surface-border bg-surface-raised px-5 py-3 font-semibold text-ink hover:border-accent/40"
-            >
+            </ButtonLink>
+            <ButtonLink to="/questions" variant="secondary" size="lg">
               Browse SQL questions <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
-            <Link
-              to="/practice/python"
-              className="inline-flex items-center gap-2 rounded-xl border border-surface-border bg-surface-raised px-5 py-3 font-semibold text-ink hover:border-accent/40"
-            >
+            </ButtonLink>
+            <ButtonLink to="/practice/python" variant="secondary" size="lg">
               Python for data engineering <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
+            </ButtonLink>
           </div>
           <dl className="mt-10 grid max-w-xl grid-cols-3 gap-4">
             <div>
               <dt className="text-xs uppercase tracking-wider text-ink-faint">SQL questions</dt>
-              <dd className="font-display text-2xl font-bold text-ink">{data.index.length}</dd>
+              <dd className="font-display text-2xl font-bold tabular-nums text-ink">{data.index.length}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wider text-ink-faint">Python problems</dt>
-              <dd className="font-display text-2xl font-bold text-ink">{pyCount}</dd>
+              <dd className="font-display text-2xl font-bold tabular-nums text-ink">{pyCount}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wider text-ink-faint">{solved ? "You solved" : "Topics"}</dt>
-              <dd className="font-display text-2xl font-bold text-ink">{solved || data.topics.length}</dd>
+              <dd className="font-display text-2xl font-bold tabular-nums text-ink">{solved || data.topics.length}</dd>
             </div>
           </dl>
           </div>
@@ -110,7 +101,7 @@ export function HomePage() {
 
       <Container className="grid gap-4 pt-14 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <DailyChallenge />
-        <div className="rounded-card border border-surface-border bg-surface-raised p-5 shadow-panel">
+        <Card>
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-faint">
             <Timer className="h-3.5 w-3.5" aria-hidden /> Mock interview
           </p>
@@ -119,7 +110,7 @@ export function HomePage() {
           <Link to="/mock-interview" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline">
             Start a mock interview <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
-        </div>
+        </Card>
       </Container>
 
       <Container>
@@ -135,7 +126,7 @@ export function HomePage() {
               key={t.slug}
               to={`/topics/${t.slug}`}
               // Phones show the first six; the rest are one tap away on the questions page.
-              className={`${i >= 6 ? "hidden sm:flex" : "flex"} group items-center gap-4 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel hover:border-accent/40`}
+              className={`${i >= 6 ? "hidden sm:flex" : "flex"} group items-center gap-4 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition duration-fast hover:-translate-y-0.5 hover:border-accent/40`}
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-dim font-mono text-sm font-bold text-accent">
                 {String(i + 1).padStart(2, "0")}
@@ -166,7 +157,7 @@ export function HomePage() {
             {PY_CATEGORIES.map((c) => {
               const n = data.exercises?.filter((e) => e.category === c.slug).length ?? 0;
               return (
-                <Link key={c.slug} to="/practice/python" className="group flex items-center gap-4 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel hover:border-accent/40">
+                <Link key={c.slug} to="/practice/python" className="group flex items-center gap-4 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition duration-fast hover:-translate-y-0.5 hover:border-accent/40">
                   <span className="rounded-xl bg-accent-dim p-2.5 text-accent"><Workflow className="h-5 w-5" aria-hidden /></span>
                   <span>
                     <span className="block font-semibold text-ink group-hover:text-accent">{c.label}</span>

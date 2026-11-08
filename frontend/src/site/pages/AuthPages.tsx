@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, Cloud, Eye, EyeOff, KeyRound, LogOut, ShieldCheck, UserRound } from "lucide-react";
-import { Container } from "../components/ui";
+import { Badge, Button, Card, Container, SwitchRow, buttonClass } from "../components/ui";
 import { BrandMark } from "../../components/BrandMark";
 import { BRAND } from "../../brand";
 import { Seo } from "../lib/seo";
@@ -14,8 +14,7 @@ import { ClipboardCheck } from "lucide-react";
 
 const input =
   "mt-1 w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 aria-[invalid=true]:border-danger";
-const primary = "w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60";
-const card = "rounded-card border border-surface-border bg-surface-raised p-5 shadow-panel";
+const primary = buttonClass("primary", "md", "w-full");
 
 /** Rough strength from length and character variety: 0 (too short) … 4 (strong). */
 export function passwordStrength(pw: string): { score: number; label: string } {
@@ -298,7 +297,7 @@ function MyReviews({ userId }: { userId: string }) {
     markReviewsSeen(rows[0].reviewed_at);
   }, [rows, baseline]);
   return (
-    <section className={card} aria-labelledby="acc-reviews">
+    <Card as="section" aria-labelledby="acc-reviews">
       <h2 id="acc-reviews" className="flex items-center gap-2 font-display text-lg font-bold text-ink"><ClipboardCheck className="h-4 w-4 text-accent" aria-hidden /> Project reviews</h2>
       {rows.length ? (
         <ul className="mt-3 divide-y divide-surface-border text-sm">
@@ -307,7 +306,7 @@ function MyReviews({ userId }: { userId: string }) {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <Link to={`/projects-lab/${r.project_slug}`} className="font-semibold text-ink hover:underline">{r.project_slug}</Link>
                 <span className={`text-xs font-semibold ${REVIEW_TONE[r.status] ?? "text-ink-muted"}`}>
-                  {r.status}{baseline !== null && r.reviewed_at > baseline && <span className="ml-1 rounded bg-accent px-1 text-[10px] text-white">new</span>}
+                  {r.status}{baseline !== null && r.reviewed_at > baseline && <Badge tone="accent" className="ml-1">new</Badge>}
                 </span>
               </div>
               {r.review_comment && <p className="mt-1 text-ink-muted">"{r.review_comment}"</p>}
@@ -316,7 +315,7 @@ function MyReviews({ userId }: { userId: string }) {
           ))}
         </ul>
       ) : <p className="mt-2 text-sm text-ink-muted">No reviews yet. Submit a project from the <Link to="/projects-lab" className="text-accent underline">Projects Lab</Link> and an admin will review it.</p>}
-    </section>
+    </Card>
   );
 }
 
@@ -327,21 +326,17 @@ function PublicToggle() {
   if (!session || profile?.public_profile === undefined) return null;
   return (
     <div className="text-sm">
-      <label className="flex items-center gap-2 text-ink">
-        <input
-          type="checkbox"
-          checked={on}
-          onChange={(e) => {
-            const next = e.target.checked;
-            setOn(next);
-            setPublicProfile(session.user.id, next).then(refreshProfile).catch((ex: Error) => { setOn(!next); setErr(ex.message); });
-          }}
-        />
-        Public profile (appear on the leaderboard)
-      </label>
-      <p className="mt-1 text-xs text-ink-faint">Shows your username, solved count and active days. Never your email.</p>
+      <SwitchRow
+        label="Public profile (appear on the leaderboard)"
+        description="Shows your username, solved count and active days. Never your email."
+        checked={on}
+        onChange={(next) => {
+          setOn(next);
+          setPublicProfile(session.user.id, next).then(refreshProfile).catch((ex: Error) => { setOn(!next); setErr(ex.message); });
+        }}
+      />
       {on && <Link className="mt-1 block text-accent underline" to={`/profile?u=${encodeURIComponent(profile.username)}`}>View my public profile</Link>}
-      {err && <p role="alert" className="text-danger">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-danger">{err}</p>}
     </div>
   );
 }
@@ -393,13 +388,13 @@ export function AccountPage() {
               <Alert ok={false}>{fromReset ? "Set a new password for your account below." : "Please set a new password before continuing."}</Alert>
             )}
 
-            <section className={card} aria-labelledby="acc-profile">
+            <Card as="section" aria-labelledby="acc-profile">
               <div className="flex flex-wrap items-center gap-4">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-dim font-display text-lg font-bold text-accent" aria-hidden>{profile.username.slice(0, 1).toUpperCase()}</span>
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-accent to-secondary font-display text-lg font-bold text-on-accent shadow-glow" aria-hidden>{profile.username.slice(0, 1).toUpperCase()}</span>
                 <div className="min-w-0 flex-1">
                   <h2 id="acc-profile" className="truncate font-display text-lg font-bold text-ink">
                     {profile.username}
-                    {profile.role === "admin" && <span className="ml-2 rounded bg-accent-dim px-1.5 py-0.5 align-middle text-xs text-accent">admin</span>}
+                    <Badge tone={profile.role === "admin" ? "accent" : "neutral"} className="ml-2 align-middle">{profile.role === "admin" ? "admin" : "learner"}</Badge>
                   </h2>
                   <p className="text-sm text-ink-muted">
                     {syntheticEmail ? "Username account (no email)" : session?.user.email}
@@ -408,41 +403,41 @@ export function AccountPage() {
                 </div>
               </div>
               <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-lg bg-surface p-3"><dt className="text-xs text-ink-faint">Solved</dt><dd className="font-display text-xl font-bold text-ink">{solved}</dd></div>
-                <div className="rounded-lg bg-surface p-3"><dt className="text-xs text-ink-faint">Active days</dt><dd className="font-display text-xl font-bold text-ink">{progress.activeDays.length}</dd></div>
-                <div className="rounded-lg bg-surface p-3"><dt className="text-xs text-ink-faint">Sync</dt><dd className="mt-1 flex items-center justify-center gap-1 text-sm font-semibold text-success"><Cloud className="h-4 w-4" aria-hidden /> On</dd></div>
+                <div className="rounded-xl border border-surface-border bg-surface p-3"><dt className="text-xs text-ink-faint">Solved</dt><dd className="font-display text-xl font-bold text-ink">{solved}</dd></div>
+                <div className="rounded-xl border border-surface-border bg-surface p-3"><dt className="text-xs text-ink-faint">Active days</dt><dd className="font-display text-xl font-bold text-ink">{progress.activeDays.length}</dd></div>
+                <div className="rounded-xl border border-surface-border bg-surface p-3"><dt className="text-xs text-ink-faint">Sync</dt><dd className="mt-1 flex items-center justify-center gap-1 text-sm font-semibold text-success"><Cloud className="h-4 w-4" aria-hidden /> On</dd></div>
               </dl>
               <div className="mt-4 flex flex-wrap gap-3 text-sm">
                 <Link to="/progress" className="text-accent hover:underline">Progress</Link>
                 <Link to="/portfolio" className="text-accent hover:underline">Portfolio</Link>
                 {profile.role === "admin" && <Link to="/admin" className="text-accent hover:underline">Admin dashboard</Link>}
               </div>
-            </section>
+            </Card>
 
             {session && <MyReviews userId={session.user.id} />}
 
-            <section className={card} aria-labelledby="acc-password">
+            <Card as="section" aria-labelledby="acc-password">
               <h2 id="acc-password" className="flex items-center gap-2 font-display text-lg font-bold text-ink"><KeyRound className="h-4 w-4 text-accent" aria-hidden /> Change password</h2>
               <form onSubmit={submit} className="mt-3 space-y-4">
                 <PasswordField label="New password" value={password} onChange={setPassword} autoComplete="new-password" hint={<StrengthMeter pw={password} />} />
                 <PasswordField label="Confirm new password" value={confirm} onChange={setConfirm} autoComplete="new-password" invalid={confirm.length > 0 && confirm !== password} />
                 {msg && <Alert ok={msg.ok}>{msg.text}</Alert>}
-                <button className={`${primary} sm:w-auto`} disabled={busy}>{busy ? "Updating…" : "Update password"}</button>
+                <Button type="submit" className="w-full sm:w-auto" disabled={busy}>{busy ? "Updating…" : "Update password"}</Button>
               </form>
-            </section>
+            </Card>
 
-            <section className={card} aria-labelledby="acc-privacy">
+            <Card as="section" aria-labelledby="acc-privacy">
               <h2 id="acc-privacy" className="flex items-center gap-2 font-display text-lg font-bold text-ink"><ShieldCheck className="h-4 w-4 text-accent" aria-hidden /> Privacy</h2>
               <div className="mt-3"><PublicToggle /></div>
-            </section>
+            </Card>
 
-            <section className={card} aria-labelledby="acc-session">
+            <Card as="section" aria-labelledby="acc-session">
               <h2 id="acc-session" className="flex items-center gap-2 font-display text-lg font-bold text-ink"><LogOut className="h-4 w-4 text-accent" aria-hidden /> Sign out</h2>
               <p className="mt-1 text-sm text-ink-muted">Signing out removes your synced data from this browser. It stays safe in your account.</p>
-              <button type="button" onClick={() => { signingOut.current = true; void signOut().then(() => navigate("/")); }} className="mt-3 rounded-xl border border-surface-border px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-soft">
+              <Button variant="secondary" onClick={() => { signingOut.current = true; void signOut().then(() => navigate("/")); }} className="mt-3">
                 Sign out
-              </button>
-            </section>
+              </Button>
+            </Card>
           </div>
         )}
       </div>

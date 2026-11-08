@@ -1,7 +1,7 @@
 import { InlineMarkdown } from "./Markdown";
 import type { ButtonHTMLAttributes, ComponentType, ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import type { QuestionSummary } from "../types";
 
 const DIFF_STYLE: Record<string, string> = {
@@ -77,10 +77,10 @@ type Variant = "primary" | "secondary" | "ghost" | "danger";
 const BTN_BASE =
   "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition duration-fast active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
 const BTN_VARIANT: Record<Variant, string> = {
-  primary: "bg-accent text-white shadow-glow hover:brightness-110",
+  primary: "bg-accent text-on-accent shadow-glow hover:brightness-110",
   secondary: "border border-surface-border bg-surface-raised text-ink hover:border-accent/40 hover:bg-surface-overlay",
   ghost: "text-ink-muted hover:bg-hover/5 hover:text-ink",
-  danger: "bg-danger text-white hover:brightness-110",
+  danger: "bg-danger text-on-accent hover:brightness-110",
 };
 const BTN_SIZE = { sm: "min-h-[36px] px-3 text-sm", md: "min-h-[42px] px-4 text-sm", lg: "min-h-[48px] px-5 text-base" };
 
@@ -144,7 +144,10 @@ export function ProgressRing({ value, max = 100, size = 72, label, children }: {
   );
 }
 
-export function StatCard({ label, value, hint, icon: Icon }: { label: string; value: ReactNode; hint?: ReactNode; icon?: ComponentType<{ className?: string }> }) {
+/** Metric tile. `trend` adds a coloured up/down/flat note beside the hint (e.g. "+3 this week"). */
+export function StatCard({ label, value, hint, icon: Icon, trend }: { label: string; value: ReactNode; hint?: ReactNode; icon?: ComponentType<{ className?: string }>; trend?: { direction: "up" | "down" | "flat"; label: string } }) {
+  const trendTone = trend ? { up: "text-success", down: "text-danger", flat: "text-ink-faint" }[trend.direction] : "";
+  const TrendIcon = trend ? { up: TrendingUp, down: TrendingDown, flat: Minus }[trend.direction] : null;
   return (
     <Card pad="sm">
       <div className="flex items-center justify-between gap-2">
@@ -152,8 +155,80 @@ export function StatCard({ label, value, hint, icon: Icon }: { label: string; va
         {Icon && <span className="rounded-lg bg-accent-dim p-1.5 text-accent"><Icon className="h-4 w-4" /></span>}
       </div>
       <p className="mt-2 font-display text-2xl font-bold tabular-nums text-ink">{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-ink-muted">{hint}</p>}
+      {(hint || trend) && (
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
+          {trend && TrendIcon && <span className={`inline-flex items-center gap-0.5 font-medium ${trendTone}`}><TrendIcon className="h-3 w-3" aria-hidden />{trend.label}</span>}
+          {hint}
+        </p>
+      )}
     </Card>
+  );
+}
+
+/** Square icon-only button with a required accessible label and a 40px touch target. */
+export function IconButton({ label, children, active = false, className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; active?: boolean }) {
+  return (
+    <button type="button" aria-label={label} title={label} {...rest}
+      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control transition duration-fast disabled:pointer-events-none disabled:opacity-50 ${active ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"} ${className}`}>
+      {children}
+    </button>
+  );
+}
+
+/** Horizontal action bar (editor toolbars, table toolbars). Children decide grouping; use <ToolbarDivider />. */
+export function Toolbar({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
+  return (
+    <div role="toolbar" aria-label={label} className={`flex min-h-[48px] flex-wrap items-center gap-1.5 border-b border-surface-border bg-surface-raised px-2 py-1 ${className}`}>
+      {children}
+    </div>
+  );
+}
+export function ToolbarDivider() {
+  return <span aria-hidden className="mx-1 h-6 w-px bg-surface-border" />;
+}
+
+/** Progress as discrete segments (lesson steps, module parts). Falls back to a bar above 24 steps. */
+export function SegmentedProgress({ done, total, label, className = "" }: { done: number; total: number; label: string; className?: string }) {
+  if (total > 24) return <ProgressBar value={done} max={total} label={label} className={className} />;
+  return (
+    <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={total} aria-valuenow={done} className={`flex gap-1 ${className}`}>
+      {Array.from({ length: total }, (_, i) => (
+        <span key={i} className={`h-2 flex-1 rounded-full transition-colors duration-base ${i < done ? "bg-accent" : "bg-surface-soft"}`} />
+      ))}
+    </div>
+  );
+}
+
+/** A whole-card radio option (assessments, choices). Wrap a group in role="radiogroup". */
+export function RadioCard({ name, value, checked, onChange, title, description, disabled, tone }: { name: string; value: string; checked: boolean; onChange: (value: string) => void; title: ReactNode; description?: ReactNode; disabled?: boolean; tone?: "success" | "danger" }) {
+  const ring = tone === "success" ? "border-success bg-success-dim" : tone === "danger" ? "border-danger bg-danger-dim" : checked ? "border-accent bg-accent-dim" : "border-surface-border bg-surface-raised hover:border-accent/40";
+  return (
+    <label className={`flex cursor-pointer items-start gap-3 rounded-card border p-4 transition duration-fast has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${ring} ${disabled ? "cursor-default opacity-80" : ""}`}>
+      <input type="radio" className="sr-only" name={name} value={value} checked={checked} disabled={disabled} onChange={() => onChange(value)} />
+      <span aria-hidden className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${checked ? "border-accent" : "border-ink-faint"}`}>
+        {checked && <span className="h-2 w-2 rounded-full bg-accent" />}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-ink">{title}</span>
+        {description && <span className="mt-0.5 block text-xs text-ink-muted">{description}</span>}
+      </span>
+    </label>
+  );
+}
+
+/** Settings row: label + description on the left, an accessible switch on the right. */
+export function SwitchRow({ label, description, checked, onChange, disabled }: { label: string; description?: ReactNode; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-ink">{label}</p>
+        {description && <p className="mt-0.5 text-xs text-ink-muted">{description}</p>}
+      </div>
+      <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-fast disabled:opacity-50 ${checked ? "bg-accent" : "bg-surface-soft"}`}>
+        <span className={`inline-block h-5 w-5 rounded-full bg-surface-raised shadow-panel transition-transform duration-fast ${checked ? "translate-x-5" : "translate-x-0.5"}`} />
+      </button>
+    </div>
   );
 }
 

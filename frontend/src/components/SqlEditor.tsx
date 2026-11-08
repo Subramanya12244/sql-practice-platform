@@ -338,7 +338,7 @@ export function SqlEditor({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-overlay/40 px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
+          <span className="hidden text-xs font-semibold uppercase tracking-wider text-ink-faint 2xl:inline">
             SQL Editor
           </span>
           <div className="flex items-center gap-1 rounded-lg border border-surface-border bg-surface p-0.5">
@@ -367,27 +367,27 @@ export function SqlEditor({
               New tab
             </button>
           </div>
-          <span className="hidden text-[10px] text-ink-faint xl:inline">
+          <span className="hidden text-[10px] text-ink-faint 2xl:inline">
             ⌘/Ctrl+Enter run all · ⌘/Ctrl+Shift+Enter selection
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <button type="button" className="btn-secondary" onClick={formatSql} title="Format SQL">
+          <button type="button" className="btn-secondary" onClick={formatSql} title="Format SQL" aria-label="Format SQL">
             <AlignLeft className="h-3.5 w-3.5" />
-            Format
+            <span className="hidden 2xl:inline">Format</span>
           </button>
           <button type="button" className="btn-secondary" onClick={toggleComment} title="Comment or uncomment lines (⌘/Ctrl+/)" aria-label="Toggle comment">
             <MessageSquareCode className="h-3.5 w-3.5" />
           </button>
-          <button type="button" className="btn-secondary" onClick={copySql} title="Copy">
+          <button type="button" className="btn-secondary" onClick={copySql} title="Copy" aria-label="Copy SQL">
             <Copy className="h-3.5 w-3.5" />
           </button>
-          <button type="button" className="btn-secondary" onClick={clearSql} title="Clear">
+          <button type="button" className="btn-secondary" onClick={clearSql} title="Clear" aria-label="Clear editor">
             <Eraser className="h-3.5 w-3.5" />
           </button>
-          <button type="button" className="btn-secondary" onClick={resetSql} title="Reset">
+          <button type="button" className="btn-secondary" onClick={resetSql} title="Reset to the starter query" aria-label="Reset to the starter query">
             <RotateCcw className="h-3.5 w-3.5" />
-            Reset
+            <span className="hidden 2xl:inline">Reset</span>
           </button>
           <button
             type="button"
@@ -397,7 +397,8 @@ export function SqlEditor({
             title="Run selected SQL only"
           >
             <TextSelect className="h-3.5 w-3.5" />
-            {running ? "Running…" : "Run Selection"}
+            <span className="hidden 2xl:inline">{running ? "Running…" : "Run Selection"}</span>
+            <span className="sr-only 2xl:hidden">Run selection</span>
           </button>
           <button
             type="button"
