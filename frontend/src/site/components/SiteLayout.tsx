@@ -4,12 +4,16 @@ import { Bell, ChevronDown, Github, LogOut, Menu, Moon, Search, Settings, Shield
 import { BrandMark } from "../../components/BrandMark";
 import { BRAND } from "../../brand";
 import { NAV_GROUPS, activeGroup } from "../lib/navigation";
+import { AppSidebar } from "./AppSidebar";
 import { SearchDialog } from "./SearchDialog";
 import { useTheme } from "../../contexts/ThemeContext";
 import { SITE_NAME } from "../lib/seo";
 import { useMyReviews } from "../lib/reviews";
 import { Container } from "./ui";
 import { useAuth } from "../lib/auth";
+
+/** Focused pages without the sidebar. */
+const AUTH_PATHS = ["/login", "/signup", "/reset-password"];
 
 const REPO_URL = "https://github.com/Subramanya12244/northwind-sql-practice";
 
@@ -30,34 +34,6 @@ function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLE
       document.removeEventListener("keydown", onKey);
     };
   }, [open, close, ref]);
-}
-
-function NavDropdown({ group, active, open, onToggle, onClose }: {
-  group: (typeof NAV_GROUPS)[number]; active: boolean; open: boolean; onToggle: () => void; onClose: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  useDismiss(open, onClose, ref);
-  return (
-    <div ref={ref} className="relative">
-      <button type="button" onClick={onToggle} aria-expanded={open} aria-haspopup="true"
-        className={`relative inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-fast ${active ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"}`}>
-        {group.short ?? group.label}
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-fast ${open ? "rotate-180" : ""}`} aria-hidden />
-        {active && <span className="absolute inset-x-2.5 -bottom-[9px] h-0.5 rounded-full bg-accent" aria-hidden />}
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-72 animate-fade-in rounded-card border border-surface-border bg-surface-raised p-1.5 shadow-soft" role="menu" aria-label={group.label}>
-          {group.items!.map((n) => (
-            <NavLink key={n.to} to={n.to} role="menuitem" end
-              className={({ isActive }) => `block rounded-lg px-3 py-2 transition-colors duration-fast ${isActive ? "bg-accent-dim" : "hover:bg-hover/5"}`}>
-              <span className="block text-sm font-medium text-ink">{n.label}</span>
-              {n.desc && <span className="block text-xs text-ink-faint">{n.desc}</span>}
-            </NavLink>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 /**
@@ -89,14 +65,14 @@ function AccountMenu({ unseen }: { unseen: number }) {
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="true" aria-label={`Account menu for ${name}`}
         className="inline-flex items-center gap-2 rounded-full border border-surface-border py-1 pl-1 pr-2.5 text-sm font-medium text-ink hover:border-accent/40">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-accent to-secondary text-xs font-bold text-white" aria-hidden>{name.slice(0, 1).toUpperCase()}</span>
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-accent to-secondary text-xs font-bold text-on-accent" aria-hidden>{name.slice(0, 1).toUpperCase()}</span>
         <span className="hidden max-w-[8rem] truncate sm:inline">{name}</span>
         <ChevronDown className="h-3.5 w-3.5 text-ink-faint" aria-hidden />
       </button>
       {open && (
         <div role="menu" aria-label="Account" className="absolute right-0 top-full z-50 mt-2 w-56 animate-fade-in rounded-card border border-surface-border bg-surface-raised p-1.5 shadow-soft">
           <p className="truncate px-3 py-2 text-xs text-ink-faint">Signed in as <span className="font-semibold text-ink">{name}</span></p>
-          <Link role="menuitem" to="/account" className={item}><UserRound className="h-4 w-4 text-ink-faint" aria-hidden /> Account{unseen > 0 && <span className="ml-auto rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">{unseen}</span>}</Link>
+          <Link role="menuitem" to="/account" className={item}><UserRound className="h-4 w-4 text-ink-faint" aria-hidden /> Account{unseen > 0 && <span className="ml-auto rounded-full bg-accent px-1.5 text-[10px] font-bold text-on-accent">{unseen}</span>}</Link>
           <Link role="menuitem" to="/progress" className={item}>Progress</Link>
           <Link role="menuitem" to="/portfolio" className={item}>Portfolio</Link>
           {profile?.role === "admin" && <Link role="menuitem" to="/admin" className={item}><Shield className="h-4 w-4 text-ink-faint" aria-hidden /> Admin</Link>}
@@ -113,13 +89,12 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobileGroup, setMobileGroup] = useState<string | null>(null);
   useEffect(() => {
     setOpen(false);
-    setOpenGroup(null);
   }, [location.pathname, location.hash]);
   const current = activeGroup(location.pathname);
+  const showSidebar = !AUTH_PATHS.includes(location.pathname);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -152,17 +127,17 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
     <Link to="/account#acc-reviews" aria-label={unseen ? `${unseen} new project review${unseen > 1 ? "s" : ""}` : "Notifications: no new reviews"} title="Project reviews"
       className="relative rounded-lg p-2 text-ink-muted transition-colors duration-fast hover:bg-hover/5 hover:text-ink">
       <Bell className="h-4 w-4" aria-hidden />
-      {unseen > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white" aria-hidden>{unseen}</span>}
+      {unseen > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-on-accent" aria-hidden>{unseen}</span>}
     </Link>
   ) : null;
   const account = !enabled ? null : session ? <AccountMenu unseen={unseen} /> : (
     <Link to={["/", "/login", "/signup", "/reset-password"].includes(location.pathname) ? "/login" : `/login?next=${encodeURIComponent(location.pathname)}`}
-      className="inline-flex min-h-[36px] items-center rounded-lg bg-accent px-3 text-sm font-semibold text-white hover:brightness-110">Sign in</Link>
+      className="inline-flex min-h-[36px] items-center rounded-lg bg-accent px-3 text-sm font-semibold text-on-accent hover:brightness-110">Sign in</Link>
   );
 
   return (
     <div className="flex min-h-full flex-col">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-white">
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-on-accent">
         Skip to content
       </a>
       <header className="sticky top-0 z-40 border-b border-surface-border bg-surface/80 backdrop-blur-md">
@@ -171,12 +146,6 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
             <BrandMark tone="site" size={30} />
             {SITE_NAME}
           </Link>
-          <nav className="ml-3 hidden items-center gap-0.5 whitespace-nowrap lg:flex" aria-label="Main">
-            {NAV_GROUPS.map((g) => (
-              <NavDropdown key={g.id} group={g} active={current === g.id} open={openGroup === g.id}
-                onToggle={() => setOpenGroup((v) => (v === g.id ? null : g.id))} onClose={() => setOpenGroup(null)} />
-            ))}
-          </nav>
           <div className="ml-auto hidden items-center gap-1.5 lg:flex">
             {searchButton}
             <ThemeButton />
@@ -223,6 +192,9 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
       </header>
 
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <div className="flex flex-1">
+      {showSidebar && <AppSidebar pathname={location.pathname} />}
+      <div className="flex min-w-0 flex-1 flex-col">
       <main id="main" className="flex-1">
         {error && (
           <Container className="pt-6">
@@ -262,6 +234,8 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
           © {SITE_NAME}. Free to use. Your practice runs in your browser.
         </Container>
       </footer>
+      </div>
+      </div>
     </div>
   );
 }
