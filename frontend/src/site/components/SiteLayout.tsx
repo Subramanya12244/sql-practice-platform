@@ -5,6 +5,7 @@ import { BrandMark } from "../../components/BrandMark";
 import { BRAND } from "../../brand";
 import { NAV_GROUPS, activeGroup } from "../lib/navigation";
 import { AppSidebar } from "./AppSidebar";
+import { prefersReducedMotion } from "./Motion";
 import { SearchDialog } from "./SearchDialog";
 import { useTheme } from "../../contexts/ThemeContext";
 import { SITE_NAME } from "../lib/seo";
@@ -42,8 +43,16 @@ function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLE
  */
 function ThemeButton() {
   const { resolved, setPreference } = useTheme();
+  const toggle = () => {
+    const root = document.documentElement;
+    if (!prefersReducedMotion()) {
+      root.classList.add("theme-transition");
+      window.setTimeout(() => root.classList.remove("theme-transition"), 260);
+    }
+    setPreference(resolved === "dark" ? "light" : "dark");
+  };
   return (
-    <button type="button" onClick={() => setPreference(resolved === "dark" ? "light" : "dark")} aria-label="Toggle light or dark theme" title="Toggle theme"
+    <button type="button" onClick={toggle} aria-label="Toggle light or dark theme" title="Toggle theme"
       className="rounded-lg p-2 text-ink-muted transition-colors duration-fast hover:bg-hover/5 hover:text-ink">
       <Sun className="hidden h-4 w-4 dark:block" aria-hidden />
       <Moon className="h-4 w-4 dark:hidden" aria-hidden />
@@ -70,7 +79,7 @@ function AccountMenu({ unseen }: { unseen: number }) {
         <ChevronDown className="h-3.5 w-3.5 text-ink-faint" aria-hidden />
       </button>
       {open && (
-        <div role="menu" aria-label="Account" className="absolute right-0 top-full z-50 mt-2 w-56 animate-fade-in rounded-card border border-surface-border bg-surface-raised p-1.5 shadow-soft">
+        <div role="menu" aria-label="Account" className="absolute right-0 top-full z-50 mt-2 w-56 origin-top-right animate-scale-in rounded-card border border-surface-border bg-surface-raised p-1.5 shadow-soft">
           <p className="truncate px-3 py-2 text-xs text-ink-faint">Signed in as <span className="font-semibold text-ink">{name}</span></p>
           <Link role="menuitem" to="/account" className={item}><UserRound className="h-4 w-4 text-ink-faint" aria-hidden /> Account{unseen > 0 && <span className="ml-auto rounded-full bg-accent px-1.5 text-[10px] font-bold text-on-accent">{unseen}</span>}</Link>
           <Link role="menuitem" to="/progress" className={item}>Progress</Link>
@@ -108,6 +117,16 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  // Soft page transition on navigation. Animates the existing <main> with WAAPI instead of
+  // remounting it, so page state and data loading are untouched. Skipped on first paint.
+  const mainRef = useRef<HTMLElement>(null);
+  const firstPath = useRef(true);
+  useEffect(() => {
+    if (firstPath.current) { firstPath.current = false; return; }
+    const el = mainRef.current;
+    if (!el || prefersReducedMotion() || typeof el.animate !== "function") return;
+    el.animate([{ opacity: 0.4, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+  }, [location.pathname]);
   const { enabled, session, profile } = useAuth();
   const { unseen } = useMyReviews(session?.user.id);
   const navigate = useNavigate();
@@ -163,7 +182,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
           </div>
         </Container>
         {open && (
-          <nav id="mobile-nav" className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-surface-border lg:hidden" aria-label="Mobile">
+          <nav id="mobile-nav" className="animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-surface-border lg:hidden" aria-label="Mobile">
             <Container className="flex flex-col gap-1 py-3">
               {NAV_GROUPS.map((g) => (
                 <div key={g.id}>
@@ -195,7 +214,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
       <div className="flex flex-1">
       {showSidebar && <AppSidebar pathname={location.pathname} />}
       <div className="flex min-w-0 flex-1 flex-col">
-      <main id="main" className="flex-1">
+      <main id="main" ref={mainRef} className="flex-1">
         {error && (
           <Container className="pt-6">
             <p role="alert" className="rounded-lg border border-danger/30 bg-danger-dim px-4 py-3 text-sm text-danger">

@@ -145,7 +145,7 @@ function ResultBody({
 
       {submitResult && (
         <div
-          className={`mb-3 rounded-md border px-3 py-2 text-sm ${
+          className={`mb-3 animate-scale-in rounded-md border px-3 py-2 text-sm ${
             submitResult.correct
               ? "border-accent/40 bg-accent-dim text-accent"
               : "border-danger/40 bg-danger-dim text-danger"
@@ -177,7 +177,7 @@ function ResultBody({
       )}
 
       {result && !result.success && (
-        <div className="rounded-md border border-danger/40 bg-danger-dim px-3 py-3 text-sm text-danger">
+        <div className="animate-fade-in rounded-md border border-danger/40 bg-danger-dim px-3 py-3 text-sm text-danger">
           <div className="mb-1 flex items-center gap-2 font-medium">
             <XCircle className="h-4 w-4" />
             {result.error_type === "TIMEOUT"
@@ -195,7 +195,7 @@ function ResultBody({
       {result?.success && (
         <>
           <p className="mb-2 text-xs text-accent">{result.message}</p>
-          <div tabIndex={0} className="overflow-auto rounded-md border border-surface-border">
+          <div key={`${result.execution_time_ms}-${result.row_count}-${result.columns.join(",")}`} tabIndex={0} className="animate-fade-in overflow-auto rounded-md border border-surface-border">
             <table className="min-w-full border-collapse text-left text-sm">
               <thead className="sticky top-0 bg-surface-overlay">
                 <tr>

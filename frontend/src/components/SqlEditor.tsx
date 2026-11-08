@@ -6,6 +6,7 @@ import {
   AlignLeft,
   Copy,
   Eraser,
+  Loader2,
   Play,
   RotateCcw,
   Send,
@@ -407,7 +408,7 @@ export function SqlEditor({
             disabled={running || !value.trim()}
             title="Run the entire editor contents"
           >
-            <Play className="h-3.5 w-3.5" />
+            {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Play className="h-3.5 w-3.5" />}
             {running ? "Running…" : "Run All"}
           </button>
           {onSubmit && (

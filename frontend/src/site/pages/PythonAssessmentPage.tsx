@@ -104,8 +104,8 @@ export function PythonAssessmentPage() {
           <Card pad="md" as="section" aria-label="Past assessments">
             {result && (
               <div className="mb-4 space-y-3">
-                <p className="flex items-center gap-2 font-semibold text-ink"><Trophy className="h-4 w-4 text-accent" aria-hidden /> {result.solved} of {result.total} solved in {Math.round(result.usedSec / 60)} min</p>
-                <div className="grid grid-cols-3 gap-2">
+                <p className="flex items-center gap-2 font-semibold text-ink"><Trophy className="h-4 w-4 animate-pop text-accent" aria-hidden /> {result.solved} of {result.total} solved in {Math.round(result.usedSec / 60)} min</p>
+                <div className="stagger grid grid-cols-3 gap-2">
                   <StatCard label="Score" value={`${Math.round((result.solved / Math.max(1, result.total)) * 100)}%`} />
                   <StatCard label="Time" value={`${Math.round(result.usedSec / 60)} min`} hint={`of ${result.durationMin}`} />
                   <StatCard label="Correct" value={`${result.solved}/${result.total}`} />
@@ -187,7 +187,7 @@ function Running({ active, left, onUpdate, onFinish }: { active: Active; left: n
       </div>
       {!ex ? <Skeleton className="h-96" /> : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-          <article className="min-w-0">
+          <article key={slug} className="min-w-0 animate-fade-in">
             <div className="flex flex-wrap items-center gap-2"><span className="rounded-md bg-surface-soft px-2 py-0.5 font-mono text-xs text-ink-muted">{ex.code}</span><h2 className="font-display text-xl font-bold text-ink">{ex.title}</h2><Difficulty level={ex.difficulty} /></div>
             <Markdown source={body} className="mt-3 text-sm" />
           </article>

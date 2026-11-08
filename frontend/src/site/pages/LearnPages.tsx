@@ -128,7 +128,7 @@ function Exercise({ lesson, ex }: { lesson: Lesson; ex: LessonExercise }) {
     <section className="my-8 rounded-card border border-accent/30 bg-accent-dim/40 p-4" aria-label={`Exercise ${ex.index + 1}`}>
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
         Exercise {ex.index + 1}
-        {done && <span className="inline-flex items-center gap-1 normal-case text-success"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> passed</span>}
+        {done && <span className="inline-flex items-center gap-1 normal-case text-success"><CheckCircle2 className="h-3.5 w-3.5 animate-pop" aria-hidden /> passed</span>}
       </p>
       <p className="mt-1 text-ink"><InlineMarkdown source={ex.prompt} /></p>
       {ex.orderBy && <p className="mt-1 text-xs text-ink-faint">Row order is checked.</p>}
@@ -324,7 +324,7 @@ function LearnDashboard() {
         </div>
       </section>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard icon={Flame} label="Streak" value={mounted ? `${days} day${days === 1 ? "" : "s"}` : "—"} hint={mounted ? `Longest ${g.longest} · days with learning` : "Days in a row with activity"} />
         <Link to="/achievements" className="block rounded-card focus-visible:outline-offset-4">
           <Card pad="sm" className="h-full transition duration-fast hover:border-accent/40">
@@ -341,7 +341,7 @@ function LearnDashboard() {
       <DailyChallenge />
       <p className="-mt-2 text-sm"><Link to="/study-notes" className="font-semibold text-accent hover:underline">Visual study notes</Link> <span className="text-ink-muted">· turn what you have solved into a PDF study guide</span></p>
 
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="stagger grid gap-4 lg:grid-cols-5">
         <Card as="section" className="lg:col-span-3">
           <SectionHeader title="This week" description={mounted ? `${weekTotal} learning action${weekTotal === 1 ? "" : "s"} in the last 7 days` : "Learning actions per day"} />
           {time && (

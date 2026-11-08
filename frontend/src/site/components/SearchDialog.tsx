@@ -32,8 +32,8 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[10vh]" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Search" className="w-full max-w-xl overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex animate-[fade-in_160ms_ease-out_both] items-start justify-center bg-black/40 p-4 pt-[10vh]" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="Search" className="w-full max-w-xl origin-top animate-scale-in overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 border-b border-surface-border px-3">
           <Search className="h-4 w-4 text-ink-faint" aria-hidden />
           <input

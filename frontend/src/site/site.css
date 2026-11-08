@@ -292,3 +292,65 @@ html.dark .prose-site .tok-n { color: #fcd34d; }
 
 /* Long inline code (method chains, paths) wraps instead of widening the page on phones. */
 .prose-site :not(pre) > code { overflow-wrap: anywhere; }
+
+/* ── Motion system ──────────────────────────────────────────────────────────
+ * Durations/easings live in tailwind.config.js (duration-fast/base/slow, ease-out).
+ * Everything here animates transform/opacity only. The global prefers-reduced-motion rule
+ * above collapses all of it to an instant change.
+ */
+
+/* Staggered children: each direct child fades up 45ms after the previous (capped at 10). */
+/* Defined here, not only in tailwind.config.js: Tailwind drops keyframes whose animate-*
+ * utility is unused, and .stagger references this one directly. */
+@keyframes df-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stagger > * { animation: df-fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.stagger > *:nth-child(2) { animation-delay: 45ms; }
+.stagger > *:nth-child(3) { animation-delay: 90ms; }
+.stagger > *:nth-child(4) { animation-delay: 135ms; }
+.stagger > *:nth-child(5) { animation-delay: 180ms; }
+.stagger > *:nth-child(6) { animation-delay: 225ms; }
+.stagger > *:nth-child(7) { animation-delay: 270ms; }
+.stagger > *:nth-child(8) { animation-delay: 315ms; }
+.stagger > *:nth-child(9) { animation-delay: 360ms; }
+.stagger > *:nth-child(n + 10) { animation-delay: 405ms; }
+
+/* Scroll reveal (see Reveal.tsx). Content is visible in the HTML; only sections that start
+ * below the fold are hidden after hydration, then revealed when they enter the viewport. */
+.reveal-pending { opacity: 0; transform: translateY(16px); }
+.reveal-in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 520ms cubic-bezier(0.22, 1, 0.36, 1), transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Brief colour cross-fade while switching theme (class added for ~250ms by the toggle). */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, fill 220ms ease !important;
+}
+
+/* Disclosure that animates height without measuring: grid rows 0fr -> 1fr. */
+.collapse-grid { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+.collapse-grid[data-open="true"] { grid-template-rows: 1fr; }
+.collapse-grid > * { min-height: 0; overflow: hidden; }
+
+/* Animated hero gradient: background-position only, no blur filters. */
+.hero-gradient {
+  background-image: linear-gradient(120deg, rgb(var(--color-accent) / 0.16), rgb(var(--color-secondary) / 0.12), rgb(var(--color-accent-muted) / 0.14), rgb(var(--color-accent) / 0.16));
+  background-size: 300% 300%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger > * { animation-delay: 0ms !important; }
+  .reveal-pending { opacity: 1; transform: none; }
+}
+
+@media print {
+  .reveal-pending { opacity: 1 !important; transform: none !important; }
+  .stagger > * { animation: none !important; }
+}
