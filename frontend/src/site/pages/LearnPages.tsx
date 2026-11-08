@@ -4,7 +4,7 @@ import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { InlineMarkdown } from "../components/Markdown";
-import { ButtonLink, Card, Chip, Container, EmptyState, PageHeader, ProgressBar, ProgressRing, QuestionCard, SectionHeader, Skeleton, StatCard } from "../components/ui";
+import { Button, ButtonLink, Card, Chip, Container, EmptyState, PageHeader, ProgressBar, ProgressRing, QuestionCard, SectionHeader, SegmentedProgress, Skeleton, StatCard } from "../components/ui";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { setDailyGoal, streak, today, useProgress } from "../lib/progress";
 import { weekActivity } from "../lib/dashboard";
@@ -66,14 +66,16 @@ export function LearnPage() {
         intro={`Goals, progress and what to do next, plus the ${lessons.length}-lesson SQL course with ${totalEx} graded exercises.`}
       />
       <LearnDashboard />
-      <h2 className="mt-12 font-display text-2xl font-bold text-ink" id="roadmap">SQL course roadmap</h2>
-      <p className="mt-1 text-sm text-ink-muted">Hands-on lessons in order. Each ends with exercises graded in your browser. {doneEx > 0 && `You've passed ${doneEx} of ${totalEx}.`}</p>
+      <div className="mt-12">
+        <SectionHeader id="roadmap" title="SQL course roadmap" description={<>Hands-on lessons in order. Each ends with exercises graded in your browser. {doneEx > 0 && `You've passed ${doneEx} of ${totalEx}.`}</>} />
+        {doneEx > 0 && <ProgressBar value={doneEx} max={totalEx || 1} label="SQL course exercises passed" className="max-w-md" />}
+      </div>
       {levels.map((level) => {
         const group = lessons.filter((l) => l.level === level);
         if (!group.length) return null;
         return (
           <section key={level} className="mt-8" aria-labelledby={`lvl-${level}`}>
-            <h2 id={`lvl-${level}`} className="font-display text-xl font-bold text-ink">{level}</h2>
+            <h3 id={`lvl-${level}`} className="font-display text-lg font-bold text-ink">{level}</h3>
             <ol className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {group.map((l) => {
                 const done = doneCount(progress.lessons, l.slug, l.exercises);
@@ -81,7 +83,7 @@ export function LearnPage() {
                   <li key={l.slug}>
                     <Link
                       to={`/learn/${l.slug}`}
-                      className="block h-full rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition duration-fast hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow"
+                      className="flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition duration-fast hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow"
                     >
                       <p className="flex items-center justify-between text-xs text-ink-faint">
                         <span>Lesson {l.order}</span>
@@ -91,7 +93,8 @@ export function LearnPage() {
                         </span>
                       </p>
                       <p className="mt-1 font-semibold text-ink">{l.title}</p>
-                      <p className="mt-1 text-sm text-ink-muted">{l.description}</p>
+                      <p className="mt-1 flex-1 text-sm text-ink-muted">{l.description}</p>
+                      {l.exercises > 0 && <SegmentedProgress className="mt-3" done={done} total={l.exercises} label={`${l.title}: ${done} of ${l.exercises} exercises passed`} />}
                     </Link>
                   </li>
                 );
@@ -131,13 +134,13 @@ function Exercise({ lesson, ex }: { lesson: Lesson; ex: LessonExercise }) {
       {ex.orderBy && <p className="mt-1 text-xs text-ink-faint">Row order is checked.</p>}
       <div className="mt-3 flex flex-wrap gap-2 text-sm">
         {!open && (
-          <button type="button" onClick={() => setOpen(true)} className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white">
+          <Button size="sm" onClick={() => setOpen(true)}>
             Try it
-          </button>
+          </Button>
         )}
-        <button type="button" onClick={() => setShowSolution((v) => !v)} className="rounded-lg border border-surface-border px-3 py-1.5 text-ink-muted hover:text-ink">
+        <Button size="sm" variant="secondary" onClick={() => setShowSolution((v) => !v)}>
           {showSolution ? "Hide solution" : "Show solution"}
-        </button>
+        </Button>
       </div>
       {showSolution && <Markdown source={"```sql\n" + ex.solution + "\n```"} className="mt-3" />}
       {open && (
@@ -459,6 +462,8 @@ function LearnDashboard() {
         </ul>
       </Card>
 
+      <section aria-labelledby="modules">
+      <SectionHeader id="modules" title="Study modules" />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {MODULES.map((m) => (
           <Link key={m.to} to={m.to} className="flex gap-3 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition duration-fast hover:-translate-y-0.5 hover:border-accent/40">
@@ -467,6 +472,7 @@ function LearnDashboard() {
           </Link>
         ))}
       </div>
+      </section>
 
       <PracticeNext title="Practice your weak spots" />
     </div>

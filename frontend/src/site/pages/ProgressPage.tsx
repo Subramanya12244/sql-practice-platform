@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, FileText, Flame, Trophy, Upload } from "lucide-react";
+import { Activity, CalendarDays, Download, FileText, Flame, Trophy, Upload } from "lucide-react";
 import { usePage } from "../SiteApp";
-import { Container, PageHeader } from "../components/ui";
+import { Button, Card, Container, PageHeader, SectionHeader, StatCard } from "../components/ui";
 import { ShareButton } from "../components/ShareButton";
 import { PracticeNext } from "./ReviewPage";
 import { Seo } from "../lib/seo";
@@ -96,8 +96,8 @@ export function ProgressPage() {
   const stats = [
     { label: "Solved", value: `${solvedNums.size} / ${data.index.length}`, icon: Trophy },
     { label: "Day streak", value: String(days), icon: Flame },
-    { label: "Attempts", value: String(attempts), icon: null },
-    { label: "Active days", value: String(progress.activeDays.length), icon: null },
+    { label: "Attempts", value: String(attempts), icon: Activity },
+    { label: "Active days", value: String(progress.activeDays.length), icon: CalendarDays },
   ];
 
   return (
@@ -107,18 +107,13 @@ export function ProgressPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel">
-            <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-ink-faint">
-              {s.icon && <s.icon className="h-3.5 w-3.5" aria-hidden />} {s.label}
-            </p>
-            <p className="mt-1 font-display text-2xl font-bold text-ink">{s.value}</p>
-          </div>
+          <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} />
         ))}
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <ShareButton kind="progress" solved={solvedNums.size} total={data.index.length} streak={days} />
-        <Link to="/review" className="ml-3 text-sm font-semibold text-accent hover:underline">Open review queue →</Link>
+        <Link to="/review" className="text-sm font-semibold text-accent hover:underline">Open review queue →</Link>
       </div>
 
       <LearningAnalytics />
@@ -126,9 +121,10 @@ export function ProgressPage() {
       <PracticeNext />
 
       {(progress.mocks?.length ?? 0) > 0 && (
-        <>
-          <h2 className="mt-12 font-display text-xl font-bold text-ink">Mock interviews</h2>
-          <ul className="mt-4 divide-y divide-surface-border rounded-card border border-surface-border">
+        <section className="mt-12" aria-labelledby="mocks">
+          <SectionHeader id="mocks" title="Mock interviews" action={<Link to="/mock-interview" className="text-sm font-medium text-accent hover:underline">Start another</Link>} />
+          <Card pad="none" className="overflow-hidden">
+          <ul className="divide-y divide-surface-border">
             {[...progress.mocks!].reverse().slice(0, 10).map((m) => (
               <li key={m.date} className="flex items-center justify-between px-4 py-2.5 text-sm">
                 <span className="text-ink-muted">{new Date(m.date).toLocaleDateString()}</span>
@@ -137,42 +133,42 @@ export function ProgressPage() {
               </li>
             ))}
           </ul>
-          <Link to="/mock-interview" className="mt-2 inline-block text-sm font-medium text-accent hover:underline">Start another</Link>
-        </>
+          </Card>
+        </section>
       )}
 
-      <div className="mt-12 flex flex-wrap items-end justify-between gap-2">
-        <h2 className="font-display text-xl font-bold text-ink">Topic mastery</h2>
-        <button type="button" onClick={downloadReport} disabled={!mounted} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-4 py-2 text-sm font-medium text-ink hover:border-accent/40 disabled:opacity-50">
-          <FileText className="h-4 w-4" aria-hidden /> Download report
-        </button>
-      </div>
-      <p className="mt-1 text-xs text-ink-muted">Independent solves count fully; solves after hints or a revealed solution count half. Mastered needs 85% and a Hard solve.</p>
-      <div className="mt-4 grid gap-8 md:grid-cols-2">
-        <MasteryList title="SQL topics" rows={sqlRows} link={(t) => `/topics/${t}`} />
-        <MasteryList title="Python categories" rows={pyRows} />
-      </div>
+      <section className="mt-12" aria-labelledby="mastery">
+        <SectionHeader id="mastery" title="Topic mastery"
+          description="Independent solves count fully; solves after hints or a revealed solution count half. Mastered needs 85% and a Hard solve."
+          action={<Button variant="secondary" onClick={downloadReport} disabled={!mounted}><FileText className="h-4 w-4" aria-hidden /> Download report</Button>} />
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card><MasteryList title="SQL topics" rows={sqlRows} link={(t) => `/topics/${t}`} /></Card>
+          <Card><MasteryList title="Python categories" rows={pyRows} /></Card>
+        </div>
+      </section>
 
-      <h2 className="mt-12 font-display text-xl font-bold text-ink">Back up your progress</h2>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button type="button" onClick={download} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-4 py-2 text-sm font-medium text-ink hover:border-accent/40">
+      <section className="mt-12" aria-labelledby="backup">
+      <SectionHeader id="backup" title="Back up your progress" />
+      <div className="flex flex-wrap gap-3">
+        <Button variant="secondary" onClick={download}>
           <Download className="h-4 w-4" aria-hidden /> Export
-        </button>
-        <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-4 py-2 text-sm font-medium text-ink hover:border-accent/40">
+        </Button>
+        <Button variant="secondary" onClick={() => fileRef.current?.click()}>
           <Upload className="h-4 w-4" aria-hidden /> Import
-        </button>
+        </Button>
         <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
-        <button
-          type="button"
+        <Button
+          variant="ghost"
           onClick={() => {
             if (window.confirm("Delete all progress saved in this browser? This cannot be undone.")) resetProgress();
           }}
-          className="rounded-lg px-4 py-2 text-sm font-medium text-danger hover:bg-danger-dim"
+          className="text-danger hover:bg-danger-dim hover:text-danger"
         >
           Reset
-        </button>
+        </Button>
       </div>
       {msg && <p className="mt-3 text-sm text-ink-muted" role="status">{msg}</p>}
+      </section>
     </Container>
   );
 }
