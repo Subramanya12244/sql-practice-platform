@@ -33,6 +33,7 @@ import { StudyNotesPage } from "./pages/StudyNotesPage";
 import { CustomQuestionPage } from "./pages/CustomQuestionPage";
 import { AssessmentsPage } from "./pages/AssessmentsPage";
 import { DebugLabPage } from "./pages/DebugLabPage";
+import { DebugCenterPage } from "./pages/DebugCenterPage";
 import { PortfolioExportPage } from "./pages/PortfolioExportPage";
 import { PythonAssessmentPage } from "./pages/PythonAssessmentPage";
 import { DataGeneratorPage } from "./pages/DataGeneratorPage";
@@ -347,6 +348,7 @@ export const routes: SiteRoute[] = [
   { path: "/account", element: <AccountPage />, load: base, paths: one("/account") },
   { path: "/reset-password", element: <ResetPasswordPage />, load: base, paths: one("/reset-password") },
   { path: "/admin", element: <AdminPage />, load: async () => ({ ...(await base()), projects: await loadProjectIndex(), exercises: await loadExerciseIndex() }), paths: one("/admin") },
+  { path: "/debug", element: <DebugCenterPage />, load: base, paths: one("/debug") },
 ];
 
 export const notFoundRoute: SiteRoute = {

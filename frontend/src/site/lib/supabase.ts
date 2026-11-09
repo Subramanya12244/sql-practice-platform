@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { classifyError } from "./diagnostics";
 
 const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -11,7 +12,9 @@ export const accountsEnabled = Boolean(URL && ANON_KEY);
  * they are awaited or `.then` is called, so `void sb.from(...).insert(...)` silently does nothing.
  */
 export function send(q: PromiseLike<unknown>): void {
-  Promise.resolve(q).catch(() => undefined);
+  Promise.resolve(q).catch((err) => {
+    classifyError(err, "DATABASE_SYNC_ERROR", "account_sync");
+  });
 }
 
 let client: Promise<SupabaseClient> | null = null;

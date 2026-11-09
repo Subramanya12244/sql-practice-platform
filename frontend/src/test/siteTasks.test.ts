@@ -34,6 +34,7 @@ describe("task engine", () => {
     const fake = (r: object) => async () => ({ ok: false, stdout: "", ms: 1, ...r });
     expect((await runPythonTask(task, "x", fake({ phase: "tests", error: "Traceback\nAssertionError: expected 1" }))).message).toBe("A test failed: expected 1");
     expect((await runPythonTask(task, "x", fake({ phase: "code", error: "NameError: name 'y' is not defined" }))).message).toMatch(/NameError/);
+    expect((await runPythonTask(task, "x", fake({ phase: "load", error: "Python could not start: failed to initialize" }))).message).toBe("Python could not start: failed to initialize");
     expect((await runPythonTask(task, "x", fake({ phase: "timeout", error: "Stopped after 10s" }))).message).toMatch(/Stopped/);
     expect((await runPythonTask(task, "x", async () => ({ ok: true, stdout: "hi", ms: 1 }))).ok).toBe(true);
   });

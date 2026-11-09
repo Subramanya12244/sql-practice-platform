@@ -1,3 +1,5 @@
+import { classifyError } from "./diagnostics";
+
 /** Runs Python in the Pyodide worker with a wall-clock limit. Browser only. */
 export interface PyResult {
   ok: boolean;
@@ -17,6 +19,8 @@ const FIRST_RUN_TIMEOUT_MS = 90_000;
 let worker: Worker | null = null;
 let warmed = false;
 let seq = 0;
+
+export const isPythonWarmed = (): boolean => warmed;
 
 function getWorker() {
   worker ??= new Worker(new URL("./pyodide.worker.ts", import.meta.url), { type: "module" });
@@ -57,7 +61,9 @@ export function runPython(
       pending.delete(id);
       w.removeEventListener("message", onMsg);
       resetPython();
-      resolve({ ok: false, phase: "timeout", stdout: "", error: `Stopped after ${Math.round(limit / 1000)}s — check for an infinite loop.`, ms: limit });
+      const timeoutErr = `Stopped after ${Math.round(limit / 1000)}s — check for an infinite loop.`;
+      classifyError(timeoutErr, "PYTHON_EXECUTION_ERROR", "python_workspace", { code: "PY_TIMEOUT" });
+      resolve({ ok: false, phase: "timeout", stdout: "", error: timeoutErr, ms: limit });
     }, limit);
     function onMsg(e: MessageEvent<{ id: number } & Omit<PyResult, "ms">>) {
       if (e.data.id !== id) return;
@@ -65,7 +71,17 @@ export function runPython(
       clearTimeout(timer);
       w.removeEventListener("message", onMsg);
       if (e.data.phase !== "load") warmed = true;
-      resolve({ ...e.data, ms: Math.round(performance.now() - started) });
+      const res: PyResult = { ...e.data, ms: Math.round(performance.now() - started) };
+      if (!res.ok && res.error) {
+        if (res.phase === "load") {
+          classifyError(res.error, "PYTHON_RUNTIME_ERROR", "python_workspace");
+        } else if (res.phase === "tests") {
+          classifyError(res.error, "ASSESSMENT_ERROR", "python_practice");
+        } else {
+          classifyError(res.error, "PYTHON_EXECUTION_ERROR", "python_workspace");
+        }
+      }
+      resolve(res);
     }
     w.addEventListener("message", onMsg);
     w.postMessage({ id, code, tests, stdin, files });

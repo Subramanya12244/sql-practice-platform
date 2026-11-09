@@ -21,6 +21,8 @@ const beacon = process.env.VITE_CF_BEACON
   ? `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"${attr(process.env.VITE_CF_BEACON)}"}'></script>`
   : "";
 
+console.log("[build-site] Starting Vite client and SSR bundles...");
+const buildStart = Date.now();
 await build({ root, configFile: config, logLevel: "warn" });
 await build({
   root,
@@ -28,6 +30,7 @@ await build({
   logLevel: "warn",
   build: { ssr: "src/site/entry-server.tsx", outDir: ssrOut, emptyOutDir: true, rollupOptions: { input: "src/site/entry-server.tsx" } },
 });
+console.log(`[build-site] Client and SSR bundles compiled in ${((Date.now() - buildStart) / 1000).toFixed(1)}s`);
 
 const server = await import(pathToFileURL(join(ssrOut, "entry-server.js")).href);
 server.setJsonFetcher(async (p) => JSON.parse(await readFile(join(out, p), "utf8")));
@@ -37,28 +40,43 @@ const paths = await server.allPaths();
 const indexable = [];
 const inlineHashes = new Set(); // executable inline scripts, allowed by hash in the CSP
 
+console.log(`[build-site] Beginning SSG prerendering of ${paths.length} static routes...`);
+let renderedCount = 0;
+const renderStart = Date.now();
+
 for (const path of paths) {
-  const { html, head, noindex, page } = await server.render(path);
-  // index/topics are fetched by the client (shared, cached), so keep them out of each page.
-  const { index: _i, topics: _t, ...rest } = page.data;
-  const embedded = JSON.stringify({ ...page, data: rest }).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
-  const doc = template
-    // Function replacers: a string replacement would expand "$'" / "$&" found in content.
-    .replace("<!--head-->", () => head + extraHead)
-    .replace("<!--app-->", () => html)
-    .replace("<!--page-data-->", () => `<script type="application/json" id="__PAGE__">${embedded}</script>${beacon}`);
-  if (!doc.includes(`id="__PAGE__">${embedded}</script>`) || !doc.includes(html)) {
-    throw new Error(`Prerender of ${path} mangled its content`);
+  try {
+    const { html, head, noindex, page } = await server.render(path);
+    // index/topics are fetched by the client (shared, cached), so keep them out of each page.
+    const { index: _i, topics: _t, ...rest } = page.data;
+    const embedded = JSON.stringify({ ...page, data: rest }).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+    const doc = template
+      // Function replacers: a string replacement would expand "$'" / "$&" found in content.
+      .replace("<!--head-->", () => head + extraHead)
+      .replace("<!--app-->", () => html)
+      .replace("<!--page-data-->", () => `<script type="application/json" id="__PAGE__">${embedded}</script>${beacon}`);
+    if (!doc.includes(`id="__PAGE__">${embedded}</script>`) || !doc.includes(html)) {
+      throw new Error(`Prerender of ${path} mangled its content`);
+    }
+    const file = path === "/404" ? join(out, "404.html") : join(out, path, "index.html");
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, doc);
+    for (const m of doc.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
+      const attrs = m[1] ?? "";
+      if (/\bsrc=/.test(attrs) || /type="application\/(ld\+)?json"/.test(attrs)) continue;
+      inlineHashes.add(`'sha256-${createHash("sha256").update(m[2]).digest("base64")}'`);
+    }
+    if (!noindex) indexable.push(path);
+    renderedCount++;
+    if (renderedCount % 100 === 0 || renderedCount === paths.length) {
+      const pct = ((100 * renderedCount) / paths.length).toFixed(0);
+      const elapsed = ((Date.now() - renderStart) / 1000).toFixed(1);
+      console.log(`[build-site] Prerendered ${renderedCount}/${paths.length} pages (${pct}%) in ${elapsed}s`);
+    }
+  } catch (err) {
+    console.error(`[build-site] Failed to prerender ${path}:`, err);
+    throw err;
   }
-  const file = path === "/404" ? join(out, "404.html") : join(out, path, "index.html");
-  await mkdir(dirname(file), { recursive: true });
-  await writeFile(file, doc);
-  for (const m of doc.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
-    const attrs = m[1] ?? "";
-    if (/\bsrc=/.test(attrs) || /type="application\/(ld\+)?json"/.test(attrs)) continue;
-    inlineHashes.add(`'sha256-${createHash("sha256").update(m[2]).digest("base64")}'`);
-  }
-  if (!noindex) indexable.push(path);
 }
 
 const today = new Date().toISOString().slice(0, 10);
@@ -89,6 +107,9 @@ function wrap(text, max = 30) {
 const diffColor = { Easy: "#16a34a", Medium: "#d97706", Hard: "#dc2626" };
 const index = JSON.parse(await readFile(join(out, "data", "index.json"), "utf8"));
 await mkdir(join(out, "og"), { recursive: true });
+console.log(`[build-site] Generating ${index.length} OpenGraph social preview images...`);
+const ogStart = Date.now();
+let ogCount = 0;
 for (const q of index) {
   const title = wrap(q.title).map((l, i) => `<text x="80" y="${300 + i * 76}" font-size="64" font-weight="700" fill="#0f172a">${esc(l)}</text>`).join("");
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
@@ -102,6 +123,10 @@ ${title}
 </svg>`;
   const png = new Resvg(svg, { font: { loadSystemFonts: true, defaultFontFamily: "Helvetica" } }).render().asPng();
   await writeFile(join(out, "og", `${q.slug}.png`), png);
+  ogCount++;
+  if (ogCount % 50 === 0 || ogCount === index.length) {
+    console.log(`[build-site] Generated ${ogCount}/${index.length} OG social images in ${((Date.now() - ogStart) / 1000).toFixed(1)}s`);
+  }
 }
 await writeFile(join(out, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`);
 // Content-Security-Policy. Inline scripts are allowed only by hash; data scripts are JSON and never run.

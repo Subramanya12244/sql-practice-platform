@@ -24,7 +24,7 @@ import {
   Edit3,
   Eraser,
 } from "lucide-react";
-import { runPython, stopPython, PY_TIMEOUT_MS } from "../lib/pyRunner";
+import { runPython, stopPython, resetPython, isPythonWarmed, PY_TIMEOUT_MS } from "../lib/pyRunner";
 import { runPythonTask, type TaskResult, type TestCounts } from "../lib/tasks";
 import type { PythonTask } from "../lib/tasks";
 import { validateVirtualPath, VFS_LIMITS } from "../lib/virtualFs";
@@ -110,6 +110,9 @@ export function PythonWorkspace({
 
   // Execution state
   const [busy, setBusy] = useState<"run" | "check" | null>(null);
+  const [runtimeStatus, setRuntimeStatus] = useState<"uninitialized" | "ready" | "running" | "failed" | "restarting">(() =>
+    isPythonWarmed() ? "ready" : "uninitialized"
+  );
   const [stdin, setStdin] = useState("");
   const [activeBottomTab, setActiveBottomTab] = useState<"output" | "tests" | "stdin">("output");
   const [terminalOutput, setTerminalOutput] = useState<string>("");
@@ -267,6 +270,8 @@ export function PythonWorkspace({
     setTerminalOutput("");
     setTestResult(null);
     setErrorLine(null);
+    resetPython();
+    setRuntimeStatus("uninitialized");
     try {
       localStorage.setItem(storageKey, JSON.stringify(initial));
       if (initial["solution.py"]) {
@@ -286,6 +291,7 @@ export function PythonWorkspace({
   // Execution: Script Mode (runs active file or main.py directly)
   const runScript = async () => {
     setBusy("run");
+    setRuntimeStatus("running");
     setActiveBottomTab("output");
     setErrorLine(null);
 
@@ -298,6 +304,7 @@ export function PythonWorkspace({
     if (!r.ok && r.errorLine) {
       setErrorLine(r.errorLine);
     }
+    setRuntimeStatus(r.phase === "load" ? "failed" : "ready");
     onRunResult?.(r, activeCode);
     setBusy(null);
   };
@@ -306,6 +313,7 @@ export function PythonWorkspace({
   const checkTests = async () => {
     if (!task) return;
     setBusy("check");
+    setRuntimeStatus("running");
     setActiveBottomTab("tests");
     setErrorLine(null);
 
@@ -339,6 +347,7 @@ export function PythonWorkspace({
     setTestResult(res);
     setLastMs(res.ms ?? null);
     if (reportedLine) setErrorLine(reportedLine);
+    setRuntimeStatus(res.ok || (res as { phase?: string }).phase !== "load" ? "ready" : "failed");
     onCheckResult?.(res, solutionCode);
     if (res.ok) {
       onSolved?.();
@@ -393,6 +402,20 @@ export function PythonWorkspace({
             <Badge tone="neutral" className="tabular-nums">
               {lastMs} ms
             </Badge>
+          )}
+          {busy ? (
+            <Badge tone="accent" className="flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Running</span>
+            </Badge>
+          ) : runtimeStatus === "ready" ? (
+            <Badge tone="success">Ready</Badge>
+          ) : runtimeStatus === "failed" ? (
+            <Badge tone="danger">Runtime Error</Badge>
+          ) : runtimeStatus === "restarting" ? (
+            <Badge tone="accent">Restarting</Badge>
+          ) : (
+            <Badge tone="neutral">Python 3.13</Badge>
           )}
         </div>
 

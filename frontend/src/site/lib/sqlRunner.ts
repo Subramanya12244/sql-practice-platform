@@ -1,5 +1,6 @@
 import type { ExecuteResult, SubmitResult } from "../../types";
 import { compareResults, diagnose, rowDiff, type OrderKey } from "./resultCompare";
+import { classifyError } from "./diagnostics";
 
 /** The subset of PGlite / PGliteWorker this module uses. */
 export interface SqlDb {
@@ -86,6 +87,7 @@ export async function execute(db: SqlDb, sql: string): Promise<ExecuteResult> {
       execution_time_ms: Math.round(performance.now() - started),
     };
   } catch (err) {
+    classifyError(err, "SQL_ENGINE_ERROR", "sql_practice");
     return {
       success: false,
       columns: [],
