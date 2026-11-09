@@ -126,7 +126,15 @@ npx wrangler deploy -c wrangler.jsonc
 
 ### Automatic deploys (GitHub Actions)
 
-`.github/workflows/deploy.yml` runs on every push to `main`. It runs the frontend tests and the Python content check, prerenders the site, then deploys. Run the backend tests locally. Set these under the repo's **Settings → Secrets and variables → Actions**:
+`.github/workflows/deploy.yml` runs on every push to `main` and on manual `workflow_dispatch`. It executes end-to-end verification before releasing:
+1. **TypeScript compilation:** `npx tsc -b` validates types across the entire frontend project.
+2. **Frontend unit & integration suite:** `npx vitest run` runs 47 test files with 333 tests, including PGlite PostgreSQL execution, Pyodide worker queue and watchdog lifecycle tests, component contracts, virtual filesystem guards, and Supabase RLS migrations 001–006.
+3. **Backend unit tests:** `pytest backend/tests` tests schema inference, SQL query validation, and dataset parsers.
+4. **Python content verification:** `python scripts/check_python_blocks.py` tests all 150 Python practice problems (PY-001 through PY-150) plus all project tasks and lesson examples against reference solutions and test assertions.
+5. **Static site prerendering:** `npm run build:site` prerenders 662 static HTML pages, sitemap.xml, robots.txt, and 150 OpenGraph cards.
+6. **Cloudflare Workers deploy:** deploys static assets and server worker to Cloudflare (when `CLOUDFLARE_API_TOKEN` is present).
+
+Set these under the repo's **Settings → Secrets and variables → Actions**:
 
 | Name | Kind | Purpose |
 |---|---|---|
@@ -136,7 +144,7 @@ npx wrangler deploy -c wrangler.jsonc
 | `VITE_GSC_TOKEN` | Variable | Google Search Console HTML-tag verification code |
 | `VITE_CF_BEACON` | Variable | Cloudflare Web Analytics token (cookie-free) |
 
-Without `CLOUDFLARE_API_TOKEN` the workflow still tests and builds, and skips the deploy.
+Without `CLOUDFLARE_API_TOKEN` the workflow still runs all tests, compiles TypeScript, verifies content and builds, skipping only the Cloudflare deploy.
 
 ### Search engines
 
@@ -147,15 +155,21 @@ Add `https://dataforge.dataforge-learn.workers.dev/` as a URL-prefix property in
 ## Tests
 
 ```bash
-cd frontend && npx vitest run        # frontend: 144 tests
-cd backend && source .venv/bin/activate && pytest -q   # backend
-python3 scripts/check_python_blocks.py                 # every Python example and task
+cd frontend && npx vitest run        # frontend: 47 test files, 333 tests
+cd backend && pytest backend/tests   # backend: schema inference, SQL validation, parsers
+python3 scripts/check_python_blocks.py # native Python verification (all 150 problems)
 ```
 
-The frontend suite includes:
-- **Content contracts.** Every link resolves, and every SQL example runs in the browser database and returns rows.
+The testing architecture operates on two distinct layers:
+- **Native host Python verification:** `scripts/check_python_blocks.py` runs inside standard CPython (3.12+), validating that every Python practice problem (PY-001 to PY-150), project task, and lesson block compiles, that reference solutions pass all visible and hidden assertions, and that starter templates fail assertions.
+- **Browser WebAssembly sandbox:** Pyodide 0.29.5 (Python 3.13) runs client-side in a dedicated Web Worker (`frontend/src/site/lib/pyRunner.ts` and `pyodide.worker.ts`). It features client-side sequential execution queuing, per-task watchdog timers (10 s default limit, 90 s first-load allowance), VirtualFS workspace sandboxing, and import blocking (`js`, `pyodide_js`, `micropip`, network sockets).
+
+The frontend Vitest suite includes:
+- **Pyodide queue and worker watchdog:** sequential queueing, active-only timeout consumption, worker termination and clean promise settlement, reset/stop lifecycle, initialization retry, and timeout recovery (`sitePyQueue.test.ts`, `sitePyWorker.test.ts`).
+- **WebAssembly resource & stress testing:** PGlite memory allocation, 5,000-row `MAX_DISPLAY_ROWS` truncation, multi-table joins, and transaction rollback isolation (`siteStressAndResource.test.ts`).
+- **Content contracts:** every link resolves, and every SQL example runs in the browser database and returns rows.
 - **Grading, visualizer, planner, data quality and sync logic.**
-- **`supabaseRls.test.ts`.** It applies migrations 001–005 in order on PGlite (real PostgreSQL) and checks RLS as two learners, an admin and an anonymous visitor: user isolation, checklist rows, the submission review lifecycle and the public portfolio.
+- **`supabaseRls.test.ts`:** applies migrations 001–006 in order on PGlite (real PostgreSQL) and checks RLS as two learners, an admin and an anonymous visitor: user isolation, checklist rows, the submission review lifecycle, the public portfolio, and gamification XP ledger / missions / achievements.
 
 With PostgreSQL installed you can also run the SQL test scripts in `supabase/tests/` with `psql`.
 
