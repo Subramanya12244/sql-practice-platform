@@ -6,7 +6,7 @@
  * Attempt counts live in this browser (`sqlp.py.stats`); every check is also sent to the account as a
  * `python_submitted` learning event, so the server keeps the full attempt history.
  */
-import type { PyExerciseMeta } from "./pyExercises";
+import { getExerciseStage, PY_STAGES, type PyExerciseMeta } from "./pyExercises";
 import { schedulePython } from "./progress";
 
 export const PY_CATEGORIES = [
@@ -49,13 +49,14 @@ export type PyStatus = "solved" | "attempted" | "new";
 export const statusOf = (slug: string, done: Record<string, string> | undefined, stats: Record<string, PyStat>): PyStatus =>
   done?.[pyKey(slug)] ? "solved" : stats[slug]?.attempts ? "attempted" : "new";
 
-export interface PyFilter { q: string; difficulty: string; category: string; skill: string; status: string }
+export interface PyFilter { q: string; difficulty: string; category: string; stage?: string; skill: string; status: string }
 export function filterExercises(all: PyExerciseMeta[], f: PyFilter, done: Record<string, string> | undefined, stats: Record<string, PyStat>) {
   const q = f.q.trim().toLowerCase();
   return all.filter((e) =>
     (!q || `${e.code} ${e.title} ${e.description} ${e.concepts.join(" ")}`.toLowerCase().includes(q)) &&
     (!f.difficulty || e.difficulty === f.difficulty) &&
     (!f.category || e.category === f.category) &&
+    (!f.stage || String(getExerciseStage(e)) === f.stage) &&
     (!f.skill || e.skill === f.skill) &&
     (!f.status || statusOf(e.slug, done, stats) === f.status));
 }
@@ -79,6 +80,7 @@ export function overview(all: PyExerciseMeta[], done: Record<string, string> | u
     remaining: all.length - solved,
     difficulty: ["Easy", "Medium", "Hard"].map((d) => bucket(d, d, all.filter((e) => e.difficulty === d))),
     categories: PY_CATEGORIES.map((c) => bucket(c.slug, c.short, all.filter((e) => e.category === c.slug))),
+    stages: PY_STAGES.map((s) => bucket(String(s.stage), `Stage ${s.stage}: ${s.name}`, all.filter((e) => getExerciseStage(e) === s.stage))),
     recent: Object.entries(stats).sort((a, b) => b[1].lastAt.localeCompare(a[1].lastAt)).slice(0, 6)
       .flatMap(([slug, s]) => (bySlug.has(slug) ? [{ ex: bySlug.get(slug)!, stat: s }] : [])),
     // Revision list: attempted and still unsolved, or solved only after several failed checks.

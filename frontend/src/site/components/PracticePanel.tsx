@@ -294,6 +294,7 @@ export default function PracticePanel({
       <Coach
         runError={activeResult?.result}
         submit={submitResult}
+        onExplain={onExplain}
       />
       {plan && (
         <div ref={planRef} className="animate-fade-in max-h-[45vh] shrink-0 scroll-mt-20 overflow-auto border-t border-surface-border px-4 py-3" aria-live="polite">
@@ -338,15 +339,66 @@ function LastRun({ result, running }: { result: import("../../types").ExecuteRes
 
 const cell = (v: unknown) => (v === null || v === undefined ? "NULL" : typeof v === "object" ? JSON.stringify(v) : String(v));
 
-function RowSample({ title, columns, rows, count }: { title: string; columns: string[]; rows: unknown[][]; count: number }) {
+function RowSample({
+  title,
+  columns,
+  rows,
+  count,
+  tone = "missing",
+}: {
+  title: string;
+  columns: string[];
+  rows: unknown[][];
+  count: number;
+  tone?: "missing" | "extra";
+}) {
   if (!count) return null;
+  const isMissing = tone === "missing";
   return (
-    <div className="mt-2">
-      <p className="text-xs font-semibold text-ink">{title} ({count}{count > rows.length ? `, showing ${rows.length}` : ""})</p>
-      <div className="mt-1 overflow-x-auto">
-        <table className="text-xs">
-          <thead><tr>{columns.map((c) => <th key={c} className="px-2 py-1 text-left font-medium text-ink-faint">{c}</th>)}</tr></thead>
-          <tbody>{rows.map((r, i) => <tr key={i}>{r.map((v, j) => <td key={j} className="px-2 py-0.5 font-mono text-ink">{cell(v)}</td>)}</tr>)}</tbody>
+    <div
+      className={`mt-2.5 rounded-card border p-2.5 ${
+        isMissing
+          ? "border-amber-500/30 bg-amber-500/5 text-amber-950 dark:text-amber-100"
+          : "border-rose-500/30 bg-rose-500/5 text-rose-950 dark:text-rose-100"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-ink">
+          {title} ({count}
+          {count > rows.length ? `, showing first ${rows.length}` : ""})
+        </p>
+        <span
+          className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
+            isMissing
+              ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+              : "bg-rose-500/20 text-rose-700 dark:text-rose-300"
+          }`}
+        >
+          {isMissing ? "Missing row" : "Unexpected row"}
+        </span>
+      </div>
+      <div className="mt-1.5 overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-surface-border/60">
+              {columns.map((c) => (
+                <th key={c} className="px-2 py-1 text-left font-medium text-ink-faint">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-b border-surface-border/30 hover:bg-hover/5">
+                {r.map((v, j) => (
+                  <td key={j} className="px-2 py-0.5 font-mono text-ink">
+                    {cell(v)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
     </div>
@@ -354,13 +406,30 @@ function RowSample({ title, columns, rows, count }: { title: string; columns: st
 }
 
 /** Plain-language help under the results: what an error means, or which rows differ. */
-function Coach({ runError, submit }: { runError?: { success: boolean; message?: string | null } | null; submit: SubmitResult | null }) {
+function Coach({
+  runError,
+  submit,
+  onExplain,
+}: {
+  runError?: { success: boolean; message?: string | null } | null;
+  submit: SubmitResult | null;
+  onExplain?: () => void;
+}) {
   if (submit && submit.correct) {
     return (
       <div className="animate-fade-in border-t border-success/30 bg-success-dim/30 px-4 py-3 text-sm" role="status">
-        <p className="flex items-center gap-2 font-semibold text-success">
-          <CheckCircle2 className="h-4 w-4 animate-pop text-success" aria-hidden /> Query passed! All rows and columns matched expected results.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="flex items-center gap-2 font-semibold text-success">
+            <CheckCircle2 className="h-4 w-4 animate-pop text-success" aria-hidden /> Query passed! All rows and columns matched expected results.
+          </p>
+          {(submit.execution_time_ms != null || submit.your_row_count != null) && (
+            <span className="text-xs text-ink-muted tabular-nums">
+              {submit.execution_time_ms != null && <span>{submit.execution_time_ms} ms</span>}
+              {submit.execution_time_ms != null && submit.your_row_count != null && <span> · </span>}
+              {submit.your_row_count != null && <span>{submit.your_row_count} rows</span>}
+            </span>
+          )}
+        </div>
       </div>
     );
   }
@@ -370,9 +439,30 @@ function Coach({ runError, submit }: { runError?: { success: boolean; message?: 
   if (!help && !diff) return null;
   return (
     <div className="animate-fade-in border-t border-surface-border bg-surface px-4 py-3 text-sm" role="status">
-      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
-        <Stethoscope className="h-3.5 w-3.5" aria-hidden /> Coach
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
+          <Stethoscope className="h-3.5 w-3.5" aria-hidden /> Coach
+        </p>
+        <div className="flex items-center gap-2">
+          {submit && (submit.execution_time_ms != null || submit.your_row_count != null) && (
+            <span className="text-xs text-ink-muted tabular-nums">
+              {submit.your_row_count != null && `${submit.your_row_count} rows`}
+              {submit.expected_row_count != null && ` (exp ${submit.expected_row_count})`}
+              {submit.execution_time_ms != null && ` · ${submit.execution_time_ms} ms`}
+            </span>
+          )}
+          {onExplain && (
+            <button
+              type="button"
+              onClick={onExplain}
+              className="inline-flex items-center gap-1 rounded border border-surface-border bg-surface-overlay px-2 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent transition-colors"
+              title="Inspect query execution plan in PostgreSQL"
+            >
+              <GitBranch className="h-3.5 w-3.5" aria-hidden /> Explain plan
+            </button>
+          )}
+        </div>
+      </div>
       {help && (
         <p className="mt-1 text-ink">
           <strong>{help.title}.</strong> {help.fix.replace(/`/g, "")}
@@ -383,8 +473,8 @@ function Coach({ runError, submit }: { runError?: { success: boolean; message?: 
       )}
       {diff && (diff.missingCount || diff.extraCount ? (
         <>
-          <RowSample title="Expected but missing from yours" columns={diff.columns} rows={diff.missing} count={diff.missingCount} />
-          <RowSample title="In yours but not expected" columns={diff.columns} rows={diff.extra} count={diff.extraCount} />
+          <RowSample title="Expected but missing from yours" columns={diff.columns} rows={diff.missing} count={diff.missingCount} tone="missing" />
+          <RowSample title="In yours but not expected" columns={diff.columns} rows={diff.extra} count={diff.extraCount} tone="extra" />
         </>
       ) : (
         <p className="mt-1 text-ink">Same rows as expected — check the row order or the column order/names.</p>

@@ -54,6 +54,86 @@ export function DataEngineeringPage() {
         intro="From Python and SQL to pipelines, warehouses, distributed processing and orchestration. Every topic has notes, diagrams, exercises and interview questions; every track has a mind map, flashcards and projects."
       />
 
+      {/* ── Conceptual Learning Progression Roadmap ── */}
+      <section aria-labelledby="roadmap-heading" className="mb-6 rounded-card border border-surface-border bg-surface-raised p-5 shadow-panel">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border pb-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-accent">Career Progression Blueprint</p>
+            <h2 id="roadmap-heading" className="font-display text-lg font-bold text-ink">
+              Data Engineering Learning Roadmap
+            </h2>
+          </div>
+          <span className="text-xs text-ink-muted">
+            Foundations → Pipeline Storage → Distributed Compute → Orchestration → Cloud
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {[
+            {
+              step: 1,
+              title: "Foundations",
+              tracks: ["sql", "python"],
+              label: "Python + SQL",
+              description: "Declarative querying, data structures, algorithms, and defensive programming.",
+              badge: "Foundations",
+            },
+            {
+              step: 2,
+              title: "Data Pipelines & Storage",
+              tracks: ["etl", "warehouse"],
+              label: "ETL & Warehousing",
+              description: "Batch vs streaming, dimensional modeling, star schemas, SCDs, and data marts.",
+              badge: "Architecture",
+            },
+            {
+              step: 3,
+              title: "Distributed Computing",
+              tracks: ["spark"],
+              label: "Apache Spark",
+              description: "RDDs, DataFrames, cluster architecture, partitioning, and PySpark transformations.",
+              badge: "Big Data",
+            },
+            {
+              step: 4,
+              title: "Orchestration & Modeling",
+              tracks: ["airflow", "dbt"],
+              label: "Airflow + dbt",
+              description: "DAG orchestration, backfills, modular transformation layers, and test automation.",
+              badge: "Modern Stack",
+            },
+            {
+              step: 5,
+              title: "Cloud & Production",
+              tracks: ["cloud"],
+              label: "Cloud Data Engineering",
+              description: "Object storage (S3/GCS), IAM, serverless compute, event streaming, and Lakehouses.",
+              badge: "Production",
+            },
+          ].map((st) => (
+            <div key={st.step} className="flex flex-col justify-between rounded-lg border border-surface-border bg-surface/60 p-3.5 transition hover:border-accent/40">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-dim font-mono text-[10px] font-bold text-accent">
+                    {st.step}
+                  </span>
+                  <Badge tone={st.step === 1 ? "accent" : "neutral"}>{st.badge}</Badge>
+                </div>
+                <h3 className="mt-2 text-sm font-semibold text-ink">{st.label}</h3>
+                <p className="mt-1 text-xs text-ink-muted line-clamp-3">{st.description}</p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-surface-border/60">
+                {st.tracks.map((tid) => (
+                  <a key={tid} href={`#${tid}`} className="text-[11px] font-medium text-accent hover:underline">
+                    {tid === "sql" ? "SQL" : tid === "python" ? "Python" : tid === "etl" ? "ETL" : tid === "warehouse" ? "Warehouse" : tid === "spark" ? "Spark" : tid === "airflow" ? "Airflow" : tid === "dbt" ? "dbt" : "Cloud"} ↓
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <Card className="mb-6 flex flex-wrap items-center gap-5">
         <ProgressRing value={totalRead} max={totalTopics} size={80} label="Data engineering topics read">
           <span className="font-display text-lg font-bold tabular-nums text-ink">{totalTopics ? Math.round((100 * totalRead) / totalTopics) : 0}%</span>

@@ -20,6 +20,66 @@ export const DEFAULT_INCLUDE: NotesInclude = { statement: true, schema: true, qu
 export const defaultOptions = (title = "DataForge study notes"): NotesOptions => ({
   title, branding: true, theme: "light", pageNumbers: true, toc: true, labels: true, date: true, mode: "detailed", include: { ...DEFAULT_INCLUDE }, pySolution: "both",
 });
+
+export type NotesPreset = "detailed" | "compact" | "project_docs";
+
+export function getPresetOptions(preset: NotesPreset, currentTitle = "DataForge study notes"): NotesOptions {
+  switch (preset) {
+    case "compact":
+      return {
+        title: currentTitle.replace(/(study notes|technical documentation)/i, "Revision Sheet"),
+        branding: true,
+        theme: "light",
+        pageNumbers: true,
+        toc: false,
+        labels: true,
+        date: true,
+        mode: "compact",
+        include: {
+          statement: true,
+          schema: false,
+          queryDiagram: true,
+          pyDiagram: true,
+          deDiagram: false,
+          code: true,
+          explanation: false,
+          output: false,
+          notes: true,
+          reference: false,
+          tests: false,
+        },
+        pySolution: "mine",
+      };
+    case "project_docs":
+      return {
+        title: currentTitle.replace(/(study notes|revision sheet)/i, "Technical Project Documentation"),
+        branding: true,
+        theme: "light",
+        pageNumbers: true,
+        toc: true,
+        labels: true,
+        date: true,
+        mode: "detailed",
+        include: {
+          statement: true,
+          schema: true,
+          queryDiagram: true,
+          pyDiagram: true,
+          deDiagram: true,
+          code: true,
+          explanation: true,
+          output: true,
+          notes: true,
+          reference: true,
+          tests: true,
+        },
+        pySolution: "both",
+      };
+    case "detailed":
+    default:
+      return defaultOptions(currentTitle.replace(/(revision sheet|technical project documentation)/i, "Study Notes"));
+  }
+}
 /** A compact revision sheet keeps the essentials. */
 export function effectiveInclude(o: NotesOptions): NotesInclude {
   if (o.mode === "detailed") return o.include;

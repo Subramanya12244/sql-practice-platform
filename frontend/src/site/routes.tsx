@@ -86,7 +86,17 @@ const careerData = async (): Promise<PageData> => {
 };
 
 export const routes: SiteRoute[] = [
-  { path: "/", element: <HomePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex(), projects: await loadProjectIndex() }), paths: one("/") },
+  {
+    path: "/",
+    element: <HomePage />,
+    load: async () => ({
+      ...(await base()),
+      exercises: await loadExerciseIndex(),
+      projects: await loadProjectIndex(),
+      projectTasks: (await loadAllProjects()).map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type, title: t.title }) as never) })),
+    }),
+    paths: one("/"),
+  },
   { path: "/portfolio/export", element: <PortfolioExportPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/portfolio/export") },
   { path: "/debug-lab", element: <DebugLabPage />, load: base, paths: one("/debug-lab") },
   { path: "/assessments", element: <AssessmentsPage />, load: base, paths: one("/assessments") },

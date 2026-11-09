@@ -7,6 +7,7 @@ import { Badge, Button, ButtonLink, Card, Container, Difficulty, EmptyState, Pag
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { completeExercise, toggleBookmark, useProgress } from "../lib/progress";
 import { PY_CATEGORIES, PY_SKILLS, accuracy, categoryLabel, filterExercises, overview, readStats, recordPyAttempt, splitHints, statusOf, subscribeStats, type PyFilter, type PyStat } from "../lib/pyPractice";
+import { getExerciseStage, PY_STAGES } from "../lib/pyExercises";
 import { track } from "../lib/activity";
 import { applyOverride, overrideKey, useContent } from "../lib/contentOverrides";
 import { PythonWorkspace } from "../components/PythonWorkspace";
@@ -35,7 +36,8 @@ export function PythonPracticeIndexPage() {
   const all = (data.exercises ?? []).flatMap((e) => applyOverride(e, content.overrides.get(overrideKey("python", e.slug))) ?? []);
   const { stats, mounted } = useStats();
   const done = mounted ? progress.lessons : undefined;
-  const [f, setF] = useState<PyFilter>({ q: "", difficulty: "", category: "", skill: "", status: "" });
+  const [f, setF] = useState<PyFilter>({ q: "", difficulty: "", category: "", stage: "", skill: "", status: "" });
+  const [viewMode, setViewMode] = useState<"stages" | "categories">("stages");
   const set = (k: keyof PyFilter) => (v: string) => setF((x) => ({ ...x, [k]: v }));
   const o = overview(all, done, stats);
   const shown = filterExercises(all, f, done, stats);
@@ -71,22 +73,83 @@ export function PythonPracticeIndexPage() {
           </ul>
         </Card>
         <Card pad="md" className="lg:col-span-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">By category</p>
-          <table className="mt-2 w-full text-sm">
-            <thead><tr className="text-left text-xs text-ink-faint"><th className="py-1 font-medium">Category</th><th className="w-1/3 py-1 font-medium">Completed</th><th className="py-1 text-right font-medium" title="Passing checks out of all checks">Accuracy</th></tr></thead>
-            <tbody>
-              {o.categories.map((c) => {
-                const acc = accuracy(c);
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border pb-2.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Curriculum Progress</span>
+            <div className="flex rounded-lg border border-surface-border bg-surface p-0.5 text-xs font-medium">
+              <button
+                type="button"
+                className={`rounded-md px-2.5 py-1 transition ${viewMode === "stages" ? "bg-accent text-on-accent shadow-sm" : "text-ink-muted hover:text-ink"}`}
+                onClick={() => setViewMode("stages")}
+              >
+                14-Stage Progression
+              </button>
+              <button
+                type="button"
+                className={`rounded-md px-2.5 py-1 transition ${viewMode === "categories" ? "bg-accent text-on-accent shadow-sm" : "text-ink-muted hover:text-ink"}`}
+                onClick={() => setViewMode("categories")}
+              >
+                Category Breakdown
+              </button>
+            </div>
+          </div>
+
+          {viewMode === "stages" ? (
+            <div className="mt-3 max-h-64 overflow-y-auto pr-1 space-y-2">
+              {PY_STAGES.map((s) => {
+                const stageExercises = all.filter((e) => getExerciseStage(e) === s.stage);
+                const stageSolved = stageExercises.filter((e) => done?.[key(e.slug)]).length;
+                const isSelected = f.stage === String(s.stage);
                 return (
-                  <tr key={c.key} className="border-t border-surface-border">
-                    <td className="py-1.5"><button type="button" className="text-left text-ink hover:text-accent" onClick={() => set("category")(c.key)}>{c.label}</button></td>
-                    <td className="py-1.5"><div className="flex items-center gap-2"><ProgressBar className="flex-1" value={mounted ? c.solved : 0} max={c.total} label={`${c.label} completed`} /><span className="w-12 text-right text-xs tabular-nums text-ink-muted">{mounted ? c.solved : 0}/{c.total}</span></div></td>
-                    <td className={`py-1.5 text-right tabular-nums ${acc === null ? "text-ink-faint" : acc < 50 ? "text-danger" : "text-ink"}`}>{mounted && acc !== null ? `${acc}%` : "—"}</td>
-                  </tr>
+                  <button
+                    key={s.stage}
+                    type="button"
+                    onClick={() => set("stage")(isSelected ? "" : String(s.stage))}
+                    className={`w-full text-left rounded-lg border p-2 text-xs transition duration-fast hover:border-accent/40 ${
+                      isSelected ? "border-accent bg-accent/10" : "border-surface-border bg-surface-raised"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 truncate">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-dim font-mono text-[10px] font-bold text-accent">
+                          {s.stage}
+                        </span>
+                        <span className="font-semibold text-ink truncate">{s.name}</span>
+                      </span>
+                      <span className="shrink-0 tabular-nums text-ink-muted">
+                        {mounted ? stageSolved : 0}/{stageExercises.length}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <ProgressBar
+                        className="flex-1"
+                        value={mounted ? stageSolved : 0}
+                        max={stageExercises.length || 1}
+                        label={`Stage ${s.stage} progress`}
+                        tone={stageSolved === stageExercises.length && stageExercises.length > 0 ? "success" : "accent"}
+                      />
+                      <span className="text-[10px] text-ink-faint truncate max-w-[120px]">{s.description}</span>
+                    </div>
+                  </button>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+          ) : (
+            <table className="mt-2 w-full text-sm">
+              <thead><tr className="text-left text-xs text-ink-faint"><th className="py-1 font-medium">Category</th><th className="w-1/3 py-1 font-medium">Completed</th><th className="py-1 text-right font-medium" title="Passing checks out of all checks">Accuracy</th></tr></thead>
+              <tbody>
+                {o.categories.map((c) => {
+                  const acc = accuracy(c);
+                  return (
+                    <tr key={c.key} className="border-t border-surface-border">
+                      <td className="py-1.5"><button type="button" className="text-left text-ink hover:text-accent" onClick={() => set("category")(c.key)}>{c.label}</button></td>
+                      <td className="py-1.5"><div className="flex items-center gap-2"><ProgressBar className="flex-1" value={mounted ? c.solved : 0} max={c.total} label={`${c.label} completed`} /><span className="w-12 text-right text-xs tabular-nums text-ink-muted">{mounted ? c.solved : 0}/{c.total}</span></div></td>
+                      <td className={`py-1.5 text-right tabular-nums ${acc === null ? "text-ink-faint" : acc < 50 ? "text-danger" : "text-ink"}`}>{mounted && acc !== null ? `${acc}%` : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </Card>
       </section>
 
@@ -125,6 +188,12 @@ export function PythonPracticeIndexPage() {
           <select aria-label="Difficulty" value={f.difficulty} onChange={(e) => set("difficulty")(e.target.value)} className={SELECT}>
             <option value="">All levels</option>{["Easy", "Medium", "Hard"].map((d) => <option key={d}>{d}</option>)}
           </select>
+          <select aria-label="Curriculum stage" value={f.stage ?? ""} onChange={(e) => set("stage")(e.target.value)} className={SELECT}>
+            <option value="">All 14 stages</option>
+            {PY_STAGES.map((s) => (
+              <option key={s.stage} value={String(s.stage)}>Stage {s.stage}: {s.name}</option>
+            ))}
+          </select>
           <select aria-label="Category" value={f.category} onChange={(e) => set("category")(e.target.value)} className={SELECT}>
             <option value="">All categories</option>{PY_CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.short}</option>)}
           </select>
@@ -134,7 +203,7 @@ export function PythonPracticeIndexPage() {
           <select aria-label="Status" value={f.status} onChange={(e) => set("status")(e.target.value)} className={SELECT}>
             <option value="">Any status</option><option value="new">Not started</option><option value="attempted">Attempted</option><option value="solved">Solved</option>
           </select>
-          {(f.q || f.difficulty || f.category || f.skill || f.status) && <Button variant="ghost" size="sm" onClick={() => setF({ q: "", difficulty: "", category: "", skill: "", status: "" })}>Clear filters</Button>}
+          {(f.q || f.difficulty || f.category || f.stage || f.skill || f.status) && <Button variant="ghost" size="sm" onClick={() => setF({ q: "", difficulty: "", category: "", stage: "", skill: "", status: "" })}>Clear filters</Button>}
         </div>
         <p className="mt-2 text-xs text-ink-muted" aria-live="polite">{shown.length} of {all.length} problems</p>
         {shown.length === 0 ? (
@@ -151,6 +220,9 @@ export function PythonPracticeIndexPage() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium text-ink">{e.title}</span>
                       <span className="block truncate text-xs text-ink-muted">{e.description}</span>
+                    </span>
+                    <span className="hidden shrink-0 rounded-full bg-accent-dim px-2 py-0.5 text-[11px] font-medium text-accent sm:inline">
+                      Stage {getExerciseStage(e)}
                     </span>
                     <span className="hidden shrink-0 text-xs text-ink-faint md:block">{PY_CATEGORIES.find((c) => c.slug === e.category)?.short}</span>
                     <Difficulty level={e.difficulty} />
@@ -188,6 +260,8 @@ export function PythonExercisePage() {
   const stat = stats[ex.slug];
   const done = Boolean(progress.lessons?.[key(ex.slug)]);
   const topic = data.notes?.find((n) => n.slug === ex.topic);
+  const stageNum = getExerciseStage(ex);
+  const stageMeta = PY_STAGES.find((s) => s.stage === stageNum);
 
   useEffect(() => {
     setMounted(true);
@@ -215,7 +289,11 @@ export function PythonExercisePage() {
           { "@context": "https://schema.org", "@type": "LearningResource", name: ex.title, description: ex.description, url: canonical(path), learningResourceType: "Practice problem", educationalLevel: ex.difficulty, programmingLanguage: "Python" },
         ]}
       />
-      <nav aria-label="Breadcrumb" className="text-sm text-ink-faint"><Link to="/practice/python" className="hover:text-ink">Python practice</Link></nav>
+      <nav aria-label="Breadcrumb" className="text-sm text-ink-faint">
+        <Link to="/practice/python" className="hover:text-ink">Python practice</Link>
+        <span className="mx-1.5 text-ink-faint">/</span>
+        <span className="text-ink">Stage {stageNum}: {stageMeta?.name ?? `Stage ${stageNum}`}</span>
+      </nav>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         {ex.code && <span className="rounded-md bg-surface-soft px-2 py-0.5 font-mono text-xs text-ink-muted">{ex.code}</span>}
         <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">{ex.title}</h1>
@@ -231,6 +309,7 @@ export function PythonExercisePage() {
         </span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+        <Badge tone="accent">Stage {stageNum}: {stageMeta?.name ?? `Stage ${stageNum}`}</Badge>
         {ex.category && <Badge tone="accent">{categoryLabel(ex.category)}</Badge>}
         {ex.skill && <Badge>{PY_SKILLS[ex.skill] ?? ex.skill}</Badge>}
         {mounted && stat && <span className="text-ink-faint">{stat.attempts} check{stat.attempts === 1 ? "" : "s"} · {stat.passes} passed</span>}

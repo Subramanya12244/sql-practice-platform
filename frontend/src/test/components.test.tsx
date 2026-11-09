@@ -111,6 +111,30 @@ describe("ResultsPanel", () => {
     expect(screen.getByText(/does not match/)).toBeInTheDocument();
     expect(screen.queryByText(/SELECT/i)).not.toBeInTheDocument();
   });
+
+  it("renders submit execution time and row counts", () => {
+    render(
+      <ToastProvider>
+        <ResultsPanel
+          tabs={[]}
+          activeTabId={null}
+          onSelectTab={() => {}}
+          onCloseTab={() => {}}
+          submitResult={{
+            correct: true,
+            message: "Correct! Your query produces the expected result.",
+            feedback: [],
+            level_changed: false,
+            execution_time_ms: 18.4,
+            your_row_count: 42,
+            expected_row_count: 42,
+          }}
+        />
+      </ToastProvider>,
+    );
+    expect(screen.getByText(/Correct!/)).toBeInTheDocument();
+    expect(screen.getByText(/18\.4 ms · 42 rows/)).toBeInTheDocument();
+  });
 });
 
 describe("API client shape", () => {

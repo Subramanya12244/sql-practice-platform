@@ -7,7 +7,7 @@ import { Seo } from "../lib/seo";
 import { useProgress } from "../lib/progress";
 import { useAuth } from "../lib/auth";
 import { PY_CATEGORIES } from "../lib/pyPractice";
-import { defaultOptions, effectiveInclude, kindOf, topicsOf, type NoteItem, type NotesInclude, type NotesOptions } from "../lib/notes/content";
+import { defaultOptions, effectiveInclude, getPresetOptions, kindOf, topicsOf, type NoteItem, type NotesInclude, type NotesOptions, type NotesPreset } from "../lib/notes/content";
 import { collectItems, renderPdf, type Selection } from "../lib/notes/generate";
 import { copyToAccount, deleteNote, listNotes, noteBlob, saveNote, type StoredNote } from "../lib/notes/library";
 import type { FontReport } from "../lib/notes/pdf.worker";
@@ -178,6 +178,39 @@ export function StudyNotesPage() {
           </Card>
 
           <Card pad="md" as="section" className="min-w-0" aria-label="Document options">
+            <div className="mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Template presets</p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {[
+                  { id: "compact", label: "⚡ Compact Revision Sheet", desc: "Formulas & queries only, zero fluff" },
+                  { id: "detailed", label: "📖 Study Guide", desc: "Detailed step-by-step with diagrams" },
+                  { id: "project_docs", label: "🛠️ Technical Project Docs", desc: "Full schema, architecture & test suite" },
+                ].map((p) => {
+                  const active =
+                    (p.id === "compact" && opts.mode === "compact") ||
+                    (p.id === "project_docs" && opts.mode === "detailed" && opts.include.reference && opts.include.schema) ||
+                    (p.id === "detailed" && opts.mode === "detailed" && !opts.include.reference);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setOpts(getPresetOptions(p.id as NotesPreset, opts.title));
+                        setPdf(null);
+                      }}
+                      className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+                        active
+                          ? "border-accent bg-accent-dim text-accent shadow-sm"
+                          : "border-surface-border bg-surface-soft text-ink-muted hover:border-surface-border-strong hover:text-ink"
+                      }`}
+                      title={p.desc}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <label className="block text-sm text-ink">Document title
               <input value={opts.title} maxLength={120} onChange={(e) => set("title", e.target.value)} className={`${INPUT} mt-1 w-full`} />
             </label>

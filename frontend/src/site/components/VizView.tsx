@@ -44,30 +44,128 @@ export function HighlightedSql({ sql, range, clause }: { sql: string; range?: [n
 }
 
 function StageView({ s }: { s: Stage }) {
+  const hasIn = s.rowsIn !== undefined;
+  const hasOut = s.rowsOut !== undefined;
+  const inCount = s.rowsIn ?? 0;
+  const outCount = s.rowsOut ?? 0;
+
+  let transformIndicator = null;
+  if (hasIn && hasOut && inCount > 0) {
+    if (outCount < inCount) {
+      const dropped = inCount - outCount;
+      const dropPct = Math.round((dropped / inCount) * 100);
+      const retainPct = 100 - dropPct;
+      transformIndicator = (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs">
+          <span className="font-semibold text-amber-700 dark:text-amber-300">
+            {dropPct}% filtered out
+          </span>
+          <span className="text-ink-muted">
+            ({dropped.toLocaleString()} rows removed · {outCount.toLocaleString()} rows / {retainPct}% retained)
+          </span>
+        </div>
+      );
+    } else if (outCount > inCount) {
+      const added = outCount - inCount;
+      const mult = (outCount / inCount).toFixed(1);
+      transformIndicator = (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/25 bg-accent-dim px-3 py-2 text-xs">
+          <span className="font-semibold text-accent">
+            +{added.toLocaleString()} rows added
+          </span>
+          <span className="text-ink-muted">
+            ({mult}x row expansion from join fan-out / product)
+          </span>
+        </div>
+      );
+    } else {
+      transformIndicator = (
+        <div className="flex items-center gap-2 rounded-lg border border-surface-border bg-surface-soft px-3 py-2 text-xs text-ink-muted">
+          <span className="font-medium text-ink">100% rows retained</span>
+          <span>(all {outCount.toLocaleString()} rows pass to next stage)</span>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-ink">{s.explanation}</p>
-      {(s.rowsIn !== undefined || s.rowsOut !== undefined) && (
-        <p className="flex flex-wrap gap-3 text-sm">
-          {s.rowsIn !== undefined && <span className="rounded-lg bg-surface-soft px-2 py-1">in: <strong>{s.rowsIn}</strong></span>}
-          {s.rowsOut !== undefined && <span className="rounded-lg bg-accent-dim px-2 py-1 text-accent">out: <strong>{s.rowsOut}</strong></span>}
-        </p>
-      )}
-      {s.joins?.map((j, i) => (
-        <div key={i} className="rounded-card border border-surface-border p-3 text-sm">
-          <p className="font-semibold text-ink">{j.kind} {j.right}{j.on ? <span className="font-normal text-ink-muted"> ON {j.on}</span> : null}</p>
-          {j.leftRows !== undefined && (
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {[["Left rows", j.leftRows], ["Right rows", j.rightRows], ["Matching pairs", j.matchedPairs], ["Unmatched left", j.unmatchedLeft], ["Unmatched right", j.unmatchedRight]].map(([k, val]) => (
-                <div key={String(k)} className="rounded-lg bg-surface-soft p-2"><p className="text-[11px] text-ink-faint">{k}</p><p className="font-mono text-ink">{val ?? "—"}</p></div>
-              ))}
-            </div>
-          )}
-          {j.resultRows !== undefined && <p className="mt-2 text-xs text-ink-muted">Rows after this join: <strong className="text-ink">{j.resultRows}</strong>.</p>}
-          {j.unmatchedLeftSample && <div className="mt-2"><SampleTable caption="Unmatched left rows (sample)" columns={j.unmatchedLeftSample.columns} rows={j.unmatchedLeftSample.rows} /></div>}
-          {j.unmatchedRightSample && <div className="mt-2"><SampleTable caption="Unmatched right rows (sample)" columns={j.unmatchedRightSample.columns} rows={j.unmatchedRightSample.rows} /></div>}
+      {(hasIn || hasOut) && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            {hasIn && <span className="rounded-lg bg-surface-soft px-2.5 py-1">in: <strong>{inCount.toLocaleString()}</strong> rows</span>}
+            {hasOut && <span className="rounded-lg bg-accent-dim px-2.5 py-1 text-accent">out: <strong>{outCount.toLocaleString()}</strong> rows</span>}
+          </div>
+          {transformIndicator}
         </div>
-      ))}
+      )}
+      {s.joins?.map((j, i) => {
+        const isLeftJoin = j.kind.toUpperCase().includes("LEFT");
+        const isRightJoin = j.kind.toUpperCase().includes("RIGHT") || j.kind.toUpperCase().includes("FULL");
+        const hasLeftUnmatched = Boolean(j.unmatchedLeft && j.unmatchedLeft > 0);
+        const hasRightUnmatched = Boolean(j.unmatchedRight && j.unmatchedRight > 0);
+        const hasFanOut = Boolean(j.leftRows && j.matchedPairs && j.matchedPairs > j.leftRows);
+
+        return (
+          <div key={i} className="rounded-card border border-surface-border p-3 text-sm space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold text-ink">
+                {j.kind} {j.right}
+                {j.on ? <span className="font-normal text-ink-muted"> ON {j.on}</span> : null}
+              </p>
+              {j.matchedPairs !== undefined && (
+                <span className="rounded-full bg-surface-soft px-2 py-0.5 text-xs font-mono text-ink">
+                  {j.matchedPairs.toLocaleString()} matched pairs
+                </span>
+              )}
+            </div>
+
+            {j.leftRows !== undefined && (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {[
+                  ["Left rows", j.leftRows],
+                  ["Right rows", j.rightRows],
+                  ["Matching pairs", j.matchedPairs],
+                  ["Unmatched left", j.unmatchedLeft],
+                  ["Unmatched right", j.unmatchedRight],
+                ].map(([k, val]) => (
+                  <div key={String(k)} className="rounded-lg bg-surface-soft p-2">
+                    <p className="text-[11px] text-ink-faint">{k}</p>
+                    <p className="font-mono text-ink">{typeof val === "number" ? val.toLocaleString() : (val ?? "—")}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {hasFanOut && (
+              <p className="rounded-md border border-accent/20 bg-accent-dim/40 px-2.5 py-1.5 text-xs text-ink">
+                <strong>Fan-out detected:</strong> Matching pairs ({j.matchedPairs?.toLocaleString()}) exceed left input rows ({j.leftRows?.toLocaleString()}). One or more left rows matched multiple right rows.
+              </p>
+            )}
+
+            {hasLeftUnmatched && (
+              <p className={`rounded-md border px-2.5 py-1.5 text-xs ${isLeftJoin ? "border-surface-border bg-surface-soft text-ink-muted" : "border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200"}`}>
+                <strong>Unmatched left rows:</strong> {j.unmatchedLeft?.toLocaleString()} rows had no matching key in {j.right}. {isLeftJoin ? "Preserved with NULL right columns because this is a LEFT JOIN." : "Dropped from the result set because this is an INNER JOIN."}
+              </p>
+            )}
+
+            {hasRightUnmatched && (
+              <p className={`rounded-md border px-2.5 py-1.5 text-xs ${isRightJoin ? "border-surface-border bg-surface-soft text-ink-muted" : "border-surface-border bg-surface-soft text-ink-muted"}`}>
+                <strong>Unmatched right rows:</strong> {j.unmatchedRight?.toLocaleString()} rows in {j.right} had no matching left key. {isRightJoin ? "Preserved with NULL left columns." : "Dropped from the result set."}
+              </p>
+            )}
+
+            {j.resultRows !== undefined && (
+              <p className="text-xs text-ink-muted">
+                Rows after this join: <strong className="text-ink">{j.resultRows.toLocaleString()}</strong>.
+              </p>
+            )}
+            {j.unmatchedLeftSample && <div className="mt-2"><SampleTable caption="Unmatched left rows (sample)" columns={j.unmatchedLeftSample.columns} rows={j.unmatchedLeftSample.rows} /></div>}
+            {j.unmatchedRightSample && <div className="mt-2"><SampleTable caption="Unmatched right rows (sample)" columns={j.unmatchedRightSample.columns} rows={j.unmatchedRightSample.rows} /></div>}
+          </div>
+        );
+      })}
       {s.partitions && <SampleTable caption="Partitions (rows per window partition)" columns={s.partitions.columns} rows={s.partitions.rows} />}
       {s.sample && s.sample.columns.length > 0 && <SampleTable caption={`Rows at this stage (first ${s.sample.rows.length})`} columns={s.sample.columns} rows={s.sample.rows} />}
       {s.removed && <SampleTable caption="Removed at this stage (sample)" columns={s.removed.columns} rows={s.removed.rows} />}

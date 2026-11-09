@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, CircleDashed, FlaskConical, Loader2, Play, Scale, Send, FolderGit2 } from "lucide-react";
+import { CheckCircle2, CircleDashed, FileText, FlaskConical, Loader2, Play, Scale, Send, FolderGit2 } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { SampleTable } from "../components/SampleTable";
@@ -9,11 +9,12 @@ import { LevelBadge } from "../components/LearnUi";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { registerDataset, runQuery } from "../lib/browserDb";
 import { runPython } from "../lib/pyRunner";
-import { runPythonTask, runSqlTask, type Task, type TaskResult } from "../lib/tasks";
+import { runPythonTask, runSqlTask, type Task, type TaskResult, type PythonTask } from "../lib/tasks";
 import { getProjectProgress, isRepoUrl, projectStatus, saveProjectProgress, type Project, type ProjectProgress, type ProjectStatus } from "../lib/projects";
 import type { ExecuteResult } from "../../types";
 import { track } from "../lib/activity";
 import { ProjectCelebration } from "../components/ProjectCelebration";
+import { PythonWorkspace } from "../components/PythonWorkspace";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
 
@@ -171,6 +172,24 @@ function TaskPanel({ task, project, progress, onChange, mounted }: {
           ))}
           <li className="text-xs text-ink-faint">Manual steps can't be verified in the browser; they're reviewed when you submit.</li>
         </ul>
+      ) : task.type === "python" ? (
+        <div className="mt-3">
+          <PythonWorkspace
+            slug={`proj-${project.slug}-${task.id}`}
+            title={task.title}
+            task={task as PythonTask}
+            mode="project"
+            height={380}
+            onCheckResult={(r) => {
+              record({ ok: r.ok, message: r.message });
+              if (r.output) setOutput(r.output);
+            }}
+          />
+          <details className="mt-2 text-xs text-ink-faint">
+            <summary className="cursor-pointer py-1">Show a solution</summary>
+            <Markdown source={"```python-syntax\n" + task.solution + "\n```"} />
+          </details>
+        </div>
       ) : (
         <div className="mt-3 space-y-2">
           {mounted ? (
@@ -185,7 +204,7 @@ function TaskPanel({ task, project, progress, onChange, mounted }: {
             </button>
             <details className="text-xs text-ink-faint">
               <summary className="cursor-pointer py-1.5">Show a solution</summary>
-              <Markdown source={"```" + (task.type === "sql" ? "sql-syntax" : "python-syntax") + "\n" + task.solution + "\n```"} />
+              <Markdown source={"```sql-syntax\n" + task.solution + "\n```"} />
             </details>
           </div>
           {result && <p role="status" className={`text-sm ${result.ok ? "text-success" : "text-danger"}`}>{result.ok ? "✅ " : "❌ "}{result.message}</p>}
@@ -253,6 +272,13 @@ export function ProjectPage() {
         <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">{project.title}</h1>
         <LevelBadge level={project.level} />
         <StatusChip s={status} />
+        <Link
+          to="/study-notes"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-2.5 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent transition-colors"
+          title="Export notes and study guide as PDF"
+        >
+          <FileText className="h-3.5 w-3.5" aria-hidden /> Export Notes (PDF)
+        </Link>
       </div>
       <p className="mt-1 text-ink-muted">{project.description}</p>
       <p className="mt-2 text-sm text-ink-muted">
@@ -262,7 +288,33 @@ export function ProjectPage() {
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-soft" role="img" aria-label={`${passed} of ${automated.length} automated checks passed`}>
         <div className="h-full bg-success transition-[width] duration-slow ease-out" style={{ width: `${automated.length ? (100 * passed) / automated.length : 0}%` }} />
       </div>
-      <p className="mt-1 text-xs text-ink-faint">{passed}/{automated.length} automated checks passed · progress is saved in this browser</p>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span className="text-ink-muted">
+          <strong className="text-ink">{passed}/{automated.length}</strong> automated checks passed ·{" "}
+          <strong className="text-ink">{project.tasks.length - automated.length}</strong> manual review requirements
+        </span>
+        {automated.find((t) => !progress.tasks[t.id]?.passed) && passed > 0 && passed < automated.length && (
+          <a
+            href={`#task-${automated.find((t) => !progress.tasks[t.id]?.passed)!.id}`}
+            className="inline-flex items-center gap-1 rounded bg-accent px-2 py-0.5 font-semibold text-on-accent transition hover:brightness-110"
+          >
+            Resume Task: {automated.find((t) => !progress.tasks[t.id]?.passed)!.title} ↓
+          </a>
+        )}
+      </div>
+
+      <div className="mt-4 rounded-lg border border-surface-border bg-surface-raised p-3.5 text-xs">
+        <p className="font-semibold uppercase tracking-wider text-ink-faint text-[10px]">Pipeline Architecture & Validation Flow</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-ink">
+          <span className="rounded bg-surface-soft px-2 py-1 font-mono">Dataset: {project.dataset}</span>
+          <span className="text-ink-faint">→</span>
+          <span className="rounded bg-accent-dim px-2 py-1 text-accent font-medium">{project.technologies.slice(0, 2).join(" + ")} Pipeline</span>
+          <span className="text-ink-faint">→</span>
+          <span className="rounded bg-surface-soft px-2 py-1 font-mono">{automated.length} Automated Checks</span>
+          <span className="text-ink-faint">→</span>
+          <span className="rounded bg-success-dim px-2 py-1 text-success font-medium">Production Deliverable</span>
+        </div>
+      </div>
 
       {mounted && (
         <ProjectCelebration

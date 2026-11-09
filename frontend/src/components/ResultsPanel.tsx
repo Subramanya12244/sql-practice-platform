@@ -151,10 +151,20 @@ function ResultBody({
               : "border-danger/40 bg-danger-dim text-danger"
           }`}
         >
-          <p className="font-medium">
-            {submitResult.correct ? "✅ " : "❌ "}
-            {submitResult.message}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-medium">
+              {submitResult.correct ? "✅ " : "❌ "}
+              {submitResult.message}
+            </p>
+            {(submitResult.execution_time_ms != null || submitResult.your_row_count != null) && (
+              <span className="text-xs opacity-80 tabular-nums">
+                {submitResult.execution_time_ms != null && `${submitResult.execution_time_ms} ms`}
+                {submitResult.execution_time_ms != null && submitResult.your_row_count != null && " · "}
+                {submitResult.your_row_count != null && `${submitResult.your_row_count} rows`}
+                {submitResult.expected_row_count != null && ` (exp ${submitResult.expected_row_count})`}
+              </span>
+            )}
+          </div>
           {submitResult.feedback?.length > 0 && (
             <ul className="mt-2 space-y-0.5 text-ink">
               {submitResult.feedback.map((f) => (

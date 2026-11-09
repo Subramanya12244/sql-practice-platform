@@ -136,8 +136,11 @@ export async function submit(
   if (!userSql.trim()) return fail("Write a query first.");
 
   let user: RawResult;
+  let userMs: number | undefined;
   try {
+    const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
     user = await runRaw(db, userSql);
+    userMs = Math.round(((typeof performance !== "undefined" ? performance.now() : Date.now()) - t0) * 10) / 10;
   } catch (err) {
     return fail("Your query has an error.", [err instanceof Error ? err.message : String(err)]);
   }
@@ -152,6 +155,7 @@ export async function submit(
         return {
           correct: false,
           message: "Matches the sample data, but fails a hidden test case.",
+          execution_time_ms: userMs,
           feedback: [
             "Your query gives a different result on hidden test data (new rows the reference handles).",
             "Check for hard-coded values (ids, dates, names), assumptions about ties, and rows that have no match in a join.",
@@ -167,6 +171,7 @@ export async function submit(
   return {
     correct: cmp.match,
     message: cmp.message,
+    execution_time_ms: userMs,
     // Specific, result-derived reasons first; the generic checklist after.
     feedback: cmp.match ? cmp.feedback : [...diagnose(user.columns, user.rows, expected.columns, expected.rows), ...cmp.feedback],
     your_row_count: cmp.yourRowCount,

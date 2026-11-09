@@ -21,6 +21,8 @@ import {
   Minimize2,
   Copy,
   Check,
+  Edit3,
+  Eraser,
 } from "lucide-react";
 import { runPython, stopPython, PY_TIMEOUT_MS } from "../lib/pyRunner";
 import { runPythonTask, type TaskResult, type TestCounts } from "../lib/tasks";
@@ -202,6 +204,85 @@ export function PythonWorkspace({
     }
   };
 
+  const [renamingFile, setRenamingFile] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState<string>("");
+
+  const handleStartRename = (fileName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (fileName === "solution.py") return;
+    setRenamingFile(fileName);
+    setRenameValue(fileName);
+  };
+
+  const handleFinishRename = (oldName: string) => {
+    const raw = renameValue.trim();
+    if (!raw || raw === oldName) {
+      setRenamingFile(null);
+      return;
+    }
+    const nextName = raw.includes(".") ? raw : `${raw}.py`;
+    try {
+      validateVirtualPath(nextName);
+      if (files[nextName] && nextName !== oldName) {
+        alert(`A file named "${nextName}" already exists.`);
+        setRenamingFile(null);
+        return;
+      }
+      setFiles((prev) => {
+        const next = { ...prev };
+        const content = next[oldName] ?? "";
+        delete next[oldName];
+        next[nextName] = content;
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+        return next;
+      });
+      setOpenTabs((prev) => prev.map((t) => (t === oldName ? nextName : t)));
+      if (activeFile === oldName) {
+        setActiveFile(nextName);
+      }
+    } catch (err) {
+      alert((err as Error).message);
+    }
+    setRenamingFile(null);
+  };
+
+  const handleResetWorkspace = () => {
+    if (!confirm("Reset workspace to initial starter files? This will reset all files in this problem.")) return;
+    const initial: Record<string, string> = {};
+    if (defaultFiles && defaultFiles.length > 0) {
+      defaultFiles.forEach((f) => {
+        initial[f.name] = f.content;
+      });
+    } else {
+      initial["solution.py"] = task?.starter ?? "# Write your Python solution here\n";
+      initial["main.py"] = `# Interactive script testing\nfrom solution import *\n\nprint("Workspace initialized.")\n`;
+    }
+    setFiles(initial);
+    setActiveFile("solution.py");
+    setOpenTabs(["solution.py", "main.py"]);
+    setTerminalOutput("");
+    setTestResult(null);
+    setErrorLine(null);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(initial));
+      if (initial["solution.py"]) {
+        localStorage.setItem(draftKey, initial["solution.py"]);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleClearOutput = () => {
+    setTerminalOutput("");
+    setTestResult(null);
+    setErrorLine(null);
+  };
+
   // Execution: Script Mode (runs active file or main.py directly)
   const runScript = async () => {
     setBusy("run");
@@ -329,6 +410,13 @@ export function PythonWorkspace({
           >
             {fullScreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </IconButton>
+          <IconButton
+            label="Reset workspace to default"
+            onClick={handleResetWorkspace}
+            className="h-8 w-8"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </IconButton>
 
           <span className="mx-1 h-4 w-px bg-surface-border" />
 
@@ -416,29 +504,59 @@ export function PythonWorkspace({
                   <li
                     key={name}
                     onClick={() => {
-                      setActiveFile(name);
-                      if (!openTabs.includes(name)) setOpenTabs((prev) => [...prev, name]);
+                      if (renamingFile !== name) {
+                        setActiveFile(name);
+                        if (!openTabs.includes(name)) setOpenTabs((prev) => [...prev, name]);
+                      }
                     }}
                     className={`group flex cursor-pointer items-center justify-between rounded px-2 py-1 transition-colors duration-fast ${
                       isActive ? "bg-accent-dim/60 font-semibold text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"
                     }`}
                   >
-                    <span className="flex min-w-0 items-center gap-1.5 truncate">
-                      {getFileIcon(name)}
-                      <span className="truncate">{name}</span>
-                    </span>
-                    {name !== "solution.py" && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteFile(name);
+                    {renamingFile === name ? (
+                      <input
+                        type="text"
+                        autoFocus
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleFinishRename(name);
+                          if (e.key === "Escape") setRenamingFile(null);
                         }}
-                        title={`Delete ${name}`}
-                        className="opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+                        onBlur={() => handleFinishRename(name)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full rounded border border-accent bg-surface px-1 py-0.5 text-xs text-ink outline-none"
+                      />
+                    ) : (
+                      <>
+                        <span className="flex min-w-0 items-center gap-1.5 truncate">
+                          {getFileIcon(name)}
+                          <span className="truncate">{name}</span>
+                        </span>
+                        {name !== "solution.py" && (
+                          <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            <button
+                              type="button"
+                              onClick={(e) => handleStartRename(name, e)}
+                              title={`Rename ${name}`}
+                              className="p-0.5 hover:text-accent"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteFile(name);
+                              }}
+                              title={`Delete ${name}`}
+                              className="p-0.5 hover:text-danger"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </span>
+                        )}
+                      </>
                     )}
                   </li>
                 );
@@ -537,15 +655,14 @@ export function PythonWorkspace({
                 </button>
               </div>
 
-              {activeBottomTab === "output" && terminalOutput && (
-                <button
-                  type="button"
-                  onClick={() => setTerminalOutput("")}
-                  className="text-ink-faint hover:text-ink"
-                >
-                  Clear
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleClearOutput}
+                className="flex items-center gap-1 text-[11px] text-ink-faint hover:text-ink transition-colors"
+                title="Clear output and test results"
+              >
+                <Eraser className="h-3 w-3" /> Clear
+              </button>
             </div>
 
             {/* Output Panel Content */}
