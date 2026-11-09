@@ -76,19 +76,19 @@ export function LearnPage() {
         return (
           <section key={level} className="mt-8" aria-labelledby={`lvl-${level}`}>
             <h3 id={`lvl-${level}`} className="font-display text-lg font-bold text-ink">{level}</h3>
-            <ol className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ol className="stagger mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {group.map((l) => {
                 const done = doneCount(progress.lessons, l.slug, l.exercises);
                 return (
                   <li key={l.slug}>
                     <Link
                       to={`/learn/${l.slug}`}
-                      className="flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition duration-fast hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow"
+                      className="flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.99]"
                     >
                       <p className="flex items-center justify-between text-xs text-ink-faint">
                         <span>Lesson {l.order}</span>
                         <span className={done === l.exercises && done > 0 ? "inline-flex items-center gap-1 text-success" : ""}>
-                          {done === l.exercises && done > 0 && <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />}
+                          {done === l.exercises && done > 0 && <CheckCircle2 className="h-3.5 w-3.5 animate-pop" aria-hidden />}
                           {done}/{l.exercises} exercises
                         </span>
                       </p>

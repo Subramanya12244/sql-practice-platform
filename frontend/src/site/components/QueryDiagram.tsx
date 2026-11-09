@@ -4,6 +4,7 @@ import "@xyflow/react/dist/style.css";
 import type { FlowGraph, FlowKind, RelGraph } from "../lib/queryGraph";
 import type { DbKeys } from "../lib/browserDb";
 import type { TableSchema } from "../../types";
+import { prefersReducedMotion } from "./Motion";
 
 const TONE: Record<FlowKind, string> = {
   cte: "border-secondary/60 bg-secondary-dim", source: "border-accent/50 bg-accent-dim", subquery: "border-secondary/60 bg-secondary-dim",
@@ -21,10 +22,21 @@ const LABEL = {
   labelBgBorderRadius: 4,
 };
 
-function Box({ title, detail, kind }: { title: string; detail: string[]; kind: FlowKind }) {
+function Box({ title, detail, kind, active = false, dimmed = false }: { title: string; detail: string[]; kind: FlowKind; active?: boolean; dimmed?: boolean }) {
   return (
-    <div className={`w-[250px] rounded-xl border px-3 py-2 text-left shadow-panel ${TONE[kind]}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{kind === "source" ? "table" : kind}</p>
+    <div
+      className={`w-[250px] select-none rounded-xl border px-3 py-2 text-left shadow-panel transition-all duration-base ease-out ${TONE[kind]} ${
+        active
+          ? "scale-[1.03] ring-2 ring-accent shadow-glow"
+          : dimmed
+            ? "scale-[0.98] opacity-55"
+            : "hover:scale-[1.02] hover:border-accent/40"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{kind === "source" ? "table" : kind}</p>
+        {active && <span className="h-1.5 w-1.5 animate-pop rounded-full bg-accent" />}
+      </div>
       <p className="font-mono text-sm font-semibold text-ink">{title}</p>
       {detail.map((d, i) => <p key={i} className="mt-0.5 break-words font-mono text-[11px] leading-snug text-ink-muted">{d}</p>)}
     </div>
@@ -53,17 +65,65 @@ function layout(g: FlowGraph) {
 }
 
 export function FlowDiagram({ graph, onSelect }: { graph: FlowGraph; onSelect?: (range: [number, number] | null) => void }) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const reducedMotion = prefersReducedMotion();
+
   const { nodes, edges } = useMemo(() => {
     const pos = layout(graph);
     return {
-      nodes: graph.nodes.map((n): Node => ({ id: n.id, position: pos.get(n.id)!, data: { label: <Box title={n.title} detail={n.detail} kind={n.kind} /> }, style: { padding: 0, border: "none", background: "transparent", width: 250 }, draggable: true })),
-      edges: graph.edges.map((e, i): Edge => ({ id: `e${i}`, source: e.from, target: e.to, label: e.label, markerEnd: { type: MarkerType.ArrowClosed }, style: { stroke: "rgb(var(--color-accent))" }, ...LABEL })),
+      nodes: graph.nodes.map((n): Node => {
+        const isActive = activeId === n.id;
+        const isDimmed = activeId !== null && !isActive;
+        return {
+          id: n.id,
+          position: pos.get(n.id)!,
+          data: { label: <Box title={n.title} detail={n.detail} kind={n.kind} active={isActive} dimmed={isDimmed} /> },
+          style: { padding: 0, border: "none", background: "transparent", width: 250 },
+          draggable: true,
+        };
+      }),
+      edges: graph.edges.map((e, i): Edge => {
+        const isConnected = activeId !== null && (e.from === activeId || e.to === activeId);
+        const isDimmed = activeId !== null && !isConnected;
+        const strokeColor = isConnected ? "rgb(var(--color-accent))" : isDimmed ? "var(--color-border)" : "rgb(var(--color-accent))";
+
+        return {
+          id: `e${i}`,
+          source: e.from,
+          target: e.to,
+          label: e.label,
+          animated: !reducedMotion && (isConnected || activeId === null),
+          markerEnd: { type: MarkerType.ArrowClosed, color: strokeColor },
+          style: {
+            stroke: strokeColor,
+            strokeWidth: isConnected ? 2.5 : 1.5,
+            opacity: isDimmed ? 0.4 : 1,
+            transition: "stroke 220ms ease, stroke-width 220ms ease, opacity 220ms ease",
+          },
+          ...LABEL,
+        };
+      }),
     };
-  }, [graph]);
+  }, [graph, activeId, reducedMotion]);
+
   return (
     <div className="h-[520px] overflow-hidden rounded-card border border-surface-border bg-surface" role="img" aria-label={`Logical query flow: ${graph.nodes.map((n) => n.title).join(", then ")}`}>
-      <ReactFlow nodes={nodes} edges={edges} fitView minZoom={0.2} proOptions={{ hideAttribution: true }} nodesConnectable={false}
-        onNodeClick={(_, n) => onSelect?.(graph.nodes.find((x) => x.id === n.id)?.range ?? null)} onPaneClick={() => onSelect?.(null)}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        fitView
+        minZoom={0.2}
+        proOptions={{ hideAttribution: true }}
+        nodesConnectable={false}
+        onNodeClick={(_, n) => {
+          setActiveId((curr) => (curr === n.id ? null : n.id));
+          onSelect?.(graph.nodes.find((x) => x.id === n.id)?.range ?? null);
+        }}
+        onPaneClick={() => {
+          setActiveId(null);
+          onSelect?.(null);
+        }}
+      >
         <Background gap={20} size={1} />
         <Controls showInteractive={false} />
       </ReactFlow>

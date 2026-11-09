@@ -68,11 +68,11 @@ export function AppSidebar({ pathname }: { pathname: string }) {
                   aria-controls={listId}
                   title={collapsed ? g.label : undefined}
                   onClick={() => (collapsed ? (toggleCollapsed(), setOpenGroups((s) => new Set(s).add(g.id))) : toggleGroup(g.id))}
-                  className={`group flex min-h-[40px] w-full items-center gap-2.5 rounded-control px-2.5 text-sm font-medium transition-colors duration-fast ${isActive ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"} ${collapsed ? "justify-center" : ""}`}
+                  className={`group flex min-h-[40px] w-full items-center gap-2.5 rounded-control px-2.5 text-sm font-medium transition-all duration-fast active:scale-[0.98] ${isActive ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"} ${collapsed ? "justify-center" : ""}`}
                 >
                   <Icon className="h-4 w-4 shrink-0 transition-transform duration-fast ease-out group-hover:scale-110" />
                   <span className={collapsed ? "sr-only" : "flex-1 truncate text-left"}>{g.label}</span>
-                  {!collapsed && <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-fast ${isOpen ? "rotate-180" : ""}`} aria-hidden />}
+                  {!collapsed && <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-fast ease-out ${isOpen ? "rotate-180" : ""}`} aria-hidden />}
                 </button>
                 <div className="collapse-grid" data-open={isOpen ? "true" : "false"}>
                 <ul id={listId} hidden={!isOpen && collapsed} {...(isOpen ? {} : { inert: "" })} aria-hidden={!isOpen} className="mb-1 ml-[1.15rem] mt-0.5 space-y-0.5 border-l border-surface-border pl-2">
@@ -82,10 +82,15 @@ export function AppSidebar({ pathname }: { pathname: string }) {
                         to={n.to}
                         end
                         className={({ isActive: here }) =>
-                          `block rounded-control px-2.5 py-1.5 text-sm transition-colors duration-fast ${here ? "bg-hover/5 font-medium text-ink" : "text-ink-muted hover:bg-hover/5 hover:text-ink"}`
+                          `relative block rounded-control px-2.5 py-1.5 text-sm transition-all duration-fast ${here ? "bg-accent-dim/60 font-semibold text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink hover:translate-x-0.5"}`
                         }
                       >
-                        {n.label}
+                        {({ isActive: here }) => (
+                          <>
+                            {here && <span className="absolute -left-[9px] top-1.5 bottom-1.5 w-[2px] rounded-full bg-accent" aria-hidden />}
+                            <span className="truncate">{n.label}</span>
+                          </>
+                        )}
                       </NavLink>
                     </li>
                   ))}

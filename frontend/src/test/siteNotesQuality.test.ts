@@ -67,7 +67,10 @@ describe("large SQL diagrams", () => {
 });
 
 let python = "";
-try { execFileSync("python3", ["-c", "import ast"]); python = "python3"; } catch { /* no Python: skip */ }
+for (const cand of [process.env.PYTHON, "/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3", "python3"]) {
+  if (!cand) continue;
+  try { execFileSync(cand, ["-c", "import ast"]); python = cand; break; } catch { /* try next */ }
+}
 const outline = (src: string): PyOutline => {
   const out = execFileSync(python, ["-I", "-c", OUTLINE_PY.replace("__DF_SRC__", JSON.stringify(JSON.stringify(src)))]).toString();
   return JSON.parse(out.split("__DF_OUTLINE__")[1]);

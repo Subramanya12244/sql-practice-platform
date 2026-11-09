@@ -4,7 +4,10 @@ import { execFileSync } from "node:child_process";
 import scenarios from "../site/content/debug/scenarios.json";
 
 let python = "";
-try { execFileSync("python3", ["-c", "import json"]); python = "python3"; } catch { /* skip without Python */ }
+for (const cand of [process.env.PYTHON, "/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3", "python3"]) {
+  if (!cand) continue;
+  try { execFileSync(cand, ["-c", "import json"]); python = cand; break; } catch { /* try next */ }
+}
 const passes = (code: string) => { try { execFileSync(python, ["-I", "-c", code], { stdio: "pipe", timeout: 30_000 }); return true; } catch { return false; } };
 
 describe("pipeline debugging lab", () => {

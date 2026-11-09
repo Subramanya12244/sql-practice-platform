@@ -1,4 +1,5 @@
 import { marked, type Tokens } from "marked";
+import DOMPurify from "dompurify";
 import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { sendTo } from "../lib/handoff";
@@ -51,15 +52,30 @@ marked.use({
   },
 });
 
+/** Sanitize rendered HTML before setting dangerouslySetInnerHTML. Safe on SSR. */
+export function sanitizeHtml(html: string): string {
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const purify = (DOMPurify as any).sanitize ? DOMPurify : (DOMPurify as any)(window);
+    return purify.sanitize(html, {
+      ADD_ATTR: ["target", "tabindex", "data-copy", "data-run"],
+    });
+  }
+  return html;
+}
+
 /** Inline Markdown (code spans, bold) inside an existing element. */
 export function InlineMarkdown({ source }: { source: string }) {
-  const html = useMemo(() => marked.parseInline(source, { async: false }) as string, [source]);
+  const html = useMemo(() => sanitizeHtml(marked.parseInline(source, { async: false }) as string), [source]);
   return <span className="prose-site" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-/** Renders trusted Markdown from this repo's own content files, with copy/run buttons on code. */
+/** Renders Markdown from content files or user inputs, with copy/run buttons on code. */
 export function Markdown({ source, className = "" }: { source: string; className?: string }) {
-  const html = useMemo(() => (marked.parse(source, { async: false }) as string).replace(/<table>/g, "<table tabindex=\"0\">"), [source]);
+  const html = useMemo(
+    () => sanitizeHtml((marked.parse(source, { async: false }) as string).replace(/<table>/g, '<table tabindex="0">')),
+    [source],
+  );
   const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {

@@ -47,7 +47,7 @@ export function QuestionCard({ q, solved }: { q: QuestionSummary; solved?: boole
   return (
     <Link
       to={`/questions/${q.slug}`}
-      className="group flex flex-col gap-2 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow"
+      className="group flex flex-col gap-2 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.99]"
     >
       <div className="flex items-center gap-2 text-xs text-ink-faint">
         <span className="font-mono">Q{String(q.number).padStart(2, "0")}</span>
@@ -56,17 +56,24 @@ export function QuestionCard({ q, solved }: { q: QuestionSummary; solved?: boole
         <span className="ml-auto flex items-center gap-1.5">
           {q.isNew && <span className="rounded bg-accent-dim px-1.5 text-[10px] font-semibold uppercase text-accent">New</span>}
           {q.hadMistakes && <AlertTriangle className="h-3.5 w-3.5 text-warn" aria-label="Common trap" />}
-          {solved && <CheckCircle2 className="h-3.5 w-3.5 text-success" aria-label="Solved" />}
+          {solved && <CheckCircle2 className="h-3.5 w-3.5 animate-pop text-success" aria-label="Solved" />}
           <Difficulty level={q.difficulty} />
         </span>
       </div>
-      <h3 className="font-semibold text-ink group-hover:text-accent">{q.title}</h3>
+      <h3 className="font-semibold text-ink transition-colors duration-fast group-hover:text-accent">{q.title}</h3>
       {q.problemShort && <p className="line-clamp-2 text-sm text-ink-muted"><InlineMarkdown source={q.problemShort} /></p>}
     </Link>
   );
 }
 
-export function Skeleton({ className = "" }: { className?: string }) {
+export function Skeleton({ className = "", shimmer = false }: { className?: string; shimmer?: boolean }) {
+  if (shimmer) {
+    return (
+      <div className={`relative overflow-hidden rounded-lg bg-surface-soft ${className}`}>
+        <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-surface-raised/40 to-transparent" />
+      </div>
+    );
+  }
   return <div className={`animate-pulse rounded-lg bg-surface-soft ${className}`} />;
 }
 
@@ -76,12 +83,12 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 const BTN_BASE =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition duration-fast ease-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex select-none items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-fast ease-out active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
 const BTN_VARIANT: Record<Variant, string> = {
   primary: "bg-accent text-on-accent shadow-glow hover:-translate-y-px hover:brightness-110",
-  secondary: "border border-surface-border bg-surface-raised text-ink hover:border-accent/40 hover:bg-surface-overlay",
-  ghost: "text-ink-muted hover:bg-hover/5 hover:text-ink",
-  danger: "bg-danger text-on-accent hover:brightness-110",
+  secondary: "border border-surface-border bg-surface-raised text-ink hover:border-accent/40 hover:bg-surface-overlay active:bg-surface-overlay/80",
+  ghost: "text-ink-muted hover:bg-hover/5 hover:text-ink active:bg-hover/10",
+  danger: "bg-danger text-on-accent hover:brightness-110 shadow-soft",
 };
 const BTN_SIZE = { sm: "min-h-[36px] px-3 text-sm", md: "min-h-[42px] px-4 text-sm", lg: "min-h-[48px] px-5 text-base" };
 
@@ -100,7 +107,7 @@ export function ButtonLink({ to, variant = "primary", size = "md", className = "
 const CARD_PAD = { none: "", sm: "p-4", md: "p-5" };
 export function Card({ children, className = "", as: Tag = "div", interactive = false, pad = "md", "aria-label": label, "aria-labelledby": labelledBy }: { children: ReactNode; className?: string; as?: "div" | "section" | "article" | "li"; interactive?: boolean; pad?: keyof typeof CARD_PAD; "aria-label"?: string; "aria-labelledby"?: string }) {
   return (
-    <Tag aria-label={label} aria-labelledby={labelledBy} className={`rounded-card border border-surface-border bg-surface-raised ${CARD_PAD[pad]} shadow-panel ${interactive ? "transition duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow" : ""} ${className}`}>
+    <Tag aria-label={label} aria-labelledby={labelledBy} className={`rounded-card border border-surface-border bg-surface-raised ${CARD_PAD[pad]} shadow-panel ${interactive ? "transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.995]" : ""} ${className}`}>
       {children}
     </Tag>
   );
@@ -170,7 +177,7 @@ export function StatCard({ label, value, hint, icon: Icon, trend }: { label: str
 export function IconButton({ label, children, active = false, className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; active?: boolean }) {
   return (
     <button type="button" aria-label={label} title={label} {...rest}
-      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control transition duration-fast ease-out active:scale-90 disabled:pointer-events-none disabled:opacity-50 ${active ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"} ${className}`}>
+      className={`inline-flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-control transition-all duration-fast ease-out active:scale-95 disabled:pointer-events-none disabled:opacity-50 ${active ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink active:bg-hover/10"} ${className}`}>
       {children}
     </button>
   );
@@ -280,7 +287,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs:
       }}>
       {tabs.map((t) => (
         <button key={t.id} type="button" role="tab" aria-selected={t.id === value} tabIndex={t.id === value ? 0 : -1} onClick={() => onChange(t.id)}
-          className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition duration-fast ease-out ${t.id === value ? "bg-surface-raised text-ink shadow-panel" : "text-ink-muted hover:text-ink"}`}>
+          className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-fast ease-out active:scale-[0.98] ${t.id === value ? "bg-surface-raised text-ink shadow-panel" : "text-ink-muted hover:text-ink hover:bg-hover/5"}`}>
           {t.label}
         </button>
       ))}

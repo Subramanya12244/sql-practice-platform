@@ -1,22 +1,17 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, CheckCircle2, Circle, CircleDot, Copy, Download, Eraser, FileCode2, FlaskConical, Lightbulb, Loader2, Maximize2, Minimize2, Play, RotateCcw, Save, Search, Timer, Wand2, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, CheckCircle2, Circle, CircleDot, Lightbulb, Search } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
-import { Badge, Button, ButtonLink, Card, Container, Difficulty, EmptyState, IconButton, PageHeader, ProgressBar, SectionHeader, Skeleton, Tabs, Toolbar, ToolbarDivider } from "../components/ui";
+import { Badge, Button, ButtonLink, Card, Container, Difficulty, EmptyState, PageHeader, ProgressBar, SectionHeader } from "../components/ui";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { completeExercise, toggleBookmark, useProgress } from "../lib/progress";
-import { runPython, resetPython, stopPython, PY_TIMEOUT_MS } from "../lib/pyRunner";
-import { runPythonTask, type TaskResult, type TestCounts } from "../lib/tasks";
-import { PY_CATEGORIES, PY_SKILLS, accuracy, categoryLabel, feedbackFor, filterExercises, overview, readStats, recordPyAttempt, splitHints, statusOf, subscribeStats, type PyFilter, type PyStat } from "../lib/pyPractice";
+import { PY_CATEGORIES, PY_SKILLS, accuracy, categoryLabel, filterExercises, overview, readStats, recordPyAttempt, splitHints, statusOf, subscribeStats, type PyFilter, type PyStat } from "../lib/pyPractice";
 import { track } from "../lib/activity";
-import { downloadText, formatPython } from "../lib/workspace";
 import { applyOverride, overrideKey, useContent } from "../lib/contentOverrides";
-import { SnippetsTab } from "../components/WorkspaceSide";
+import { PythonWorkspace } from "../components/PythonWorkspace";
 
-const CodeEditor = lazy(() => import("../components/CodeEditor"));
 const key = (slug: string) => `py:${slug}`;
-const DRAFT = (slug: string) => `sqlp.py.draft.${slug}`;
 const HIST = (slug: string) => `sqlp.py.history.${slug}`;
 
 interface Run { at: string; kind: "run" | "check"; ok: boolean; message: string; code?: string }
@@ -177,29 +172,12 @@ export function PythonExercisePage() {
   const pyOverride = useContent().overrides.get(overrideKey("python", ex.slug));
   const progress = useProgress();
   const path = `/practice/python/${ex.slug}`;
-  const [code, setCode] = useState(task?.starter ?? "");
   const [mounted, setMounted] = useState(false);
-  const [busy, setBusy] = useState<"run" | "check" | null>(null);
-  const [out, setOut] = useState<{ kind: "run" | "check"; text: string; result?: TaskResult & { counts?: Record<string, TestCounts> } } | null>(null);
   const [hintsShown, setHintsShown] = useState(0);
-  const [snippets, setSnippets] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-  const flash = (s: string) => { setNote(s); setTimeout(() => setNote(null), 2500); };
   const [history, setHistory] = useState<Run[]>([]);
   const [showSolution, setShowSolution] = useState(false);
-  const [view, setView] = useState<"tests" | "output">("tests");
-  const [stdin, setStdin] = useState("");
-  const [errorLine, setErrorLine] = useState<number | null>(null);
-  const [full, setFull] = useState(false);
-  // Display-only: whether Python has finished at least one run this session, and how long the last run took.
-  const [warm, setWarm] = useState(false);
-  const [lastMs, setLastMs] = useState<number | null>(null);
-  useEffect(() => {
-    if (!full) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFull(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [full]);
+  const [restoreCode, setRestoreCode] = useState<{ name: string; content: string; ts: number } | null>(null);
+
   const all = data.exercises ?? [];
   const at = all.findIndex((e) => e.slug === ex.slug);
   const prev = at > 0 ? all[at - 1] : undefined;
@@ -213,52 +191,17 @@ export function PythonExercisePage() {
 
   useEffect(() => {
     setMounted(true);
-    try { setCode(localStorage.getItem(DRAFT(ex.slug)) ?? task?.starter ?? ""); } catch { setCode(task?.starter ?? ""); }
     setHistory(readHist(ex.slug));
-    setOut(null);
     setShowSolution(false);
     setHintsShown(0);
     track("python_opened", key(ex.slug));
-  }, [ex.slug, task?.starter]);
+  }, [ex.slug]);
 
-  const change = (v: string) => {
-    setCode(v);
-    try { localStorage.setItem(DRAFT(ex.slug), v); } catch { /* ignore */ }
-  };
   const log = (r: Run) => {
     const h = [r, ...history];
     setHistory(h);
     writeHist(ex.slug, h);
   };
-
-  async function run() {
-    setBusy("run");
-    const r = await runPython(code, undefined, PY_TIMEOUT_MS, stdin);
-    setOut({ kind: "run", text: [r.stdout, r.error].filter(Boolean).join("\n") || "(no output)" });
-    setWarm(true);
-    setLastMs(r.ms ?? null);
-    setErrorLine(r.errorLine ?? null);
-    setView("output");
-    track("python_executed", key(ex.slug), { ok: r.ok, ms: r.ms });
-    log({ at: new Date().toISOString(), kind: "run", ok: r.ok, message: r.ok ? `ran in ${r.ms} ms` : r.error?.split("\n").pop() ?? "error", code: code.slice(0, 4000) });
-    setBusy(null);
-  }
-  async function check() {
-    if (!task) return;
-    setBusy("check");
-    let line: number | undefined;
-    const res = await runPythonTask(task, code, (c, t) => runPython(c, t).then((r) => { line = r.errorLine; return r; }), { count: true });
-    setOut({ kind: "check", text: res.output ?? "", result: res });
-    setWarm(true);
-    setLastMs(res.ms ?? null);
-    setErrorLine(line ?? null);
-    setView("tests");
-    track("python_submitted", key(ex.slug), { passed: res.ok, hidden_failed: /fails a hidden test/.test(res.message) });
-    log({ at: new Date().toISOString(), kind: "check", ok: res.ok, message: res.message, code: code.slice(0, 4000) });
-    recordPyAttempt(ex.slug, res.ok);
-    if (res.ok) completeExercise(key(ex.slug));
-    setBusy(null);
-  }
 
   return (
     <Container wide className="pt-6">
@@ -336,150 +279,69 @@ export function PythonExercisePage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Execution history</p>
               <ul className="mt-1 space-y-0.5">
                 {history.slice(0, 8).map((h, i) => (
-                  <li key={i} className="text-xs text-ink-muted">{h.code && <button type="button" className="mr-1.5 text-accent hover:underline" onClick={() => { if (confirm("Replace the editor with this version?")) change(h.code!); }}>Restore</button>}<span className={h.ok ? "text-success" : "text-danger"}>{h.kind === "check" ? (h.ok ? "✓ passed" : "✗ failed") : h.ok ? "ran" : "error"}</span> · {new Date(h.at).toLocaleTimeString()} · {h.message.slice(0, 80)}</li>
+                  <li key={i} className="text-xs text-ink-muted">
+                    {h.code && (
+                      <button
+                        type="button"
+                        className="mr-1.5 text-accent hover:underline"
+                        onClick={() => {
+                          if (confirm("Replace solution.py with this version?")) {
+                            setRestoreCode({ name: "solution.py", content: h.code!, ts: Date.now() });
+                          }
+                        }}
+                      >
+                        Restore
+                      </button>
+                    )}
+                    <span className={h.ok ? "text-success" : "text-danger"}>
+                      {h.kind === "check" ? (h.ok ? "✓ passed" : "✗ failed") : h.ok ? "ran" : "error"}
+                    </span>{" "}
+                    · {new Date(h.at).toLocaleTimeString()} · {h.message.slice(0, 80)}
+                  </li>
                 ))}
               </ul>
             </div>
           )}
         </article>
 
-        <div className={full ? "fixed inset-0 z-50 space-y-4 overflow-y-auto bg-surface p-4" : "min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start"}>
-          <Card pad="none" className="overflow-hidden">
-            <Toolbar label="Python workspace" className="gap-2 px-3 text-xs text-ink-muted">
-              <span className="inline-flex items-center gap-2 font-mono text-xs text-ink-muted"><FileCode2 className="h-4 w-4 text-accent" aria-hidden /> solution.py</span>
-              <PyStatus state={busy ? (warm ? "running" : "loading") : out?.result ? (out.result.ok ? "ready" : "error") : warm ? "ready" : "idle"} ms={busy ? null : lastMs} />
-              <span className="ml-auto flex flex-wrap items-center gap-0.5">
-                <Button variant="ghost" size="sm" onClick={() => { const f = formatPython(code); if (f === null) flash("Mixed indentation: fix it by hand first."); else if (f === code) flash("Already formatted."); else { change(f); flash("Formatted."); } }} title="Tidy indentation, blank lines and trailing spaces"><Wand2 className="h-3.5 w-3.5" aria-hidden /> Format</Button>
-                <IconButton label="Copy code" onClick={() => { void navigator.clipboard?.writeText(code); flash("Copied."); }}><Copy className="h-4 w-4" aria-hidden /></IconButton>
-                <IconButton label="Download as .py" onClick={() => downloadText(`${ex.slug.replace(/-/g, "_")}.py`, code, "text/x-python")}><Download className="h-4 w-4" aria-hidden /></IconButton>
-                <IconButton label="Snippets" active={snippets} aria-pressed={snippets} onClick={() => setSnippets((v) => !v)}><Save className="h-4 w-4" aria-hidden /></IconButton>
-                <ToolbarDivider />
-                <Button variant="ghost" size="sm" onClick={() => { if (confirm("Replace your code with the starter?")) change(task?.starter ?? ""); }}><RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset</Button>
-                <Button variant="ghost" size="sm" onClick={() => { resetPython(); setOut({ kind: "run", text: "Python restarted." }); setView("output"); }}>Restart Python</Button>
-                <IconButton label={full ? "Exit full screen" : "Full screen"} onClick={() => setFull((v) => !v)}>{full ? <Minimize2 className="h-4 w-4" aria-hidden /> : <Maximize2 className="h-4 w-4" aria-hidden />}</IconButton>
-              </span>
-            </Toolbar>
-            {mounted ? (
-              <Suspense fallback={<Skeleton className="h-[360px] rounded-none" />}>
-                <CodeEditor value={code} onChange={(v) => { change(v); setErrorLine(null); }} onRun={check} height={full ? 520 : 360} label="Python editor" language="python" errorLine={errorLine} errorMessage={out?.result?.message ?? out?.text.split("\n").filter(Boolean).pop()} />
-              </Suspense>
-            ) : <Skeleton className="h-[360px] rounded-none" />}
-            {note && <p role="status" className="border-t border-surface-border px-4 py-1.5 text-xs text-ink-muted">{note}</p>}
-            {snippets && <div className="h-64 border-t border-surface-border"><SnippetsTab lang="python" current={code} onInsert={(t) => change(`${code.replace(/\s*$/, "")}\n\n${t}\n`)} /></div>}
-            <details className="border-t border-surface-border px-4 py-2 text-sm">
-              <summary className="cursor-pointer select-none text-xs font-medium text-ink-muted">Standard input {stdin ? `(${stdin.split("\n").length} line${stdin.split("\n").length === 1 ? "" : "s"})` : "(for input())"}</summary>
-              <textarea value={stdin} onChange={(e) => setStdin(e.target.value)} rows={3} aria-label="Standard input" placeholder="Lines your program reads with input() when you press Run"
-                className="mt-2 w-full rounded-lg border border-surface-border bg-surface px-2 py-1.5 font-mono text-xs text-ink outline-none focus:border-accent" />
-            </details>
-            <div className="flex flex-wrap items-center gap-2 border-t border-surface-border px-4 py-3">
-              <Button variant="secondary" onClick={run} disabled={!!busy}>
-                {busy === "run" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />} Run
-              </Button>
-              {busy && <Button variant="danger" onClick={() => { stopPython(); setBusy(null); setOut({ kind: "run", text: "Stopped." }); }}>Stop</Button>}
-              <Button onClick={check} disabled={!!busy || !task || !!pyOverride?.disabled}>
-                {busy === "check" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FlaskConical className="h-4 w-4" aria-hidden />} Check against tests
-              </Button>
-              <span className="ml-auto inline-flex items-center gap-1 text-xs text-ink-faint"><Timer className="h-3.5 w-3.5" aria-hidden /> {PY_TIMEOUT_MS / 1000}s limit · <kbd className="rounded border border-surface-border bg-surface px-1 font-mono text-[10px] text-ink-muted">⌘/Ctrl+Enter</kbd> checks</span>
-            </div>
-          </Card>
+        <div className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
+          <PythonWorkspace
+            slug={ex.slug}
+            title={ex.title}
+            task={task}
+            defaultFiles={[
+              { name: "solution.py", content: task?.starter ?? "# Write your Python solution here\n" },
+              { name: "main.py", content: `# Interactive testing for ${ex.title}\nfrom solution import *\n\nprint("Testing ${ex.title}...")\n` },
+              { name: "helper.py", content: `# Helper utilities or sample data for ${ex.title}\n` },
+            ]}
+            onSolved={() => {
+              completeExercise(key(ex.slug));
+              recordPyAttempt(ex.slug, true);
+            }}
+            onCheckResult={(res, c) => {
+              track("python_submitted", key(ex.slug), { passed: res.ok, hidden_failed: /fails a hidden test/.test(res.message) });
+              log({ at: new Date().toISOString(), kind: "check", ok: res.ok, message: res.message, code: c.slice(0, 4000) });
+              recordPyAttempt(ex.slug, res.ok);
+              if (res.ok) completeExercise(key(ex.slug));
+            }}
+            onRunResult={(r, c) => {
+              track("python_executed", key(ex.slug), { ok: r.ok, ms: r.ms });
+              log({ at: new Date().toISOString(), kind: "run", ok: r.ok, message: r.ok ? `ran in ${r.ms} ms` : r.error?.split("\n").pop() ?? "error", code: c.slice(0, 4000) });
+            }}
+            externalCode={restoreCode}
+            height={600}
+          />
 
-          <Card pad="none" as="section">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-overlay px-4 py-2">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">Results{out?.result && <TestSummary result={out.result} hidden={!!task?.hidden} />}</h2>
-              <span className="flex items-center gap-1">
-                {out && <Button variant="ghost" size="sm" onClick={() => { setOut(null); setErrorLine(null); }}><Eraser className="h-3.5 w-3.5" aria-hidden /> Clear</Button>}
-                <Tabs label="Result view" value={view} onChange={setView} tabs={[{ id: "tests", label: "Tests" }, { id: "output", label: "Output" }]} />
-              </span>
-            </div>
-            <div className="p-4" role="status" aria-live="polite">
-              {view === "tests" ? (
-                out?.result ? (
-                  <>
-                    <ul className="stagger space-y-2 text-sm">
-                      {[
-                        { label: "Your code runs", state: /raised an error|could not start/.test(out.result.message) ? "fail" : /Timed out|Stopped after/.test(out.result.message) ? "fail" : "pass" },
-                        { label: `${task?.hidden ? "Visible tests pass" : "All tests pass"}${countText(out.result.counts?.visible)}`, state: out.result.ok || /fails a hidden test/.test(out.result.message) ? "pass" : /raised an error|could not start|Timed out|Stopped after/.test(out.result.message) ? "skip" : "fail" },
-                        ...(task?.hidden ? [{ label: `Hidden tests pass${countText(out.result.counts?.hidden)}`, state: out.result.ok ? "pass" : /fails a hidden test/.test(out.result.message) ? "fail" : "skip" }] : []),
-                      ].map((s) => (
-                        <li key={s.label} className="flex items-center gap-2 rounded-lg border border-surface-border bg-surface px-3 py-2">
-                          {s.state === "pass" ? <CheckCircle2 className="h-4 w-4 shrink-0 animate-pop text-success" aria-hidden /> : s.state === "fail" ? <XCircle className="h-4 w-4 shrink-0 text-danger" aria-hidden /> : <Circle className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />}
-                          <span className={`min-w-0 flex-1 ${s.state === "skip" ? "text-ink-faint" : "text-ink"}`}>{s.label}{s.state === "skip" ? " (not reached)" : ""}</span>
-                          <Badge tone={s.state === "pass" ? "success" : s.state === "fail" ? "danger" : "neutral"}>{s.state === "pass" ? "Pass" : s.state === "fail" ? "Fail" : "Skipped"}</Badge>
-                        </li>
-                      ))}
-                    </ul>
-                    <p className={`mt-3 rounded-lg px-3 py-2 text-sm font-medium ${out.result.ok ? "bg-success-dim text-success" : "bg-danger-dim text-danger"}`}>
-                      {out.result.message}{out.result.ms !== undefined ? <span className="font-normal text-ink-muted"> · {Math.round(out.result.ms)} ms</span> : null}
-                    </p>
-                    {!out.result.ok && <Feedback result={out.result} topic={topic ? { slug: topic.slug, title: topic.title } : undefined} concepts={ex.concepts} />}
-                  </>
-                ) : <p className="text-sm text-ink-muted">Press <strong className="text-ink">Check against tests</strong> to grade your code. The tests run together in a sandbox; the solution passes when every one of them does.</p>
-              ) : out?.text ? (
-                <pre key={out.text.length} className="animate-fade-in max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-surface-overlay p-3 font-mono text-xs text-ink">{out.text}</pre>
-              ) : <p className="text-sm text-ink-muted">Press <strong className="text-ink">Run</strong> to see what your code prints.</p>}
-            </div>
-          </Card>
-
-          {(done || out?.result?.ok) && (
+          {done && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-success/30 bg-success-dim p-4">
               <p className="flex items-center gap-2 text-sm font-semibold text-success"><CheckCircle2 className="h-5 w-5 animate-pop" aria-hidden /> Exercise complete <Link to={`/study-notes?add=py:${ex.slug}`} className="ml-2 text-xs font-medium text-accent hover:underline">Study notes (PDF)</Link></p>
               {next ? <ButtonLink to={`/practice/python/${next.slug}`} size="sm">Next: {next.title} <ArrowRight className="h-4 w-4" aria-hidden /></ButtonLink>
                 : <ButtonLink to="/practice/python" size="sm" variant="secondary">All exercises</ButtonLink>}
             </div>
           )}
-          <p className="flex items-start gap-1.5 text-xs text-ink-faint"><Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> Sandboxed in your browser: no network or file access. The first run downloads Python (about 10 MB, then cached).</p>
+          <p className="flex items-start gap-1.5 text-xs text-ink-faint"><Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> Sandboxed in your browser: no network or file access. Multi-file virtual filesystem supported with Pyodide WebAssembly.</p>
         </div>
       </div>
     </Container>
-  );
-}
-
-/** Pyodide status pill, same shape as the SQL workspace's. Derived from page state only (SSR-safe: starts "idle"). */
-function PyStatus({ state, ms }: { state: "idle" | "loading" | "running" | "ready" | "error"; ms: number | null }) {
-  const label = { idle: "Python idle", loading: "Loading Python…", running: "Running…", ready: "Python ready", error: "Last check failed" }[state];
-  const dot = { idle: "bg-ink-faint", loading: "bg-warn", running: "bg-accent", ready: "bg-success", error: "bg-danger" }[state];
-  return (
-    <span role="status" className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-full border border-surface-border bg-surface px-2.5 py-1">
-      {state === "loading" || state === "running" ? <Loader2 className="h-3 w-3 animate-spin text-accent" aria-hidden /> : <span aria-hidden className={`h-2 w-2 rounded-full ${dot}`} />}
-      {label}{ms !== null && state !== "idle" ? <span className="tabular-nums text-ink-faint"> · {Math.round(ms)} ms</span> : null}
-    </span>
-  );
-}
-
-/** "3/4 tests passed" from the per-group counts the grader already returns. */
-function TestSummary({ result, hidden }: { result: TaskResult & { counts?: Record<string, TestCounts> }; hidden: boolean }) {
-  const groups = [result.counts?.visible, hidden ? result.counts?.hidden : undefined].filter((c): c is TestCounts => !!c && c.total > 0);
-  if (!groups.length) return <Badge tone={result.ok ? "success" : "danger"}>{result.ok ? "Passed" : "Failed"}</Badge>;
-  const passed = groups.reduce((n, c) => n + c.passed, 0);
-  const total = groups.reduce((n, c) => n + c.total, 0);
-  return <Badge tone={passed === total ? "success" : "danger"}>{passed}/{total} tests passed</Badge>;
-}
-
-const countText = (c?: TestCounts) => (c && c.total ? ` (${c.passed}/${c.total})` : "");
-
-/** What failed, why that usually happens, and where to read up. Hidden test sources stay hidden. */
-function Feedback({ result, topic, concepts }: { result: TaskResult & { counts?: Record<string, TestCounts> }; topic?: { slug: string; title: string }; concepts: string[] }) {
-  const failed = result.counts?.visible?.failures ?? [];
-  const tip = feedbackFor(result.message, failed.map((f) => f.error).join("\n") + "\n" + (result.output ?? ""));
-  return (
-    <div className="mt-3 space-y-2 text-sm">
-      {failed.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Failed visible tests</p>
-          <ul className="mt-1 space-y-1">
-            {failed.slice(0, 3).map((f, i) => (
-              <li key={i} className="rounded-lg bg-surface-overlay p-2 font-mono text-xs">
-                <span className="block whitespace-pre-wrap text-ink">{f.test}</span>
-                <span className="block text-danger">{f.error}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {tip && <p className="rounded-lg border border-surface-border p-2 text-ink"><strong>Suggestion:</strong> {tip}</p>}
-      {(topic || concepts.length > 0) && (
-        <p className="text-xs text-ink-muted">Concepts: {concepts.join(", ")}{topic && <> · read <Link to={`/notes/${topic.slug}`} className="text-accent hover:underline">{topic.title}</Link></>}</p>
-      )}
-    </div>
   );
 }
