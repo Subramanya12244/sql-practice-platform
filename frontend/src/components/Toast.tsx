@@ -14,6 +14,7 @@ interface Toast {
   id: number;
   kind: ToastKind;
   message: string;
+  exiting?: boolean;
 }
 
 interface ToastCtx {
@@ -25,13 +26,20 @@ const Ctx = createContext<ToastCtx | null>(null);
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  const dismiss = useCallback((id: number) => {
+    setToasts((all) => all.map((x) => (x.id === id ? { ...x, exiting: true } : x)));
+    setTimeout(() => {
+      setToasts((all) => all.filter((x) => x.id !== id));
+    }, 220);
+  }, []);
+
   const push = useCallback((message: string, kind: ToastKind = "info") => {
     const id = Date.now() + Math.random();
-    setToasts((t) => [...t, { id, kind, message }]);
+    setToasts((t) => [...t, { id, kind, message, exiting: false }]);
     setTimeout(() => {
-      setToasts((t) => t.filter((x) => x.id !== id));
+      dismiss(id);
     }, 4200);
-  }, []);
+  }, [dismiss]);
 
   const value = useMemo(() => ({ push }), [push]);
 
@@ -42,7 +50,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`animate-toast-in flex items-start gap-3 rounded-card border px-4 py-3 text-sm shadow-soft backdrop-blur-md ${
+            className={`flex items-start gap-3 rounded-card border px-4 py-3 text-sm shadow-soft backdrop-blur-md transition-all duration-base ease-out ${
+              t.exiting
+                ? "translate-y-2 opacity-0 scale-95"
+                : "animate-toast-in"
+            } ${
               t.kind === "success"
                 ? "border-success/25 bg-surface-raised/95 text-success"
                 : t.kind === "error"
@@ -51,7 +63,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             }`}
           >
             {t.kind === "success" ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 animate-pop" />
             ) : t.kind === "error" ? (
               <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
             ) : (
@@ -60,8 +72,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <span className="flex-1 leading-relaxed text-ink">{t.message}</span>
             <button
               type="button"
-              className="rounded-lg p-0.5 text-ink-faint transition hover:bg-hover/5 hover:text-ink"
-              onClick={() => setToasts((all) => all.filter((x) => x.id !== t.id))}
+              className="rounded-lg p-0.5 text-ink-faint transition-all duration-fast active:scale-90 hover:bg-hover/5 hover:text-ink"
+              onClick={() => dismiss(t.id)}
             >
               <X className="h-4 w-4" />
             </button>

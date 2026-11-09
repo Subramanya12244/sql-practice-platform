@@ -74,7 +74,26 @@ export default function CodeEditor({ value, onChange, onRun, height = 220, label
           ed.current = { editor, monaco };
           editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => runRef.current?.());
         }}
-        options={{ minimap: { enabled: false }, fontSize: 13, scrollBeyondLastLine: false, wordWrap: "on", lineNumbers: "on", automaticLayout: true, tabSize: language === "python" ? 4 : 2, insertSpaces: true, autoIndent: "full", quickSuggestions: { other: true, comments: false, strings: false }, suggestOnTriggerCharacters: true }}
+        options={{
+          minimap: { enabled: false },
+          fontSize: 13,
+          scrollBeyondLastLine: false,
+          wordWrap: "on",
+          lineNumbers: "on",
+          automaticLayout: true,
+          tabSize: language === "python" ? 4 : 2,
+          insertSpaces: true,
+          autoIndent: "full",
+          quickSuggestions: { other: true, comments: false, strings: false },
+          suggestOnTriggerCharacters: true,
+          cursorBlinking: "smooth",
+          cursorSmoothCaretAnimation: "on",
+          bracketPairColorization: { enabled: true },
+          matchBrackets: "always",
+          renderLineHighlight: "all",
+          renderLineHighlightOnlyWhenFocus: true,
+          smoothScrolling: true,
+        }}
       />
     </div>
   );

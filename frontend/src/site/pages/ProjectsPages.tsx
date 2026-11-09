@@ -13,6 +13,7 @@ import { runPythonTask, runSqlTask, type Task, type TaskResult } from "../lib/ta
 import { getProjectProgress, isRepoUrl, projectStatus, saveProjectProgress, type Project, type ProjectProgress, type ProjectStatus } from "../lib/projects";
 import type { ExecuteResult } from "../../types";
 import { track } from "../lib/activity";
+import { ProjectCelebration } from "../components/ProjectCelebration";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
 
@@ -178,8 +179,8 @@ function TaskPanel({ task, project, progress, onChange, mounted }: {
             </Suspense>
           ) : <Skeleton className="h-[200px]" />}
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={run} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border px-3 py-1.5 text-sm disabled:opacity-60"><Play className="h-4 w-4" aria-hidden /> Run</button>
-            <button type="button" onClick={check} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60">
+            <button type="button" onClick={run} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-3 py-1.5 text-sm font-medium text-ink transition-all duration-fast active:scale-[0.98] hover:bg-surface-overlay disabled:opacity-60"><Play className="h-4 w-4" aria-hidden /> Run</button>
+            <button type="button" onClick={check} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-on-accent shadow-glow transition-all duration-fast active:scale-[0.98] hover:brightness-110 disabled:opacity-60">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FlaskConical className="h-4 w-4" aria-hidden />} Check
             </button>
             <details className="text-xs text-ink-faint">
@@ -259,9 +260,19 @@ export function ProjectPage() {
         {prereqs.length > 0 && <> · before you start: {prereqs.map((n, i) => <span key={n.slug}><Link to={`/notes/${n.slug}`} className="text-accent hover:underline">{n.title}</Link>{i < prereqs.length - 1 ? ", " : ""}</span>)}</>}
       </p>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-soft" role="img" aria-label={`${passed} of ${automated.length} automated checks passed`}>
-        <div className="h-full bg-success" style={{ width: `${automated.length ? (100 * passed) / automated.length : 0}%` }} />
+        <div className="h-full bg-success transition-[width] duration-slow ease-out" style={{ width: `${automated.length ? (100 * passed) / automated.length : 0}%` }} />
       </div>
       <p className="mt-1 text-xs text-ink-faint">{passed}/{automated.length} automated checks passed · progress is saved in this browser</p>
+
+      {mounted && (
+        <ProjectCelebration
+          projectSlug={project.slug}
+          projectTitle={project.title}
+          completed={status === "Completed" || (automated.length > 0 && passed === automated.length)}
+          passedCount={passed}
+          totalCount={automated.length}
+        />
+      )}
 
       <article className="mt-6 max-w-4xl">
         {parts.map((part, i) =>

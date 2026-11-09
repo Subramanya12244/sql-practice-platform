@@ -125,7 +125,11 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
     if (firstPath.current) { firstPath.current = false; return; }
     const el = mainRef.current;
     if (!el || prefersReducedMotion() || typeof el.animate !== "function") return;
-    el.animate([{ opacity: 0.4, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+    const anim = el.animate(
+      [{ opacity: 0.5, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }],
+      { duration: 220, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "both" }
+    );
+    return () => anim.cancel();
   }, [location.pathname]);
   const { enabled, session, profile } = useAuth();
   const { unseen } = useMyReviews(session?.user.id);
@@ -182,25 +186,34 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
           </div>
         </Container>
         {open && (
-          <nav id="mobile-nav" className="animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-surface-border lg:hidden" aria-label="Mobile">
+          <nav id="mobile-nav" className="animate-[fade-in_200ms_cubic-bezier(0.22,1,0.36,1)] max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-surface-border bg-surface-raised/95 backdrop-blur-md lg:hidden" aria-label="Mobile">
             <Container className="flex flex-col gap-1 py-3">
               {NAV_GROUPS.map((g) => (
                 <div key={g.id}>
                   <button type="button" onClick={() => setMobileGroup((v) => (v === g.id ? null : g.id))} aria-expanded={mobileGroup === g.id}
-                    className={`flex min-h-[44px] w-full items-center justify-between rounded-lg px-3 text-sm font-medium hover:bg-hover/5 ${current === g.id ? "text-accent" : "text-ink"}`}>
-                    {g.label} <ChevronDown className={`h-4 w-4 transition-transform ${mobileGroup === g.id ? "rotate-180" : ""}`} aria-hidden />
+                    className={`flex min-h-[44px] w-full items-center justify-between rounded-lg px-3 text-sm font-medium transition-colors duration-fast hover:bg-hover/5 ${current === g.id ? "text-accent" : "text-ink"}`}>
+                    {g.label} <ChevronDown className={`h-4 w-4 transition-transform duration-fast ease-out ${mobileGroup === g.id ? "rotate-180 text-accent" : ""}`} aria-hidden />
                   </button>
-                  {mobileGroup === g.id && (
-                    <div className="ml-3 flex flex-col border-l border-surface-border pl-2">
-                      {g.items!.map((n) => <Link key={n.to} to={n.to} className="flex min-h-[40px] items-center rounded-lg px-3 text-sm text-ink-muted hover:text-ink">{n.label}</Link>)}
+                  <div className="collapse-grid" data-open={mobileGroup === g.id ? "true" : "false"}>
+                    <div className="ml-3 flex flex-col border-l border-surface-border py-0.5 pl-2">
+                      {g.items!.map((n) => (
+                        <Link
+                          key={n.to}
+                          to={n.to}
+                          onClick={() => setOpen(false)}
+                          className="flex min-h-[40px] items-center rounded-lg px-3 text-sm text-ink-muted transition-colors duration-fast hover:bg-hover/5 hover:text-ink"
+                        >
+                          {n.label}
+                        </Link>
+                      ))}
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
               <div className="mt-2 flex items-center justify-between gap-2 border-t border-surface-border pt-3">
                 {account}
                 <span className="flex items-center gap-1">
-                  <NavLink to="/settings" aria-label="Settings" className="rounded-lg p-2.5 text-ink-muted hover:bg-hover/5"><Settings className="h-4 w-4" /></NavLink>
+                  <NavLink to="/settings" onClick={() => setOpen(false)} aria-label="Settings" className="rounded-lg p-2.5 text-ink-muted hover:bg-hover/5"><Settings className="h-4 w-4" /></NavLink>
                   <ThemeButton />
                 </span>
               </div>

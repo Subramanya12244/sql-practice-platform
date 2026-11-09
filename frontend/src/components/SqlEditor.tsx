@@ -4,6 +4,7 @@ import type { editor as MonacoEditor, languages, IDisposable } from "monaco-edit
 import { formatStandardSql } from "../utils/formatSql";
 import {
   AlignLeft,
+  Check,
   Copy,
   Eraser,
   Loader2,
@@ -136,6 +137,7 @@ export function SqlEditor({
   const valueRef = useRef(value);
   valueRef.current = value;
   const [hasSelection, setHasSelection] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const themeName = theme === "dark" ? themes?.dark ?? "vs-dark" : themes?.light ?? "vs";
   useEffect(() => {
@@ -321,6 +323,8 @@ export function SqlEditor({
 
   const copySql = async () => {
     await navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
     toast.push("SQL copied", "info");
   };
 
@@ -345,9 +349,9 @@ export function SqlEditor({
           <div className="flex items-center gap-1 rounded-lg border border-surface-border bg-surface p-0.5">
             <button
               type="button"
-              className={`rounded-md px-2 py-1 text-[11px] transition ${
+              className={`rounded-md px-2 py-1 text-[11px] transition-all duration-fast ${
                 resultTarget === "same"
-                  ? "bg-accent-dim text-accent"
+                  ? "bg-accent-dim text-accent shadow-panel font-medium"
                   : "text-ink-muted hover:text-ink"
               }`}
               onClick={() => onResultTargetChange("same")}
@@ -357,9 +361,9 @@ export function SqlEditor({
             </button>
             <button
               type="button"
-              className={`rounded-md px-2 py-1 text-[11px] transition ${
+              className={`rounded-md px-2 py-1 text-[11px] transition-all duration-fast ${
                 resultTarget === "new"
-                  ? "bg-accent-dim text-accent"
+                  ? "bg-accent-dim text-accent shadow-panel font-medium"
                   : "text-ink-muted hover:text-ink"
               }`}
               onClick={() => onResultTargetChange("new")}
@@ -373,26 +377,26 @@ export function SqlEditor({
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <button type="button" className="btn-secondary" onClick={formatSql} title="Format SQL" aria-label="Format SQL">
+          <button type="button" className="btn-secondary transition-all duration-fast active:scale-95" onClick={formatSql} title="Format SQL" aria-label="Format SQL">
             <AlignLeft className="h-3.5 w-3.5" />
             <span className="hidden 2xl:inline">Format</span>
           </button>
-          <button type="button" className="btn-secondary" onClick={toggleComment} title="Comment or uncomment lines (⌘/Ctrl+/)" aria-label="Toggle comment">
+          <button type="button" className="btn-secondary transition-all duration-fast active:scale-95" onClick={toggleComment} title="Comment or uncomment lines (⌘/Ctrl+/)" aria-label="Toggle comment">
             <MessageSquareCode className="h-3.5 w-3.5" />
           </button>
-          <button type="button" className="btn-secondary" onClick={copySql} title="Copy" aria-label="Copy SQL">
-            <Copy className="h-3.5 w-3.5" />
+          <button type="button" className="btn-secondary transition-all duration-fast active:scale-95" onClick={copySql} title="Copy" aria-label="Copy SQL">
+            {copied ? <Check className="h-3.5 w-3.5 animate-pop text-success" /> : <Copy className="h-3.5 w-3.5" />}
           </button>
-          <button type="button" className="btn-secondary" onClick={clearSql} title="Clear" aria-label="Clear editor">
+          <button type="button" className="btn-secondary transition-all duration-fast active:scale-95" onClick={clearSql} title="Clear" aria-label="Clear editor">
             <Eraser className="h-3.5 w-3.5" />
           </button>
-          <button type="button" className="btn-secondary" onClick={resetSql} title="Reset to the starter query" aria-label="Reset to the starter query">
+          <button type="button" className="btn-secondary transition-all duration-fast active:scale-95" onClick={resetSql} title="Reset to the starter query" aria-label="Reset to the starter query">
             <RotateCcw className="h-3.5 w-3.5" />
             <span className="hidden 2xl:inline">Reset</span>
           </button>
           <button
             type="button"
-            className="btn-secondary"
+            className="btn-secondary transition-all duration-fast active:scale-[0.97]"
             onClick={runSelection}
             disabled={running || !hasSelection}
             title="Run selected SQL only"
@@ -403,7 +407,7 @@ export function SqlEditor({
           </button>
           <button
             type="button"
-            className="btn-primary"
+            className="btn-primary transition-all duration-fast active:scale-[0.97]"
             onClick={runAll}
             disabled={running || !value.trim()}
             title="Run the entire editor contents"
@@ -414,11 +418,11 @@ export function SqlEditor({
           {onSubmit && (
             <button
               type="button"
-              className="btn-secondary border-accent/40 text-accent hover:bg-accent-dim"
+              className="btn-secondary border-accent/40 text-accent transition-all duration-fast hover:bg-accent-dim active:scale-[0.97]"
               onClick={onSubmit}
               disabled={submitting || !value.trim()}
             >
-              <Send className="h-3.5 w-3.5" />
+              {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Send className="h-3.5 w-3.5" />}
               {submitting
                 ? "Submitting…"
                 : submitLabel || "Submit"}
@@ -446,6 +450,13 @@ export function SqlEditor({
             wordWrap: "on",
             padding: { top: 12 },
             suggestOnTriggerCharacters: true,
+            cursorBlinking: "smooth",
+            cursorSmoothCaretAnimation: "on",
+            bracketPairColorization: { enabled: true },
+            matchBrackets: "always",
+            renderLineHighlight: "all",
+            renderLineHighlightOnlyWhenFocus: true,
+            smoothScrolling: true,
             quickSuggestions: {
               other: true,
               comments: false,

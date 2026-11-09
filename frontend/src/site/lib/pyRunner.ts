@@ -40,7 +40,13 @@ export function stopPython() {
   waiting.forEach((done) => done({ ok: false, phase: "stopped", stdout: "", error: "Stopped.", ms: 0 }));
 }
 
-export function runPython(code: string, tests?: string, timeoutMs = PY_TIMEOUT_MS, stdin = ""): Promise<PyResult> {
+export function runPython(
+  code: string,
+  tests?: string,
+  timeoutMs = PY_TIMEOUT_MS,
+  stdin = "",
+  files?: Record<string, string>
+): Promise<PyResult> {
   const w = getWorker();
   const id = ++seq;
   const started = performance.now();
@@ -62,6 +68,6 @@ export function runPython(code: string, tests?: string, timeoutMs = PY_TIMEOUT_M
       resolve({ ...e.data, ms: Math.round(performance.now() - started) });
     }
     w.addEventListener("message", onMsg);
-    w.postMessage({ id, code, tests, stdin });
+    w.postMessage({ id, code, tests, stdin, files });
   });
 }

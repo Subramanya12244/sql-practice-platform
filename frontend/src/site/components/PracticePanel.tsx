@@ -355,6 +355,15 @@ function RowSample({ title, columns, rows, count }: { title: string; columns: st
 
 /** Plain-language help under the results: what an error means, or which rows differ. */
 function Coach({ runError, submit }: { runError?: { success: boolean; message?: string | null } | null; submit: SubmitResult | null }) {
+  if (submit && submit.correct) {
+    return (
+      <div className="animate-fade-in border-t border-success/30 bg-success-dim/30 px-4 py-3 text-sm" role="status">
+        <p className="flex items-center gap-2 font-semibold text-success">
+          <CheckCircle2 className="h-4 w-4 animate-pop text-success" aria-hidden /> Query passed! All rows and columns matched expected results.
+        </p>
+      </div>
+    );
+  }
   const message = submit && !submit.correct && submit.feedback[0] && !submit.diff ? submit.feedback[0] : runError && !runError.success ? runError.message : null;
   const help = explainError(message);
   const diff = submit && !submit.correct ? submit.diff : null;
