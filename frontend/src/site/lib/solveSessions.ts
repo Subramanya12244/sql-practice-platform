@@ -237,6 +237,13 @@ export function setTarget(ref: string, sec: number) {
   update(ref, (s) => ({ ...s, targetSec: v }));
 }
 
+/** Active time, hints and goal of the open session for a challenge, for the revision schedule. */
+export function activeTiming(ref: string, now = Date.now()): { sec: number; hints: number; targetSec: number } | null {
+  const s = readStore()[ref];
+  if (!s) return null;
+  return { sec: elapsedSec(s, now), hints: s.hints, targetSec: s.targetSec || DEFAULT_TARGET_SEC[s.difficulty] || 600 };
+}
+
 /** Count a run of the editor. Nothing happens if no session is open for this challenge. */
 export const noteExecution = (ref: string) => update(ref, (s) => ({ ...s, executions: s.executions + 1 }));
 

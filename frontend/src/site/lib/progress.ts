@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { track } from "./activity";
-import { RULES, nextRevision } from "./revision";
-import { mergeSessions, noteHint, type SolveSession } from "./solveSessions";
+import { RULES, nextRevision, type Outcome } from "./revision";
+import { activeTiming, mergeSessions, noteHint, type SolveSession } from "./solveSessions";
 import { applyMistake, applySolved, applyUnderstood, type MistakeInput } from "./mistakes";
 
 /** Per-visitor progress, kept in localStorage. Every access is guarded: storage may be unavailable. */
@@ -162,7 +162,7 @@ export function recordAttempt(num: number, sql: string, correct: boolean, errorK
     ...(correct ? bump(p) : { activeDays: p.activeDays }),
     // A wrong submit schedules a revision tomorrow; the first solve is scheduled by speed.
     // Later correct submits outside the review queue don't move an existing schedule.
-    ...(!correct || firstSolve ? { revision: { ...p.revision, [`sql:${num}`]: nextRevision(p.revision?.[`sql:${num}`], { correct, slow: firstSolve && (q.solveSec ?? 0) > RULES.slowMinutes * 60 }) } } : {}),
+    ...(!correct || firstSolve ? { revision: { ...p.revision, [`sql:${num}`]: nextRevision(p.revision?.[`sql:${num}`], sqlOutcome(num, correct, firstSolve, q.solveSec, prev.hintLevel, prev.attempts + 1)) } } : {}),
   });
   if (correct) markMistakeSolved(`sql:${num}`);
   sink?.question(num, q, correct && !prev.solvedAt);
@@ -172,6 +172,17 @@ export function recordAttempt(num: number, sql: string, correct: boolean, errorK
 
 export function saveDraft(num: number, sql: string) {
   const p = read();
+/** What the revision schedule needs to know about a SQL answer: help used, attempts, and time. */
+function sqlOutcome(num: number, correct: boolean, firstSolve: boolean, solveSec: number | undefined, hintLevel: number | undefined, attempts: number): Outcome {
+  const t = activeTiming(`sql:${num}`);
+  const sec = t?.sec ?? solveSec ?? 0;
+  return {
+    correct, hints: Math.max(hintLevel ?? 0, t?.hints ?? 0), attempts,
+    slow: correct && firstSolve && sec > RULES.slowMinutes * 60,
+    fast: correct && t ? t.sec <= t.targetSec * RULES.fastShare : false,
+  };
+}
+
   const prev = p.questions[num] ?? { attempts: 0 };
   write({ ...p, questions: { ...p.questions, [num]: { ...prev, lastSql: sql, startedAt: prev.startedAt ?? new Date().toISOString() } } });
 }
@@ -413,7 +424,13 @@ export function useProgress(): Progress {
 export function schedulePython(slug: string, ok: boolean, failedBefore: number) {
   const p = read();
   const key = `py:${slug}`;
-  write({ ...p, revision: { ...p.revision, [key]: nextRevision(p.revision?.[key], { correct: ok, slow: ok && failedBefore >= RULES.slowFailedChecks }) } });
+  const t = activeTiming(key);
+  const outcome: Outcome = {
+    correct: ok, hints: t?.hints, attempts: failedBefore + 1,
+    slow: ok && (failedBefore >= RULES.slowFailedChecks || (t ? t.sec > RULES.slowMinutes * 60 : false)),
+    fast: ok && t ? t.sec <= t.targetSec * RULES.fastShare : false,
+  };
+  write({ ...p, revision: { ...p.revision, [key]: nextRevision(p.revision?.[key], outcome) } });
   sink?.state(current);
 }
 
