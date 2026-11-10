@@ -109,3 +109,20 @@ test("mistake notebook: a failed submit appears, solving it later marks it fixed
   await expect(page.getByRole("region", { name: /SQL · Aggregations/ }).getByText("Solved since")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("SQL review: opt-in after a correct submit, labelled findings, no speed claims", async ({ page, request, isMobile }) => {
+  const ref = (await (await request.get("/data/q/q01-product-revenue.json")).json()).referenceQuery as string;
+  await page.goto("/questions/q01-product-revenue");
+  if (isMobile) await page.getByRole("link", { name: /Jump to the editor/ }).click();
+  await editor(page, ref);
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText(/Correct!/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Solution review" })).toHaveCount(0); // nothing until asked
+  await page.getByRole("button", { name: /Review my solution/ }).click();
+  const panel = page.getByRole("region", { name: "Solution review" });
+  await expect(panel.getByRole("heading", { name: "Solution review" })).toBeVisible({ timeout: 60_000 });
+  await expect(panel.getByText("Correct result")).toBeVisible();
+  await expect(panel.getByText("Measured time")).toBeVisible();
+  expect(await panel.innerText()).not.toMatch(/\b(is|are) (much )?(faster|slower)\b/i);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

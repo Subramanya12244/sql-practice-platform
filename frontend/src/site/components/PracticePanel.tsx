@@ -12,6 +12,7 @@ import type { Question } from "../types";
 import { getDb, getSchemas, runQuery, submitQuery } from "../lib/browserDb";
 import { completeExercise, getProgress, recordAttempt, recordMistake, recordSession, saveDraft, useProgress } from "../lib/progress";
 import { classifySqlMistake } from "../lib/mistakes";
+import { SqlReviewPanel } from "./SqlReviewPanel";
 import { noteAttempt, noteExecution } from "../lib/solveSessions";
 import { explainError } from "../lib/errorHelp";
 import { prefersReducedMotion } from "./Motion";
@@ -65,6 +66,7 @@ export default function PracticePanel({
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
   const draftTimer = useRef<ReturnType<typeof setTimeout>>();
+  const [submittedSql, setSubmittedSql] = useState("");
   const [plan, setPlan] = useState<{ node: PlanNode | null; error?: string; busy?: boolean } | null>(null);
   const planRef = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false);
@@ -180,6 +182,7 @@ export default function PracticePanel({
   const onSubmit = useCallback(async () => {
     setSubmitting(true);
     const sql = current;
+    setSubmittedSql(sql);
     const result = await submitQuery(sql, question.referenceQuery, question.sortRequired, question.orderBy ?? null, dataset);
     if (lessonKey) {
       if (result.correct) completeExercise(lessonKey);
@@ -306,6 +309,7 @@ export default function PracticePanel({
         submit={submitResult}
         onExplain={onExplain}
       />
+      {submitResult?.correct && !lessonKey && !playground && submittedSql && <SqlReviewPanel sql={submittedSql} referenceSql={question.referenceQuery} sortRequired={question.sortRequired} dataset={dataset} />}
       {plan && (
         <div ref={planRef} className="animate-fade-in max-h-[45vh] shrink-0 scroll-mt-20 overflow-auto border-t border-surface-border px-4 py-3" aria-live="polite">
           <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-ink-faint">
