@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   GRACE_MS, activeMs, elapsedSec, finishSession, formatClock, formatDuration, getActive, mergeSessions, noteAttempt, noteExecution,
-  noteHint, openSession, pauseSession, resumeSession, saveActive, settle, sweepStale, STALE_MS, tabHidden, tabVisible, type ActiveSession, type SolveSession,
+  noteHint, openSession, pauseSession, resumeSession, saveActive, settle, sweepStale, STALE_MS, tabHidden, tabVisible, setTarget, type ActiveSession, type SolveSession,
 } from "../site/lib/solveSessions";
 import { getProgress, recordSession, replaceProgress } from "../site/lib/progress";
 import { mergeProgress } from "../site/lib/account";
@@ -194,6 +194,26 @@ describe("sync merge", () => {
 it("ActiveSession type is exercised", () => {
   const a: ActiveSession = openSession(META, T0);
   expect(a.targetSec).toBe(300);
+});
+
+describe("target time", () => {
+  it("defaults by difficulty, setTarget changes the open session and becomes the default for new ones", () => {
+    expect(openSession(META, T0).targetSec).toBe(300);
+    setTarget("sql:25", 600);
+    expect(getActive("sql:25")!.targetSec).toBe(600);
+    expect(openSession({ ...META, ref: "sql:26", difficulty: "Hard" }, T0).targetSec).toBe(600);
+  });
+  it("0 means no target and is remembered too; a missing preference falls back to the default", () => {
+    openSession(META, T0);
+    setTarget("sql:25", 0);
+    expect(openSession({ ...META, ref: "sql:27" }, T0).targetSec).toBe(0);
+    localStorage.clear();
+    expect(openSession({ ...META, ref: "sql:28", difficulty: "Medium" }, T0).targetSec).toBe(720);
+  });
+  it("is ignored for a challenge with no open session", () => {
+    setTarget("sql:404", 900);
+    expect(getActive("sql:404")).toBeUndefined();
+  });
 });
 
 describe("two tabs on one challenge", () => {

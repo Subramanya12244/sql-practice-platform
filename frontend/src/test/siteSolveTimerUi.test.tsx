@@ -29,7 +29,7 @@ describe("SolveTimer (module)", () => {
     expect(screen.getByRole("timer")).toHaveTextContent("00:00");
     tick(5000);
     expect(screen.getByRole("timer")).toHaveTextContent("00:05");
-    expect(screen.getByText(/05:00/)).toBeInTheDocument(); // Easy target
+    expect(screen.getByText(/04:55 left/)).toBeInTheDocument(); // Easy default 5 min, 5 s used
   });
 
   it("pause stops the clock, resume continues, controls are labelled", () => {
@@ -82,7 +82,51 @@ describe("SolveTimer (module)", () => {
     render(<><SolveTimer meta={META} /><SolveTimer meta={{ kind: "python", ref: "py:cart-line-total", difficulty: "Hard", topic: "etl" }} /></>);
     expect(Object.keys(JSON.parse(localStorage.getItem("sqlp.solve.active")!)).sort()).toEqual(["py:cart-line-total", "sql:25"]);
     expect(screen.getAllByRole("group", { name: /solve timer/ })).toHaveLength(2);
-    expect(screen.getByText(/25:00/)).toBeInTheDocument(); // Hard target on the Python one
+    expect(screen.getByText(/25:00 left/)).toBeInTheDocument(); // Hard default on the Python one
+  });
+});
+
+describe("target time picker (module)", () => {
+  const pick = (min: number) => fireEvent.change(screen.getByLabelText("Target time for this challenge"), { target: { value: String(min) } });
+
+  it("offers 5, 10, 15, 20, 30 minutes and none, with the difficulty default selected", () => {
+    render(<SolveTimer meta={{ ...META, difficulty: "Medium" }} />);
+    const select = screen.getByLabelText("Target time for this challenge") as HTMLSelectElement;
+    expect([...select.options].map((o) => o.textContent)).toEqual(["None", "5 min", "10 min", "12 min", "15 min", "20 min", "30 min"]);
+    expect(select.value).toBe("12");
+  });
+
+  it("choosing 10 minutes changes the countdown and is stored on the session", () => {
+    render(<SolveTimer meta={META} />);
+    pick(10);
+    expect(screen.getByText(/10:00 left/)).toBeInTheDocument();
+    expect(getActive("sql:25")!.targetSec).toBe(600);
+    tick(30_000);
+    expect(screen.getByText(/09:30 left/)).toBeInTheDocument();
+  });
+
+  it("going past the goal says so, without stopping the timer", () => {
+    render(<SolveTimer meta={META} />);
+    pick(5);
+    tick(5 * 60_000 + 20_000);
+    expect(screen.getByText(/\+00:20 over/)).toBeInTheDocument();
+    expect(screen.getByRole("timer")).toHaveTextContent("05:20");
+  });
+
+  it("'None' removes the goal", () => {
+    render(<SolveTimer meta={META} />);
+    pick(0);
+    expect(screen.queryByText(/left|over/)).not.toBeInTheDocument();
+    expect(getActive("sql:25")!.targetSec).toBe(0);
+  });
+
+  it("the choice is remembered for the next challenge, SQL or Python", () => {
+    const first = render(<SolveTimer meta={META} />);
+    pick(15);
+    first.unmount();
+    render(<SolveTimer meta={{ kind: "python", ref: "py:cart-line-total", difficulty: "Hard", topic: "etl" }} />);
+    expect(screen.getByText(/15:00 left/)).toBeInTheDocument();
+    expect(getActive("py:cart-line-total")!.targetSec).toBe(900);
   });
 });
 

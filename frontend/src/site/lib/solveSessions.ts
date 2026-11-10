@@ -57,7 +57,7 @@ export interface ActiveSession {
   hints: number;
   difficulty: string;
   topic: string;
-  /** Optional goal in seconds, shown next to the elapsed time. */
+  /** Goal in seconds, shown next to the elapsed time. 0 or missing means no target. */
   targetSec?: number;
 }
 
@@ -132,6 +132,15 @@ export function formatDuration(sec: number): string {
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
 }
 
+/** Targets the picker offers, in minutes. 0 is "no target". */
+export const TARGET_MINUTES = [5, 10, 15, 20, 30] as const;
+const PREF_KEY = "sqlp.solve.targetPref";
+
+/** The learner's last chosen target in seconds (0 = none), or undefined to use the difficulty default. */
+export function targetPreference(): number | undefined {
+  try { const v = localStorage.getItem(PREF_KEY); return v === null ? undefined : Math.max(0, Number(v) || 0); } catch { return undefined; }
+}
+
 /** Default solving targets by difficulty, in seconds. Shown as a guide, never enforced. */
 export const DEFAULT_TARGET_SEC: Record<string, number> = { Easy: 5 * 60, Medium: 12 * 60, Hard: 25 * 60 };
 
@@ -201,7 +210,7 @@ export function openSession(meta: OpenMeta, now = Date.now(), visible = true): A
     id: crypto.randomUUID(), kind: meta.kind, ref: meta.ref, startedAt: new Date(now).toISOString(),
     accMs: 0, segStart: visible ? now : null, beat: now, auto: visible ? undefined : true,
     attempts: 0, executions: 0, hints: 0, difficulty: meta.difficulty, topic: meta.topic,
-    targetSec: meta.targetSec ?? DEFAULT_TARGET_SEC[meta.difficulty],
+    targetSec: meta.targetSec ?? targetPreference() ?? DEFAULT_TARGET_SEC[meta.difficulty],
   };
   writeStore({ ...store, [meta.ref]: s });
   return s;
@@ -219,6 +228,13 @@ function update(ref: string, f: (s: ActiveSession) => ActiveSession) {
   const s = store[ref];
   if (!s) return;
   writeStore({ ...store, [ref]: f(s) });
+}
+
+/** Change the goal of the open session and remember it for the next challenges. 0 = no target. */
+export function setTarget(ref: string, sec: number) {
+  const v = Math.max(0, Math.round(sec));
+  try { localStorage.setItem(PREF_KEY, String(v)); } catch { /* preference just won't persist */ }
+  update(ref, (s) => ({ ...s, targetSec: v }));
 }
 
 /** Count a run of the editor. Nothing happens if no session is open for this challenge. */

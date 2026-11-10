@@ -3,7 +3,7 @@ import { Pause, Play, RotateCcw, Square, Timer } from "lucide-react";
 import { useProgress, recordSession } from "../lib/progress";
 import {
   HEARTBEAT_MS, elapsedSec, finishSession, formatClock, formatDuration, getActive, isRunning, openSession, pauseSession, resumeSession,
-  saveActive, settle, subscribeSessions, sweepStale, tabHidden, tabVisible, type OpenMeta, type SolveSession,
+  saveActive, setTarget, settle, subscribeSessions, TARGET_MINUTES, sweepStale, tabHidden, tabVisible, type OpenMeta, type SolveSession,
 } from "../lib/solveSessions";
 
 /**
@@ -77,6 +77,7 @@ export function useSolveTimer(meta: OpenMeta) {
       const done = finishSession(ref, recordSession);
       if (done) setEndedId(done.id);
     },
+    setTarget(sec: number) { setTarget(ref, sec); rerender(); },
     restart() { open(); rerender(); },
   };
 }
@@ -111,13 +112,29 @@ export function SolveTimer({ meta, className = "" }: { meta: OpenMeta; className
   }
 
   const running = isRunning(t.active);
-  const target = t.active.targetSec;
-  const over = target != null && t.seconds > target;
+  const target = t.active.targetSec || 0; // 0 = no target
+  const over = target > 0 && t.seconds > target;
+  // Offer the usual choices, plus the current value when it is not one of them (a difficulty default such as 12 min).
+  const mins = Math.round(target / 60);
+  const options = [...new Set([...(mins > 0 ? [mins] : []), ...TARGET_MINUTES])].sort((a, b) => a - b);
   return (
     <div className={`inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-2 py-0.5 text-xs ${className}`} role="group" aria-label={`${label} solve timer`}>
       <Timer className={`h-3.5 w-3.5 ${running ? "text-accent" : "text-ink-faint"}`} aria-hidden />
       <span role="timer" aria-live="off" aria-label={`Elapsed time ${formatClock(t.seconds)}`} className="font-mono text-sm font-semibold tabular-nums text-ink">{formatClock(t.seconds)}</span>
-      {target != null && <span className={`tabular-nums ${over ? "text-warn" : "text-ink-faint"}`} title="A guide for this difficulty, not a limit">/ {formatClock(target)}{over ? " · over target" : ""}</span>}
+      <label className="inline-flex items-center gap-1 text-ink-faint">
+        <span aria-hidden>Goal</span>
+        <select
+          aria-label="Target time for this challenge"
+          value={mins}
+          onChange={(e) => t.setTarget(Number(e.target.value) * 60)}
+          title="A guide for how long you want to spend, not a limit. Remembered for your next challenges."
+          className="rounded-md border border-surface-border bg-surface px-1 py-0.5 text-xs text-ink"
+        >
+          <option value={0}>None</option>
+          {options.map((m) => <option key={m} value={m}>{m} min</option>)}
+        </select>
+      </label>
+      {target > 0 && <span className={`tabular-nums ${over ? "font-medium text-warn" : "text-ink-faint"}`} title="Time left to reach your goal">{over ? `+${formatClock(t.seconds - target)} over` : `${formatClock(target - t.seconds)} left`}</span>}
       <span role="status" className="sr-only">{running ? "Timer running" : "Timer paused"}</span>
       {!running && <span className="rounded bg-surface-soft px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-muted" aria-hidden>{t.active.auto ? "Tab hidden" : "Paused"}</span>}
       {confirm ? (
