@@ -5,6 +5,7 @@ import { VizView } from "../components/VizView";
 import { addSession, getExecs, getSessions, highlightInEditor, type ExecRecord, type VizSession } from "../lib/vizHistory";
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { HintLadder } from "../components/HintLadder";
+import { SolveTimer } from "../components/SolveTimer";
 import { Comments, CommunitySolutions } from "../components/Community";
 import { usePage } from "../SiteApp";
 import { InlineMarkdown, Markdown } from "../components/Markdown";
@@ -172,6 +173,7 @@ export function QuestionPage() {
             <CheckCircle2 className="h-4 w-4" aria-hidden /> Solved
           </span>
         )}
+        {!override?.disabled && <SolveTimer meta={{ kind: "sql", ref: `sql:${q.number}`, difficulty: q.difficulty, topic: q.topic }} />}
         <a href="#editor" className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white lg:hidden">Jump to the editor</a>
         <nav className="ml-auto flex items-center gap-1" aria-label="Question navigation">
           <PrevNext q={prev} dir="prev" />

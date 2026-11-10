@@ -5,12 +5,14 @@ import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { Badge, Button, ButtonLink, Card, Container, Difficulty, EmptyState, PageHeader, ProgressBar, SectionHeader } from "../components/ui";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
-import { completeExercise, toggleBookmark, useProgress } from "../lib/progress";
+import { completeExercise, recordSession, toggleBookmark, useProgress } from "../lib/progress";
 import { PY_CATEGORIES, PY_SKILLS, accuracy, categoryLabel, filterExercises, overview, readStats, recordPyAttempt, splitHints, statusOf, subscribeStats, type PyFilter, type PyStat } from "../lib/pyPractice";
 import { getExerciseStage, PY_STAGES } from "../lib/pyExercises";
 import { track } from "../lib/activity";
 import { applyOverride, overrideKey, useContent } from "../lib/contentOverrides";
 import { PythonWorkspace } from "../components/PythonWorkspace";
+import { SolveTimer } from "../components/SolveTimer";
+import { noteAttempt, noteExecution, noteHint } from "../lib/solveSessions";
 
 const key = (slug: string) => `py:${slug}`;
 const HIST = (slug: string) => `sqlp.py.history.${slug}`;
@@ -303,6 +305,7 @@ export function PythonExercisePage() {
         {pyOverride?.disabled && <p role="status" className="w-full rounded-lg border border-warn/40 bg-warn-dim px-3 py-2 text-sm text-ink">This problem is temporarily unavailable while it is being reviewed; checks are turned off.</p>}
         <Difficulty level={ex.difficulty} />
         {done && <span className="inline-flex items-center gap-1 text-sm text-success"><CheckCircle2 className="h-4 w-4 animate-pop" aria-hidden /> Completed</span>}
+        {mounted && !pyOverride?.disabled && <SolveTimer meta={{ kind: "python", ref: `py:${ex.slug}`, difficulty: ex.difficulty, topic: ex.category || "other" }} />}
         <span className="ml-auto flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => toggleBookmark(key(ex.slug))} aria-pressed={bookmarked} aria-label={bookmarked ? "Remove bookmark" : "Bookmark this problem"}>
             {bookmarked ? <BookmarkCheck className="h-4 w-4 text-accent" aria-hidden /> : <Bookmark className="h-4 w-4" aria-hidden />}
@@ -331,7 +334,7 @@ export function PythonExercisePage() {
               <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-faint"><Lightbulb className="h-3.5 w-3.5" aria-hidden /> Hints</h2>
               {hintsShown > 0 && <ol className="mt-2 list-decimal space-y-1 pl-5 text-ink">{hints.slice(0, hintsShown).map((h, i) => <li key={i}><Markdown source={h} className="inline" /></li>)}</ol>}
               {hintsShown < hints.length
-                ? <Button variant="ghost" size="sm" className="mt-2" onClick={() => setHintsShown((n) => n + 1)}>Show hint {hintsShown + 1} of {hints.length}</Button>
+                ? <Button variant="ghost" size="sm" className="mt-2" onClick={() => { noteHint(`py:${ex.slug}`, hintsShown + 1); setHintsShown((n) => n + 1); }}>Show hint {hintsShown + 1} of {hints.length}</Button>
                 : <p className="mt-2 text-xs text-ink-faint">That's every hint.</p>}
             </section>
           )}
@@ -405,10 +408,12 @@ export function PythonExercisePage() {
               track("python_submitted", key(ex.slug), { passed: res.ok, hidden_failed: /fails a hidden test/.test(res.message) });
               log({ at: new Date().toISOString(), kind: "check", ok: res.ok, message: res.message, code: c.slice(0, 4000) });
               recordPyAttempt(ex.slug, res.ok);
+              noteAttempt(`py:${ex.slug}`, res.ok, Date.now(), recordSession); // same grader verdict
               if (res.ok) completeExercise(key(ex.slug));
             }}
             onRunResult={(r, c) => {
               track("python_executed", key(ex.slug), { ok: r.ok, ms: r.ms });
+              noteExecution(`py:${ex.slug}`);
               log({ at: new Date().toISOString(), kind: "run", ok: r.ok, message: r.ok ? `ran in ${r.ms} ms` : r.error?.split("\n").pop() ?? "error", code: c.slice(0, 4000) });
             }}
             externalCode={restoreCode}

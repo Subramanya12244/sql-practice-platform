@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { track } from "./activity";
 import { RULES, nextRevision } from "./revision";
-import { mergeSessions, type SolveSession } from "./solveSessions";
+import { mergeSessions, noteHint, type SolveSession } from "./solveSessions";
 
 /** Per-visitor progress, kept in localStorage. Every access is guarded: storage may be unavailable. */
 
@@ -174,6 +174,7 @@ export function saveDraft(num: number, sql: string) {
 
 /** Record that assistance level `level` (1–5) was opened for a question. */
 export function recordHint(num: number, level: number) {
+  noteHint(`sql:${num}`, level); // the open solve session, if any, remembers the highest level used
   const p = read();
   const prev = p.questions[num] ?? { attempts: 0 };
   if ((prev.hintLevel ?? 0) >= level) return;
