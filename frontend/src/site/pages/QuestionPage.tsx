@@ -6,6 +6,7 @@ import { addSession, getExecs, getSessions, highlightInEditor, type ExecRecord, 
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { HintLadder } from "../components/HintLadder";
 import { SolveTimer } from "../components/SolveTimer";
+import { SessionHistory } from "../components/SessionHistory";
 import { Comments, CommunitySolutions } from "../components/Community";
 import { usePage } from "../SiteApp";
 import { InlineMarkdown, Markdown } from "../components/Markdown";
@@ -294,6 +295,7 @@ export function QuestionPage() {
             <Panel id="history" active={tab}>
               {tab === "history" && (
                 <div className="space-y-6 text-sm">
+                  <SessionHistory sessionRef={`sql:${q.number}`} />
                   <section>
                     <h2 className="font-display text-lg font-bold text-ink">Execution history</h2>
                     {!execs.length && <p className="mt-1 text-ink-muted">Nothing yet — runs and submits for this question appear here.</p>}

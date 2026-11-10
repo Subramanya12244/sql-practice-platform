@@ -11,6 +11,7 @@ import { ConceptsPage } from "./pages/ConceptsPage";
 import { GuidePage } from "./pages/GuidePage";
 import { FlashcardsPage } from "./pages/FlashcardsPage";
 import { CheatsheetPage } from "./pages/CheatsheetPage";
+import { PerformancePage } from "./pages/PerformancePage";
 import { ProgressPage } from "./pages/ProgressPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { SchemaPage } from "./pages/SchemaPage";
@@ -158,6 +159,7 @@ export const routes: SiteRoute[] = [
     paths: one("/cheatsheet"),
   },
   { path: "/progress", element: <ProgressPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/progress") },
+  { path: "/analytics", element: <PerformancePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/analytics") },
   { path: "/review", element: <ReviewPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/review") },
   { path: "/challenge", element: <ChallengePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/challenge") },
   { path: "/leaderboard", element: <LeaderboardPage />, load: base, paths: one("/leaderboard") },

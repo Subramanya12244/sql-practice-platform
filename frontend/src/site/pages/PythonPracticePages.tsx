@@ -12,6 +12,7 @@ import { track } from "../lib/activity";
 import { applyOverride, overrideKey, useContent } from "../lib/contentOverrides";
 import { PythonWorkspace } from "../components/PythonWorkspace";
 import { SolveTimer } from "../components/SolveTimer";
+import { SessionHistory } from "../components/SessionHistory";
 import { noteAttempt, noteExecution, noteHint } from "../lib/solveSessions";
 
 const key = (slug: string) => `py:${slug}`;
@@ -419,6 +420,13 @@ export function PythonExercisePage() {
             externalCode={restoreCode}
             height={600}
           />
+
+          {mounted && (
+            <details className="rounded-card border border-surface-border bg-surface-raised p-3 text-sm">
+              <summary className="cursor-pointer font-medium text-ink">Solve sessions</summary>
+              <SessionHistory sessionRef={`py:${ex.slug}`} className="mt-2" />
+            </details>
+          )}
 
           {done && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-success/30 bg-success-dim p-4">
