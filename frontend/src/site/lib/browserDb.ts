@@ -2,7 +2,7 @@ import type { ExecuteResult, SubmitResult, TableSchema } from "../../types";
 import { HIDDEN_ROWS, execute, submit, type SqlDb } from "./sqlRunner";
 import type { OrderKey } from "./resultCompare";
 
-const QUERY_TIMEOUT_MS = 8000;
+export const QUERY_TIMEOUT_MS = 8000;
 
 interface Handle {
   db: SqlDb;

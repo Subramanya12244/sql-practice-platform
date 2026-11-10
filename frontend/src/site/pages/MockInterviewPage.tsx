@@ -7,7 +7,9 @@ import { SchemaPanel } from "../components/SchemaPanel";
 import { Badge, Button, Card, Container, Difficulty, PageHeader, RadioCard, SegmentedProgress, Skeleton, StatCard } from "../components/ui";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { loadQuestion } from "../lib/data";
-import { recordMock, useProgress } from "../lib/progress";
+import { getProgress, recordMock, useProgress } from "../lib/progress";
+import { buildMockReport, topicSummary } from "../lib/mockReport";
+import { QUERY_TIMEOUT_MS } from "../lib/browserDb";
 import {
   MOCK_SIZE,
   formatClock,
@@ -103,6 +105,9 @@ function MockSetup({ onStart }: { onStart: (level: MockLevel, durationMin: numbe
         <ul className="list-disc space-y-1 pl-5 text-xs text-ink-muted">
           <li>{MOCK_SIZE} random questions, graded instantly in your browser.</li>
           <li>No hints or solutions until you finish.</li>
+          <li>Each answer is graded by comparing your result rows with the expected result. Any query that returns the right rows passes.</li>
+          <li>A query that runs longer than {QUERY_TIMEOUT_MS / 1000} seconds is stopped.</li>
+          <li>After you finish you get your score by topic, notes on your queries and what to revise.</li>
           <li>The interview finishes automatically when time runs out.</li>
         </ul>
         <Button size="lg" onClick={() => onStart(level, duration)}>
@@ -145,10 +150,10 @@ function MockRunner({ session, onChange }: { session: MockSession; onChange: (s:
     (s: MockSession) => {
       const done = { ...s, finishedAt: Date.now() };
       const score = mockScore(done);
-      recordMock({ solved: score.solved, total: score.total, usedSec: score.usedSec, durationMin: s.durationMin });
+      recordMock({ solved: score.solved, total: score.total, usedSec: score.usedSec, durationMin: s.durationMin, topics: topicSummary(buildMockReport(done, data.index, getProgress())) });
       onChange(done);
     },
-    [onChange],
+    [onChange, data.index],
   );
 
   useEffect(() => {
@@ -267,10 +272,67 @@ function MockSummary({ session, onAgain }: { session: MockSession; onAgain: () =
           );
         })}
       </ul>
+      <ReportSections session={session} />
       <p className="mt-4 text-sm text-ink-muted">Open a question to see its solution, the common traps and interview follow-ups.</p>
       <Button size="lg" className="mt-6" onClick={onAgain}>
         <Timer className="h-4 w-4" aria-hidden /> New mock interview
       </Button>
     </>
+  );
+}
+
+function ReportSections({ session }: { session: MockSession }) {
+  const { data } = usePage();
+  const progress = useProgress();
+  const r = buildMockReport(session, data.index, progress);
+  return (
+    <div className="mt-6 max-w-2xl space-y-6">
+      <section aria-label="Performance by topic">
+        <h2 className="font-display text-lg font-bold text-ink">By topic</h2>
+        <div className="mt-2 overflow-x-auto rounded-card border border-surface-border">
+          <table className="w-full min-w-[22rem] text-left text-sm">
+            <caption className="sr-only">Mock interview results by topic</caption>
+            <thead className="bg-surface-overlay text-xs text-ink-faint"><tr><th scope="col" className="px-3 py-2 font-medium">Topic</th><th scope="col" className="px-3 py-2 font-medium">Solved</th><th scope="col" className="px-3 py-2 font-medium">Attempts</th><th scope="col" className="px-3 py-2 font-medium">Avg time to solve</th></tr></thead>
+            <tbody>
+              {r.topics.map((t) => (
+                <tr key={t.topic} className="border-t border-surface-border">
+                  <th scope="row" className="px-3 py-2 font-medium text-ink">{t.label}</th>
+                  <td className="px-3 py-2 tabular-nums">{t.solved}/{t.total}</td>
+                  <td className="px-3 py-2 tabular-nums">{t.attempts}</td>
+                  <td className="px-3 py-2 tabular-nums">{t.avgSolveSec != null ? formatClock(t.avgSolveSec) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-1 text-xs text-ink-faint">{r.firstTry} of {session.slugs.length} solved on the first attempt.</p>
+      </section>
+
+      {r.revision.length > 0 && (
+        <section aria-label="Areas to revise">
+          <h2 className="font-display text-lg font-bold text-ink">What to revise</h2>
+          <ul className="mt-2 space-y-2 text-sm">
+            {r.revision.map((a) => (
+              <li key={a.topic} className="rounded-lg border border-surface-border p-3">
+                <p className="font-medium text-ink">{a.label}</p>
+                <p className="text-ink-muted">Not solved: {a.missed.map((m, i) => <span key={m.slug}>{i ? ", " : ""}<Link to={`/questions/${m.slug}`} className="text-accent hover:underline">{m.title}</Link></span>)}</p>
+                <p className="mt-1 text-xs"><Link to={`/topics/${a.topic}`} className="text-accent hover:underline">Practise {a.label}</Link></p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-ink-muted">Missed questions are added to your <Link to="/mistakes" className="text-accent hover:underline">mistake notebook</Link> and come back in the <Link to="/review" className="text-accent hover:underline">review queue</Link> tomorrow.</p>
+        </section>
+      )}
+
+      {r.quality.length > 0 && (
+        <section aria-label="Query quality notes">
+          <h2 className="font-display text-lg font-bold text-ink">Notes on your queries <span className="ml-1 rounded-full bg-warn-dim px-2 py-0.5 text-[11px] font-semibold text-warn">Heuristic</span></h2>
+          <p className="mt-1 text-xs text-ink-muted">Rules applied to the text of your last query for each question. They never change your score, and a rule can be wrong for your case.</p>
+          <ul className="mt-2 space-y-2 text-sm">
+            {r.quality.map((n, i) => <li key={i} className="rounded-lg border border-surface-border p-3"><span className="font-medium text-ink">{n.question}.</span> <span className="text-ink-muted">{n.text}</span></li>)}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }

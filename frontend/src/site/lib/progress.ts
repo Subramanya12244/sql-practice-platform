@@ -37,7 +37,7 @@ export interface Progress {
   /** Flashcard Leitner box per question number (1 = review soon … 5 = mastered). */
   cards: Record<string, { box: number; due: string }>;
   /** Finished mock interviews, newest last. */
-  mocks?: { date: string; solved: number; total: number; usedSec: number; durationMin: number }[];
+  mocks?: { date: string; solved: number; total: number; usedSec: number; durationMin: number; topics?: { topic: string; label: string; solved: number; total: number }[] }[];
   /** Learning-path exercises passed, keyed "lesson-slug#index" → ISO time. */
   lessons?: Record<string, string>;
   /** Saved items, keyed "note:<slug>", "pattern:<slug>", "map:<slug>", "q:<number>". */
@@ -275,7 +275,7 @@ export function reviewQuestion(num: number, correct: boolean) {
   sink?.question(num, q, false);
 }
 
-export function recordMock(entry: { solved: number; total: number; usedSec: number; durationMin: number }) {
+export function recordMock(entry: { solved: number; total: number; usedSec: number; durationMin: number; topics?: { topic: string; label: string; solved: number; total: number }[] }) {
   track("assessment_completed", "mock", { solved: entry.solved, total: entry.total, usedSec: entry.usedSec });
   const p = read();
   const mock = { date: new Date().toISOString(), ...entry };
