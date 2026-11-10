@@ -126,3 +126,61 @@ test("SQL review: opt-in after a correct submit, labelled findings, no speed cla
   expect(await panel.innerText()).not.toMatch(/\b(is|are) (much )?(faster|slower)\b/i);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("mock interview: no solution in the page while running; finished report has topics, notes and revision", async ({ page, request }) => {
+  await page.goto("/mock-interview");
+  await page.getByRole("button", { name: "Start interview" }).click();
+  await expect(page.getByRole("timer").first()).toBeVisible({ timeout: 30_000 });
+  const slugs = await page.evaluate(() => (JSON.parse(localStorage.getItem("sqlp.public.mock") ?? "{}").slugs ?? []) as string[]);
+  expect(slugs).toHaveLength(5);
+  await page.waitForTimeout(2500);
+  const html = await page.content();
+  for (const slug of slugs.slice(0, 2)) {
+    const ref = ((await (await request.get(`/data/q/${slug}.json`)).json()).referenceQuery as string).replace(/\s+/g, " ").trim();
+    expect(html.replace(/\s+/g, " ")).not.toContain(ref.slice(0, 60)); // not even hidden in the DOM
+  }
+  // Finish it with nothing solved and read the report.
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("sqlp.public.mock")!); s.finishedAt = Date.now(); localStorage.setItem("sqlp.public.mock", JSON.stringify(s)); });
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "By topic" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What to revise" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("python assessment: an endless loop shows a resource-limit message, then the next check works", async ({ page }) => {
+  test.setTimeout(150_000);
+  await page.goto("/practice/python/assessment");
+  await page.getByRole("button", { name: "Start assessment" }).click();
+  await expect(page.getByRole("timer").first()).toBeVisible();
+  await editor(page, "x = 1\n");
+  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(page.getByRole("status").first()).toBeVisible({ timeout: 90_000 }); // Pyodide is loaded now (the first run gets a longer limit)
+  await editor(page, "while True:\n    pass\n"); // runs at import, so the tests hit the time limit
+  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(page.getByText(/Resource limit:/)).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(/second limit and was stopped/)).toBeVisible();
+  await editor(page, "y = 2\n");
+  await page.getByRole("button", { name: "Check", exact: true }).click();
+  const checks = () => page.evaluate(() => Object.values((JSON.parse(localStorage.getItem("sqlp.pyassess.active") ?? "{}").checks ?? {}) as Record<string, number>).reduce((n, c) => n + c, 0));
+  await expect.poll(checks, { timeout: 60_000 }).toBe(3); // the runtime recovered from the stopped run and graded again
+  await expect(page.getByText(/Resource limit:/)).toHaveCount(0); // the new result replaced the limit message
+});
+
+test("planner: this week, focus and reminders (off by default, remembered when turned on)", async ({ page }) => {
+  await page.goto("/career/planner");
+  await expect(page.getByRole("heading", { name: "This week", exact: true })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Practice minutes per day" })).toBeVisible();
+  const box = page.getByLabel(/Remind me to practise/);
+  await expect(box).not.toBeChecked();
+  await box.check();
+  await page.reload();
+  await expect(page.getByLabel(/Remind me to practise/)).toBeChecked();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("portfolio: resume bullets show an honest empty state until a check has passed", async ({ page }) => {
+  await page.goto("/portfolio");
+  await expect(page.getByRole("heading", { name: "Resume bullets" })).toBeVisible();
+  await expect(page.getByText("No project evidence yet")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

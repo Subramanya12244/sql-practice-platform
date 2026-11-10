@@ -15,6 +15,8 @@ import { NOTE_CATEGORIES, loadAllNotes } from "../lib/learning";
 import { topicScores } from "../lib/insights";
 import { SITE_URL } from "../lib/seo";
 import { useAuth } from "../lib/auth";
+import { ResumeProjects } from "../components/ResumeProjects";
+import { PlannerWeek } from "../components/PlannerWeek";
 import type { PageData } from "../types";
 
 const card = "rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel";
@@ -126,6 +128,8 @@ export function PlannerPage() {
           <p className="text-sm text-ink-muted">{role.summary}</p>
         </div>
       </form>
+
+      {mounted && <PlannerWeek plan={saved} />}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className={card}><p className="text-xs uppercase tracking-wider text-ink-faint">Done</p><p className="mt-1 font-display text-2xl font-bold text-ink">{mounted ? `${doneCount}/${items.length}` : "—"}</p></div>
@@ -436,6 +440,8 @@ export function PortfolioPage() {
           ))}
         </ul>
       ) : <div className="mt-2"><EmptyState icon={FolderGit2} title="No projects yet" action={<Link to="/projects-lab" className="text-sm font-medium text-accent hover:underline">Open the Projects Lab</Link>}>Projects you start appear here with their checks, repository link and reviewer approval.</EmptyState></div>}
+
+      {mounted && <ResumeProjects />}
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         <section>
