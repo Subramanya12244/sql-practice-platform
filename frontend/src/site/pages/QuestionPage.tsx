@@ -180,7 +180,7 @@ export function QuestionPage() {
       </header>
 
       {/* Laptop and up: a fixed-height workspace where each side scrolls on its own. */}
-      <div className="mt-3 grid gap-4 lg:h-[calc(100dvh-9.75rem)] lg:min-h-[560px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-4 lg:h-[calc(100dvh-9.75rem)] lg:min-h-[560px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <section className="flex min-h-0 flex-col overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel" aria-label="Question">
           <div role="tablist" aria-label="Question sections" className="scroll-fade-x flex shrink-0 gap-0.5 overflow-x-auto border-b border-surface-border px-2 pt-2">
             {tabs.map((t) => (

@@ -106,6 +106,10 @@ export function PythonWorkspace({
   const [activeFile, setActiveFile] = useState<string>("solution.py");
   const [openTabs, setOpenTabs] = useState<string[]>(["solution.py", "main.py"]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // On phones the explorer would leave the editor ~150px wide: start collapsed (it stays one tap away).
+  useEffect(() => {
+    if (window.matchMedia?.("(max-width: 639px)").matches) setSidebarOpen(false);
+  }, []);
   const [newFileName, setNewFileName] = useState("");
   const [isCreatingFile, setIsCreatingFile] = useState(false);
 
@@ -386,7 +390,7 @@ export function PythonWorkspace({
     >
       {/* Top Workspace Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-overlay/60 px-3 py-2 text-xs">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setSidebarOpen((v) => !v)}
@@ -422,7 +426,7 @@ export function PythonWorkspace({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <IconButton label="Copy file code" onClick={copyCode} className="h-8 w-8">
             {copied ? <Check className="h-3.5 w-3.5 animate-pop text-success" /> : <Copy className="h-3.5 w-3.5" />}
           </IconButton>
@@ -452,7 +456,7 @@ export function PythonWorkspace({
             onClick={runScript}
             disabled={!!busy}
             title="Execute active file in script mode"
-            className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-3 text-xs font-semibold text-ink transition-all duration-fast hover:bg-surface-overlay active:scale-[0.98] disabled:opacity-50"
+            className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-surface-border bg-surface-raised px-3 text-xs font-semibold text-ink transition-all duration-fast hover:bg-surface-overlay active:scale-[0.98] disabled:opacity-50"
           >
             {busy === "run" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5 text-accent" />}
             <span>Run Script</span>
@@ -465,7 +469,7 @@ export function PythonWorkspace({
               onClick={checkTests}
               disabled={!!busy}
               title="Grade solution.py with test harness"
-              className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-on-accent shadow-glow transition-all duration-fast hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+              className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3 text-xs font-semibold text-on-accent shadow-glow transition-all duration-fast hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
             >
               {busy === "check" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5" />}
               <span>Check Tests</span>
@@ -481,7 +485,7 @@ export function PythonWorkspace({
                 setTerminalOutput((prev) => `${prev}\nExecution stopped by user.`);
               }}
               title="Stop the running code"
-              className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg bg-danger px-2.5 text-xs font-semibold text-on-accent transition-all duration-fast active:scale-[0.98]"
+              className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-danger px-2.5 text-xs font-semibold text-on-accent transition-all duration-fast active:scale-[0.98]"
             >
               <Square className="h-3 w-3 fill-current" aria-hidden />
               Stop
@@ -645,8 +649,8 @@ export function PythonWorkspace({
           {/* Bottom Resizable Output Panel */}
           <div className="flex h-44 shrink-0 flex-col border-t border-surface-border bg-surface-overlay/20">
             {/* Output Panel Header */}
-            <div className="flex items-center justify-between border-b border-surface-border px-3 py-1.5 text-xs">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 border-b border-surface-border px-3 py-1.5 text-xs">
+              <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
                 <button
                   type="button"
                   onClick={() => setActiveBottomTab("output")}
@@ -686,7 +690,7 @@ export function PythonWorkspace({
               <button
                 type="button"
                 onClick={handleClearOutput}
-                className="flex items-center gap-1 text-[11px] text-ink-faint hover:text-ink transition-colors"
+                className="flex shrink-0 items-center gap-1 text-[11px] text-ink-faint hover:text-ink transition-colors"
                 title="Clear output and test results"
               >
                 <Eraser className="h-3 w-3" /> Clear

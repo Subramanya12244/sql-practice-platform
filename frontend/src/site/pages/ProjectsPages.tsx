@@ -333,7 +333,8 @@ export function ProjectPage() {
           ) : (
             (() => {
               const task = project.tasks.find((t) => t.id === part);
-              return task ? <TaskPanel key={part} task={task} project={project} progress={progress} onChange={update} mounted={mounted} /> : null;
+              // Remount once saved progress has loaded: the panel seeds its result and code from it on first render.
+              return task ? <TaskPanel key={`${part}:${mounted}`} task={task} project={project} progress={progress} onChange={update} mounted={mounted} /> : null;
             })()
           ),
         )}
