@@ -5,7 +5,8 @@ import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { Badge, Button, ButtonLink, Card, Container, Difficulty, EmptyState, PageHeader, ProgressBar, SectionHeader } from "../components/ui";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
-import { completeExercise, recordSession, toggleBookmark, useProgress } from "../lib/progress";
+import { completeExercise, recordMistake, recordSession, toggleBookmark, useProgress } from "../lib/progress";
+import { classifyPyMistake } from "../lib/mistakes";
 import { PY_CATEGORIES, PY_SKILLS, accuracy, categoryLabel, filterExercises, overview, readStats, recordPyAttempt, splitHints, statusOf, subscribeStats, type PyFilter, type PyStat } from "../lib/pyPractice";
 import { getExerciseStage, PY_STAGES } from "../lib/pyExercises";
 import { track } from "../lib/activity";
@@ -410,11 +411,13 @@ export function PythonExercisePage() {
               log({ at: new Date().toISOString(), kind: "check", ok: res.ok, message: res.message, code: c.slice(0, 4000) });
               recordPyAttempt(ex.slug, res.ok);
               noteAttempt(`py:${ex.slug}`, res.ok, Date.now(), recordSession); // same grader verdict
+              if (!res.ok) recordMistake({ ref: `py:${ex.slug}`, kind: "python", topic: ex.category || "other", category: classifyPyMistake(`${res.message}\n${res.output ?? ""}`), graded: true });
               if (res.ok) completeExercise(key(ex.slug));
             }}
             onRunResult={(r, c) => {
               track("python_executed", key(ex.slug), { ok: r.ok, ms: r.ms });
               noteExecution(`py:${ex.slug}`);
+              if (!r.ok) recordMistake({ ref: `py:${ex.slug}`, kind: "python", topic: ex.category || "other", category: classifyPyMistake(r.error ?? ""), graded: false });
               log({ at: new Date().toISOString(), kind: "run", ok: r.ok, message: r.ok ? `ran in ${r.ms} ms` : r.error?.split("\n").pop() ?? "error", code: c.slice(0, 4000) });
             }}
             externalCode={restoreCode}

@@ -10,7 +10,8 @@ import { ResultsPanel } from "../../components/ResultsPanel";
 import type { ResultTab, ResultTarget, SubmitResult, TableSchema } from "../../types";
 import type { Question } from "../types";
 import { getDb, getSchemas, runQuery, submitQuery } from "../lib/browserDb";
-import { completeExercise, getProgress, recordAttempt, recordSession, saveDraft, useProgress } from "../lib/progress";
+import { completeExercise, getProgress, recordAttempt, recordMistake, recordSession, saveDraft, useProgress } from "../lib/progress";
+import { classifySqlMistake } from "../lib/mistakes";
 import { noteAttempt, noteExecution } from "../lib/solveSessions";
 import { explainError } from "../lib/errorHelp";
 import { prefersReducedMotion } from "./Motion";
@@ -144,7 +145,10 @@ export default function PracticePanel({
       const result = await runQuery(text, dataset);
       logRun("run", text, result.success, result.success ? result.row_count ?? result.rows.length : undefined);
       onRan?.(text, result);
-      if (!lessonKey && !playground) noteExecution(`sql:${question.number}`);
+      if (!lessonKey && !playground) {
+        noteExecution(`sql:${question.number}`);
+        if (!result.success) recordMistake({ ref: `sql:${question.number}`, kind: "sql", topic: question.topic, category: classifySqlMistake(explainError(result.message)?.title, question.topic), graded: false });
+      }
       track("sql_executed", lessonKey ? `lesson:${lessonKey}` : playground ? `playground:${dataset}` : `q${question.number}`, { ok: result.success });
       const reuseId = target === "same" ? (tabs.find((t) => t.id === activeTab) ?? tabs[tabs.length - 1])?.id : undefined;
       if (reuseId) {
@@ -183,6 +187,7 @@ export default function PracticePanel({
       // Classify the failure deterministically for the mistake log.
       const kind = result.correct ? undefined : explainError(result.feedback[0])?.title ?? (result.diff ? "Wrong result" : "SQL error");
       recordAttempt(question.number, sql, result.correct, kind);
+      if (!result.correct) recordMistake({ ref: `sql:${question.number}`, kind: "sql", topic: question.topic, category: classifySqlMistake(kind, question.topic), graded: true });
       // Same grader verdict feeds the solve session: only a validated pass can end it as solved.
       if (!playground) noteAttempt(`sql:${question.number}`, result.correct, Date.now(), recordSession);
     }

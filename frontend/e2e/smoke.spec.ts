@@ -87,3 +87,25 @@ test("error log: an uncaught error is saved and shown in /debug after reload", a
   await expect(page.getByText(/UNCAUGHT_ERROR/).first()).toBeVisible();
   expect(await page.evaluate(() => (JSON.parse(localStorage.getItem("sqlp.diag.log") ?? "[]") as { technicalMessage: string }[]).some((e) => e.technicalMessage.includes("e2e synthetic")))).toBe(true);
 });
+
+test("mistake notebook: a failed submit appears, solving it later marks it fixed", async ({ page, request, isMobile }) => {
+  const ref = (await (await request.get("/data/q/q01-product-revenue.json")).json()).referenceQuery as string;
+  await page.goto("/questions/q01-product-revenue");
+  if (isMobile) await page.getByRole("link", { name: /Jump to the editor/ }).click();
+  await editor(page, "SELECT 1 AS x;");
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("sqlp.public.progress") ?? "{}").mistakes?.["sql:1"]?.count ?? 0), { timeout: 30_000 }).toBe(1);
+  await page.goto("/mistakes");
+  await expect(page.getByRole("heading", { name: "Mistake notebook" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Q1 Product/ })).toBeVisible();
+  const section = page.getByRole("region", { name: /SQL · Aggregations/ });
+  await expect(section.getByText("Still open")).toBeVisible();
+  await page.getByRole("link", { name: /Retry/ }).first().click();
+  if (isMobile) await page.getByRole("link", { name: /Jump to the editor/ }).click();
+  await editor(page, ref);
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText(/Correct!/)).toBeVisible({ timeout: 30_000 });
+  await page.goto("/mistakes");
+  await expect(page.getByRole("region", { name: /SQL · Aggregations/ }).getByText("Solved since")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

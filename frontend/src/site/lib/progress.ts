@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { track } from "./activity";
 import { RULES, nextRevision } from "./revision";
 import { mergeSessions, noteHint, type SolveSession } from "./solveSessions";
+import { applyMistake, applySolved, applyUnderstood, type MistakeInput } from "./mistakes";
 
 /** Per-visitor progress, kept in localStorage. Every access is guarded: storage may be unavailable. */
 
@@ -67,6 +68,8 @@ export interface Progress {
   revisionMarks?: string[];
   /** Finished solve sessions (timer, attempts, hints, outcome), oldest first. See lib/solveSessions.ts. */
   sessions?: import("./solveSessions").SolveSession[];
+  /** Mistake notebook, one record per challenge (categories and counts only). See lib/mistakes.ts. */
+  mistakes?: Record<string, import("./mistakes").Mistake>;
 }
 
 /** Receives every change so a signed-in account can mirror it; null when anonymous. */
@@ -161,6 +164,7 @@ export function recordAttempt(num: number, sql: string, correct: boolean, errorK
     // Later correct submits outside the review queue don't move an existing schedule.
     ...(!correct || firstSolve ? { revision: { ...p.revision, [`sql:${num}`]: nextRevision(p.revision?.[`sql:${num}`], { correct, slow: firstSolve && (q.solveSec ?? 0) > RULES.slowMinutes * 60 }) } } : {}),
   });
+  if (correct) markMistakeSolved(`sql:${num}`);
   sink?.question(num, q, correct && !prev.solvedAt);
   // Every submit, not only correct ones: the account keeps the latest query text (qmeta.lastSql).
   sink?.state(current);
@@ -181,6 +185,31 @@ export function recordHint(num: number, level: number) {
   const q = { ...prev, hintLevel: level, startedAt: prev.startedAt ?? new Date().toISOString(), revealed: prev.revealed || level >= 5 || undefined };
   write({ ...p, questions: { ...p.questions, [num]: q } });
   sink?.question(num, q, false);
+  sink?.state(current);
+}
+
+/** Record a failed attempt or an error run in the mistake notebook. Counts and a category only. */
+export function recordMistake(input: MistakeInput) {
+  const p = read();
+  const now = new Date().toISOString();
+  write({ ...p, mistakes: { ...p.mistakes, [input.ref]: applyMistake(p.mistakes?.[input.ref], input, now) } });
+  if (input.graded) sink?.state(current);
+}
+
+/** A challenge with notebook entries was solved. */
+export function markMistakeSolved(ref: string) {
+  const p = read();
+  const m = applySolved(p.mistakes?.[ref], new Date().toISOString());
+  if (!m || m === p.mistakes?.[ref] || p.mistakes?.[ref]?.solved) return;
+  write({ ...p, mistakes: { ...p.mistakes, [ref]: m } });
+  sink?.state(current);
+}
+
+export function setMistakeUnderstood(ref: string, on: boolean) {
+  const p = read();
+  const m = applyUnderstood(p.mistakes?.[ref], on, new Date().toISOString());
+  if (!m) return;
+  write({ ...p, mistakes: { ...p.mistakes, [ref]: m } });
   sink?.state(current);
 }
 
@@ -314,6 +343,7 @@ export function completeExercise(key: string) {
   const p = read();
   if (p.lessons?.[key]) return;
   write({ ...p, lessons: { ...p.lessons, [key]: new Date().toISOString() }, ...bump(p) });
+  markMistakeSolved(key);
   sink?.state(current);
 }
 

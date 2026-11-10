@@ -21,6 +21,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/learn", label: "Learning dashboard", desc: "Goals, streak, what to do next" },
       { to: "/progress", label: "Progress", desc: "Solved questions and activity" },
       { to: "/analytics", label: "Performance analytics", desc: "Solve time, topic strength, activity" },
+      { to: "/mistakes", label: "Mistake notebook", desc: "What went wrong, by topic, and if it is fixed" },
       { to: "/achievements", label: "Achievements & missions", desc: "XP, level, streak, daily missions" },
       { to: "/history", label: "History & revision", desc: "Submissions, mistakes, saved solutions" },
       { to: "/review", label: "Revision queue", desc: "Spaced review of what you solved" },
