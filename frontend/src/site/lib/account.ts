@@ -1,4 +1,5 @@
 import { mergeRevision } from "./revision";
+import { mergeSessions } from "./solveSessions";
 import type { Progress, QuestionProgress } from "./progress";
 
 /** Supabase needs an email per account; plain usernames map to this synthetic domain. */
@@ -43,6 +44,7 @@ export interface RemoteState {
   reviews?: Progress["reviews"];
   revision?: Progress["revision"];
   revisionMarks?: Progress["revisionMarks"];
+  sessions?: Progress["sessions"];
   /** Per-question evidence that has no column on the progress table. */
   qmeta?: Record<string, Pick<QuestionProgress, "practiced" | "imported" | "hintLevel" | "assisted" | "startedAt" | "solveSec" | "errorKinds" | "lastSql">>;
 }
@@ -122,6 +124,7 @@ export function mergeProgress(local: Progress, rows: ProgressRow[], state: Remot
     reviews: mergeReviews(local.reviews, state.reviews),
     revision: mergeRevision(local.revision, state.revision),
     revisionMarks: [...new Set([...(local.revisionMarks ?? []), ...(state.revisionMarks ?? [])])],
+    sessions: mergeSessions(local.sessions, state.sessions),
   };
 }
 
