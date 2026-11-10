@@ -7,15 +7,17 @@ import { ShareButton } from "../components/ShareButton";
 import { PracticeNext } from "./ReviewPage";
 import { Seo } from "../lib/seo";
 import { exportProgress, importProgress, resetProgress, streak, useProgress } from "../lib/progress";
-import { MASTERY, personalReportHtml, pyMastery, sqlMastery, sqlRevision, type Mastery } from "../lib/extras";
-import { PY_CATEGORIES, accuracy, overview, readStats, type PyStat } from "../lib/pyPractice";
+import { personalReportHtml, pyMastery, sqlMastery, sqlRevision } from "../lib/extras";
+import { MASTERY_LABEL, type MasteryLevel, type TopicRow } from "../lib/solveAnalytics";
+import { accuracy, overview, readStats, type PyStat } from "../lib/pyPractice";
 import { activeMinutes, formatMinutes, summarizeMinutes } from "../lib/activity";
 import { useAuth } from "../lib/auth";
 import { LearningAnalytics } from "../components/LearningAnalytics";
 
-const TONE: Record<Mastery, string> = { "Not started": "text-ink-faint", Learning: "text-ink-muted", Practising: "text-ink", Proficient: "text-accent", Mastered: "text-success" };
+const TONE: Record<MasteryLevel, string> = { "not-started": "text-ink-faint", "needs-practice": "text-warn", developing: "text-ink", strong: "text-success" };
 
-function MasteryList({ title, rows, link }: { title: string; rows: { topic: string; label: string; total: number; solved: number; level: Mastery; score: number }[]; link?: (t: string) => string }) {
+/** Same scorer and labels as the Analytics page (lib/solveAnalytics.ts). */
+function MasteryList({ title, rows, link }: { title: string; rows: TopicRow[]; link?: (t: string) => string }) {
   return (
     <section aria-label={title}>
       <h3 className="text-sm font-semibold text-ink">{title}</h3>
@@ -25,16 +27,17 @@ function MasteryList({ title, rows, link }: { title: string; rows: { topic: stri
             <>
               <div className="flex justify-between gap-2 text-sm">
                 <span className="truncate font-medium text-ink">{t.label}</span>
-                <span className="shrink-0 text-xs"><span className={`font-semibold ${TONE[t.level]}`}>{t.level}</span> <span className="text-ink-faint">· {t.solved}/{t.total}</span></span>
+                <span className="shrink-0 text-xs"><span className={`font-semibold ${TONE[t.level]}`}>{MASTERY_LABEL[t.level]}</span> <span className="text-ink-faint">· {t.solved}/{t.total}</span></span>
               </div>
-              <div className="mt-1 flex gap-[2px]" role="img" aria-label={`${t.label}: ${t.level}, mastery score ${t.score}`}>
-                {MASTERY.slice(1).map((m, i) => <span key={m} className={`h-1.5 flex-1 rounded-full ${MASTERY.indexOf(t.level) > i ? "bg-accent" : "bg-surface-soft"}`} />)}
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-soft" role="img" aria-label={`${t.label}: ${MASTERY_LABEL[t.level]}, strength ${t.score ?? 0} out of 100`}>
+                <div className={`h-full rounded-full ${t.level === "strong" ? "bg-success" : t.level === "needs-practice" ? "bg-secondary" : "bg-accent"}`} style={{ width: `${t.score ?? 0}%` }} />
               </div>
             </>
           );
           return <li key={t.topic}>{link ? <Link to={link(t.topic)} className="block rounded-lg p-2 hover:bg-hover/5">{body}</Link> : <div className="p-2">{body}</div>}</li>;
         })}
       </ul>
+      <p className="mt-2 text-[11px] text-ink-faint">Why a topic is rated this way: <Link to="/analytics#strength" className="text-accent hover:underline">Performance analytics</Link>.</p>
     </section>
   );
 }
@@ -66,7 +69,7 @@ export function ProgressPage() {
   useEffect(() => { setMounted(true); setPyStats(readStats()); }, []);
   const exercises = data.exercises ?? [];
   const sqlRows = sqlMastery(data.index, progress);
-  const pyRows = pyMastery(exercises, progress, mounted ? pyStats : {}, PY_CATEGORIES);
+  const pyRows = pyMastery(exercises, progress, mounted ? pyStats : {});
 
   /** Self-contained HTML file the learner can open, print or save as PDF. */
   function downloadReport() {
@@ -78,7 +81,7 @@ export function ProgressPage() {
       sql: { solved: solvedNums.size, total: data.index.length, independent: Object.values(progress.questions).filter((q) => q.solvedAt && !q.assisted && !q.revealed).length },
       python: { solved: o.solved, total: o.total, accuracy: accuracy({ attempts: Object.values(pyStats).reduce((x, y) => x + y.attempts, 0), passes: Object.values(pyStats).reduce((x, y) => x + y.passes, 0) }) },
       activeTime: { today: formatMinutes(t.todayMin), week: formatMinutes(t.weekMin), total: formatMinutes(t.totalMin) },
-      streak: days, sqlTopics: sqlRows, pyTopics: pyRows,
+      streak: days, sqlTopics: sqlRows.map((r) => ({ ...r, level: MASTERY_LABEL[r.level] })), pyTopics: pyRows.map((r) => ({ ...r, level: MASTERY_LABEL[r.level] })),
       revise: [...sqlRevision(data.index, progress, 10).map((r) => ({ title: `Q${r.q.number} ${r.q.title}`, reason: r.reason })), ...o.revise.map((e) => ({ title: `${e.code} ${e.title}`, reason: "Python: failed checks" }))],
       mocks: [...(progress.mocks ?? [])].reverse().slice(0, 10).map((m) => ({ date: m.date.slice(0, 10), solved: m.solved, total: m.total })),
     });

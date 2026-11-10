@@ -36,6 +36,8 @@ jobs:
       - run: npm ci
       - name: TypeScript type check
         run: npx tsc -b
+      - name: Lint (hooks rules)
+        run: npm run lint
       - name: Frontend unit & integration tests
         run: npx vitest run
       - uses: actions/setup-python@v5
@@ -51,6 +53,8 @@ jobs:
         run: python scripts/check_python_blocks.py
       - name: Prerender production site
         run: npm run build:site
+      - name: Check prerendered pages for failed Suspense boundaries
+        run: npm run check:prerender
       - name: Deploy to Cloudflare
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
         run: npx --yes wrangler@4.157.0 deploy -c wrangler.jsonc

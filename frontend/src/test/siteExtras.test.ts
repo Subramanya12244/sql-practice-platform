@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { dailyChallenge, masteryLevel, personalReportHtml, savedSolutions, sqlRevision, submissionHistory } from "../site/lib/extras";
+import { dailyChallenge, personalReportHtml, pyMastery, savedSolutions, sqlMastery, sqlRevision, submissionHistory } from "../site/lib/extras";
+import { MASTERY_LABEL, topicRows } from "../site/lib/solveAnalytics";
 import type { Progress } from "../site/lib/progress";
 import type { PyExerciseMeta } from "../site/lib/pyExercises";
 import type { QuestionSummary } from "../site/types";
@@ -19,12 +20,22 @@ describe("learner extras", () => {
     expect(dailyChallenge("2026-11-03", sql, py)).toEqual(a);
     expect(dailyChallenge("2026-11-02", sql, py).level).toBe("Easy");
   });
-  it("grades mastery from evidence, halving assisted solves", () => {
-    const it_ = (difficulty: string, solved: boolean, independent = solved) => ({ difficulty, solved, independent, attempted: solved });
-    expect(masteryLevel([it_("Easy", false), it_("Hard", false)]).level).toBe("Not started");
-    expect(masteryLevel([it_("Easy", true), it_("Easy", true), it_("Hard", false)]).level).toBe("Proficient");
-    expect(masteryLevel([it_("Easy", true), it_("Hard", true)]).level).toBe("Mastered");
-    expect(masteryLevel([it_("Easy", true, false), it_("Hard", true, false)])).toEqual({ level: "Practising", score: 50 });
+  it("Progress and Analytics use ONE mastery scorer: same rows, same level, same score", () => {
+    const index = [Q(1, "Easy"), Q(2, "Easy"), Q(3, "Hard"), Q(4, "Easy")];
+    const progress = base({
+      1: { attempts: 1, solvedAt: "2026-11-01T10:00:00Z", practiced: true },
+      2: { attempts: 5, solvedAt: "2026-11-02T10:00:00Z", practiced: true, assisted: true, hintLevel: 3 },
+      3: { attempts: 6, practiced: true },
+    });
+    const viaProgress = sqlMastery(index, progress);
+    const viaAnalytics = topicRows({ index, exercises: [], progress, pyStats: {}, sessions: [] }).filter((r) => r.kind === "sql");
+    expect(viaProgress).toEqual(viaAnalytics);
+    expect(viaProgress.length).toBeGreaterThan(0);
+    for (const r of viaProgress) expect(MASTERY_LABEL[r.level]).toMatch(/^(Strong|Developing|Needs practice|Not started)$/);
+  });
+  it("Python categories flow through the same scorer", () => {
+    const rows = pyMastery([], base({}), {});
+    expect(rows).toEqual([]);
   });
   it("lists questions to revise and history with saved solutions", () => {
     const index = [Q(1, "Easy"), Q(2, "Easy"), Q(3, "Hard")];

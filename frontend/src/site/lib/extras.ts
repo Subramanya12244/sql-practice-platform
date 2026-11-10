@@ -3,9 +3,11 @@
  * downloadable personal report. Everything is derived from progress already stored for the learner;
  * nothing new is synced, and all of it is deterministic (no AI).
  */
-import type { Progress, QuestionProgress } from "./progress";
+import type { Progress } from "./progress";
 import type { PyExerciseMeta } from "./pyExercises";
 import type { PyStat } from "./pyPractice";
+import { topicRows } from "./solveAnalytics";
+import type { SolveSession } from "./solveSessions";
 import type { QuestionSummary } from "../types";
 
 /** FNV-1a: a stable hash so every visitor gets the same pick for a given day. */
@@ -30,49 +32,18 @@ export function dailyChallenge(day: string, sql: QuestionSummary[], py: PyExerci
   return { day, level, sql: pick(sql, "sql"), python: pick(py, "py") };
 }
 
-export type Mastery = "Not started" | "Learning" | "Practising" | "Proficient" | "Mastered";
-export const MASTERY: Mastery[] = ["Not started", "Learning", "Practising", "Proficient", "Mastered"];
-
 /**
- * Mastery from evidence. Independent solves count fully; assisted or revealed solves count half,
- * because the learner had help. Mastered also needs at least one Hard solve, when the topic has one.
+ * Topic mastery for the Progress page. There is ONE scorer: `solveAnalytics.masteryFor`, shared with the
+ * Analytics page, so both screens always show the same level and score for a topic.
  */
-export function masteryLevel(items: { difficulty: string; solved: boolean; independent: boolean; attempted: boolean }[]): { level: Mastery; score: number } {
-  if (!items.length) return { level: "Not started", score: 0 };
-  const credit = items.reduce((s, x) => s + (x.solved ? (x.independent ? 1 : 0.5) : 0), 0);
-  const score = Math.round((credit / items.length) * 100);
-  const hasHard = items.some((x) => x.difficulty === "Hard");
-  const hardDone = items.some((x) => x.difficulty === "Hard" && x.solved && x.independent);
-  const level: Mastery =
-    !items.some((x) => x.attempted || x.solved) ? "Not started"
-      : score >= 85 && (!hasHard || hardDone) ? "Mastered"
-        : score >= 60 ? "Proficient"
-          : score >= 25 ? "Practising" : "Learning";
-  return { level, score };
+export type { MasteryLevel as Mastery } from "./solveAnalytics";
+
+export function sqlMastery(index: QuestionSummary[], progress: Progress, sessions: SolveSession[] = progress.sessions ?? []) {
+  return topicRows({ index, exercises: [], progress, pyStats: {}, sessions }).filter((r) => r.kind === "sql");
 }
 
-const sqlItem = (q: QuestionSummary, p?: QuestionProgress) => ({
-  difficulty: q.difficulty, solved: Boolean(p?.solvedAt), independent: Boolean(p?.solvedAt && !p.assisted && !p.revealed), attempted: (p?.attempts ?? 0) > 0,
-});
-
-export function sqlMastery(index: QuestionSummary[], progress: Progress) {
-  const by = new Map<string, { topic: string; label: string; items: ReturnType<typeof sqlItem>[] }>();
-  for (const q of index) {
-    const t = by.get(q.topic) ?? { topic: q.topic, label: q.topicLabel, items: [] };
-    t.items.push(sqlItem(q, progress.questions[q.number]));
-    by.set(q.topic, t);
-  }
-  return [...by.values()].map((t) => ({ topic: t.topic, label: t.label, total: t.items.length, solved: t.items.filter((x) => x.solved).length, ...masteryLevel(t.items) }));
-}
-
-export function pyMastery(all: PyExerciseMeta[], progress: Progress, stats: Record<string, PyStat>, categories: readonly { slug: string; short: string }[]) {
-  return categories.map((c) => {
-    const items = all.filter((e) => e.category === c.slug).map((e) => {
-      const solved = Boolean(progress.lessons?.[`py:${e.slug}`]);
-      return { difficulty: e.difficulty, solved, independent: solved, attempted: Boolean(stats[e.slug]?.attempts) };
-    });
-    return { topic: c.slug, label: c.short, total: items.length, solved: items.filter((x) => x.solved).length, ...masteryLevel(items) };
-  });
+export function pyMastery(all: PyExerciseMeta[], progress: Progress, stats: Record<string, PyStat>, sessions: SolveSession[] = progress.sessions ?? []) {
+  return topicRows({ index: [], exercises: all, progress, pyStats: stats, sessions }).filter((r) => r.kind === "python");
 }
 
 /** Questions to revisit: unsolved after failed submits, solved only with help, or with repeated error kinds. */
@@ -124,8 +95,8 @@ export interface ReportInput {
   python: { solved: number; total: number; accuracy: number | null };
   activeTime: { today: string; week: string; total: string };
   streak: number;
-  sqlTopics: { label: string; solved: number; total: number; level: Mastery }[];
-  pyTopics: { label: string; solved: number; total: number; level: Mastery }[];
+  sqlTopics: { label: string; solved: number; total: number; level: string }[];
+  pyTopics: { label: string; solved: number; total: number; level: string }[];
   revise: { title: string; reason: string }[];
   mocks: { date: string; solved: number; total: number }[];
 }
@@ -141,7 +112,7 @@ export function personalReportHtml(r: ReportInput): string {
 <h2>Python category mastery</h2>${table(r.pyTopics)}
 <h2>To revise</h2>${r.revise.length ? `<ul>${r.revise.map((x) => `<li>${esc(x.title)} <span class="muted">(${esc(x.reason)})</span></li>`).join("")}</ul>` : `<p class="muted">Nothing flagged.</p>`}
 <h2>Mock interviews</h2>${r.mocks.length ? `<ul>${r.mocks.map((m) => `<li>${esc(m.date)}: ${m.solved}/${m.total}</li>`).join("")}</ul>` : `<p class="muted">None yet.</p>`}
-<p class="muted" style="margin-top:32px">Mastery: independent solves count fully, solves with hints or a revealed solution count half; Mastered needs 85% and a Hard solve. Active time counts focused minutes with keyboard, mouse or touch input.</p>
+<p class="muted" style="margin-top:32px">Strength: completion (harder questions count more), recent results, attempts per solve and hints used; speed is never part of it. Active time counts focused minutes with keyboard, mouse or touch input.</p>
 </body></html>`;
 }
 
