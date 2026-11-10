@@ -48,8 +48,10 @@ export interface ActiveSession {
   segStart: number | null;
   /** Last time this tab proved it was alive (epoch ms). */
   beat: number;
-  /** Paused by hiding the tab (resumes by itself), as opposed to a Pause click. */
+  /** Paused because no tab was visible (resumes by itself), as opposed to a Pause click. */
   auto?: boolean;
+  /** Tabs showing this challenge right now: tab id → last time it proved it was visible (epoch ms). */
+  tabs?: Record<string, number>;
   attempts: number;
   executions: number;
   hints: number;
@@ -89,6 +91,27 @@ export function resumeSession(s: ActiveSession, now: number): ActiveSession {
 }
 
 export const isRunning = (s: ActiveSession) => s.segStart != null;
+
+/**
+ * Several tabs may show the same challenge. They share ONE session and one clock: time counts
+ * while at least one of them is visible, never twice. Each visible tab reports in through these
+ * two functions; a Pause click (not `auto`) pauses every tab.
+ */
+export function tabVisible(s: ActiveSession, tabId: string, now: number): ActiveSession {
+  const base = s.auto ? resumeSession(s, now) : settle(s, now);
+  return { ...base, tabs: { ...liveTabs(s.tabs, now), [tabId]: now } };
+}
+
+/** This tab was hidden or closed. If it was the last visible one, the session pauses itself. */
+export function tabHidden(s: ActiveSession, tabId: string, now: number): ActiveSession {
+  const { [tabId]: _me, ...others } = s.tabs ?? {};
+  const live = liveTabs(others, now);
+  const next = { ...s, tabs: live };
+  return Object.keys(live).length ? settle(next, now) : pauseSession(next, now, true);
+}
+
+const liveTabs = (tabs: Record<string, number> | undefined, now: number) =>
+  Object.fromEntries(Object.entries(tabs ?? {}).filter(([, t]) => now - t <= GRACE_MS));
 
 /** Seconds shown on the timer. */
 export const elapsedSec = (s: ActiveSession, now: number) => Math.floor(activeMs(s, now) / 1000);
@@ -165,6 +188,8 @@ export function openSession(meta: OpenMeta, now = Date.now(), visible = true): A
   const store = readStore();
   const existing = store[meta.ref];
   if (existing) {
+    // Another tab is showing this challenge right now: share its running clock untouched.
+    if (existing.segStart != null && Object.values(existing.tabs ?? {}).some((t) => now - t <= GRACE_MS)) return existing;
     // Came back (refresh/navigation): continue, but only count from now.
     const next = existing.segStart != null || existing.auto
       ? (visible ? resumeSession(pauseSession(existing, existing.beat), now) : pauseSession(existing, existing.beat, true))

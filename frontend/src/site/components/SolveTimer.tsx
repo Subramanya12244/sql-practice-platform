@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, Square, Timer } from "lucide-react";
 import { useProgress, recordSession } from "../lib/progress";
 import {
   HEARTBEAT_MS, elapsedSec, finishSession, formatClock, formatDuration, getActive, isRunning, openSession, pauseSession, resumeSession,
-  saveActive, settle, subscribeSessions, sweepStale, type OpenMeta, type SolveSession,
+  saveActive, settle, subscribeSessions, sweepStale, tabHidden, tabVisible, type OpenMeta, type SolveSession,
 } from "../lib/solveSessions";
 
 /**
@@ -18,6 +18,8 @@ export function useSolveTimer(meta: OpenMeta) {
   const [now, setNow] = useState(() => Date.now());
   // The session this page last finished (solved or abandoned), shown until a new attempt starts.
   const [endedId, setEndedId] = useState<string | null>(null);
+  // Identifies this tab among others showing the same challenge (see tabVisible).
+  const tabId = useRef(typeof crypto !== "undefined" ? crypto.randomUUID() : String(Math.random())).current;
 
   const open = useCallback(() => {
     const s = openSession({ kind, ref, difficulty, topic, targetSec }, Date.now(), !document.hidden);
@@ -28,22 +30,23 @@ export function useSolveTimer(meta: OpenMeta) {
   useEffect(() => {
     sweepStale(recordSession);
     open();
+    { const s = getActive(ref); if (s && !document.hidden && (isRunning(s) || s.auto)) saveActive(tabVisible(s, tabId, Date.now())); }
     rerender();
     const unsub = subscribeSessions(rerender);
     const tick = window.setInterval(() => setNow(Date.now()), 1000);
     const beat = window.setInterval(() => {
       const s = getActive(ref);
-      if (s && isRunning(s) && !document.hidden) saveActive(settle(s, Date.now()));
+      if (s && !document.hidden && (isRunning(s) || s.auto)) saveActive(tabVisible(s, tabId, Date.now()));
     }, HEARTBEAT_MS);
     const onVis = () => {
       const s = getActive(ref);
       if (!s) return;
       const t = Date.now();
-      if (document.hidden) saveActive(pauseSession(s, t, true));
-      else if (s.auto) saveActive(resumeSession(s, t));
+      if (document.hidden) saveActive(tabHidden(s, tabId, t));
+      else if (isRunning(s) || s.auto) saveActive(tabVisible(s, tabId, t)); // a Pause click stays paused
       setNow(t);
     };
-    const onHide = () => { const s = getActive(ref); if (s && isRunning(s)) saveActive(settle(s, Date.now())); };
+    const onHide = () => { const s = getActive(ref); if (s) saveActive(tabHidden(s, tabId, Date.now())); };
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("pagehide", onHide);
     return () => {
@@ -67,7 +70,7 @@ export function useSolveTimer(meta: OpenMeta) {
     toggle() {
       const s = getActive(ref); if (!s) return;
       const t = Date.now();
-      saveActive(isRunning(s) ? pauseSession(settle(s, t), t) : resumeSession(s, t));
+      saveActive(isRunning(s) ? pauseSession(settle(s, t), t) : tabVisible(resumeSession(s, t), tabId, t));
       setNow(t);
     },
     finish() {

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   GRACE_MS, activeMs, elapsedSec, finishSession, formatClock, formatDuration, getActive, mergeSessions, noteAttempt, noteExecution,
-  noteHint, openSession, pauseSession, resumeSession, saveActive, settle, sweepStale, STALE_MS, type ActiveSession, type SolveSession,
+  noteHint, openSession, pauseSession, resumeSession, saveActive, settle, sweepStale, STALE_MS, tabHidden, tabVisible, type ActiveSession, type SolveSession,
 } from "../site/lib/solveSessions";
 import { getProgress, recordSession, replaceProgress } from "../site/lib/progress";
 import { mergeProgress } from "../site/lib/account";
@@ -194,4 +194,87 @@ describe("sync merge", () => {
 it("ActiveSession type is exercised", () => {
   const a: ActiveSession = openSession(META, T0);
   expect(a.targetSec).toBe(300);
+});
+
+describe("two tabs on one challenge", () => {
+  const A = "tab-a", B = "tab-b";
+  it("share one session; hiding one tab does not pause the other", () => {
+    let s = openSession(META, T0);
+    s = tabVisible(s, A, T0);
+    saveActive(s);
+    const second = openSession(META, T0 + sec(5)); // tab B opens the same challenge
+    expect(second.id).toBe(s.id);
+    expect(second.segStart).toBe(s.segStart); // clock untouched
+    s = tabVisible(second, B, T0 + sec(5));
+    s = tabHidden(s, A, T0 + sec(10)); // A goes to the background, B still visible
+    expect(s.segStart).not.toBeNull();
+    s = tabVisible(s, B, T0 + sec(20));
+    expect(elapsedSec(s, T0 + sec(20))).toBe(20); // wall time counted once, not twice
+  });
+  it("pauses itself only when the last visible tab hides, and resumes when one returns", () => {
+    let s = tabVisible(openSession(META, T0), A, T0);
+    s = tabVisible(s, B, T0 + sec(5));
+    s = tabHidden(s, A, T0 + sec(6));
+    s = tabHidden(s, B, T0 + sec(8));
+    expect(s.segStart).toBeNull();
+    expect(s.auto).toBe(true);
+    expect(elapsedSec(s, T0 + sec(500))).toBe(8);
+    s = tabVisible(s, A, T0 + sec(500));
+    expect(s.segStart).not.toBeNull();
+    expect(elapsedSec(s, T0 + sec(510))).toBe(18);
+  });
+  it("a crashed tab stops holding the session open after the grace period", () => {
+    let s = tabVisible(openSession(META, T0), A, T0);
+    s = tabVisible(s, B, T0 + sec(1));
+    // A never reports again. B hides much later: A's stale entry must not keep it running.
+    s = tabHidden(s, B, T0 + 5 * GRACE_MS);
+    expect(s.segStart).toBeNull();
+  });
+  it("a Pause click is shared: a visible tab does not auto-resume it", () => {
+    let s = tabVisible(openSession(META, T0), A, T0);
+    s = pauseSession(settle(s, T0 + sec(10)), T0 + sec(10)); // user pause (not auto)
+    expect(s.auto).toBeUndefined();
+    expect(s.segStart).toBeNull();
+    // Heartbeat code only calls tabVisible for running or auto-paused sessions; a user pause is left alone.
+    expect(elapsedSec(s, T0 + sec(100))).toBe(10);
+  });
+  it("a solve finished in one tab leaves no session for the other to write into", () => {
+    const s = openSession(META, T0);
+    noteAttempt("sql:25", true, T0 + sec(30), commit);
+    saveActive(tabVisible(s, B, T0 + sec(31))); // stale tab heartbeat arrives late
+    expect(getActive("sql:25")).toBeUndefined();
+    expect(getProgress().sessions).toHaveLength(1);
+  });
+});
+
+describe("two devices, simulated account round trip (JSON like profiles.state)", () => {
+  const mk = (id: string, endedAt: string): SolveSession => ({ id, kind: "python", ref: "py:x", startedAt: endedAt, endedAt, activeSec: 60, attempts: 1, executions: 1, hints: 0, status: "solved", difficulty: "Easy", topic: "etl" });
+  const base = { version: 1 as const, questions: {}, activeDays: [], cards: {} };
+  const asRemote = (p: { sessions?: SolveSession[] }) => JSON.parse(JSON.stringify({ sessions: p.sessions }));
+
+  it("converges without duplicates across repeated syncs and offline edits", () => {
+    let phone = { ...base, sessions: [mk("p1", "2026-11-01T10:00:00Z")] };
+    let laptop = { ...base, sessions: [mk("l1", "2026-11-02T10:00:00Z")] };
+    let account: { sessions?: SolveSession[] } = {};
+    // Both sign in and sync; each pulls the account copy, merges, pushes the union.
+    for (const _ of [1, 2, 3]) {
+      phone = mergeProgress(phone, [], asRemote(account), []) as typeof phone;
+      account = asRemote(phone);
+      laptop = mergeProgress(laptop, [], asRemote(account), []) as typeof laptop;
+      account = asRemote(laptop);
+      // The phone works offline and adds one more session between rounds.
+      if (_ === 1) phone = { ...phone, sessions: [...phone.sessions!, mk("p2", "2026-11-03T10:00:00Z")] };
+    }
+    phone = mergeProgress(phone, [], asRemote(account), []) as typeof phone;
+    const ids = (p: { sessions?: SolveSession[] }) => p.sessions!.map((s) => s.id);
+    expect(ids(phone)).toEqual(["p1", "l1", "p2"]);
+    expect(ids(laptop)).toEqual(["p1", "l1", "p2"].filter((i) => ids(laptop).includes(i)));
+    expect(new Set(ids(phone)).size).toBe(ids(phone).length);
+  });
+
+  it("an old client that has no sessions field cannot erase them", () => {
+    const local = { ...base, sessions: [mk("keep", "2026-11-01T10:00:00Z")] };
+    const merged = mergeProgress(local, [], {} as never, []);
+    expect(merged.sessions!.map((s) => s.id)).toEqual(["keep"]);
+  });
 });
