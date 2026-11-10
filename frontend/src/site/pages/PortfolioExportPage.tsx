@@ -11,7 +11,7 @@ import { getExecs } from "../lib/vizHistory";
 import { minePython } from "../lib/notes/generate";
 import { getProjectProgress, loadAllProjects, projectStatus, type Project } from "../lib/projects";
 import { PY_CATEGORIES } from "../lib/pyPractice";
-import { buildExport, pushToGitHub, zipFiles, type ExportSelection } from "../lib/portfolioExport";
+import { GITHUB_ACCESS_TEXT, buildExport, githubScope, pushToGitHub, scopeAllows, zipFiles, type ExportSelection, type GithubAccess } from "../lib/portfolioExport";
 import { downloadText } from "../lib/workspace";
 
 const INPUT = "max-w-full rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-sm text-ink";
@@ -30,7 +30,10 @@ export function PortfolioExportPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [gh, setGh] = useState<{ token: string | null; checked: boolean }>({ token: null, checked: false });
   const [repo, setRepo] = useState("dataforge-portfolio");
-  const [isPrivate, setIsPrivate] = useState(true);
+  const [isPrivate, setIsPrivate] = useState(false);
+  // What the learner agrees to share before connecting; asking for the smallest permission that works.
+  const [access, setAccess] = useState<GithubAccess>("public");
+  const [grantedAccess] = useState<GithubAccess | null>(() => { try { return (sessionStorage.getItem("sqlp.gh.access") as GithubAccess | null) ?? null; } catch { return null; } });
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; url?: string } | null>(null);
 
@@ -71,7 +74,8 @@ export function PortfolioExportPage() {
 
   async function connect() {
     const sb = await getSupabase();
-    const { error } = await sb.auth.linkIdentity({ provider: "github", options: { scopes: "repo", redirectTo: `${location.origin}/portfolio/export` } });
+    const { error } = await sb.auth.linkIdentity({ provider: "github", options: { scopes: githubScope(access), redirectTo: `${location.origin}/portfolio/export` } });
+    try { sessionStorage.setItem("sqlp.gh.access", access); } catch { /* the note below just will not know */ }
     if (error) setMsg({ ok: false, text: /manual linking|provider is not enabled|Unsupported provider/i.test(error.message) ? "GitHub isn't set up on this deployment yet (an admin must enable the GitHub provider and manual identity linking in Supabase)." : error.message });
   }
   async function push() {
@@ -127,6 +131,15 @@ export function PortfolioExportPage() {
                   : !gh.token ? (
                     <>
                       <p className="mt-1 text-sm text-ink-muted">Connect your GitHub account to create a repository from this export. DataForge never stores your GitHub token: it is used from this browser session only, and only when you press Create.</p>
+                      <fieldset className="mt-2 space-y-1.5">
+                        <legend className="text-sm font-medium text-ink">What should DataForge be allowed to do?</legend>
+                        {(["public", "private"] as GithubAccess[]).map((a) => (
+                          <label key={a} className="flex items-start gap-2 rounded-lg border border-surface-border p-2 text-sm">
+                            <input type="radio" name="gh-access" className="mt-1" checked={access === a} onChange={() => { setAccess(a); setIsPrivate(a === "private"); }} />
+                            <span><span className="font-medium text-ink">{GITHUB_ACCESS_TEXT[a].title}</span><span className="block text-xs text-ink-muted">{GITHUB_ACCESS_TEXT[a].detail}</span></span>
+                          </label>
+                        ))}
+                      </fieldset>
                       <Button className="mt-2" variant="secondary" onClick={() => void connect()}><Github className="h-4 w-4" aria-hidden /> Connect GitHub</Button>
                     </>
                   ) : (
@@ -134,7 +147,8 @@ export function PortfolioExportPage() {
                       <label className="mt-2 block text-sm text-ink-muted">Repository name<input value={repo} onChange={(e) => setRepo(e.target.value)} maxLength={100} className={`${INPUT} mt-1 w-full font-mono`} /></label>
                       <label className="mt-2 flex items-center gap-2 text-sm text-ink"><input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />{isPrivate ? <Lock className="h-3.5 w-3.5" aria-hidden /> : <Unlock className="h-3.5 w-3.5 text-warn" aria-hidden />} Private repository</label>
                       {!isPrivate && <p className="text-xs text-warn">A public repository is visible to everyone.</p>}
-                      <Button className="mt-3" disabled={!count || !!busy} onClick={() => void push()}>{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FolderGit2 className="h-4 w-4" aria-hidden />} Create repository</Button>
+                      {!scopeAllows(grantedAccess, isPrivate) && grantedAccess !== null && <p role="alert" className="text-xs text-danger">You connected with public-only access, which cannot create a private repository. Disconnect GitHub in your account settings and connect again with private access, or choose a public repository.</p>}
+                      <Button className="mt-3" disabled={!count || !!busy || !scopeAllows(grantedAccess ?? "private", isPrivate)} onClick={() => void push()}>{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FolderGit2 className="h-4 w-4" aria-hidden />} Create repository</Button>
                       {busy && <p className="mt-1 text-xs text-ink-muted">{busy}</p>}
                     </>
                   )}

@@ -90,3 +90,17 @@ export async function pushToGitHub(token: string, opts: { repo: string; private:
   await call("PATCH", `/repos/${full}/git/refs/heads/${branch}`, { sha: commit.sha });
   return { url: String(repo.html_url) };
 }
+
+/**
+ * The smallest GitHub OAuth scope that can do the job. A public repository needs only `public_repo`
+ * (access to public repositories). Creating a private one needs `repo`, which also covers all of the
+ * user's other private repositories, so it is only requested when the learner chooses a private repo.
+ */
+export type GithubAccess = "public" | "private";
+export const githubScope = (access: GithubAccess): "public_repo" | "repo" => (access === "private" ? "repo" : "public_repo");
+export const GITHUB_ACCESS_TEXT: Record<GithubAccess, { title: string; detail: string }> = {
+  public: { title: "Public repositories only", detail: "DataForge asks GitHub for the public_repo permission: it can create and write public repositories, and cannot see your private ones." },
+  private: { title: "Private repository too", detail: "A private repository needs GitHub's wider repo permission. It includes access to all your private repositories. DataForge only uses it when you press Create, and never stores the token." },
+};
+/** Whether a token obtained with `granted` can create a repository with the chosen visibility. */
+export const scopeAllows = (granted: GithubAccess | null, wantPrivate: boolean) => granted === "private" || (granted === "public" && !wantPrivate);
