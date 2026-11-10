@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { track } from "./activity";
 import { RULES, nextRevision } from "./revision";
+import { mergeSessions, noteHint, type SolveSession } from "./solveSessions";
 
 /** Per-visitor progress, kept in localStorage. Every access is guarded: storage may be unavailable. */
 
@@ -64,6 +65,8 @@ export interface Progress {
   revision?: Record<string, import("./revision").RevItem>;
   /** Concepts or topics the learner marked for revision. */
   revisionMarks?: string[];
+  /** Finished solve sessions (timer, attempts, hints, outcome), oldest first. See lib/solveSessions.ts. */
+  sessions?: import("./solveSessions").SolveSession[];
 }
 
 /** Receives every change so a signed-in account can mirror it; null when anonymous. */
@@ -171,12 +174,21 @@ export function saveDraft(num: number, sql: string) {
 
 /** Record that assistance level `level` (1–5) was opened for a question. */
 export function recordHint(num: number, level: number) {
+  noteHint(`sql:${num}`, level); // the open solve session, if any, remembers the highest level used
   const p = read();
   const prev = p.questions[num] ?? { attempts: 0 };
   if ((prev.hintLevel ?? 0) >= level) return;
   const q = { ...prev, hintLevel: level, startedAt: prev.startedAt ?? new Date().toISOString(), revealed: prev.revealed || level >= 5 || undefined };
   write({ ...p, questions: { ...p.questions, [num]: q } });
   sink?.question(num, q, false);
+  sink?.state(current);
+}
+
+/** Append a finished solve session. Idempotent by id, so a retry or a sync replay cannot duplicate it. */
+export function recordSession(session: SolveSession) {
+  const p = read();
+  if (p.sessions?.some((x) => x.id === session.id)) return;
+  write({ ...p, sessions: mergeSessions(p.sessions, [session]), activeDays: addDay(p.activeDays, session.endedAt.slice(0, 10)) });
   sink?.state(current);
 }
 

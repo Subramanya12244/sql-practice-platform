@@ -5,6 +5,8 @@ import { VizView } from "../components/VizView";
 import { addSession, getExecs, getSessions, highlightInEditor, type ExecRecord, type VizSession } from "../lib/vizHistory";
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { HintLadder } from "../components/HintLadder";
+import { SolveTimer } from "../components/SolveTimer";
+import { SessionHistory } from "../components/SessionHistory";
 import { Comments, CommunitySolutions } from "../components/Community";
 import { usePage } from "../SiteApp";
 import { InlineMarkdown, Markdown } from "../components/Markdown";
@@ -172,6 +174,7 @@ export function QuestionPage() {
             <CheckCircle2 className="h-4 w-4" aria-hidden /> Solved
           </span>
         )}
+        {!override?.disabled && <SolveTimer meta={{ kind: "sql", ref: `sql:${q.number}`, difficulty: q.difficulty, topic: q.topic }} />}
         <a href="#editor" className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white lg:hidden">Jump to the editor</a>
         <nav className="ml-auto flex items-center gap-1" aria-label="Question navigation">
           <PrevNext q={prev} dir="prev" />
@@ -180,7 +183,7 @@ export function QuestionPage() {
       </header>
 
       {/* Laptop and up: a fixed-height workspace where each side scrolls on its own. */}
-      <div className="mt-3 grid gap-4 lg:h-[calc(100dvh-9.75rem)] lg:min-h-[560px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-4 lg:h-[calc(100dvh-9.75rem)] lg:min-h-[560px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <section className="flex min-h-0 flex-col overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel" aria-label="Question">
           <div role="tablist" aria-label="Question sections" className="scroll-fade-x flex shrink-0 gap-0.5 overflow-x-auto border-b border-surface-border px-2 pt-2">
             {tabs.map((t) => (
@@ -292,6 +295,7 @@ export function QuestionPage() {
             <Panel id="history" active={tab}>
               {tab === "history" && (
                 <div className="space-y-6 text-sm">
+                  <SessionHistory sessionRef={`sql:${q.number}`} />
                   <section>
                     <h2 className="font-display text-lg font-bold text-ink">Execution history</h2>
                     {!execs.length && <p className="mt-1 text-ink-muted">Nothing yet — runs and submits for this question appear here.</p>}

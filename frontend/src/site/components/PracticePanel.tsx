@@ -10,8 +10,10 @@ import { ResultsPanel } from "../../components/ResultsPanel";
 import type { ResultTab, ResultTarget, SubmitResult, TableSchema } from "../../types";
 import type { Question } from "../types";
 import { getDb, getSchemas, runQuery, submitQuery } from "../lib/browserDb";
-import { completeExercise, getProgress, recordAttempt, saveDraft, useProgress } from "../lib/progress";
+import { completeExercise, getProgress, recordAttempt, recordSession, saveDraft, useProgress } from "../lib/progress";
+import { noteAttempt, noteExecution } from "../lib/solveSessions";
 import { explainError } from "../lib/errorHelp";
+import { prefersReducedMotion } from "./Motion";
 import { PlanTree, parsePlan, type PlanNode } from "./PlanTree";
 import { FORGE_THEMES, defineForgeThemes } from "../lib/monacoTheme";
 import { track } from "../lib/activity";
@@ -142,6 +144,7 @@ export default function PracticePanel({
       const result = await runQuery(text, dataset);
       logRun("run", text, result.success, result.success ? result.row_count ?? result.rows.length : undefined);
       onRan?.(text, result);
+      if (!lessonKey && !playground) noteExecution(`sql:${question.number}`);
       track("sql_executed", lessonKey ? `lesson:${lessonKey}` : playground ? `playground:${dataset}` : `q${question.number}`, { ok: result.success });
       const reuseId = target === "same" ? (tabs.find((t) => t.id === activeTab) ?? tabs[tabs.length - 1])?.id : undefined;
       if (reuseId) {
@@ -154,7 +157,7 @@ export default function PracticePanel({
       }
       setRunning(false);
     },
-    [tabs, target, activeTab, dataset, onRan],
+    [tabs, target, activeTab, dataset, onRan, lessonKey, playground, question.number],
   );
 
   const onExplain = useCallback(async () => {
@@ -180,6 +183,8 @@ export default function PracticePanel({
       // Classify the failure deterministically for the mistake log.
       const kind = result.correct ? undefined : explainError(result.feedback[0])?.title ?? (result.diff ? "Wrong result" : "SQL error");
       recordAttempt(question.number, sql, result.correct, kind);
+      // Same grader verdict feeds the solve session: only a validated pass can end it as solved.
+      if (!playground) noteAttempt(`sql:${question.number}`, result.correct, Date.now(), recordSession);
     }
     setSubmitResult(result);
     setSubmitting(false);
@@ -187,7 +192,7 @@ export default function PracticePanel({
     track("sql_submitted", lessonKey ? `lesson:${lessonKey}` : `q${question.number}`, { passed: result.correct, hidden_failed: Boolean(result.hidden_failed) });
     if (lessonKey && result.correct) track("lesson_completed", `lesson:${lessonKey}`);
     onSolved?.(result, sql);
-  }, [current, question, onSolved, lessonKey, dataset]);
+  }, [current, question, onSolved, lessonKey, dataset, playground]);
 
   const onEditorChange = (next: string) => {
     if (activeQ === "main") onChange(next);
@@ -415,6 +420,11 @@ function Coach({
   submit: SubmitResult | null;
   onExplain?: () => void;
 }) {
+  // The explanation can sit below the fold next to a tall editor: bring it into view when it appears.
+  const coachRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    coachRef.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }, [runError, submit]);
   if (submit && submit.correct) {
     return (
       <div className="animate-fade-in border-t border-success/30 bg-success-dim/30 px-4 py-3 text-sm" role="status">
@@ -438,7 +448,7 @@ function Coach({
   const diff = submit && !submit.correct ? submit.diff : null;
   if (!help && !diff) return null;
   return (
-    <div className="animate-fade-in border-t border-surface-border bg-surface px-4 py-3 text-sm" role="status">
+    <div ref={coachRef} className="animate-fade-in border-t border-surface-border bg-surface px-4 py-3 text-sm" role="status">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
           <Stethoscope className="h-3.5 w-3.5" aria-hidden /> Coach

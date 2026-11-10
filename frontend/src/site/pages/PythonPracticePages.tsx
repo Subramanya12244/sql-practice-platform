@@ -5,12 +5,15 @@ import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { Badge, Button, ButtonLink, Card, Container, Difficulty, EmptyState, PageHeader, ProgressBar, SectionHeader } from "../components/ui";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
-import { completeExercise, toggleBookmark, useProgress } from "../lib/progress";
+import { completeExercise, recordSession, toggleBookmark, useProgress } from "../lib/progress";
 import { PY_CATEGORIES, PY_SKILLS, accuracy, categoryLabel, filterExercises, overview, readStats, recordPyAttempt, splitHints, statusOf, subscribeStats, type PyFilter, type PyStat } from "../lib/pyPractice";
 import { getExerciseStage, PY_STAGES } from "../lib/pyExercises";
 import { track } from "../lib/activity";
 import { applyOverride, overrideKey, useContent } from "../lib/contentOverrides";
 import { PythonWorkspace } from "../components/PythonWorkspace";
+import { SolveTimer } from "../components/SolveTimer";
+import { SessionHistory } from "../components/SessionHistory";
+import { noteAttempt, noteExecution, noteHint } from "../lib/solveSessions";
 
 const key = (slug: string) => `py:${slug}`;
 const HIST = (slug: string) => `sqlp.py.history.${slug}`;
@@ -26,7 +29,7 @@ function useStats() {
   return { stats, mounted };
 }
 
-const SELECT = "rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-accent";
+const SELECT = "max-w-full min-w-0 rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-accent";
 
 export function PythonPracticeIndexPage() {
   const { data } = usePage();
@@ -59,7 +62,7 @@ export function PythonPracticeIndexPage() {
       <p className="-mt-4 mb-6 text-sm"><Link to="/practice/python/assessment" className="font-semibold text-accent hover:underline">Take a timed assessment</Link> <span className="text-ink-muted">· three problems against the clock ·</span> <Link to="/study-notes" className="font-semibold text-accent hover:underline">Download study notes</Link></p>
 
       <section aria-label="Your Python progress" className="grid gap-4 lg:grid-cols-3">
-        <Card pad="md" className="lg:col-span-1">
+        <Card pad="md" className="min-w-0 lg:col-span-1">
           <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Completed</p>
           <p className="mt-1 font-display text-3xl font-bold tabular-nums text-ink">{mounted ? o.solved : "—"}<span className="text-lg text-ink-faint">/{o.total}</span></p>
           <p className="text-xs text-ink-muted">{mounted ? `${o.remaining} remaining` : "Your progress loads in the browser"}</p>
@@ -72,13 +75,14 @@ export function PythonPracticeIndexPage() {
             ))}
           </ul>
         </Card>
-        <Card pad="md" className="lg:col-span-2">
+        <Card pad="md" className="min-w-0 lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border pb-2.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Curriculum Progress</span>
-            <div className="flex rounded-lg border border-surface-border bg-surface p-0.5 text-xs font-medium">
+            <div role="group" aria-label="Curriculum view" className="flex max-w-full rounded-lg border border-surface-border bg-surface p-0.5 text-xs font-medium">
               <button
                 type="button"
                 className={`rounded-md px-2.5 py-1 transition ${viewMode === "stages" ? "bg-accent text-on-accent shadow-sm" : "text-ink-muted hover:text-ink"}`}
+                aria-pressed={viewMode === "stages"}
                 onClick={() => setViewMode("stages")}
               >
                 14-Stage Progression
@@ -86,6 +90,7 @@ export function PythonPracticeIndexPage() {
               <button
                 type="button"
                 className={`rounded-md px-2.5 py-1 transition ${viewMode === "categories" ? "bg-accent text-on-accent shadow-sm" : "text-ink-muted hover:text-ink"}`}
+                aria-pressed={viewMode === "categories"}
                 onClick={() => setViewMode("categories")}
               >
                 Category Breakdown
@@ -103,6 +108,7 @@ export function PythonPracticeIndexPage() {
                   <button
                     key={s.stage}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => set("stage")(isSelected ? "" : String(s.stage))}
                     className={`w-full text-left rounded-lg border p-2 text-xs transition duration-fast hover:border-accent/40 ${
                       isSelected ? "border-accent bg-accent/10" : "border-surface-border bg-surface-raised"
@@ -127,14 +133,14 @@ export function PythonPracticeIndexPage() {
                         label={`Stage ${s.stage} progress`}
                         tone={stageSolved === stageExercises.length && stageExercises.length > 0 ? "success" : "accent"}
                       />
-                      <span className="text-[10px] text-ink-faint truncate max-w-[120px]">{s.description}</span>
+                      <span className="hidden max-w-[120px] truncate text-[10px] text-ink-faint sm:inline">{s.description}</span>
                     </div>
                   </button>
                 );
               })}
             </div>
           ) : (
-            <table className="mt-2 w-full text-sm">
+            <div className="mt-2 overflow-x-auto"><table className="w-full text-sm">
               <thead><tr className="text-left text-xs text-ink-faint"><th className="py-1 font-medium">Category</th><th className="w-1/3 py-1 font-medium">Completed</th><th className="py-1 text-right font-medium" title="Passing checks out of all checks">Accuracy</th></tr></thead>
               <tbody>
                 {o.categories.map((c) => {
@@ -148,7 +154,7 @@ export function PythonPracticeIndexPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
         </Card>
       </section>
@@ -300,6 +306,7 @@ export function PythonExercisePage() {
         {pyOverride?.disabled && <p role="status" className="w-full rounded-lg border border-warn/40 bg-warn-dim px-3 py-2 text-sm text-ink">This problem is temporarily unavailable while it is being reviewed; checks are turned off.</p>}
         <Difficulty level={ex.difficulty} />
         {done && <span className="inline-flex items-center gap-1 text-sm text-success"><CheckCircle2 className="h-4 w-4 animate-pop" aria-hidden /> Completed</span>}
+        {mounted && !pyOverride?.disabled && <SolveTimer meta={{ kind: "python", ref: `py:${ex.slug}`, difficulty: ex.difficulty, topic: ex.category || "other" }} />}
         <span className="ml-auto flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => toggleBookmark(key(ex.slug))} aria-pressed={bookmarked} aria-label={bookmarked ? "Remove bookmark" : "Bookmark this problem"}>
             {bookmarked ? <BookmarkCheck className="h-4 w-4 text-accent" aria-hidden /> : <Bookmark className="h-4 w-4" aria-hidden />}
@@ -319,15 +326,16 @@ export function PythonExercisePage() {
           {ex.concepts.map((c) => <li key={c} className="rounded-full border border-surface-border px-2 py-0.5 text-[11px] text-ink-muted">{c}</li>)}
         </ul>
       )}
+      <a href="#workspace" className="mt-3 inline-flex rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white lg:hidden">Jump to the workspace</a>
       <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <article className="min-w-0 space-y-4">
-          <Markdown source={body} className="text-sm" />
+          <Markdown source={body} className="prose-compact text-sm" />
           {hints.length > 0 && (
             <section aria-label="Hints" className="rounded-card border border-surface-border bg-surface-raised p-4 text-sm">
               <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-faint"><Lightbulb className="h-3.5 w-3.5" aria-hidden /> Hints</h2>
               {hintsShown > 0 && <ol className="mt-2 list-decimal space-y-1 pl-5 text-ink">{hints.slice(0, hintsShown).map((h, i) => <li key={i}><Markdown source={h} className="inline" /></li>)}</ol>}
               {hintsShown < hints.length
-                ? <Button variant="ghost" size="sm" className="mt-2" onClick={() => setHintsShown((n) => n + 1)}>Show hint {hintsShown + 1} of {hints.length}</Button>
+                ? <Button variant="ghost" size="sm" className="mt-2" onClick={() => { noteHint(`py:${ex.slug}`, hintsShown + 1); setHintsShown((n) => n + 1); }}>Show hint {hintsShown + 1} of {hints.length}</Button>
                 : <p className="mt-2 text-xs text-ink-faint">That's every hint.</p>}
             </section>
           )}
@@ -383,7 +391,7 @@ export function PythonExercisePage() {
           )}
         </article>
 
-        <div className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
+        <div id="workspace" className="min-w-0 scroll-mt-20 space-y-4 lg:sticky lg:top-20 lg:self-start">
           <PythonWorkspace
             slug={ex.slug}
             title={ex.title}
@@ -401,15 +409,24 @@ export function PythonExercisePage() {
               track("python_submitted", key(ex.slug), { passed: res.ok, hidden_failed: /fails a hidden test/.test(res.message) });
               log({ at: new Date().toISOString(), kind: "check", ok: res.ok, message: res.message, code: c.slice(0, 4000) });
               recordPyAttempt(ex.slug, res.ok);
+              noteAttempt(`py:${ex.slug}`, res.ok, Date.now(), recordSession); // same grader verdict
               if (res.ok) completeExercise(key(ex.slug));
             }}
             onRunResult={(r, c) => {
               track("python_executed", key(ex.slug), { ok: r.ok, ms: r.ms });
+              noteExecution(`py:${ex.slug}`);
               log({ at: new Date().toISOString(), kind: "run", ok: r.ok, message: r.ok ? `ran in ${r.ms} ms` : r.error?.split("\n").pop() ?? "error", code: c.slice(0, 4000) });
             }}
             externalCode={restoreCode}
             height={600}
           />
+
+          {mounted && (
+            <details className="rounded-card border border-surface-border bg-surface-raised p-3 text-sm">
+              <summary className="cursor-pointer font-medium text-ink">Solve sessions</summary>
+              <SessionHistory sessionRef={`py:${ex.slug}`} className="mt-2" />
+            </details>
+          )}
 
           {done && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-success/30 bg-success-dim p-4">

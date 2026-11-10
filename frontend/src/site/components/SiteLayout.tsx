@@ -18,6 +18,17 @@ const AUTH_PATHS = ["/login", "/signup", "/reset-password"];
 
 const REPO_URL = "https://github.com/Subramanya12244/northwind-sql-practice";
 
+/**
+ * True when keystrokes belong to a text field. Monaco (Chrome) focuses a plain div with the
+ * `native-edit-context` class that is neither an input nor `contentEditable`, so it needs its own check.
+ */
+export function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || !el.tagName) return false;
+  return /^(input|textarea|select)$/i.test(el.tagName) || el.isContentEditable
+    || !!el.closest(".monaco-editor, .native-edit-context, [role=textbox]");
+}
+
 /** Close a popover on outside click or Escape, returning focus to its trigger. */
 function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLElement>) {
   useEffect(() => {
@@ -109,7 +120,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setSearchOpen(true);
-      } else if (e.key === "/" && !/input|textarea|select/i.test((e.target as HTMLElement).tagName) && !(e.target as HTMLElement).isContentEditable) {
+      } else if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !isTypingTarget(e.target)) {
         e.preventDefault();
         setSearchOpen(true);
       }

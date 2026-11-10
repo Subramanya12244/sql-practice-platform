@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 import { validateWorkspaceFiles, VirtualFsError } from "./virtualFs";
+import { friendlyPyError } from "./pyErrors";
 
 /**
  * Python sandbox: Pyodide (CPython compiled to WebAssembly) in its own worker.
@@ -194,10 +195,10 @@ async function handleRun(data: { id: number; code: string; tests?: string; stdin
   } catch (err) {
     const msg = String((err as Error).message ?? err);
     // Keep the last line (the exception) prominent; trim Pyodide's internal frames.
-    const lines = msg.split("\n").filter((l) => !l.includes("/lib/python3") && !l.includes("_pyodide"));
+    const lines = friendlyPyError(msg).split("\n");
     // Line of the learner's code that raised (tracebacks name it "<exec>"), only for the code phase.
     const at = phase === "code" ? [...msg.matchAll(/File "<exec>", line (\d+)/g)].pop()?.[1] : undefined;
-    self.postMessage({ id, ok: false, phase, stdout: out, error: lines.slice(-12).join("\n").trim(), errorLine: at ? Number(at) : undefined });
+    self.postMessage({ id, ok: false, phase, stdout: out, error: lines.slice(-16).join("\n").trim(), errorLine: at ? Number(at) : undefined });
   } finally {
     // Teardown ephemeral directory and clean sys.path.
     try {
