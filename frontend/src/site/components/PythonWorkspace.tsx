@@ -23,6 +23,7 @@ import {
   Check,
   Edit3,
   Eraser,
+  Square,
 } from "lucide-react";
 import { runPython, stopPython, resetPython, isPythonWarmed, PY_TIMEOUT_MS } from "../lib/pyRunner";
 import { runPythonTask, type TaskResult, type TestCounts } from "../lib/tasks";
@@ -390,6 +391,8 @@ export function PythonWorkspace({
             type="button"
             onClick={() => setSidebarOpen((v) => !v)}
             title={sidebarOpen ? "Hide File Explorer" : "Show File Explorer"}
+            aria-label={sidebarOpen ? "Hide file explorer" : "Show file explorer"}
+            aria-expanded={sidebarOpen}
             className="rounded p-1 text-ink-muted transition-colors hover:bg-hover/5 hover:text-ink"
           >
             {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
@@ -477,8 +480,10 @@ export function PythonWorkspace({
                 setBusy(null);
                 setTerminalOutput((prev) => `${prev}\nExecution stopped by user.`);
               }}
-              className="inline-flex min-h-[32px] items-center rounded-lg bg-danger px-2.5 text-xs font-semibold text-on-accent transition-all duration-fast active:scale-[0.98]"
+              title="Stop the running code"
+              className="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg bg-danger px-2.5 text-xs font-semibold text-on-accent transition-all duration-fast active:scale-[0.98]"
             >
+              <Square className="h-3 w-3 fill-current" aria-hidden />
               Stop
             </button>
           )}

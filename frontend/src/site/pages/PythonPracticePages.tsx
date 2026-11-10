@@ -26,7 +26,7 @@ function useStats() {
   return { stats, mounted };
 }
 
-const SELECT = "rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-accent";
+const SELECT = "max-w-full min-w-0 rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-accent";
 
 export function PythonPracticeIndexPage() {
   const { data } = usePage();
@@ -59,7 +59,7 @@ export function PythonPracticeIndexPage() {
       <p className="-mt-4 mb-6 text-sm"><Link to="/practice/python/assessment" className="font-semibold text-accent hover:underline">Take a timed assessment</Link> <span className="text-ink-muted">· three problems against the clock ·</span> <Link to="/study-notes" className="font-semibold text-accent hover:underline">Download study notes</Link></p>
 
       <section aria-label="Your Python progress" className="grid gap-4 lg:grid-cols-3">
-        <Card pad="md" className="lg:col-span-1">
+        <Card pad="md" className="min-w-0 lg:col-span-1">
           <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Completed</p>
           <p className="mt-1 font-display text-3xl font-bold tabular-nums text-ink">{mounted ? o.solved : "—"}<span className="text-lg text-ink-faint">/{o.total}</span></p>
           <p className="text-xs text-ink-muted">{mounted ? `${o.remaining} remaining` : "Your progress loads in the browser"}</p>
@@ -72,13 +72,14 @@ export function PythonPracticeIndexPage() {
             ))}
           </ul>
         </Card>
-        <Card pad="md" className="lg:col-span-2">
+        <Card pad="md" className="min-w-0 lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border pb-2.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Curriculum Progress</span>
-            <div className="flex rounded-lg border border-surface-border bg-surface p-0.5 text-xs font-medium">
+            <div role="group" aria-label="Curriculum view" className="flex max-w-full rounded-lg border border-surface-border bg-surface p-0.5 text-xs font-medium">
               <button
                 type="button"
                 className={`rounded-md px-2.5 py-1 transition ${viewMode === "stages" ? "bg-accent text-on-accent shadow-sm" : "text-ink-muted hover:text-ink"}`}
+                aria-pressed={viewMode === "stages"}
                 onClick={() => setViewMode("stages")}
               >
                 14-Stage Progression
@@ -86,6 +87,7 @@ export function PythonPracticeIndexPage() {
               <button
                 type="button"
                 className={`rounded-md px-2.5 py-1 transition ${viewMode === "categories" ? "bg-accent text-on-accent shadow-sm" : "text-ink-muted hover:text-ink"}`}
+                aria-pressed={viewMode === "categories"}
                 onClick={() => setViewMode("categories")}
               >
                 Category Breakdown
@@ -103,6 +105,7 @@ export function PythonPracticeIndexPage() {
                   <button
                     key={s.stage}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => set("stage")(isSelected ? "" : String(s.stage))}
                     className={`w-full text-left rounded-lg border p-2 text-xs transition duration-fast hover:border-accent/40 ${
                       isSelected ? "border-accent bg-accent/10" : "border-surface-border bg-surface-raised"
@@ -127,14 +130,14 @@ export function PythonPracticeIndexPage() {
                         label={`Stage ${s.stage} progress`}
                         tone={stageSolved === stageExercises.length && stageExercises.length > 0 ? "success" : "accent"}
                       />
-                      <span className="text-[10px] text-ink-faint truncate max-w-[120px]">{s.description}</span>
+                      <span className="hidden max-w-[120px] truncate text-[10px] text-ink-faint sm:inline">{s.description}</span>
                     </div>
                   </button>
                 );
               })}
             </div>
           ) : (
-            <table className="mt-2 w-full text-sm">
+            <div className="mt-2 overflow-x-auto"><table className="w-full text-sm">
               <thead><tr className="text-left text-xs text-ink-faint"><th className="py-1 font-medium">Category</th><th className="w-1/3 py-1 font-medium">Completed</th><th className="py-1 text-right font-medium" title="Passing checks out of all checks">Accuracy</th></tr></thead>
               <tbody>
                 {o.categories.map((c) => {
@@ -148,7 +151,7 @@ export function PythonPracticeIndexPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
         </Card>
       </section>
@@ -319,9 +322,10 @@ export function PythonExercisePage() {
           {ex.concepts.map((c) => <li key={c} className="rounded-full border border-surface-border px-2 py-0.5 text-[11px] text-ink-muted">{c}</li>)}
         </ul>
       )}
+      <a href="#workspace" className="mt-3 inline-flex rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white lg:hidden">Jump to the workspace</a>
       <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <article className="min-w-0 space-y-4">
-          <Markdown source={body} className="text-sm" />
+          <Markdown source={body} className="prose-compact text-sm" />
           {hints.length > 0 && (
             <section aria-label="Hints" className="rounded-card border border-surface-border bg-surface-raised p-4 text-sm">
               <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-faint"><Lightbulb className="h-3.5 w-3.5" aria-hidden /> Hints</h2>
@@ -383,7 +387,7 @@ export function PythonExercisePage() {
           )}
         </article>
 
-        <div className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
+        <div id="workspace" className="min-w-0 scroll-mt-20 space-y-4 lg:sticky lg:top-20 lg:self-start">
           <PythonWorkspace
             slug={ex.slug}
             title={ex.title}

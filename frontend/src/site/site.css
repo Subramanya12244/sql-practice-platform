@@ -377,3 +377,8 @@ html.theme-transition *::after {
   .reveal-pending { opacity: 1 !important; transform: none !important; }
   .stagger > * { animation: none !important; }
 }
+
+/* Compact prose for problem statements: headings stay below the page title in the hierarchy. */
+.prose-compact h2 { margin: 1.4em 0 0.4em; font-size: 1.05rem; }
+.prose-compact h3 { margin: 1.2em 0 0.3em; font-size: 0.95rem; }
+.prose-compact p, .prose-compact ul, .prose-compact ol { margin: 0.5em 0; }
