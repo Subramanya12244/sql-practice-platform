@@ -184,3 +184,25 @@ test("portfolio: resume bullets show an honest empty state until a check has pas
   await expect(page.getByText("No project evidence yet")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("ETL builder: run the example, read the log, break the wiring, save and reopen", async ({ page }) => {
+  await page.goto("/etl-builder");
+  await expect(page.getByRole("heading", { name: "ETL pipeline builder" })).toBeVisible();
+  await expect(page.getByRole("region", { name: /Pipeline canvas/ })).toBeVisible();
+  await page.getByRole("button", { name: "Run pipeline" }).click();
+  await expect(page.getByText("Succeeded")).toBeVisible();
+  await expect(page.getByText(/Removed 1 duplicate row/)).toBeVisible();
+  await page.getByText("orders_clean", { exact: true }).first().click();
+  await expect(page.getByRole("table", { name: "Output rows" })).toContainText("1005");
+  // Remove a middle step: the wiring problem is shown before anything runs.
+  await page.getByText("One row per order", { exact: true }).first().click();
+  await page.getByRole("button", { name: /Remove this step/ }).click();
+  await expect(page.getByRole("alert").filter({ hasText: /needs 1 input but has 0/ })).toBeVisible();
+  await page.getByLabel("Pipeline name").fill("E2E pipeline");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Saved on this device.")).toBeVisible();
+  await page.reload();
+  await page.getByLabel("Open a saved pipeline").selectOption({ label: "E2E pipeline" });
+  await expect(page.getByRole("alert").filter({ hasText: /needs 1 input but has 0/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
