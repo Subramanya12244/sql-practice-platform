@@ -12,6 +12,7 @@ import type { Question } from "../types";
 import { getDb, getSchemas, runQuery, submitQuery } from "../lib/browserDb";
 import { completeExercise, getProgress, recordAttempt, saveDraft, useProgress } from "../lib/progress";
 import { explainError } from "../lib/errorHelp";
+import { prefersReducedMotion } from "./Motion";
 import { PlanTree, parsePlan, type PlanNode } from "./PlanTree";
 import { FORGE_THEMES, defineForgeThemes } from "../lib/monacoTheme";
 import { track } from "../lib/activity";
@@ -415,6 +416,11 @@ function Coach({
   submit: SubmitResult | null;
   onExplain?: () => void;
 }) {
+  // The explanation can sit below the fold next to a tall editor: bring it into view when it appears.
+  const coachRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    coachRef.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }, [runError, submit]);
   if (submit && submit.correct) {
     return (
       <div className="animate-fade-in border-t border-success/30 bg-success-dim/30 px-4 py-3 text-sm" role="status">
@@ -438,7 +444,7 @@ function Coach({
   const diff = submit && !submit.correct ? submit.diff : null;
   if (!help && !diff) return null;
   return (
-    <div className="animate-fade-in border-t border-surface-border bg-surface px-4 py-3 text-sm" role="status">
+    <div ref={coachRef} className="animate-fade-in border-t border-surface-border bg-surface px-4 py-3 text-sm" role="status">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
           <Stethoscope className="h-3.5 w-3.5" aria-hidden /> Coach
