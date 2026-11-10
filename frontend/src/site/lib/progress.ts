@@ -170,8 +170,6 @@ export function recordAttempt(num: number, sql: string, correct: boolean, errorK
   sink?.state(current);
 }
 
-export function saveDraft(num: number, sql: string) {
-  const p = read();
 /** What the revision schedule needs to know about a SQL answer: help used, attempts, and time. */
 function sqlOutcome(num: number, correct: boolean, firstSolve: boolean, solveSec: number | undefined, hintLevel: number | undefined, attempts: number): Outcome {
   const t = activeTiming(`sql:${num}`);
@@ -183,6 +181,8 @@ function sqlOutcome(num: number, correct: boolean, firstSolve: boolean, solveSec
   };
 }
 
+export function saveDraft(num: number, sql: string) {
+  const p = read();
   const prev = p.questions[num] ?? { attempts: 0 };
   write({ ...p, questions: { ...p.questions, [num]: { ...prev, lastSql: sql, startedAt: prev.startedAt ?? new Date().toISOString() } } });
 }
