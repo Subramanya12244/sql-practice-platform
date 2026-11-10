@@ -160,7 +160,15 @@ export const routes: SiteRoute[] = [
     paths: one("/cheatsheet"),
   },
   { path: "/progress", element: <ProgressPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/progress") },
-  { path: "/analytics", element: <PerformancePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/analytics") },
+  {
+    path: "/analytics",
+    element: <PerformancePage />,
+    load: async () => ({
+      ...(await base()), exercises: await loadExerciseIndex(), projects: await loadProjectIndex(),
+      projectTasks: (await loadAllProjects()).map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type, title: t.title }) as never) })),
+    }),
+    paths: one("/analytics"),
+  },
   { path: "/mistakes", element: <MistakeNotebookPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/mistakes") },
   { path: "/review", element: <ReviewPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/review") },
   { path: "/challenge", element: <ChallengePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/challenge") },
