@@ -16,6 +16,7 @@ import { MistakeNotebookPage } from "./pages/MistakeNotebookPage";
 import { EtlBuilderPage } from "./pages/EtlBuilderPage";
 import { DagSimulatorPage } from "./pages/DagSimulatorPage";
 import { SchemaDesignerPage } from "./pages/SchemaDesignerPage";
+import { DeScenariosPage, DqExercisesPage } from "./pages/GuidedLabPages";
 import { ProgressPage } from "./pages/ProgressPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { SchemaPage } from "./pages/SchemaPage";
@@ -176,6 +177,8 @@ export const routes: SiteRoute[] = [
   { path: "/etl-builder", element: <EtlBuilderPage />, load: base, paths: one("/etl-builder") },
   { path: "/dag-simulator", element: <DagSimulatorPage />, load: base, paths: one("/dag-simulator") },
   { path: "/schema-designer", element: <SchemaDesignerPage />, load: base, paths: one("/schema-designer") },
+  { path: "/dq-exercises", element: <DqExercisesPage />, load: base, paths: one("/dq-exercises") },
+  { path: "/de-scenarios", element: <DeScenariosPage />, load: base, paths: one("/de-scenarios") },
   { path: "/review", element: <ReviewPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/review") },
   { path: "/challenge", element: <ChallengePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/challenge") },
   { path: "/leaderboard", element: <LeaderboardPage />, load: base, paths: one("/leaderboard") },

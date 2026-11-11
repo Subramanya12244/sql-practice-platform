@@ -259,3 +259,35 @@ test("database design playground: relationship exercise, real PostgreSQL, normal
   await expect(page.getByText(/Seq Scan/).first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("data quality exercises: a wrong answer is explained, the right one passes, the quality score moves", async ({ page }) => {
+  test.setTimeout(150_000);
+  await page.goto("/dq-exercises?e=dq-dedupe");
+  await expect(page.getByRole("heading", { name: "Keep one row per customer" })).toBeVisible();
+  await expect(page.getByText("Before (raw data)")).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByLabel("Data quality score")).toContainText("90");
+  await editor(page, "CREATE TABLE unique_customers AS SELECT * FROM raw_customers;");
+  await page.getByRole("button", { name: "Check my answer" }).click();
+  await expect(page.getByRole("status").filter({ hasText: /Expected 7 rows/ })).toBeVisible({ timeout: 60_000 });
+  await editor(page, "CREATE TABLE unique_customers AS SELECT DISTINCT ON (customer_id) * FROM raw_customers ORDER BY customer_id, signup_date;");
+  await page.getByRole("button", { name: "Check my answer" }).click();
+  await expect(page.getByText("All checks passed.")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByLabel("Data quality score")).toContainText("95");
+  await expect(page.getByRole("region", { name: "Explanation" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("navigation", { name: "Exercises" })).toContainText("1 of 12 completed");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("data engineering scenarios: upsert scenario passes against real PostgreSQL", async ({ page }) => {
+  test.setTimeout(150_000);
+  await page.goto("/de-scenarios?e=de-batch-upsert");
+  await expect(page.getByRole("heading", { name: /Batch ETL/ })).toBeVisible();
+  await page.getByRole("button", { name: "dw_sales", exact: true }).click();
+  await expect(page.getByRole("table").first()).toContainText("sale_id", { timeout: 90_000 });
+  await editor(page, "INSERT INTO dw_sales SELECT sale_id, amount FROM stg_sales ON CONFLICT (sale_id) DO UPDATE SET amount = EXCLUDED.amount;");
+  await page.getByRole("button", { name: "Check my answer" }).click();
+  await expect(page.getByText("All checks passed.")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("region", { name: "Explanation" })).toContainText("ON CONFLICT");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

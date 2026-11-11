@@ -64,6 +64,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/etl-builder", label: "ETL pipeline builder", desc: "Source to load, with previews and logs" },
       { to: "/dag-simulator", label: "Orchestration simulator", desc: "DAGs, retries and failures, Airflow concepts" },
       { to: "/schema-designer", label: "Database design playground", desc: "Keys, relationships, normalization, indexes" },
+      { to: "/dq-exercises", label: "Data quality exercises", desc: "Five dimensions, before and after score" },
+      { to: "/de-scenarios", label: "Data engineering scenarios", desc: "Upserts, late data, retries, reconciliation" },
       { to: "/data-quality", label: "Data quality lab", desc: "Rules, runs, reports" },
       { to: "/data-generator", label: "Dataset generator" },
       { to: "/schema", label: "Northwind schema" },
