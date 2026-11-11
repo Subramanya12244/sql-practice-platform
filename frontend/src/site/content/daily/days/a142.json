@@ -1,0 +1,189 @@
+{
+  "time": {
+    "theory": 15,
+    "examples": 20,
+    "guided": 25,
+    "independent": 75,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "percent-change"
+    ],
+    "projects": [
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "year-over-year-growth"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Facts for the page",
+      "kind": "python",
+      "prompt": "Compute from `fact` the top-5 customer share (percent, 1 decimal) and the UK share of revenue (percent, 1 decimal). Print `top5 <value>` and `uk_share <value>` on two lines.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# two facts\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nby_customer = fact.groupby(\"customer_id\")[\"revenue\"].sum()\ntop5 = by_customer.nlargest(5).sum() / by_customer.sum() * 100\nuk = fact.loc[fact[\"country\"] == \"UK\", \"revenue\"].sum() / fact[\"revenue\"].sum() * 100\nprint(\"top5\", round(float(top5), 1))\nprint(\"uk_share\", round(float(uk), 1))\n",
+      "hints": [
+        "Sum revenue per customer, then take the five largest.",
+        "The UK share is UK revenue divided by total revenue, times 100.",
+        "Round both to 1 decimal."
+      ],
+      "expected": "top5 21.5\nuk_share 20.9"
+    },
+    {
+      "id": "g2",
+      "title": "Scorecard statuses",
+      "kind": "python",
+      "prompt": "Write `rag(actual, target, higher=True)` (attainment `actual/target`, or `target/actual` when lower is better; green from 1.0, amber from 0.9, else red). Print `name status` for: Revenue 67132.5 against 66000 (higher), Orders 400 against 450 (higher), Cancel rate 3.2 against 3.0 (lower), one per line.",
+      "starter": "def rag(actual, target, higher=True):\n    return \"green\"\n\nprint(\"Revenue\", rag(67132.5, 66000))\nprint(\"Orders\", rag(400, 450))\nprint(\"Cancel rate\", rag(3.2, 3.0, higher=False))\n",
+      "solution": "def rag(actual, target, higher=True):\n    r = actual / target if higher else target / actual\n    return \"green\" if r >= 1.0 else (\"amber\" if r >= 0.9 else \"red\")\n\nprint(\"Revenue\", rag(67132.5, 66000))\nprint(\"Orders\", rag(400, 450))\nprint(\"Cancel rate\", rag(3.2, 3.0, higher=False))\n",
+      "hints": [
+        "Flip the ratio when lower is better.",
+        "400 / 450 is about 0.89.",
+        "4.0 is not needed: 3.0 / 3.2 is about 0.94."
+      ],
+      "expected": "Revenue green\nOrders red\nCancel rate amber"
+    },
+    {
+      "id": "g3",
+      "title": "Check the page",
+      "kind": "python",
+      "prompt": "Using `layout_problems(page)` (given) print the list of problems for `page`. The page has a visual that is off the 40 pixel grid and visuals that overlap.",
+      "starter": "def overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\ndef layout_problems(page):\n    out = []\n    for v in page:\n        if v[\"x\"] + v[\"w\"] > 1280 or v[\"y\"] + v[\"h\"] > 720:\n            out.append(v[\"name\"] + \": off canvas\")\n        if any(v[k] % 40 for k in (\"x\", \"y\", \"w\", \"h\")):\n            out.append(v[\"name\"] + \": not on grid\")\n    out += [f\"{a['name']} overlaps {b['name']}\" for i, a in enumerate(page) for b in page[i + 1:] if overlaps(a, b)]\n    if min(page, key=lambda v: (v[\"y\"], v[\"x\"]))[\"type\"] != \"card\":\n        out.append(\"top-left is not a card\")\n    return out\n\npage = [\n    {\"name\": \"Revenue card\", \"type\": \"card\", \"x\": 40, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Segment card\", \"type\": \"card\", \"x\": 380, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Trend\", \"type\": \"line\", \"x\": 40, \"y\": 200, \"w\": 760, \"h\": 480},\n    {\"name\": \"Segment bar\", \"type\": \"bar\", \"x\": 760, \"y\": 200, \"w\": 440, \"h\": 480},\n]\nprint([])\n",
+      "solution": "def overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\ndef layout_problems(page):\n    out = []\n    for v in page:\n        if v[\"x\"] + v[\"w\"] > 1280 or v[\"y\"] + v[\"h\"] > 720:\n            out.append(v[\"name\"] + \": off canvas\")\n        if any(v[k] % 40 for k in (\"x\", \"y\", \"w\", \"h\")):\n            out.append(v[\"name\"] + \": not on grid\")\n    out += [f\"{a['name']} overlaps {b['name']}\" for i, a in enumerate(page) for b in page[i + 1:] if overlaps(a, b)]\n    if min(page, key=lambda v: (v[\"y\"], v[\"x\"]))[\"type\"] != \"card\":\n        out.append(\"top-left is not a card\")\n    return out\n\npage = [\n    {\"name\": \"Revenue card\", \"type\": \"card\", \"x\": 40, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Segment card\", \"type\": \"card\", \"x\": 380, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Trend\", \"type\": \"line\", \"x\": 40, \"y\": 200, \"w\": 760, \"h\": 480},\n    {\"name\": \"Segment bar\", \"type\": \"bar\", \"x\": 760, \"y\": 200, \"w\": 440, \"h\": 480},\n]\nprint(layout_problems(page))\n",
+      "hints": [
+        "Call the function and print its result.",
+        "The problems are returned in the order: grid and bounds first, then overlaps.",
+        "print(layout_problems(page))"
+      ],
+      "expected": "['Segment card: not on grid', 'Revenue card overlaps Segment card', 'Trend overlaps Segment bar']"
+    },
+    {
+      "id": "g4",
+      "title": "Write the executive narrative (written)",
+      "kind": "written",
+      "prompt": "Using these facts, write the narrative of at most 90 words: revenue 67,132.50, up 65.7%; Corporate is 56.5% of revenue and grew 66.5% against 64.7% for Retail; Retail would add about 312 (0.5%) if it grew at the Corporate rate; results are for one year only. Recommendation first, one caveat.",
+      "starter": "Recommendation: ...\n...",
+      "solution": "Recommendation: keep the current balance of effort between Corporate and Retail and review segment targets at the next planning round. Revenue grew 65.7% to 67,132.50. Corporate brings 56.5% of revenue and grew 66.5% against 64.7% for Retail. If Retail had matched the Corporate rate, revenue would be about 312 higher (0.5%), so the gap does not justify a change of strategy. Caveat: this is one year of change, so the segment difference is indicative. (Every number is one of the facts supplied.)",
+      "rubric": [
+        "Starts with a recommendation.",
+        "Uses only the supplied numbers.",
+        "Sizes the scenario honestly (small).",
+        "Has one caveat and stays within 90 words."
+      ],
+      "hints": [
+        "What is the decision the facts support?",
+        "Is the scenario large or small?",
+        "Which limit matters most?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Narrative with traceable numbers",
+      "kind": "python",
+      "prompt": "Build the facts (revenue, growth over 2024 from `s24`, the slowest-growing country and its growth) and the narrative `Recommendation: review <slow> first. Revenue grew <growth>% to <revenue>; <slow> grew <slow_growth>%.` with growth values at 1 decimal and revenue with a thousands separator and 2 decimals. Then print the narrative, then the list of numbers in it that are not in the allowed set `{<growth>, <revenue>, <slow_growth>}` you build from the same formatted strings (it must be empty), using `untraced` (given).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\nimport re\n\ndef untraced(text, allowed):\n    numbers = [n.rstrip(\".,\") for n in re.findall(r\"\\d[\\d,]*\\.?\\d*\", text)]\n    return [n for n in numbers if n not in allowed]\n\nt24 = s24.merge(customers, on=\"customer_id\")\n# facts, narrative, traceability check\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\nimport re\n\ndef untraced(text, allowed):\n    numbers = [n.rstrip(\".,\") for n in re.findall(r\"\\d[\\d,]*\\.?\\d*\", text)]\n    return [n for n in numbers if n not in allowed]\n\nt24 = s24.merge(customers, on=\"customer_id\")\nc24 = t24.groupby(\"country\")[\"revenue\"].sum()\nc25 = fact.groupby(\"country\")[\"revenue\"].sum()\ngrowth = f\"{(c25.sum() / c24.sum() - 1) * 100:.1f}\"\nrevenue = f\"{c25.sum():,.2f}\"\nslow = (c25 / c24).idxmin()\nslow_growth = f\"{(c25[slow] / c24[slow] - 1) * 100:.1f}\"\ntext = f\"Recommendation: review {slow} first. Revenue grew {growth}% to {revenue}; {slow} grew {slow_growth}%.\"\nprint(text)\nprint(untraced(text, {growth, revenue, slow_growth}))\n",
+      "expected": "Recommendation: review Spain first. Revenue grew 65.7% to 67,132.50; Spain grew 62.6%.\n[]"
+    },
+    {
+      "id": "i2",
+      "title": "The segment deliverable",
+      "kind": "python",
+      "prompt": "Build the deliverable for segments. Compute `share` (Corporate share of 2025 revenue, 1 decimal), `g_corp` and `g_retail` (growth over 2024 from `s24`, 1 decimal) and `gap` (revenue Retail would add at the Corporate growth rate, rounded to a whole number). Print: line 1 the layout problems of the fixed `page` (given, as a list, must be `[]`); line 2 the narrative `Recommendation: keep the Corporate focus. Corporate is <share>% of revenue and grew <g_corp>% against <g_retail>% for Retail. Matching the Corporate rate would add about <gap> to Retail.`; line 3 `words <n> within budget` where n is the word count of the narrative and `within budget` is the text `True` or `False` for at most 40 words (so print `words 31 True`-style).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\ndef overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\ndef layout_problems(page):\n    out = []\n    for v in page:\n        if v[\"x\"] + v[\"w\"] > 1280 or v[\"y\"] + v[\"h\"] > 720:\n            out.append(v[\"name\"] + \": off canvas\")\n        if any(v[k] % 40 for k in (\"x\", \"y\", \"w\", \"h\")):\n            out.append(v[\"name\"] + \": not on grid\")\n    out += [f\"{a['name']} overlaps {b['name']}\" for i, a in enumerate(page) for b in page[i + 1:] if overlaps(a, b)]\n    if min(page, key=lambda v: (v[\"y\"], v[\"x\"]))[\"type\"] != \"card\":\n        out.append(\"top-left is not a card\")\n    return out\n\npage = [\n    {\"name\": \"Revenue card\", \"type\": \"card\", \"x\": 40, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Segment card\", \"type\": \"card\", \"x\": 440, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Trend\", \"type\": \"line\", \"x\": 40, \"y\": 200, \"w\": 680, \"h\": 480},\n    {\"name\": \"Segment bar\", \"type\": \"bar\", \"x\": 760, \"y\": 200, \"w\": 440, \"h\": 480},\n]\nt24 = s24.merge(customers, on=\"customer_id\")\n# segment facts, layout check, narrative, word check\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\ndef overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\ndef layout_problems(page):\n    out = []\n    for v in page:\n        if v[\"x\"] + v[\"w\"] > 1280 or v[\"y\"] + v[\"h\"] > 720:\n            out.append(v[\"name\"] + \": off canvas\")\n        if any(v[k] % 40 for k in (\"x\", \"y\", \"w\", \"h\")):\n            out.append(v[\"name\"] + \": not on grid\")\n    out += [f\"{a['name']} overlaps {b['name']}\" for i, a in enumerate(page) for b in page[i + 1:] if overlaps(a, b)]\n    if min(page, key=lambda v: (v[\"y\"], v[\"x\"]))[\"type\"] != \"card\":\n        out.append(\"top-left is not a card\")\n    return out\n\npage = [\n    {\"name\": \"Revenue card\", \"type\": \"card\", \"x\": 40, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Segment card\", \"type\": \"card\", \"x\": 440, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Trend\", \"type\": \"line\", \"x\": 40, \"y\": 200, \"w\": 680, \"h\": 480},\n    {\"name\": \"Segment bar\", \"type\": \"bar\", \"x\": 760, \"y\": 200, \"w\": 440, \"h\": 480},\n]\nt24 = s24.merge(customers, on=\"customer_id\")\nr24 = t24.groupby(\"segment\")[\"revenue\"].sum()\nr25 = fact.groupby(\"segment\")[\"revenue\"].sum()\nshare = r25[\"Corporate\"] / r25.sum() * 100\ng_corp = (r25[\"Corporate\"] / r24[\"Corporate\"] - 1) * 100\ng_retail = (r25[\"Retail\"] / r24[\"Retail\"] - 1) * 100\ngap = r24[\"Retail\"] * (r25[\"Corporate\"] / r24[\"Corporate\"]) - r25[\"Retail\"]\nprint(layout_problems(page))\ntext = (f\"Recommendation: keep the Corporate focus. Corporate is {share:.1f}% of revenue and grew {g_corp:.1f}% \"\n        f\"against {g_retail:.1f}% for Retail. Matching the Corporate rate would add about {gap:,.0f} to Retail.\")\nprint(text)\nn = len(text.split())\nprint(\"words\", n, n <= 40)\n",
+      "expected": "[]\nRecommendation: keep the Corporate focus. Corporate is 56.5% of revenue and grew 66.5% against 64.7% for Retail. Matching the Corporate rate would add about 312 to Retail.\nwords 27 True"
+    },
+    {
+      "id": "i3",
+      "title": "Review a bad executive page (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "An executive page has nine visuals, no title or period, a narrative that starts with the method, numbers typed by hand, and the recommendation on the last line. Write a review: what is wrong, which checks from this project would catch each problem, and what the fixed deliverable looks like.",
+      "starter": "Problems: ...\nChecks that catch them: ...\nFixed version: ...",
+      "solution": "Problems: nine visuals exceed the working limit and some answer no question; with no title or period the reader cannot tell what the numbers cover; starting with the method pushes the answer to the end; typed numbers drift from the dashboard after a refresh; the recommendation comes last so a busy reader never reaches it. Checks: the orphan and layout checks (visual count, overlaps, key card first), the word-budget and starts-with-recommendation checks on the narrative, and the traceability check, which lists numbers not found in the facts. Fixed version: five visuals each tied to a question (three KPI cards, a trend, a market bar), the page title with the period, a narrative of at most 100 words with the recommendation first, a scenario with a stated assumption, one caveat, and numbers generated from the facts dictionary, so that a refresh updates both dashboard and text.",
+      "rubric": [
+        "Names the problems: too many visuals, no title or period, buried recommendation, typed numbers.",
+        "Maps each problem to a check from the project.",
+        "Describes a fixed page with a limited visual count and a question per visual.",
+        "Describes a narrative with recommendation first, generated numbers and a caveat."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "In what order should the project be built?",
+      "options": [
+        "Narrative, then facts, then dashboard",
+        "Facts, dashboard specification, narrative, traceability check",
+        "Dashboard, then narrative, then facts",
+        "Traceability, then facts"
+      ],
+      "answer": 1,
+      "explanation": "Facts first, so everything else is built on computed numbers. The narrative is written from the facts, and the traceability check closes the loop."
+    },
+    {
+      "id": "c2",
+      "question": "What does the untraced-number check find?",
+      "options": [
+        "Numbers in the narrative that are not among the computed facts",
+        "Spelling mistakes",
+        "Overlapping visuals",
+        "Slow measures"
+      ],
+      "answer": 0,
+      "explanation": "It extracts numbers from the text and compares them with the allowed set built from the facts, so typed or stale numbers are listed."
+    },
+    {
+      "id": "c3",
+      "question": "A KPI where lower is better has actual 3.2 against a target of 3.0. With the rule green from 1.0, amber from 0.9, what is the status?",
+      "options": [
+        "Green",
+        "Amber",
+        "Red",
+        "Undefined"
+      ],
+      "answer": 1,
+      "explanation": "The attainment is 3.0 / 3.2 = 0.9375, which is in the amber band from 0.9 to below 1.0."
+    },
+    {
+      "id": "c4",
+      "question": "Why does the narrative size the scenario at 0.8% of revenue instead of just saying 'Spain is behind'?",
+      "options": [
+        "To make the narrative longer",
+        "So the stakeholder sees how much is at stake and can proportion the response",
+        "Because percentages look better",
+        "To avoid a recommendation"
+      ],
+      "answer": 1,
+      "explanation": "A sized scenario shows the prize and prevents an overreaction. It also keeps credibility, since the claim can be checked."
+    },
+    {
+      "id": "c5",
+      "question": "Which finding would make the page layout check fail?",
+      "options": [
+        "A card in the top-left position",
+        "A visual extending past x = 1280",
+        "Five visuals",
+        "A trend chart"
+      ],
+      "answer": 1,
+      "explanation": "A visual that runs past the canvas edge is reported as off canvas. The others pass the layout rules."
+    }
+  ],
+  "id": "a142"
+}

@@ -1,0 +1,176 @@
+{
+  "time": {
+    "theory": 15,
+    "examples": 25,
+    "guided": 25,
+    "independent": 75,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "python-database-connectivity",
+      "python-pandas",
+      "moving-averages"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "moving-average"
+    ]
+  },
+  "environment": {
+    "packages": [
+      "matplotlib"
+    ],
+    "note": "Example 4 uses Matplotlib, which the browser runner does not load: install it with `pip install matplotlib` and run it locally. It uses the Agg backend and prints figure properties instead of showing a window. The database is in-memory sqlite3, the stand-in for PostgreSQL; the SQL used (join, GROUP BY, window AVG) is the same in PostgreSQL."
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Revenue by segment in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the tables `proj_orders(order_id, customer_id, amount_cents, status)` and `proj_customers(customer_id, segment)` are created for you. Return `segment` and `cents` (sum of `amount_cents` of paid orders) for each segment, ordered by `segment`.",
+      "starter": "CREATE TABLE proj_orders (order_id int, customer_id int, amount_cents int, status text);\nCREATE TABLE proj_customers (customer_id int, segment text);\nINSERT INTO proj_orders VALUES (1,1,1000,'paid'),(2,2,500,'paid'),(3,3,700,'paid'),(4,1,300,'failed'),(5,3,200,'paid'),(6,2,100,'refunded');\nINSERT INTO proj_customers VALUES (1,'retail'),(2,'retail'),(3,'business');\nSELECT segment FROM proj_customers ORDER BY segment LIMIT 1;\n",
+      "solution": "CREATE TABLE proj_orders (order_id int, customer_id int, amount_cents int, status text);\nCREATE TABLE proj_customers (customer_id int, segment text);\nINSERT INTO proj_orders VALUES (1,1,1000,'paid'),(2,2,500,'paid'),(3,3,700,'paid'),(4,1,300,'failed'),(5,3,200,'paid'),(6,2,100,'refunded');\nINSERT INTO proj_customers VALUES (1,'retail'),(2,'retail'),(3,'business');\nSELECT c.segment, SUM(o.amount_cents) AS cents\nFROM proj_orders o\nJOIN proj_customers c ON c.customer_id = o.customer_id\nWHERE o.status = 'paid'\nGROUP BY c.segment\nORDER BY c.segment;\n",
+      "hints": [
+        "Join the orders to their customer to reach the segment.",
+        "Filter `WHERE o.status = 'paid'` and group by `c.segment`.",
+        "`FROM proj_orders o JOIN proj_customers c ON c.customer_id = o.customer_id WHERE o.status = 'paid' GROUP BY c.segment`."
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g2",
+      "title": "Moving average in pandas",
+      "kind": "python",
+      "prompt": "Write `avg7(values)` that returns the list of moving averages over the current value and up to six before it (`rolling(7, min_periods=1).mean()`), rounded to 1 decimal. Print the result for the starter list. Expected output: a list of five numbers.",
+      "starter": "import pandas as pd\n\ndef avg7(values):\n    pass\n\nprint(avg7([10, 20, 30, 40, 50]))\n",
+      "solution": "import pandas as pd\n\ndef avg7(values):\n    return [round(float(v), 1) for v in pd.Series(values).rolling(7, min_periods=1).mean()]\n\nprint(avg7([10, 20, 30, 40, 50]))\n",
+      "hints": [
+        "Wrap the list in a `pd.Series` and use `.rolling`.",
+        "`rolling(7, min_periods=1).mean()` averages fewer values at the start.",
+        "Convert each result with `round(float(v), 1)` in a list comprehension."
+      ],
+      "expected": "[10.0, 15.0, 20.0, 25.0, 30.0]"
+    },
+    {
+      "id": "g3",
+      "title": "The reconciliation line",
+      "kind": "python",
+      "prompt": "Write `reconcile(detail_total, plain_total, detail_count, plain_count)` returning `OK` when both pairs are equal, otherwise `MISMATCH total` if only the totals differ, `MISMATCH count` if only the counts differ and `MISMATCH both` otherwise. Print the result for `(100, 100, 5, 5)`, `(100, 90, 5, 5)` and `(100, 90, 4, 5)`, one per line. Expected output: `OK`, `MISMATCH total`, `MISMATCH both`.",
+      "starter": "def reconcile(detail_total, plain_total, detail_count, plain_count):\n    pass\n\nprint(reconcile(100, 100, 5, 5))\nprint(reconcile(100, 90, 5, 5))\nprint(reconcile(100, 90, 4, 5))\n",
+      "solution": "def reconcile(detail_total, plain_total, detail_count, plain_count):\n    total_ok = detail_total == plain_total\n    count_ok = detail_count == plain_count\n    if total_ok and count_ok:\n        return \"OK\"\n    if count_ok:\n        return \"MISMATCH total\"\n    if total_ok:\n        return \"MISMATCH count\"\n    return \"MISMATCH both\"\n\nprint(reconcile(100, 100, 5, 5))\nprint(reconcile(100, 90, 5, 5))\nprint(reconcile(100, 90, 4, 5))\n",
+      "hints": [
+        "Compute two booleans first: totals equal, counts equal.",
+        "Check the all-good case first, then the two single failures, then the rest.",
+        "`if total_ok and count_ok: return \"OK\"`, `if count_ok: return \"MISMATCH total\"`, `if total_ok: return \"MISMATCH count\"`."
+      ],
+      "expected": "OK\nMISMATCH total\nMISMATCH both"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A four-stage mini job",
+      "kind": "python",
+      "prompt": "Build the small database in the starter and write four functions: `query(conn)` returns a frame of `day`, `segment`, `cents` for paid orders joined to customers, `to_wide(df)` returns days as rows with `business` and `retail` columns (missing as 0) plus `total`, `report(wide)` returns the list of two lines `best day: <day> <total>` and `business share: <percent with one decimal>`, and a final loop that prints the lines. The best day is the day with the largest total (ties: the earlier day). Expected output: two lines.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, customer_id INTEGER, amount_cents INTEGER, status TEXT, day TEXT)\")\nconn.execute(\"CREATE TABLE customers (customer_id INTEGER, segment TEXT)\")\nconn.executemany(\"INSERT INTO orders VALUES (?,?,?,?,?)\", [(1, 1, 1000, \"paid\", \"2025-03-01\"), (2, 2, 500, \"paid\", \"2025-03-01\"), (3, 3, 700, \"paid\", \"2025-03-02\"), (4, 1, 300, \"failed\", \"2025-03-02\"), (5, 3, 900, \"paid\", \"2025-03-03\"), (6, 2, 100, \"refunded\", \"2025-03-03\"), (7, 2, 600, \"paid\", \"2025-03-03\")])\nconn.executemany(\"INSERT INTO customers VALUES (?, ?)\", [(1, \"retail\"), (2, \"retail\"), (3, \"business\")])\n# Your code here\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, customer_id INTEGER, amount_cents INTEGER, status TEXT, day TEXT)\")\nconn.execute(\"CREATE TABLE customers (customer_id INTEGER, segment TEXT)\")\nconn.executemany(\"INSERT INTO orders VALUES (?,?,?,?,?)\", [(1, 1, 1000, \"paid\", \"2025-03-01\"), (2, 2, 500, \"paid\", \"2025-03-01\"), (3, 3, 700, \"paid\", \"2025-03-02\"), (4, 1, 300, \"failed\", \"2025-03-02\"), (5, 3, 900, \"paid\", \"2025-03-03\"), (6, 2, 100, \"refunded\", \"2025-03-03\"), (7, 2, 600, \"paid\", \"2025-03-03\")])\nconn.executemany(\"INSERT INTO customers VALUES (?, ?)\", [(1, \"retail\"), (2, \"retail\"), (3, \"business\")])\n\ndef query(conn):\n    sql = \"\"\"SELECT o.day, c.segment, SUM(o.amount_cents) AS cents FROM orders o\n             JOIN customers c ON c.customer_id = o.customer_id\n             WHERE o.status = 'paid' GROUP BY o.day, c.segment\"\"\"\n    return pd.read_sql(sql, conn)\n\ndef to_wide(df):\n    wide = df.pivot_table(index=\"day\", columns=\"segment\", values=\"cents\", aggfunc=\"sum\", fill_value=0)\n    return wide.assign(total=wide[\"business\"] + wide[\"retail\"]).reset_index()\n\ndef report(wide):\n    best = wide.sort_values([\"total\", \"day\"], ascending=[False, True], kind=\"stable\").iloc[0]\n    share = wide[\"business\"].sum() / wide[\"total\"].sum()\n    return [f\"best day: {best['day']} {int(best['total'])}\", f\"business share: {share:.1%}\"]\n\nfor line in report(to_wide(query(conn))):\n    print(line)\n",
+      "expected": "best day: 2025-03-01 1500\nbusiness share: 43.2%"
+    },
+    {
+      "id": "i2",
+      "title": "Detect a lossy join",
+      "kind": "python",
+      "prompt": "Orders may reference customers that are missing from the customer table. Using the starter data, write `join_loss(conn)` that returns the number of paid orders lost by an inner join with `customers`, computed as the paid count without the join minus the paid count with the join. Print `lost: <n>` and, using a `LEFT JOIN`, the list of the missing customer ids sorted ascending as `missing: [<ids>]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, customer_id INTEGER, status TEXT)\")\nconn.execute(\"CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, segment TEXT)\")\nconn.executemany(\"INSERT INTO orders VALUES (?,?,?)\", [(1, 1, \"paid\"), (2, 2, \"paid\"), (3, 9, \"paid\"), (4, 9, \"paid\"), (5, 7, \"failed\"), (6, 8, \"paid\")])\nconn.executemany(\"INSERT INTO customers VALUES (?, ?)\", [(1, \"retail\"), (2, \"business\")])\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, customer_id INTEGER, status TEXT)\")\nconn.execute(\"CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, segment TEXT)\")\nconn.executemany(\"INSERT INTO orders VALUES (?,?,?)\", [(1, 1, \"paid\"), (2, 2, \"paid\"), (3, 9, \"paid\"), (4, 9, \"paid\"), (5, 7, \"failed\"), (6, 8, \"paid\")])\nconn.executemany(\"INSERT INTO customers VALUES (?, ?)\", [(1, \"retail\"), (2, \"business\")])\n\ndef join_loss(conn):\n    plain = conn.execute(\"SELECT COUNT(*) FROM orders WHERE status = 'paid'\").fetchone()[0]\n    joined = conn.execute(\"SELECT COUNT(*) FROM orders o JOIN customers c ON c.customer_id = o.customer_id WHERE o.status = 'paid'\").fetchone()[0]\n    return plain - joined\n\nmissing = [r[0] for r in conn.execute(\"SELECT DISTINCT o.customer_id FROM orders o LEFT JOIN customers c ON c.customer_id = o.customer_id WHERE o.status = 'paid' AND c.customer_id IS NULL ORDER BY 1\")]\nprint(\"lost:\", join_loss(conn))\nprint(\"missing:\", missing)\n",
+      "expected": "lost: 3\nmissing: [8, 9]"
+    },
+    {
+      "id": "i3",
+      "title": "Review the mini-project report",
+      "kind": "written",
+      "prompt": "Write the review comments you would give on a colleague's analytics mini-project: a script that selects `*` from orders, loops in Python to total paid revenue per day, draws a chart in the same loop and prints 'Revenue is up a lot'. Cover the structure (stages), the pushdown, the checks that are missing, the chart and the sentence. End with the three changes that matter most.",
+      "starter": "Structure:\nPushdown:\nChecks:\nChart:\nSentence:\nTop three changes:\n",
+      "solution": "Structure: split the script into query, transform, chart and report functions with explicit inputs and outputs, with the connection and the date range passed in. Pushdown: replace `SELECT *` and the Python loop with a `GROUP BY` of paid orders per day, which returns one row per day. Checks: reconcile the daily total with a plain `SUM` and the order count with a plain `COUNT`, and test the functions on a five-row table. Chart: separate the drawing from the calculation, add title, axis labels with units and a legend, and test the title and the data. Sentence: 'a lot' has no number, definition or period; generate 'Paid revenue rose 6.7% in week 2 against week 1 (EUR and USD added without conversion)' from the data. Top three changes: push the aggregation into SQL, add the reconciliation, generate the sentence from the numbers.",
+      "required": false,
+      "rubric": [
+        "Proposes separate stage functions with inputs passed in.",
+        "Replaces the loop with SQL aggregation (pushdown).",
+        "Names a reconciliation against a plain total or count.",
+        "Replaces the vague sentence with a number, a definition and a period.",
+        "Ends with a short ranked list of changes."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "An inner join between paid orders and customers returns fewer orders than `SELECT COUNT(*) FROM orders WHERE status = 'paid'`. What is the most likely cause?",
+      "options": [
+        "Duplicate customer ids",
+        "Some orders refer to customers that are not in the customer table",
+        "The status filter",
+        "Window functions"
+      ],
+      "answer": 1,
+      "explanation": "An inner join drops rows with no match. Duplicate customer ids would add rows, not remove them. This is why the reconciliation compares counts."
+    },
+    {
+      "id": "c2",
+      "question": "What does `AVG(cents) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)` return for the third day?",
+      "options": [
+        "The average of the first three days",
+        "The average of day three only",
+        "NULL",
+        "The average of seven days with zeros added"
+      ],
+      "answer": 0,
+      "explanation": "The frame has up to seven rows but only three exist so far, so the average uses three. It does not pad with zeros."
+    },
+    {
+      "id": "c3",
+      "question": "Why is the report sentence built with an f-string from variables?",
+      "options": [
+        "It is shorter",
+        "The text can then never disagree with the query result",
+        "SQL requires it",
+        "It avoids rounding"
+      ],
+      "answer": 1,
+      "explanation": "Generated text always matches the data it comes from, and a rerun refreshes it. Typed numbers go stale."
+    },
+    {
+      "id": "c4",
+      "question": "What does `pivot_table(index=\"day\", columns=\"segment\", values=\"cents\", aggfunc=\"sum\", fill_value=0)` give?",
+      "options": [
+        "One row per segment",
+        "One row per day, one column per segment, with 0 where a segment had no sales",
+        "A long table of day and segment",
+        "Totals only"
+      ],
+      "answer": 1,
+      "explanation": "The segments become columns and each day is a row. `fill_value=0` replaces missing combinations, so days without sales for a segment show 0."
+    },
+    {
+      "id": "c5",
+      "question": "Why keep the drawing in its own thin function?",
+      "options": [
+        "Matplotlib requires it",
+        "The calculations can be tested without Matplotlib and the chart reuses the tested numbers",
+        "It makes charts faster",
+        "It hides the data"
+      ],
+      "answer": 1,
+      "explanation": "Separating the calculation from the drawing lets you test the numbers in plain Python and check the drawn object's properties separately."
+    }
+  ],
+  "id": "e119"
+}

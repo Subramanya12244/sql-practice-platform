@@ -1,0 +1,185 @@
+{
+  "id": "a151",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "sum",
+      "case"
+    ],
+    "questions": [
+      160,
+      166,
+      39
+    ],
+    "pyExercises": [
+      "percent-change",
+      "safe-divide"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "year-over-year-growth"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Margin and markup",
+      "kind": "python",
+      "prompt": "An item sells for 80 and costs 60. Print `margin: 25.0%` and `markup: 33.3%` (gross profit over price and over cost, rounded to 1 decimal).",
+      "starter": "price, cost = 80, 60\n",
+      "solution": "price, cost = 80, 60\nprofit = price - cost\nprint('margin: ' + str(round(profit / price * 100, 1)) + '%')\nprint('markup: ' + str(round(profit / cost * 100, 1)) + '%')\n",
+      "hints": [
+        "Gross profit is price minus cost.",
+        "Margin divides by price, markup by cost.",
+        "Multiply by 100 and round to 1 decimal."
+      ],
+      "expected": "margin: 25.0%\nmarkup: 33.3%"
+    },
+    {
+      "id": "g2",
+      "title": "Favourable or unfavourable",
+      "kind": "python",
+      "prompt": "Budget and actual for two lines: `('sales', 'income', 500, 540)` and `('wages', 'cost', 200, 215)`. For each line print `name: variance V, effect on profit E, LABEL` with V (actual minus budget), E (V for income, minus V for cost) and LABEL `favourable` when E is positive, else `unfavourable`. Example format: `sales: variance 40, effect on profit 40, favourable`.",
+      "starter": "lines = [('sales', 'income', 500, 540), ('wages', 'cost', 200, 215)]\n",
+      "solution": "lines = [('sales', 'income', 500, 540), ('wages', 'cost', 200, 215)]\nfor name, kind, budget, actual in lines:\n    v = actual - budget\n    e = v if kind == 'income' else -v\n    label = 'favourable' if e > 0 else 'unfavourable'\n    print(f'{name}: variance {v}, effect on profit {e}, {label}')\n",
+      "hints": [
+        "The variance is actual minus budget.",
+        "For a cost, the effect on profit is minus the variance.",
+        "Pick the label from the sign of the effect."
+      ],
+      "expected": "sales: variance 40, effect on profit 40, favourable\nwages: variance 15, effect on profit -15, unfavourable"
+    },
+    {
+      "id": "g3",
+      "title": "Quarterly budget variance in SQL",
+      "kind": "sql",
+      "prompt": "Compare Northwind 1998 quarterly revenue with the budget `(1, 12000), (2, 12000), (3, 12000), (4, 12000)`. Return `qtr`, `actual` (rounded to 0 decimals) and `variance` (actual minus budget, rounded to 0 decimals), ordered by `qtr`.",
+      "starter": "SELECT EXTRACT(quarter FROM order_date)::int AS qtr\nFROM orders\nWHERE EXTRACT(year FROM order_date) = 1998\nGROUP BY 1\nORDER BY 1;\n",
+      "solution": "WITH actual AS (\n  SELECT EXTRACT(quarter FROM o.order_date)::int AS qtr,\n         SUM(od.unit_price * od.quantity * (1 - od.discount)) AS actual\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  WHERE o.order_date >= DATE '1998-01-01' AND o.order_date < DATE '1999-01-01'\n  GROUP BY 1\n), budget(qtr, budget) AS (\n  VALUES (1, 12000.0), (2, 12000.0), (3, 12000.0), (4, 12000.0)\n)\nSELECT a.qtr, ROUND(a.actual::numeric, 0) AS actual, ROUND((a.actual - b.budget)::numeric, 0) AS variance\nFROM actual a JOIN budget b ON b.qtr = a.qtr\nORDER BY a.qtr;\n",
+      "ordered": true,
+      "hints": [
+        "First compute the quarterly revenue of 1998 in a CTE.",
+        "Add the budget as a VALUES table in a second CTE.",
+        "Join on qtr and subtract the budget from the actual."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "A bridge table",
+      "kind": "python",
+      "prompt": "Budget profit is 20000 and the variances are volume -2000, price 1800 and cost -1800. Print the running total after each step on its own line, starting with the budget profit, so that the last line is the actual profit.",
+      "starter": "steps = [20000, -2000, 1800, -1800]\n",
+      "solution": "steps = [20000, -2000, 1800, -1800]\nrunning = 0\nfor s in steps:\n    running += s\n    print(running)\n",
+      "hints": [
+        "Start a running total at zero.",
+        "Add each step in turn.",
+        "Print the total inside the loop."
+      ],
+      "expected": "20000\n18000\n19800\n18000"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Over and under budget by quarter",
+      "kind": "sql",
+      "prompt": "Compare Northwind 1997 quarterly revenue with budget `(1, 9000), (2, 9000), (3, 9000), (4, 9000)`. Return `qtr`, `actual` (0 decimals), `variance_pct` (variance over budget in percent, 1 decimal) and `status` (`over` when actual is above budget, `under` otherwise), ordered by `qtr`.",
+      "starter": "SELECT EXTRACT(quarter FROM order_date)::int AS qtr\nFROM orders\nWHERE EXTRACT(year FROM order_date) = 1997\nGROUP BY 1\nORDER BY 1;\n",
+      "solution": "WITH actual AS (\n  SELECT EXTRACT(quarter FROM o.order_date)::int AS qtr,\n         SUM(od.unit_price * od.quantity * (1 - od.discount)) AS actual\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  WHERE o.order_date >= DATE '1997-01-01' AND o.order_date < DATE '1998-01-01'\n  GROUP BY 1\n), budget(qtr, budget) AS (\n  VALUES (1, 9000.0), (2, 9000.0), (3, 9000.0), (4, 9000.0)\n)\nSELECT a.qtr, ROUND(a.actual::numeric, 0) AS actual,\n       ROUND(((a.actual - b.budget) / b.budget * 100)::numeric, 1) AS variance_pct,\n       CASE WHEN a.actual > b.budget THEN 'over' ELSE 'under' END AS status\nFROM actual a JOIN budget b ON b.qtr = a.qtr\nORDER BY a.qtr;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Profit bridge and check",
+      "kind": "python",
+      "prompt": "Budget: 500 units, price 40, unit cost 25. Actual: 560 units, price 38, unit cost 26. Print four lines `volume: X`, `price: X`, `unit cost: X` and `check: OK` where X are the three variances (volume at budget unit margin, price on actual units, cost on actual units, each rounded to 0 decimals) and the last line prints `OK` when budget profit plus the three variances equals actual profit, else `MISMATCH`.",
+      "starter": "q0, p0, c0 = 500, 40, 25\nq1, p1, c1 = 560, 38, 26\n",
+      "solution": "q0, p0, c0 = 500, 40, 25\nq1, p1, c1 = 560, 38, 26\nvolume = (q1 - q0) * (p0 - c0)\nprice = q1 * (p1 - p0)\ncost = -q1 * (c1 - c0)\nprint('volume:', round(volume))\nprint('price:', round(price))\nprint('unit cost:', round(cost))\nbudget = q0 * (p0 - c0)\nactual = q1 * (p1 - c1)\nprint('check: ' + ('OK' if budget + volume + price + cost == actual else 'MISMATCH'))\n",
+      "expected": "volume: 900\nprice: -1120\nunit cost: -560\ncheck: OK"
+    },
+    {
+      "id": "i3",
+      "title": "Explain a variance to an executive",
+      "kind": "written",
+      "required": false,
+      "prompt": "Profit is 4,000 below budget. The bridge shows volume +6,000, price -7,000 and unit cost -3,000. Write 4 to 6 sentences for an executive: what the bridge says in plain words, which result is most worrying and one question you would ask next.",
+      "starter": "Write your answer here.",
+      "solution": "Profit is 4,000 below budget, even though we sold more units than planned (+6,000 from volume). The reduction comes from two sources: the average price was lower than budget (-7,000), which suggests discounts or a shift to cheaper products, and unit costs were higher (-3,000). The most worrying result is the price shortfall, because it is larger than the volume gain: we sold more by selling for less, and that may be a pattern of buying volume with discounts. I would ask whether the lower price is a deliberate promotion, a mix change or a loss of pricing discipline, and whether the extra volume is repeat business or one-off. I would also ask the buyers what is behind the unit cost increase and whether it will continue.",
+      "rubric": [
+        "States in plain words that volume helped while price and cost hurt",
+        "Identifies price as the largest negative effect and ties it to volume",
+        "Asks a specific follow-up question about cause",
+        "Uses the numbers consistently (6,000 - 7,000 - 3,000 = -4,000)"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "An item sells for 100 and costs 80. What are its margin and markup?",
+      "options": [
+        "Margin 20%, markup 25%",
+        "Margin 25%, markup 20%",
+        "Both 20%",
+        "Both 25%"
+      ],
+      "answer": 0,
+      "explanation": "Profit is 20. Margin divides by price (20/100 = 20%), markup divides by cost (20/80 = 25%). Swapping the bases gives the wrong pair."
+    },
+    {
+      "id": "c2",
+      "question": "Marketing actual is 9,500 against a budget of 8,000. How is the variance labelled?",
+      "options": [
+        "Unfavourable, because spending more than planned reduces profit",
+        "Favourable, because it is positive",
+        "Favourable, because marketing creates sales",
+        "Neutral"
+      ],
+      "answer": 0,
+      "explanation": "For cost lines a positive variance means overspend, which lowers profit. The sign of the variance and its effect on profit are opposite for costs."
+    },
+    {
+      "id": "c3",
+      "question": "Three products have margins of 20%, 30% and 50%. Why is the blended margin generally not 33.3%?",
+      "options": [
+        "Blended margin is weighted by revenue",
+        "Margins cannot be averaged",
+        "Margins add up to 100%",
+        "Blended margin ignores the lowest product"
+      ],
+      "answer": 0,
+      "explanation": "Total profit divided by total revenue weights each product by its revenue. A simple mean treats a small product the same as a large one."
+    },
+    {
+      "id": "c4",
+      "question": "Budget profit is 10,000, volume variance is -2,000, price variance is +500 and cost variance is -300. What is actual profit?",
+      "options": [
+        "8,200",
+        "7,800",
+        "12,800",
+        "10,000"
+      ],
+      "answer": 0,
+      "explanation": "10,000 - 2,000 + 500 - 300 = 8,200. The variances add up to the profit variance of -1,800."
+    },
+    {
+      "id": "c5",
+      "question": "Total revenue is exactly on budget but one quarter is 30% over and another 30% under. What does this show?",
+      "options": [
+        "Offsetting variances can hide issues in a total",
+        "Nothing happened",
+        "The budget was perfect",
+        "Variance percent is wrong"
+      ],
+      "answer": 0,
+      "explanation": "The total looks perfect, but quarterly performance differed greatly from plan. Components should always be inspected."
+    }
+  ]
+}

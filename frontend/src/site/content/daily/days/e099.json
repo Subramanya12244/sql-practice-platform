@@ -1,0 +1,182 @@
+{
+  "id": "e099",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "constraints",
+      "primary-foreign-keys",
+      "etl-error-handling",
+      "transactions"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Switch foreign keys on",
+      "kind": "python",
+      "prompt": "In `sqlite3`, create `parent(id INTEGER PRIMARY KEY)` and `child(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parent(id))`. Turn foreign key enforcement on, insert the child row `(1, 5)` inside `try`, and print the error message of the `sqlite3.IntegrityError`. Then insert parent `5` and the child again, and print the number of child rows. Expected output: `FOREIGN KEY constraint failed` then `1`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE parent (id INTEGER PRIMARY KEY)\")\nconn.execute(\"CREATE TABLE child (id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parent (id))\")\n# insert the child, catch the error, insert the parent, insert the child again\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE parent (id INTEGER PRIMARY KEY)\")\nconn.execute(\"CREATE TABLE child (id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parent (id))\")\nconn.execute(\"PRAGMA foreign_keys = ON\")\ntry:\n    conn.execute(\"INSERT INTO child VALUES (1, 5)\")\nexcept sqlite3.IntegrityError as err:\n    print(err)\nconn.execute(\"INSERT INTO parent VALUES (5)\")\nconn.execute(\"INSERT INTO child VALUES (1, 5)\")\nprint(conn.execute(\"SELECT COUNT(*) FROM child\").fetchone()[0])\n",
+      "expected": "FOREIGN KEY constraint failed\n1",
+      "hints": [
+        "SQLite needs a pragma before it checks foreign keys.",
+        "`conn.execute(\"PRAGMA foreign_keys = ON\")` must run on the connection before the first insert.",
+        "Wrap the first insert in `try/except sqlite3.IntegrityError as err` and `print(err)`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Order the tables",
+      "kind": "python",
+      "prompt": "`depends_on` maps each table to the tables it references. Write `order(depends_on)` that returns the tables in a valid load order: repeatedly take, in alphabetical order, the tables whose parents are all placed already. Print the order for the given schema. Expected output: `['region', 'store', 'sale']`.",
+      "starter": "def order(depends_on):\n    return []\n\nprint(order({\"sale\": [\"store\"], \"store\": [\"region\"], \"region\": []}))\n",
+      "solution": "def order(depends_on):\n    placed, result = set(), []\n    remaining = dict(depends_on)\n    while remaining:\n        ready = sorted(t for t, parents in remaining.items() if set(parents) <= placed)\n        if not ready:\n            raise ValueError(\"circular\")\n        for t in ready:\n            result.append(t)\n            placed.add(t)\n            del remaining[t]\n    return result\n\nprint(order({\"sale\": [\"store\"], \"store\": [\"region\"], \"region\": []}))\n",
+      "expected": "['region', 'store', 'sale']",
+      "hints": [
+        "Keep a set of placed tables and a dictionary of tables still waiting.",
+        "A table is ready when all its parents are in the placed set.",
+        "Loop until nothing remains; raise an error when a round finds nothing ready."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Classify before loading",
+      "kind": "python",
+      "prompt": "`known` holds the existing customer ids. For each staged order `(order_id, customer_id, amount)` decide a reason: `unknown customer` when the customer is not in `known`, else `negative amount` when the amount is below 0, else accepted. Print the accepted order ids as a list, then the rejects as a list of `(order_id, reason)` tuples. Expected output: `[1, 4]` then `[(2, 'unknown customer'), (3, 'negative amount')]`.",
+      "starter": "known = {1, 2}\nstaged = [(1, 1, 50), (2, 9, 20), (3, 2, -5), (4, 2, 10)]\naccepted, rejects = [], []\n# classify each row\nprint(accepted)\nprint(rejects)\n",
+      "solution": "known = {1, 2}\nstaged = [(1, 1, 50), (2, 9, 20), (3, 2, -5), (4, 2, 10)]\naccepted, rejects = [], []\nfor order_id, customer_id, amount in staged:\n    if customer_id not in known:\n        rejects.append((order_id, \"unknown customer\"))\n    elif amount < 0:\n        rejects.append((order_id, \"negative amount\"))\n    else:\n        accepted.append(order_id)\nprint(accepted)\nprint(rejects)\n",
+      "expected": "[1, 4]\n[(2, 'unknown customer'), (3, 'negative amount')]",
+      "hints": [
+        "Check the rules in a fixed order with `if`, `elif`, `else`.",
+        "Append just the id to `accepted` and a `(id, reason)` tuple to `rejects`.",
+        "The first rule is `customer_id not in known`, the second `amount < 0`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Find the orphans in SQL",
+      "kind": "sql",
+      "prompt": "The block creates `customer` and a staging table `stg_order` with some orders whose customer does not exist. Replace the last query so that it returns the `order_id` values of the staged orders that have no matching customer, ordered by `order_id`, with the single column `order_id`.",
+      "starter": "CREATE TABLE customer (customer_key integer PRIMARY KEY);\nCREATE TABLE stg_order (order_id integer, customer_key integer);\nINSERT INTO customer VALUES (1), (2);\nINSERT INTO stg_order VALUES (10, 1), (11, 7), (12, 2), (13, 8);\nSELECT order_id FROM stg_order ORDER BY order_id;\n",
+      "solution": "CREATE TABLE customer (customer_key integer PRIMARY KEY);\nCREATE TABLE stg_order (order_id integer, customer_key integer);\nINSERT INTO customer VALUES (1), (2);\nINSERT INTO stg_order VALUES (10, 1), (11, 7), (12, 2), (13, 8);\nSELECT s.order_id FROM stg_order s\nWHERE NOT EXISTS (SELECT 1 FROM customer c WHERE c.customer_key = s.customer_key)\nORDER BY s.order_id;\n",
+      "ordered": true,
+      "hints": [
+        "An orphan is a staged row for which no customer row matches.",
+        "`NOT EXISTS` with a correlated subquery tests for the absence of a match.",
+        "`WHERE NOT EXISTS (SELECT 1 FROM customer c WHERE c.customer_key = s.customer_key)`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A load with a reject table",
+      "kind": "python",
+      "prompt": "Using `sqlite3` with foreign keys on, create `customer(customer_key INTEGER PRIMARY KEY)`, `sales_order(order_id INTEGER PRIMARY KEY, customer_key INTEGER NOT NULL REFERENCES customer(customer_key), amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0))` and `reject(order_id INTEGER, reason TEXT)`. Insert customers 1 and 2. For the staged rows given, try inserting each row alone with `with conn:`; on `sqlite3.IntegrityError` store the order id and the error message in `reject`. Afterwards print the accepted order ids ordered, the rejects ordered by order id and reason as tuples, and a final line `read N loaded L rejected R` with the counts. The row `(15, 1, None)` has a missing amount.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\n# create tables, enforce foreign keys, load customers 1 and 2\nstaged = [(10, 1, 500), (11, 2, 700), (12, 9, 300), (13, 1, -50), (10, 1, 900), (14, 2, 100), (15, 1, None)]\n# load row by row, record rejects, print\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"PRAGMA foreign_keys = ON\")\nconn.executescript(\"\"\"\nCREATE TABLE customer (customer_key INTEGER PRIMARY KEY);\nCREATE TABLE sales_order (order_id INTEGER PRIMARY KEY,\n    customer_key INTEGER NOT NULL REFERENCES customer (customer_key),\n    amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0));\nCREATE TABLE reject (order_id INTEGER, reason TEXT);\n\"\"\")\nconn.executemany(\"INSERT INTO customer VALUES (?)\", [(1,), (2,)])\nstaged = [(10, 1, 500), (11, 2, 700), (12, 9, 300), (13, 1, -50), (10, 1, 900), (14, 2, 100), (15, 1, None)]\nfor row in staged:\n    try:\n        with conn:\n            conn.execute(\"INSERT INTO sales_order VALUES (?, ?, ?)\", row)\n    except sqlite3.IntegrityError as err:\n        with conn:\n            conn.execute(\"INSERT INTO reject VALUES (?, ?)\", (row[0], str(err)))\nprint([r[0] for r in conn.execute(\"SELECT order_id FROM sales_order ORDER BY order_id\")])\nprint(conn.execute(\"SELECT order_id, reason FROM reject ORDER BY order_id, reason\").fetchall())\nloaded = conn.execute(\"SELECT COUNT(*) FROM sales_order\").fetchone()[0]\nrejected = conn.execute(\"SELECT COUNT(*) FROM reject\").fetchone()[0]\nprint(\"read\", len(staged), \"loaded\", loaded, \"rejected\", rejected)\n",
+      "expected": "[10, 11, 14]\n[(10, 'UNIQUE constraint failed: sales_order.order_id'), (12, 'FOREIGN KEY constraint failed'), (13, 'CHECK constraint failed: amount_cents >= 0'), (15, 'NOT NULL constraint failed: sales_order.amount_cents')]\nread 7 loaded 3 rejected 4"
+    },
+    {
+      "id": "i2",
+      "title": "A rerun that changes nothing",
+      "kind": "python",
+      "prompt": "Create `item(item_id INTEGER PRIMARY KEY, name TEXT NOT NULL)` in `sqlite3`. Write `load(conn, rows)` that inserts the rows with `INSERT ... ON CONFLICT (item_id) DO NOTHING` inside one transaction and returns how many rows were really inserted (compare the table count before and after; `rowcount` is not reliable across drivers). Run it twice with the same three rows, then once with those rows plus one new row, and print the three return values on one line separated by spaces, then the final table count. Expected output: `3 0 1` then `4`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE item (item_id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n\ndef load(conn, rows):\n    return 0\n\nrows = [(1, \"a\"), (2, \"b\"), (3, \"c\")]\nfirst = load(conn, rows)\nsecond = load(conn, rows)\nthird = load(conn, rows + [(4, \"d\")])\nprint(first, second, third)\nprint(conn.execute(\"SELECT COUNT(*) FROM item\").fetchone()[0])\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE item (item_id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n\ndef load(conn, rows):\n    before = conn.execute(\"SELECT COUNT(*) FROM item\").fetchone()[0]\n    with conn:\n        conn.executemany(\"INSERT INTO item VALUES (?, ?) ON CONFLICT (item_id) DO NOTHING\", rows)\n    after = conn.execute(\"SELECT COUNT(*) FROM item\").fetchone()[0]\n    return after - before\n\nrows = [(1, \"a\"), (2, \"b\"), (3, \"c\")]\nfirst = load(conn, rows)\nsecond = load(conn, rows)\nthird = load(conn, rows + [(4, \"d\")])\nprint(first, second, third)\nprint(conn.execute(\"SELECT COUNT(*) FROM item\").fetchone()[0])\n",
+      "expected": "3 0 1\n4"
+    },
+    {
+      "id": "i3",
+      "title": "Design a PostgreSQL load with savepoints",
+      "kind": "written",
+      "prompt": "Describe, for PostgreSQL with `psycopg`, how you would load 10,000 staged order rows so that bad rows end up in a reject table and good rows are loaded, without restarting the whole job when one row fails. Cover the transaction, the savepoint or pre-validation choice, and what you check at the end.",
+      "starter": "Write your design here.",
+      "solution": "Pre-validate in SQL first: a join to `customer` finds orphans, a comparison finds negative amounts, and `GROUP BY order_id HAVING count(*) > 1` finds duplicates. Insert those rows into `reject` with a reason, and insert the rest with `INSERT ... SELECT ... ON CONFLICT (order_id) DO NOTHING`, all in one transaction so the run is all or nothing. Because a failed statement aborts a PostgreSQL transaction until rollback, row-by-row inserts with a `try/except` would need `with conn.transaction():` around each row so that each failure only rolls back its own savepoint; that is slower and is kept for small residual sets. At the end, compare the staged count with loaded plus rejected plus skipped duplicates and fail the job if the numbers do not close.",
+      "rubric": [
+        "Uses one transaction for the load",
+        "Separates pre-validation from savepoint-per-row and states why a plain failure aborts the transaction",
+        "Writes rejects with a reason",
+        "Reconciles read, loaded and rejected counts"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "In `sqlite3`, you insert an order whose `customer_key` has no customer and no pragma was set. What happens?",
+      "options": [
+        "`IntegrityError: FOREIGN KEY constraint failed`",
+        "The row is stored: foreign keys are off until `PRAGMA foreign_keys = ON`",
+        "The row is stored with `customer_key` set to NULL",
+        "The insert is ignored"
+      ],
+      "answer": 1,
+      "explanation": "SQLite does not enforce foreign keys by default and enforcement is set per connection. PostgreSQL always enforces them, so the stand-in differs here and the pragma must be part of the connection setup."
+    },
+    {
+      "id": "c2",
+      "question": "Which load order is valid for `order_line -> sales_order -> customer` (arrow means references)?",
+      "options": [
+        "`order_line`, `sales_order`, `customer`",
+        "`customer`, `sales_order`, `order_line`",
+        "`sales_order`, `customer`, `order_line`",
+        "Any order, constraints are checked at the end"
+      ],
+      "answer": 1,
+      "explanation": "Parents must exist before children point at them, so customers first, then orders, then lines. Deleting reverses the order. PostgreSQL checks immediately after each statement unless a constraint is declared deferrable."
+    },
+    {
+      "id": "c3",
+      "question": "After a statement fails with a constraint violation inside a PostgreSQL transaction, what happens to the next statement in that transaction?",
+      "options": [
+        "It runs normally",
+        "It fails with an aborted-transaction error until you roll back (or roll back to a savepoint)",
+        "It is silently skipped",
+        "It retries the failed statement"
+      ],
+      "answer": 1,
+      "explanation": "PostgreSQL marks the transaction as aborted after an error. That is why per-row error handling needs a savepoint per row, for example `with conn.transaction():` in psycopg. `sqlite3` does not abort the transaction, so the stand-in is more forgiving."
+    },
+    {
+      "id": "c4",
+      "question": "A load read 100 rows, loaded 90 and rejected 8. What should you do?",
+      "options": [
+        "Nothing, 90 percent is good",
+        "Find the missing 2 rows: the counts must close (100 = loaded + rejected + skipped)",
+        "Delete the reject table",
+        "Rerun until it loads 100"
+      ],
+      "answer": 1,
+      "explanation": "If read does not equal loaded plus rejected plus intentionally skipped duplicates, rows were lost or never classified. A reconciliation that does not close is a failure, not a rounding matter."
+    },
+    {
+      "id": "c5",
+      "question": "Which SQLSTATE does PostgreSQL report for a foreign key violation?",
+      "options": [
+        "23505",
+        "23503",
+        "23502",
+        "42P01"
+      ],
+      "answer": 1,
+      "explanation": "`23503` is `foreign_key_violation`; `23505` is a unique violation (including a primary key), `23502` is NOT NULL and `42P01` is an undefined table, a different class of error."
+    }
+  ]
+}

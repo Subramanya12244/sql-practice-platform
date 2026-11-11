@@ -1,0 +1,181 @@
+{
+  "time": {
+    "theory": 25,
+    "examples": 25,
+    "guided": 25,
+    "independent": 45,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-etl-pipelines",
+      "etl-transformation"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A pure transform",
+      "kind": "python",
+      "prompt": "Write `add_amount(df)` that returns a new DataFrame with a column `amount` equal to `amount_cents / 100`, without changing the frame passed in. Print the columns of the input after the call and then the `amount` values of the result as a list. Expected output: `['id', 'amount_cents']` then `[10.0, 2.5]`.",
+      "starter": "import pandas as pd\n\ndef add_amount(df):\n    pass\n\nraw = pd.DataFrame({\"id\": [1, 2], \"amount_cents\": [1000, 250]})\nout = add_amount(raw)\nprint(list(raw.columns))\nprint(out[\"amount\"].tolist())\n",
+      "solution": "import pandas as pd\n\ndef add_amount(df):\n    return df.assign(amount=df[\"amount_cents\"] / 100)\n\nraw = pd.DataFrame({\"id\": [1, 2], \"amount_cents\": [1000, 250]})\nout = add_amount(raw)\nprint(list(raw.columns))\nprint(out[\"amount\"].tolist())\n",
+      "hints": [
+        "The function must return a frame; it must not add a column to `df` itself.",
+        "`df.assign(name=values)` returns a new frame with the column added.",
+        "`return df.assign(amount=df[\"amount_cents\"] / 100)`"
+      ],
+      "expected": "['id', 'amount_cents']\n[10.0, 2.5]"
+    },
+    {
+      "id": "g2",
+      "title": "A query function",
+      "kind": "python",
+      "prompt": "The in-memory table `orders(order_id, status, amount_cents)` is created for you. Write `query_orders(conn, status)` that returns a DataFrame of `order_id` and `amount_cents` for that status ordered by `order_id`, using `read_sql` with a `?` parameter. Print `query_orders(conn, \"paid\").to_string(index=False)`. Expected output: a header and two rows.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?, ?)\", [(1, \"paid\", 1500), (2, \"failed\", 900), (3, \"paid\", 700)])\n\ndef query_orders(conn, status):\n    pass\n\nprint(query_orders(conn, \"paid\").to_string(index=False))\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?, ?)\", [(1, \"paid\", 1500), (2, \"failed\", 900), (3, \"paid\", 700)])\n\ndef query_orders(conn, status):\n    return pd.read_sql(\"SELECT order_id, amount_cents FROM orders WHERE status = ? ORDER BY order_id\", conn, params=(status,))\n\nprint(query_orders(conn, \"paid\").to_string(index=False))\n",
+      "hints": [
+        "The function returns `pd.read_sql(...)`.",
+        "Use a `?` placeholder and `params=(status,)`.",
+        "`pd.read_sql(\"SELECT order_id, amount_cents FROM orders WHERE status = ? ORDER BY order_id\", conn, params=(status,))`"
+      ],
+      "expected": " order_id  amount_cents\n        1          1500\n        3           700"
+    },
+    {
+      "id": "g3",
+      "title": "A summary function",
+      "kind": "python",
+      "prompt": "Write `summarise(df)` that groups a frame with columns `currency` and `amount` by currency and returns a frame with columns `currency`, `orders` (count of rows) and `revenue` (sum of `amount`), sorted by currency with the default index. Print it with `to_string(index=False)`. Expected output: a header and two rows.",
+      "starter": "import pandas as pd\n\ndef summarise(df):\n    pass\n\nframe = pd.DataFrame({\"currency\": [\"USD\", \"EUR\", \"EUR\"], \"amount\": [5.5, 10.0, 20.0]})\nprint(summarise(frame).to_string(index=False))\n",
+      "solution": "import pandas as pd\n\ndef summarise(df):\n    return df.groupby(\"currency\", as_index=False).agg(orders=(\"amount\", \"count\"), revenue=(\"amount\", \"sum\"))\n\nframe = pd.DataFrame({\"currency\": [\"USD\", \"EUR\", \"EUR\"], \"amount\": [5.5, 10.0, 20.0]})\nprint(summarise(frame).to_string(index=False))\n",
+      "hints": [
+        "Group by `currency` and keep it as a column with `as_index=False`.",
+        "Use named aggregations: `.agg(orders=(\"amount\", \"count\"), revenue=(\"amount\", \"sum\"))`.",
+        "`groupby` sorts by key by default, so EUR comes before USD; return `df.groupby(\"currency\", as_index=False).agg(...)`."
+      ],
+      "expected": "currency  orders  revenue\n     EUR       2     30.0\n     USD       1      5.5"
+    },
+    {
+      "id": "g4",
+      "title": "Chain with pipe",
+      "kind": "python",
+      "prompt": "Using the two functions in the starter, produce the summary of the frame with `.pipe(add_amount).pipe(summarise)` on one chained expression and print `to_string(index=False)`. Expected output: a header and one row for EUR.",
+      "starter": "import pandas as pd\n\ndef add_amount(df):\n    return df.assign(amount=df[\"amount_cents\"] / 100)\n\ndef summarise(df):\n    return df.groupby(\"currency\", as_index=False).agg(orders=(\"amount\", \"count\"), revenue=(\"amount\", \"sum\"))\n\nraw = pd.DataFrame({\"currency\": [\"EUR\", \"EUR\"], \"amount_cents\": [1000, 250]})\n# Your code here\n",
+      "solution": "import pandas as pd\n\ndef add_amount(df):\n    return df.assign(amount=df[\"amount_cents\"] / 100)\n\ndef summarise(df):\n    return df.groupby(\"currency\", as_index=False).agg(orders=(\"amount\", \"count\"), revenue=(\"amount\", \"sum\"))\n\nraw = pd.DataFrame({\"currency\": [\"EUR\", \"EUR\"], \"amount_cents\": [1000, 250]})\nresult = raw.pipe(add_amount).pipe(summarise)\nprint(result.to_string(index=False))\n",
+      "hints": [
+        "`df.pipe(f)` means `f(df)`.",
+        "Start from `raw` and call `.pipe(add_amount)` first.",
+        "`raw.pipe(add_amount).pipe(summarise)`, then print the result."
+      ],
+      "expected": "currency  orders  revenue\n     EUR       2     12.5"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Query, transform, summarise",
+      "kind": "python",
+      "prompt": "Starting from the table created in the starter, write three functions and chain them: `query_visits(conn, min_seconds)` returns `visit_id`, `page`, `seconds` for visits with at least `min_seconds`; `add_minutes(df)` returns a new frame with `minutes = seconds / 60`; `summarise(df)` returns `page`, `visits` (count) and `minutes` (sum rounded to 2 decimals), sorted by `page`. Print the result of `query_visits(conn, 30).pipe(add_minutes).pipe(summarise)` with `to_string(index=False)`.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE visits (visit_id INTEGER, page TEXT, seconds INTEGER)\")\nconn.executemany(\"INSERT INTO visits VALUES (?, ?, ?)\", [(1, \"home\", 90), (2, \"pricing\", 20), (3, \"home\", 45), (4, \"docs\", 300), (5, \"pricing\", 75), (6, \"docs\", 30)])\n# Your code here\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE visits (visit_id INTEGER, page TEXT, seconds INTEGER)\")\nconn.executemany(\"INSERT INTO visits VALUES (?, ?, ?)\", [(1, \"home\", 90), (2, \"pricing\", 20), (3, \"home\", 45), (4, \"docs\", 300), (5, \"pricing\", 75), (6, \"docs\", 30)])\n\ndef query_visits(conn, min_seconds):\n    return pd.read_sql(\"SELECT visit_id, page, seconds FROM visits WHERE seconds >= ?\", conn, params=(min_seconds,))\n\ndef add_minutes(df):\n    return df.assign(minutes=df[\"seconds\"] / 60)\n\ndef summarise(df):\n    out = df.groupby(\"page\", as_index=False).agg(visits=(\"visit_id\", \"count\"), minutes=(\"minutes\", \"sum\"))\n    return out.assign(minutes=out[\"minutes\"].round(2))\n\nprint(query_visits(conn, 30).pipe(add_minutes).pipe(summarise).to_string(index=False))\n",
+      "expected": "   page  visits  minutes\n   docs       2     5.50\n   home       2     2.25\npricing       1     1.25"
+    },
+    {
+      "id": "i2",
+      "title": "Tests for the three steps",
+      "kind": "python",
+      "prompt": "Write `check_steps()` that builds its own in-memory table `orders(order_id, amount_cents, currency, status)` with the five rows in the starter, runs your own query, transform and summary on it, and returns a list of three strings: `query: PASS` or `query: FAIL` (3 paid rows), `transform: PASS` or `FAIL` (the input frame keeps its original columns), `summary: PASS` or `FAIL` (EUR revenue is 12.5). Print each string on its own line. The starter has the table and a placeholder; all three must be `PASS` for the correct functions.",
+      "starter": "import sqlite3\nimport pandas as pd\n\ndef check_steps():\n    conn = sqlite3.connect(\":memory:\")\n    conn.execute(\"CREATE TABLE orders (order_id INTEGER, amount_cents INTEGER, currency TEXT, status TEXT)\")\n    conn.executemany(\"INSERT INTO orders VALUES (?,?,?,?)\", [(1, 1000, \"EUR\", \"paid\"), (2, 250, \"EUR\", \"paid\"), (3, 400, \"USD\", \"paid\"), (4, 999, \"EUR\", \"failed\"), (5, 100, \"USD\", \"refunded\")])\n    return []\n\nfor line in check_steps():\n    print(line)\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\ndef query_orders(conn, status):\n    return pd.read_sql(\"SELECT order_id, amount_cents, currency FROM orders WHERE status = ? ORDER BY order_id\", conn, params=(status,))\n\ndef add_amount(df):\n    return df.assign(amount=df[\"amount_cents\"] / 100)\n\ndef summarise(df):\n    return df.groupby(\"currency\", as_index=False).agg(orders=(\"order_id\", \"count\"), revenue=(\"amount\", \"sum\"))\n\ndef check_steps():\n    conn = sqlite3.connect(\":memory:\")\n    conn.execute(\"CREATE TABLE orders (order_id INTEGER, amount_cents INTEGER, currency TEXT, status TEXT)\")\n    conn.executemany(\"INSERT INTO orders VALUES (?,?,?,?)\", [(1, 1000, \"EUR\", \"paid\"), (2, 250, \"EUR\", \"paid\"), (3, 400, \"USD\", \"paid\"), (4, 999, \"EUR\", \"failed\"), (5, 100, \"USD\", \"refunded\")])\n    raw = query_orders(conn, \"paid\")\n    columns = list(raw.columns)\n    added = add_amount(raw)\n    summary = summarise(added).set_index(\"currency\")\n    return [\n        \"query: \" + (\"PASS\" if len(raw) == 3 else \"FAIL\"),\n        \"transform: \" + (\"PASS\" if list(raw.columns) == columns and \"amount\" in added.columns else \"FAIL\"),\n        \"summary: \" + (\"PASS\" if summary.loc[\"EUR\", \"revenue\"] == 12.5 else \"FAIL\"),\n    ]\n\nfor line in check_steps():\n    print(line)\n",
+      "expected": "query: PASS\ntransform: PASS\nsummary: PASS"
+    },
+    {
+      "id": "i3",
+      "title": "Refactor a long script",
+      "kind": "written",
+      "prompt": "A colleague's 40-line script connects to a hard-coded database path, selects every column of `orders`, adds `df[\"amount\"] = ...` on the frame, groups, prints and draws a chart in the same block. Write the refactoring plan: the functions you would create with their arguments and return values, where the connection comes from, what you would stop doing to the input frame, and which three tests you would write first.",
+      "starter": "Functions:\nConnection:\nInput frame:\nTests:\n",
+      "solution": "Create `query_orders(conn, status, start, end)` returning a frame with only the needed columns and parsed dates (parameterised read_sql), `add_amounts(df)` returning `df.assign(amount=...)`, `summarise(df)` returning the grouped table sorted by key, and `plot_summary(summary)` for the chart so that drawing is separate from computing. The connection is created once at the top of the entry point (from configuration) and passed in, so tests can pass an in-memory `sqlite3` connection. The transform stops mutating the input: it returns a new frame with `assign`. First tests: the query on a five-row table returns exactly the expected rows; the transform leaves the input columns unchanged and adds `amount`; the summary on a small frame returns the hand-computed totals.",
+      "required": false,
+      "rubric": [
+        "Separates query, transform, summarise (and plotting) into functions with stated arguments and returns.",
+        "Passes the connection in instead of hard-coding it.",
+        "Stops mutating the input frame (assign or copy).",
+        "Names three tests on small known inputs."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A transform does `df[\"amount\"] = df[\"amount_cents\"] / 100` on the frame it received and returns it. What is the main problem?",
+      "options": [
+        "It is slower",
+        "It changes the caller's frame, so a second call or another step sees different data",
+        "It cannot divide",
+        "pandas forbids new columns"
+      ],
+      "answer": 1,
+      "explanation": "The function has a side effect on its argument. Pure functions return a new frame (`assign` or `copy`) so callers can rely on their data staying as it was."
+    },
+    {
+      "id": "c2",
+      "question": "Why does `query_orders(conn, ...)` take the connection as an argument?",
+      "options": [
+        "SQL needs it",
+        "So tests can pass an in-memory database and production can pass the real one",
+        "To make it faster",
+        "Because read_sql cannot connect itself"
+      ],
+      "answer": 1,
+      "explanation": "Passing the connection in makes the function independent of where the database is, which is what lets it run unchanged in a test."
+    },
+    {
+      "id": "c3",
+      "question": "What does `raw.pipe(add_amount).pipe(summarise)` compute?",
+      "options": [
+        "`add_amount(summarise(raw))`",
+        "`summarise(add_amount(raw))`",
+        "`raw + add_amount + summarise`",
+        "Nothing until executed twice"
+      ],
+      "answer": 1,
+      "explanation": "`pipe` passes the frame to the function, left to right, so `add_amount` runs first and its result goes to `summarise`."
+    },
+    {
+      "id": "c4",
+      "question": "After `out = df.groupby(\"currency\").agg(n=(\"id\", \"count\"))`, where is the currency?",
+      "options": [
+        "In a column named currency",
+        "In the index, because as_index defaults to True",
+        "Dropped",
+        "In `out.columns.names`"
+      ],
+      "answer": 1,
+      "explanation": "By default the group keys become the index. Pass `as_index=False` (or `reset_index()`) to keep them as a normal column."
+    },
+    {
+      "id": "c5",
+      "question": "Which test of a summary function needs no database?",
+      "options": [
+        "Calling it on a small hand-built DataFrame and asserting the totals",
+        "Calling it on production data",
+        "Running `SELECT COUNT(*)`",
+        "None"
+      ],
+      "answer": 0,
+      "explanation": "A summary takes a frame and returns a frame, so a small frame with hand-computed totals tests it completely."
+    }
+  ],
+  "id": "e116"
+}

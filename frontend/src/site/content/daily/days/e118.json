@@ -1,0 +1,187 @@
+{
+  "time": {
+    "theory": 25,
+    "examples": 25,
+    "guided": 25,
+    "independent": 45,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-pipeline-monitoring",
+      "python-pandas",
+      "python-logging"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "end-to-end-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "environment": {
+    "packages": [
+      "matplotlib"
+    ],
+    "note": "Examples 2 to 5 use Matplotlib, which the browser runner does not load. Install it with `pip install matplotlib` and run them on your own computer. They select the Agg backend, which draws to files without a window, and print figure properties instead of showing an image. The graded exercises compute the data behind the charts with plain Python and SQL, which the browser can run."
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Rejection rates",
+      "kind": "python",
+      "prompt": "Write `rates(history)` that returns the list of rejection rates `rejected / read` rounded to 3 decimals for a list of dicts with `read` and `rejected`. Print the result for the three runs in the starter. Expected output: `[0.05, 0.1, 0.0]`.",
+      "starter": "def rates(history):\n    pass\n\nhistory = [{\"read\": 100, \"rejected\": 5}, {\"read\": 120, \"rejected\": 12}, {\"read\": 90, \"rejected\": 0}]\nprint(rates(history))\n",
+      "solution": "def rates(history):\n    return [round(r[\"rejected\"] / r[\"read\"], 3) for r in history]\n\nhistory = [{\"read\": 100, \"rejected\": 5}, {\"read\": 120, \"rejected\": 12}, {\"read\": 90, \"rejected\": 0}]\nprint(rates(history))\n",
+      "hints": [
+        "A list comprehension over the runs gives one rate per run.",
+        "The rate is `r[\"rejected\"] / r[\"read\"]`; wrap it in `round(..., 3)`.",
+        "`return [round(r[\"rejected\"] / r[\"read\"], 3) for r in history]`"
+      ],
+      "expected": "[0.05, 0.1, 0.0]"
+    },
+    {
+      "id": "g2",
+      "title": "Runs over the limit",
+      "kind": "python",
+      "prompt": "Write `breaches(history, limit)` that returns the list of `run` numbers whose rejection rate (`rejected / read`) is greater than `limit`. Print the result for `limit = 0.08` on the starter data. Expected output: `[2, 4]`.",
+      "starter": "def breaches(history, limit):\n    pass\n\nhistory = [{\"run\": 1, \"read\": 100, \"rejected\": 5}, {\"run\": 2, \"read\": 120, \"rejected\": 12}, {\"run\": 3, \"read\": 90, \"rejected\": 0}, {\"run\": 4, \"read\": 100, \"rejected\": 9}]\nprint(breaches(history, 0.08))\n",
+      "solution": "def breaches(history, limit):\n    return [r[\"run\"] for r in history if r[\"rejected\"] / r[\"read\"] > limit]\n\nhistory = [{\"run\": 1, \"read\": 100, \"rejected\": 5}, {\"run\": 2, \"read\": 120, \"rejected\": 12}, {\"run\": 3, \"read\": 90, \"rejected\": 0}, {\"run\": 4, \"read\": 100, \"rejected\": 9}]\nprint(breaches(history, 0.08))\n",
+      "hints": [
+        "Compare each run's rate with the limit and keep the run number.",
+        "A list comprehension with an `if` clause does both.",
+        "`[r[\"run\"] for r in history if r[\"rejected\"] / r[\"read\"] > limit]`"
+      ],
+      "expected": "[2, 4]"
+    },
+    {
+      "id": "g3",
+      "title": "A chart specification",
+      "kind": "python",
+      "prompt": "Write `chart_spec(history, limit)` returning a dict with the keys `title` (`\"Rows per run\"`), `x` (list of run numbers), `loaded` (list of loaded rows), `rejected` (list of rejected rows) and `limit` (the limit). Print `spec[\"x\"]`, `spec[\"loaded\"]` and `spec[\"rejected\"]` on three lines for the starter history. Expected output: `[1, 2]`, `[95, 108]`, `[5, 12]`.",
+      "starter": "def chart_spec(history, limit):\n    pass\n\nhistory = [{\"run\": 1, \"read\": 100, \"loaded\": 95, \"rejected\": 5}, {\"run\": 2, \"read\": 120, \"loaded\": 108, \"rejected\": 12}]\nspec = chart_spec(history, 10)\nprint(spec[\"x\"])\nprint(spec[\"loaded\"])\nprint(spec[\"rejected\"])\n",
+      "solution": "def chart_spec(history, limit):\n    return {\n        \"title\": \"Rows per run\",\n        \"x\": [r[\"run\"] for r in history],\n        \"loaded\": [r[\"loaded\"] for r in history],\n        \"rejected\": [r[\"rejected\"] for r in history],\n        \"limit\": limit,\n    }\n\nhistory = [{\"run\": 1, \"read\": 100, \"loaded\": 95, \"rejected\": 5}, {\"run\": 2, \"read\": 120, \"loaded\": 108, \"rejected\": 12}]\nspec = chart_spec(history, 10)\nprint(spec[\"x\"])\nprint(spec[\"loaded\"])\nprint(spec[\"rejected\"])\n",
+      "hints": [
+        "The spec is a dictionary with the five keys named in the task.",
+        "Each list is a comprehension over `history` taking one field.",
+        "Return `{\"title\": \"Rows per run\", \"x\": [...], \"loaded\": [...], \"rejected\": [...], \"limit\": limit}`."
+      ],
+      "expected": "[1, 2]\n[95, 108]\n[5, 12]"
+    },
+    {
+      "id": "g4",
+      "title": "Monitoring query",
+      "kind": "sql",
+      "prompt": "On PGlite the table `run_log(run_id, rows_read, rows_rejected)` is created for you. Return `run_id` and `rejection_pct` (`rows_rejected * 100.0 / rows_read` cast to numeric and rounded to 1 decimal) for runs with a rejection percentage above 8, ordered by `run_id`.",
+      "starter": "CREATE TABLE run_log (run_id int, rows_read int, rows_rejected int);\nINSERT INTO run_log VALUES (1,100,5),(2,120,12),(3,90,0),(4,100,9),(5,110,10);\nSELECT run_id FROM run_log ORDER BY run_id LIMIT 1;\n",
+      "solution": "CREATE TABLE run_log (run_id int, rows_read int, rows_rejected int);\nINSERT INTO run_log VALUES (1,100,5),(2,120,12),(3,90,0),(4,100,9),(5,110,10);\nSELECT run_id, ROUND(rows_rejected * 100.0 / rows_read, 1) AS rejection_pct\nFROM run_log\nWHERE rows_rejected * 100.0 / rows_read > 8\nORDER BY run_id;\n",
+      "hints": [
+        "The percentage is rejected times 100.0 divided by read.",
+        "Use the same expression in `SELECT` (rounded) and in `WHERE` (unrounded).",
+        "`ROUND(rows_rejected * 100.0 / rows_read, 1)` and `WHERE rows_rejected * 100.0 / rows_read > 8`."
+      ],
+      "ordered": true
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Weekly volume for a chart",
+      "kind": "python",
+      "prompt": "The list `daily_loaded` holds loaded rows for 14 consecutive days. Compute the weekly totals (days 1 to 7, days 8 to 14), the percentage change of week 2 against week 1 rounded to one decimal, and the label for the chart title: `Week 2 vs week 1: <change>%` with a `+` sign for positive changes. Print the two totals on one line as `weeks: [<w1>, <w2>]`, then the title.",
+      "starter": "daily_loaded = [100, 98, 105, 110, 95, 40, 35, 102, 107, 111, 120, 99, 45, 38]\n# Your code here\n",
+      "solution": "daily_loaded = [100, 98, 105, 110, 95, 40, 35, 102, 107, 111, 120, 99, 45, 38]\nweeks = [sum(daily_loaded[i:i + 7]) for i in range(0, 14, 7)]\nchange = round((weeks[1] - weeks[0]) / weeks[0] * 100, 1)\nprint(\"weeks:\", weeks)\nprint(f\"Week 2 vs week 1: {change:+}%\")\n",
+      "expected": "weeks: [583, 622]\nWeek 2 vs week 1: +6.7%"
+    },
+    {
+      "id": "i2",
+      "title": "Validate a chart spec",
+      "kind": "python",
+      "prompt": "Write `problems(spec)` that returns a list of strings describing what is wrong with a chart spec dict, checked in this order: `no title` if `title` is empty, `no y label` if `ylabel` is empty, `length mismatch` if `x` and `y` have different lengths, `empty series` if `y` has no values. A correct spec gives an empty list. Print the problems for the two specs in the starter, one list per line.",
+      "starter": "def problems(spec):\n    return []\n\ngood = {\"title\": \"Rows per run\", \"ylabel\": \"Rows\", \"x\": [1, 2, 3], \"y\": [10, 12, 9]}\nbad = {\"title\": \"\", \"ylabel\": \"Rows\", \"x\": [1, 2, 3], \"y\": [10, 12]}\nprint(problems(good))\nprint(problems(bad))\n",
+      "solution": "def problems(spec):\n    found = []\n    if not spec[\"title\"]:\n        found.append(\"no title\")\n    if not spec[\"ylabel\"]:\n        found.append(\"no y label\")\n    if len(spec[\"x\"]) != len(spec[\"y\"]):\n        found.append(\"length mismatch\")\n    if not spec[\"y\"]:\n        found.append(\"empty series\")\n    return found\n\ngood = {\"title\": \"Rows per run\", \"ylabel\": \"Rows\", \"x\": [1, 2, 3], \"y\": [10, 12, 9]}\nbad = {\"title\": \"\", \"ylabel\": \"Rows\", \"x\": [1, 2, 3], \"y\": [10, 12]}\nprint(problems(good))\nprint(problems(bad))\n",
+      "expected": "[]\n['no title', 'length mismatch']"
+    },
+    {
+      "id": "i3",
+      "title": "Design the monitoring panel",
+      "kind": "written",
+      "prompt": "Design the one-page monitoring report for a nightly orders pipeline: choose three charts, and for each give its type, x and y axes with units, the reference line (if any) and the decision it supports. Then write the checks you would automate for one of the charts (title, labels, bar count, data) and the file name and save settings you would use so that reruns overwrite the same file.",
+      "starter": "Chart 1:\nChart 2:\nChart 3:\nAutomated checks:\nFile name and settings:\n",
+      "solution": "Chart 1: stacked bars per run of loaded and rejected rows (x: run date, y: rows) with a dashed line at the expected volume; it supports the decision whether the load is complete. Chart 2: line of rejection rate per run (x: run date, y: percent of rows read) with a dashed line at the agreed limit; it supports the decision to quarantine and investigate. Chart 3: line of hours since the last successful load (x: check time, y: hours) with a line at the freshness target; it supports the decision to page the on-call engineer. Automated checks for chart 1: the title string, both axis labels, a bar count equal to twice the number of runs, the first bar heights equal to the first run's loaded and rejected numbers, and the data function tested on a five-run history. File name and settings: `loads_<yyyy-mm>.png`, `fig.tight_layout()`, `fig.savefig(path, dpi=100)` and `plt.close(fig)`, written to a configured output folder so a rerun overwrites the same file.",
+      "required": false,
+      "rubric": [
+        "Each chart has a type, labelled axes with units and a decision it supports.",
+        "At least one chart has a threshold or limit line.",
+        "Automated checks name the title, labels, bar or point counts and the data behind the chart.",
+        "The file name is deterministic and the figure is closed after saving."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why call `matplotlib.use(\"Agg\")` in a scheduled job?",
+      "options": [
+        "It makes charts prettier",
+        "It selects a backend that draws to files and needs no display",
+        "It enables saving to PNG only",
+        "It speeds up plotting"
+      ],
+      "answer": 1,
+      "explanation": "A server has no display. The Agg backend renders into memory and files, so the job works headlessly. It does not change how the chart looks."
+    },
+    {
+      "id": "c2",
+      "question": "`ax.bar(runs, loaded)` followed by `ax.bar(runs, rejected)` with no `bottom=`. What do you see?",
+      "options": [
+        "Stacked bars",
+        "The rejected bars drawn over the loaded bars from zero",
+        "An error",
+        "Side by side bars"
+      ],
+      "answer": 1,
+      "explanation": "Both series start at zero, so the second is drawn on top of the first and may hide it. Stacking needs `bottom=loaded`."
+    },
+    {
+      "id": "c3",
+      "question": "After drawing 10 runs as stacked loaded and rejected bars, what does `len(ax.patches)` return?",
+      "options": [
+        "10",
+        "20",
+        "2",
+        "0"
+      ],
+      "answer": 1,
+      "explanation": "Each bar is one patch and there are two series of ten bars. It counts bars, which makes it useful for tests."
+    },
+    {
+      "id": "c4",
+      "question": "A job draws 500 charts in a loop and never calls `plt.close`. What is the problem?",
+      "options": [
+        "Nothing, figures are freed automatically",
+        "Figures stay in memory until closed, so memory grows and Matplotlib warns",
+        "The charts overwrite each other",
+        "The files are empty"
+      ],
+      "answer": 1,
+      "explanation": "Matplotlib keeps figures alive in a registry until you close them. Close each figure after saving."
+    },
+    {
+      "id": "c5",
+      "question": "What is the best way to test that a chart shows the right numbers?",
+      "options": [
+        "Look at it",
+        "Compute the data in a plain function and assert on it, then check the drawn artists' properties",
+        "Check the file size",
+        "Count the colours"
+      ],
+      "answer": 1,
+      "explanation": "The numbers are ordinary Python values and can be tested exactly. A chart can look fine while showing a wrongly filtered or sorted series."
+    }
+  ],
+  "id": "e118"
+}

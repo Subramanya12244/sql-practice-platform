@@ -1,0 +1,185 @@
+{
+  "id": "e101",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-api-integration",
+      "python-csv-json"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Split a URL",
+      "kind": "python",
+      "prompt": "Split `url` into its parts with string methods only. Print the host, then the path (starting with `/`), then the query as a dictionary with integer values. Expected output: `api.shop.example`, `/orders`, `{'page': 2, 'page_size': 50}`.",
+      "starter": "url = \"https://api.shop.example/orders?page=2&page_size=50\"\n# split into host, path and query\n",
+      "solution": "url = \"https://api.shop.example/orders?page=2&page_size=50\"\nrest = url.split(\"://\", 1)[1]\nhost_and_path, query_text = rest.split(\"?\", 1)\nhost, path = host_and_path.split(\"/\", 1)\nprint(host)\nprint(\"/\" + path)\nprint({k: int(v) for k, v in (pair.split(\"=\", 1) for pair in query_text.split(\"&\"))})\n",
+      "expected": "api.shop.example\n/orders\n{'page': 2, 'page_size': 50}",
+      "hints": [
+        "Remove the scheme with `split(\"://\", 1)` and keep the second part.",
+        "Split the remainder at `?`, then split the left part at the first `/`.",
+        "Build the dictionary from `pair.split(\"=\", 1)` for each piece of `query_text.split(\"&\")`, converting values with `int`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Count statuses in a JSON body",
+      "kind": "python",
+      "prompt": "`text` is a JSON response body. Parse it with `json.loads`, count the orders per `status` and print the counts as a dictionary sorted by status name. Expected output: `{'failed': 1, 'paid': 2, 'refunded': 1}`.",
+      "starter": "import json\n\ntext = '{\"data\": [{\"order_id\": 1, \"status\": \"paid\"}, {\"order_id\": 2, \"status\": \"failed\"}, {\"order_id\": 3, \"status\": \"paid\"}, {\"order_id\": 4, \"status\": \"refunded\"}], \"page\": 1, \"total_pages\": 1}'\n# parse and count\n",
+      "solution": "import json\n\ntext = '{\"data\": [{\"order_id\": 1, \"status\": \"paid\"}, {\"order_id\": 2, \"status\": \"failed\"}, {\"order_id\": 3, \"status\": \"paid\"}, {\"order_id\": 4, \"status\": \"refunded\"}], \"page\": 1, \"total_pages\": 1}'\nbody = json.loads(text)\ncounts = {}\nfor order in body[\"data\"]:\n    counts[order[\"status\"]] = counts.get(order[\"status\"], 0) + 1\nprint(dict(sorted(counts.items())))\n",
+      "expected": "{'failed': 1, 'paid': 2, 'refunded': 1}",
+      "hints": [
+        "`json.loads` returns a dictionary; the orders are under the key `data`.",
+        "Loop over the list and use a dictionary to count: `counts.get(key, 0) + 1`.",
+        "Print `dict(sorted(counts.items()))` to get the sorted order."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Call the stand-in",
+      "kind": "python",
+      "prompt": "The stand-in `get(path, headers)` below imitates a tiny orders API. Call `/orders/3` with the key header `{\"X-Api-Key\": \"k\"}` and print the status code and the `amount_cents`; then call `/orders/9` and print its status code; then call `/orders/3` without headers and print the status code. Expected output: `200 300`, `404`, `401`.",
+      "starter": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100, \"status\": \"paid\" if i % 2 else \"failed\"} for i in range(1, 6)]\n\ndef get(path, headers=None):\n    if (headers or {}).get(\"X-Api-Key\") != \"k\":\n        return Response(401, {\"error\": \"invalid api key\"})\n    if path == \"/orders\":\n        return Response(200, {\"data\": ORDERS})\n    for order in ORDERS:\n        if path == f\"/orders/{order['order_id']}\":\n            return Response(200, order)\n    return Response(404, {\"error\": \"order not found\"})\n\nKEY = {\"X-Api-Key\": \"k\"}\n# make the three calls\n",
+      "solution": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100, \"status\": \"paid\" if i % 2 else \"failed\"} for i in range(1, 6)]\n\ndef get(path, headers=None):\n    if (headers or {}).get(\"X-Api-Key\") != \"k\":\n        return Response(401, {\"error\": \"invalid api key\"})\n    if path == \"/orders\":\n        return Response(200, {\"data\": ORDERS})\n    for order in ORDERS:\n        if path == f\"/orders/{order['order_id']}\":\n            return Response(200, order)\n    return Response(404, {\"error\": \"order not found\"})\n\nKEY = {\"X-Api-Key\": \"k\"}\nok = get(\"/orders/3\", KEY)\nprint(ok.status_code, ok.json()[\"amount_cents\"])\nprint(get(\"/orders/9\", KEY).status_code)\nprint(get(\"/orders/3\").status_code)\n",
+      "expected": "200 300\n404\n401",
+      "hints": [
+        "Pass the key dictionary as the `headers` argument.",
+        "The response object has `status_code` and `json()`.",
+        "`ok = get(\"/orders/3\", KEY)` then print `ok.status_code, ok.json()[\"amount_cents\"]`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "JSON round trip",
+      "kind": "python",
+      "prompt": "Build the dictionary `{\"order_id\": 7, \"tags\": (\"web\", \"gift\"), \"note\": None, \"paid\": True}`, print `json.dumps` of it with `sort_keys=True`, then print the Python value you get back from `json.loads` of that text. Expected output: `{\"note\": null, \"order_id\": 7, \"paid\": true, \"tags\": [\"web\", \"gift\"]}` then `{'note': None, 'order_id': 7, 'paid': True, 'tags': ['web', 'gift']}`.",
+      "starter": "import json\n\norder = {\"order_id\": 7, \"tags\": (\"web\", \"gift\"), \"note\": None, \"paid\": True}\n# dumps and loads\n",
+      "solution": "import json\n\norder = {\"order_id\": 7, \"tags\": (\"web\", \"gift\"), \"note\": None, \"paid\": True}\ntext = json.dumps(order, sort_keys=True)\nprint(text)\nprint(json.loads(text))\n",
+      "expected": "{\"note\": null, \"order_id\": 7, \"paid\": true, \"tags\": [\"web\", \"gift\"]}\n{'note': None, 'order_id': 7, 'paid': True, 'tags': ['web', 'gift']}",
+      "hints": [
+        "`json.dumps` accepts the keyword `sort_keys`.",
+        "Keep the text in a variable so that you can parse it again.",
+        "`print(json.loads(text))` shows `None`, `True` and a list in place of the tuple."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Describe a response",
+      "kind": "python",
+      "prompt": "Using the stand-in `get` below, write `describe(response)` that returns `ok: N orders` when the status is 200 and the body has a `data` list (N is its length), `ok: order I` when the status is 200 and the body is a single order (I is its `order_id`), and `error 404: order not found` style text (`error <status>: <message from the body>`) for any other status. Print `describe` for `/orders`, `/orders/2`, `/orders/42` and `/orders` with no key. Expected: `ok: 5 orders`, `ok: order 2`, `error 404: order not found`, `error 401: invalid api key`.",
+      "starter": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100, \"status\": \"paid\" if i % 2 else \"failed\"} for i in range(1, 6)]\n\ndef get(path, headers=None):\n    if (headers or {}).get(\"X-Api-Key\") != \"k\":\n        return Response(401, {\"error\": \"invalid api key\"})\n    if path == \"/orders\":\n        return Response(200, {\"data\": ORDERS})\n    for order in ORDERS:\n        if path == f\"/orders/{order['order_id']}\":\n            return Response(200, order)\n    return Response(404, {\"error\": \"order not found\"})\n\nKEY = {\"X-Api-Key\": \"k\"}\n\ndef describe(response):\n    pass\n\nfor path, headers in [(\"/orders\", KEY), (\"/orders/2\", KEY), (\"/orders/42\", KEY), (\"/orders\", None)]:\n    print(describe(get(path, headers)))\n",
+      "solution": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100, \"status\": \"paid\" if i % 2 else \"failed\"} for i in range(1, 6)]\n\ndef get(path, headers=None):\n    if (headers or {}).get(\"X-Api-Key\") != \"k\":\n        return Response(401, {\"error\": \"invalid api key\"})\n    if path == \"/orders\":\n        return Response(200, {\"data\": ORDERS})\n    for order in ORDERS:\n        if path == f\"/orders/{order['order_id']}\":\n            return Response(200, order)\n    return Response(404, {\"error\": \"order not found\"})\n\nKEY = {\"X-Api-Key\": \"k\"}\n\ndef describe(response):\n    body = response.json()\n    if response.status_code != 200:\n        return f\"error {response.status_code}: {body['error']}\"\n    if \"data\" in body:\n        return f\"ok: {len(body['data'])} orders\"\n    return f\"ok: order {body['order_id']}\"\n\nfor path, headers in [(\"/orders\", KEY), (\"/orders/2\", KEY), (\"/orders/42\", KEY), (\"/orders\", None)]:\n    print(describe(get(path, headers)))\n",
+      "expected": "ok: 5 orders\nok: order 2\nerror 404: order not found\nerror 401: invalid api key"
+    },
+    {
+      "id": "i2",
+      "title": "Totals from a response body",
+      "kind": "python",
+      "prompt": "`text` is the JSON body of one page of orders. Parse it and print, for each currency in alphabetical order, the number of orders and the total in whole euros or dollars with two decimals, as `EUR 3 45.00`. Count only orders whose `status` is `paid`. Then print `page 1 of 2`, built from the body's `page` and `total_pages`. Expected: `EUR 2 45.00`, `USD 1 20.00`, `page 1 of 2`.",
+      "starter": "import json\n\ntext = '{\"data\": [{\"order_id\": 1, \"amount_cents\": 2500, \"currency\": \"EUR\", \"status\": \"paid\"}, {\"order_id\": 2, \"amount_cents\": 9900, \"currency\": \"EUR\", \"status\": \"failed\"}, {\"order_id\": 3, \"amount_cents\": 2000, \"currency\": \"USD\", \"status\": \"paid\"}, {\"order_id\": 4, \"amount_cents\": 2000, \"currency\": \"EUR\", \"status\": \"paid\"}], \"page\": 1, \"total_pages\": 2}'\n# aggregate\n",
+      "solution": "import json\n\ntext = '{\"data\": [{\"order_id\": 1, \"amount_cents\": 2500, \"currency\": \"EUR\", \"status\": \"paid\"}, {\"order_id\": 2, \"amount_cents\": 9900, \"currency\": \"EUR\", \"status\": \"failed\"}, {\"order_id\": 3, \"amount_cents\": 2000, \"currency\": \"USD\", \"status\": \"paid\"}, {\"order_id\": 4, \"amount_cents\": 2000, \"currency\": \"EUR\", \"status\": \"paid\"}], \"page\": 1, \"total_pages\": 2}'\nbody = json.loads(text)\ntotals = {}\nfor order in body[\"data\"]:\n    if order[\"status\"] == \"paid\":\n        count, cents = totals.get(order[\"currency\"], (0, 0))\n        totals[order[\"currency\"]] = (count + 1, cents + order[\"amount_cents\"])\nfor currency in sorted(totals):\n    count, cents = totals[currency]\n    print(currency, count, f\"{cents / 100:.2f}\")\nprint(f\"page {body['page']} of {body['total_pages']}\")\n",
+      "expected": "EUR 2 45.00\nUSD 1 20.00\npage 1 of 2"
+    },
+    {
+      "id": "i3",
+      "title": "Read an API reference",
+      "kind": "written",
+      "prompt": "A colleague gives you the reference for a shipping API: `GET /shipments?status=...&limit=...`, header `Authorization`, JSON response with `items` and `next`. Write the questions you would answer from the reference before writing any code (at least five), and for each say what in your first test call would confirm the answer.",
+      "starter": "List your questions and checks here.",
+      "solution": "1. How do I authenticate? Check: a call without the header returns 401 and a call with it returns 200. 2. What does the response look like? Check: print the top-level keys and one item. 3. How do I get the next batch? Check: the value of `next` after the first call, and whether the last call returns it empty. 4. Which values can `status` take and what happens with an unknown one? Check: call with a wrong value and read the status code and message. 5. What are the limits (maximum `limit`, calls per minute)? Check: the documentation, then a call with a too large `limit`. 6. What do timestamps and money look like? Check: print one item and look at the types.",
+      "rubric": [
+        "At least five distinct questions",
+        "Each question has a concrete check in a test call",
+        "Covers authentication, response shape and how to get more data"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `json.loads('{\"a\": null, \"b\": [1, 2]}')` return?",
+      "options": [
+        "`{'a': 'null', 'b': (1, 2)}`",
+        "`{'a': None, 'b': [1, 2]}`",
+        "`{\"a\": None, \"b\": [1, 2]}` as a string",
+        "It raises an error because `null` is not valid"
+      ],
+      "answer": 1,
+      "explanation": "`null` becomes `None` and arrays become lists. The result is a Python dictionary, not text. Tuples do not exist in JSON."
+    },
+    {
+      "id": "c2",
+      "question": "Why is it called stateless when an API client asks for page 2 of orders?",
+      "options": [
+        "The server forgets the data after sending it",
+        "The request itself must carry the page number and credentials because the server keeps no memory of earlier requests",
+        "Pages are not stored in the database",
+        "The client must close the connection"
+      ],
+      "answer": 1,
+      "explanation": "Stateless refers to the conversation: each request is complete on its own. The server still stores data, but it does not remember that you were on page 1. That is why the page parameter and the key go on every request."
+    },
+    {
+      "id": "c3",
+      "question": "A response has status 404 and a JSON body `{\"error\": \"order not found\"}`. What does `response.json()['order_id']` do?",
+      "options": [
+        "Returns `None`",
+        "Raises `KeyError`",
+        "Returns `'order not found'`",
+        "Returns 404"
+      ],
+      "answer": 1,
+      "explanation": "The error body does not have an `order_id` key, so the lookup raises `KeyError`. Check the status code before reading fields."
+    },
+    {
+      "id": "c4",
+      "question": "In `https://api.shop.example/orders?page=2&page_size=50`, which part is the query string?",
+      "options": [
+        "`api.shop.example`",
+        "`/orders`",
+        "`page=2&page_size=50`",
+        "`https`"
+      ],
+      "answer": 2,
+      "explanation": "The query string follows the `?`. The host names the server, the path names the resource and the scheme names the protocol."
+    },
+    {
+      "id": "c5",
+      "question": "Why does the Orders API send `amount_cents: 1990` and not `amount: 19.90`?",
+      "options": [
+        "JSON cannot hold decimals",
+        "A float cannot represent most decimals exactly, while an integer count of cents is exact",
+        "Integers are shorter text",
+        "The API follows the REST standard"
+      ],
+      "answer": 1,
+      "explanation": "JSON can hold decimals, but they become floats in most languages and money arithmetic on floats drifts. Integer cents avoid that."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "requests"
+    ],
+    "note": "Example 4 uses the requests library and a throwaway http.server on 127.0.0.1 in a thread, so it runs locally after `pip install requests` and is shown read-only in the browser (sockets, threads and requests are unavailable there). Nothing contacts a real service. Every graded exercise uses a stand-in function that returns canned JSON with the same call shape as requests.get, so the parsing and status-handling logic is identical."
+  }
+}

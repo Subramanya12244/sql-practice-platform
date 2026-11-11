@@ -1,0 +1,193 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "sum",
+      "avg",
+      "count",
+      "group-by"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "sales-by-month"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "pivot-report"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Calculated column Cost",
+      "kind": "python",
+      "prompt": "Replicate the calculated column `Cost = Sales[quantity] * RELATED(Products[unit_cost])`. The merged table `fact` already holds `unit_cost`. Add a `cost` column and print the total cost per `category` as a Series, rounded to 2 decimals, with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# add the cost column, then print cost per category\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nfact[\"cost\"] = fact[\"quantity\"] * fact[\"unit_cost\"]\nprint(fact.groupby(\"category\")[\"cost\"].sum().round(2).to_string())\n",
+      "hints": [
+        "A calculated column is a row-wise product of two columns.",
+        "fact[\"cost\"] = fact[\"quantity\"] * fact[\"unit_cost\"]",
+        "Group by category, sum cost, round(2) and print with to_string()."
+      ],
+      "expected": "category\nHardware    15485.0\nServices    15380.0\nSoftware    13890.0"
+    },
+    {
+      "id": "g2",
+      "title": "Revenue by country (a measure in a visual)",
+      "kind": "python",
+      "prompt": "A bar chart has `Customers[country]` on its axis and `[Total Revenue] = SUM(Sales[Revenue])` as its value. Print the value of each bar as a Series sorted by country name, rounded to 2 decimals, with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# one value per country\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nprint(fact.groupby(\"country\")[\"revenue\"].sum().round(2).to_string())\n",
+      "hints": [
+        "The axis field becomes the group key.",
+        "groupby(\"country\")[\"revenue\"].sum()",
+        "groupby sorts keys already; add round(2) and to_string()."
+      ],
+      "expected": "country\nFrance     16995.0\nGermany    19447.5\nSpain      16642.5\nUK         14047.5"
+    },
+    {
+      "id": "g3",
+      "title": "DIVIDE per country",
+      "kind": "python",
+      "prompt": "Write the function `divide(a, b, alt=None)` that returns `alt` when `b` is 0 and `a / b` otherwise. Use it to print `Price per Unit = DIVIDE([Total Revenue], [Units])` for each country as `country: value` lines (2 decimals), in alphabetical order of country.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef divide(a, b, alt=None):\n    pass\n\ng = fact.groupby(\"country\").agg(revenue=(\"revenue\", \"sum\"), units=(\"quantity\", \"sum\"))\n# print country: price per unit\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef divide(a, b, alt=None):\n    return alt if b == 0 else a / b\n\ng = fact.groupby(\"country\").agg(revenue=(\"revenue\", \"sum\"), units=(\"quantity\", \"sum\"))\nfor country, row in g.iterrows():\n    print(f\"{country}: {divide(row['revenue'], row['units']):.2f}\")\n",
+      "hints": [
+        "DIVIDE returns the alternate result when the denominator is zero.",
+        "Aggregate revenue and units per country first, then divide.",
+        "Loop with g.iterrows() and print f\"{country}: {value:.2f}\"."
+      ],
+      "expected": "France: 55.00\nGermany: 55.56\nSpain: 56.22\nUK: 56.87"
+    },
+    {
+      "id": "g4",
+      "title": "Write the margin measure (written)",
+      "kind": "written",
+      "prompt": "Using the calculated column `Sales[Cost]` from Example 1 and the measure `[Total Revenue]`, write explicit DAX measures `Total Cost` and `Gross Margin %`. Explain why `Gross Margin %` must not be a calculated column.",
+      "starter": "Total Cost = ...\nGross Margin % = ...",
+      "solution": "```dax\nTotal Cost = SUM(Sales[Cost])\nGross Margin % = DIVIDE([Total Revenue] - [Total Cost], [Total Revenue])\n```\n\nBoth are measures, so they re-evaluate for the filter context of each visual cell. `Gross Margin %` has to be computed from the two sums. If it were a calculated column, every row would store its own percentage; a visual would then sum or average those percentages, and the total would not equal the margin of the total revenue and cost. `DIVIDE` returns blank instead of an error when a filter leaves no revenue. The result is formatted as a percentage in the Measure tools ribbon, which does not change its value.",
+      "rubric": [
+        "Total Cost is SUM over the Cost column as a measure.",
+        "Margin is DIVIDE of (revenue minus cost) by revenue, built from measures.",
+        "Explains that a stored per-row ratio cannot be re-aggregated.",
+        "Mentions DIVIDE for zero or blank denominators."
+      ],
+      "hints": [
+        "Both measures aggregate columns or other measures.",
+        "Subtract the cost measure from the revenue measure inside DIVIDE.",
+        "A column is evaluated per row; a measure on totals gives the right ratio."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Explicit measure table by segment",
+      "kind": "python",
+      "prompt": "Build the matrix a report page would show with `Customers[segment]` on rows: columns `revenue` (`SUM`), `orders` (`DISTINCTCOUNT` of `order_id`), `units` (`SUM` of `quantity`) and `aov` (revenue divided by orders). Print it with `round(2)` and `to_string()`, rows sorted by segment.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# four measures per segment\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ng = fact.groupby(\"segment\").agg(revenue=(\"revenue\", \"sum\"), orders=(\"order_id\", \"nunique\"), units=(\"quantity\", \"sum\"))\ng[\"aov\"] = g[\"revenue\"] / g[\"orders\"]\nprint(g.round(2).to_string())\n",
+      "expected": "           revenue  orders  units     aov\nsegment                                  \nCorporate  37905.0     225    677  168.47\nRetail     29227.5     175    525  167.01"
+    },
+    {
+      "id": "i2",
+      "title": "Ratio of sums versus average of ratios",
+      "kind": "python",
+      "prompt": "For each `category` compute the average order value two ways: `DIVIDE` of total revenue by distinct orders, and the mean of the order values per `customer_id` (revenue of the customer divided by the customer's distinct orders, then averaged over customers). Print both as columns `ratio_of_sums` and `mean_of_customer_aov`, rounded to 2 decimals, with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# two ways to average\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nrows = []\nfor cat, d in fact.groupby(\"category\"):\n    ratio = d[\"revenue\"].sum() / d[\"order_id\"].nunique()\n    per_cust = d.groupby(\"customer_id\").agg(r=(\"revenue\", \"sum\"), o=(\"order_id\", \"nunique\"))\n    rows.append((cat, ratio, (per_cust[\"r\"] / per_cust[\"o\"]).mean()))\nout = pd.DataFrame(rows, columns=[\"category\", \"ratio_of_sums\", \"mean_of_customer_aov\"]).set_index(\"category\")\nprint(out.round(2).to_string())\n",
+      "expected": "          ratio_of_sums  mean_of_customer_aov\ncategory                                     \nHardware         160.19                157.19\nServices         178.84                182.95\nSoftware         165.36                149.23"
+    },
+    {
+      "id": "i3",
+      "title": "Column or measure? (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A colleague adds a calculated column `Margin % = DIVIDE(Sales[Revenue] - Sales[Cost], Sales[Revenue])` and puts it on a card with Sum. Another drags `unit_price` into a table with the default summary. Review both: what is wrong, what will the numbers look like, and which explicit measures would you create instead?",
+      "starter": "Problems: ...\nFix: ...",
+      "solution": "The first design stores a ratio per row and then sums it. With 400 rows the card would show roughly 400 times a margin percentage, a number like 13,333% in this model, instead of the margin of the total. Switching the card to Average would hide the error for the sample model because every row has the same margin, but it would be wrong as soon as margins differ, since it ignores the weight of each row. The fix is a measure, `Gross Margin % = DIVIDE([Total Revenue] - [Total Cost], [Total Revenue])`. The second design uses an implicit measure: a sum of unit prices grows with the order count and has no business meaning, and nobody can see which summary is used. Create `Average Unit Price = AVERAGE(Sales[unit_price])` if an unweighted figure is wanted, or `Price per Unit = DIVIDE([Total Revenue], [Units])` for the price actually paid, and hide the raw column from the report view.",
+      "rubric": [
+        "Identifies the summed per-row ratio as wrong and gives its symptom.",
+        "Replaces the column with a ratio-of-sums measure.",
+        "Calls out the implicit sum of price as meaningless.",
+        "Proposes explicit measures and hiding raw columns."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "DAX is written in Power BI Desktop (Windows-only) or in the model view of the Power BI Service in a browser; neither runs in this course. Every number quoted is reproduced with pandas, and the graded exercises replicate the measures with groupby so you can check them in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A column must show a percentage that responds to a slicer on country. What should you create?",
+      "options": [
+        "A calculated column with DIVIDE",
+        "A measure that divides two aggregations",
+        "An implicit measure on any column",
+        "A calculated table"
+      ],
+      "answer": 1,
+      "explanation": "A measure is evaluated in the filter context of each cell, so it reacts to slicers. A calculated column is stored per row at refresh and ignores slicers. Implicit measures cannot express a ratio."
+    },
+    {
+      "id": "c2",
+      "question": "In the sample model, what does `AVERAGE(Sales[unit_price])` return for Hardware: 51.31 or 51.05?",
+      "options": [
+        "51.05, the price actually paid per unit",
+        "51.31, the unweighted mean of the row prices",
+        "Either, they are always equal",
+        "An error, because AVERAGE needs a measure"
+      ],
+      "answer": 1,
+      "explanation": "AVERAGE is the unweighted mean of the row prices, 51.31. The weighted price, revenue divided by units, is 51.05; they are equal only when every row has the same quantity."
+    },
+    {
+      "id": "c3",
+      "question": "What does `DIVIDE([Total Revenue], [Units])` return when a filter leaves no sales rows?",
+      "options": [
+        "0",
+        "An error",
+        "Blank",
+        "1"
+      ],
+      "answer": 2,
+      "explanation": "Both measures are blank, so the denominator is blank and DIVIDE returns blank (or the third argument when given). The plain operator / would give an error or infinity when the denominator is zero."
+    },
+    {
+      "id": "c4",
+      "question": "Which statement about the measure `Total Revenue = SUM(Sales[Revenue])` is true?",
+      "options": [
+        "Its result is stored in every row of Sales",
+        "It returns one fixed number whatever the visual",
+        "It is recalculated for each cell using that cell's filters",
+        "It can be used as a slicer field"
+      ],
+      "answer": 2,
+      "explanation": "A measure stores only its formula and evaluates for each cell's filter context. A stored per-row value describes a calculated column, and a measure cannot be placed in a slicer or on an axis."
+    },
+    {
+      "id": "c5",
+      "question": "Why is `FORMAT([Total Revenue], \"#,0.00\")` a poor choice inside a measure used on a chart axis or by other measures?",
+      "options": [
+        "It changes the revenue stored in the model",
+        "It returns text, which cannot be summed or ordered as a number",
+        "FORMAT only works in calculated columns",
+        "It rounds to whole numbers"
+      ],
+      "answer": 1,
+      "explanation": "FORMAT converts the value to text. The model value is unchanged, but the result can no longer be aggregated or sorted numerically. Use the format property of the measure for numbers."
+    }
+  ],
+  "id": "a129"
+}

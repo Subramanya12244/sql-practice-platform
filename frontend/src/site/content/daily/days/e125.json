@@ -1,0 +1,184 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-incremental-load",
+      "etl-idempotency",
+      "etl-extraction"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "incremental-loading",
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "earliest-latest-transactions"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "New rows above the watermark",
+      "kind": "python",
+      "prompt": "Write `new_rows(source, watermark)` returning the rows of `source` (tuples `(id, updated_at)`) whose `updated_at` is strictly greater than `watermark`, sorted by `updated_at`. Print the ids of the result for the watermark `\"2025-03-01T11:00:00Z\"` as a list. Expected output: `[3, 4]`.",
+      "starter": "def new_rows(source, watermark):\n    pass\n\nsource = [(1, \"2025-03-01T10:00:00Z\"), (2, \"2025-03-01T11:00:00Z\"), (4, \"2025-03-03T08:00:00Z\"), (3, \"2025-03-02T09:00:00Z\")]\nprint([r[0] for r in new_rows(source, \"2025-03-01T11:00:00Z\")])\n",
+      "solution": "def new_rows(source, watermark):\n    return sorted((r for r in source if r[1] > watermark), key=lambda r: r[1])\n\nsource = [(1, \"2025-03-01T10:00:00Z\"), (2, \"2025-03-01T11:00:00Z\"), (4, \"2025-03-03T08:00:00Z\"), (3, \"2025-03-02T09:00:00Z\")]\nprint([r[0] for r in new_rows(source, \"2025-03-01T11:00:00Z\")])\n",
+      "hints": [
+        "ISO timestamps compare correctly as text.",
+        "Keep rows with `r[1] > watermark`, then sort by `r[1]`.",
+        "`sorted((r for r in source if r[1] > watermark), key=lambda r: r[1])`"
+      ],
+      "expected": "[3, 4]"
+    },
+    {
+      "id": "g2",
+      "title": "The next watermark",
+      "kind": "python",
+      "prompt": "Write `next_watermark(old, loaded)` that returns the largest `updated_at` among the loaded rows (tuples `(id, updated_at)`), or `old` when no rows were loaded, and never returns a value below `old`. Print the results for `(\"2025-03-02T00:00:00Z\", [])`, for the same watermark with one row at `\"2025-03-03T08:00:00Z\"`, and with one row at `\"2025-03-01T00:00:00Z\"`, one per line. Expected output: the old mark, the later time, the old mark.",
+      "starter": "def next_watermark(old, loaded):\n    pass\n\nold = \"2025-03-02T00:00:00Z\"\nprint(next_watermark(old, []))\nprint(next_watermark(old, [(7, \"2025-03-03T08:00:00Z\")]))\nprint(next_watermark(old, [(8, \"2025-03-01T00:00:00Z\")]))\n",
+      "solution": "def next_watermark(old, loaded):\n    return max([old] + [r[1] for r in loaded])\n\nold = \"2025-03-02T00:00:00Z\"\nprint(next_watermark(old, []))\nprint(next_watermark(old, [(7, \"2025-03-03T08:00:00Z\")]))\nprint(next_watermark(old, [(8, \"2025-03-01T00:00:00Z\")]))\n",
+      "hints": [
+        "Include the old mark in the candidates so it can never go down.",
+        "`max([old] + [...])` handles the empty case too.",
+        "`return max([old] + [r[1] for r in loaded])`"
+      ],
+      "expected": "2025-03-02T00:00:00Z\n2025-03-03T08:00:00Z\n2025-03-02T00:00:00Z"
+    },
+    {
+      "id": "g3",
+      "title": "One-row state table",
+      "kind": "python",
+      "prompt": "Create `etl_state(id INTEGER PRIMARY KEY CHECK (id = 1), watermark TEXT)` with the single row `(1, \"1970-01-01T00:00:00Z\")`. Then try to insert a second row with id 2 and catch `sqlite3.IntegrityError`, printing `second row rejected`, and print the current watermark. Expected output: `second row rejected` then `1970-01-01T00:00:00Z`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE etl_state (id INTEGER PRIMARY KEY CHECK (id = 1), watermark TEXT)\")\nconn.execute(\"INSERT INTO etl_state VALUES (1, '1970-01-01T00:00:00Z')\")\ntry:\n    conn.execute(\"INSERT INTO etl_state VALUES (2, '2025-01-01T00:00:00Z')\")\nexcept sqlite3.IntegrityError:\n    print(\"second row rejected\")\nprint(conn.execute(\"SELECT watermark FROM etl_state\").fetchone()[0])\n",
+      "hints": [
+        "The CHECK constraint on `id` allows only the value 1.",
+        "`CREATE TABLE etl_state (id INTEGER PRIMARY KEY CHECK (id = 1), watermark TEXT)`.",
+        "Wrap the second insert in `try` / `except sqlite3.IntegrityError`."
+      ],
+      "expected": "second row rejected\n1970-01-01T00:00:00Z"
+    },
+    {
+      "id": "g4",
+      "title": "Filter above the watermark in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the tables `ev(event_id, updated_at)` and `etl_state(id, watermark)` are created for you. Return `event_id` of the events with `updated_at` strictly greater than the stored watermark, ordered by `event_id`, taking the watermark with a scalar subquery.",
+      "starter": "CREATE TABLE ev (event_id int, updated_at timestamp);\nCREATE TABLE etl_state (id int PRIMARY KEY CHECK (id = 1), watermark timestamp);\nINSERT INTO etl_state VALUES (1, '2025-03-01 12:00');\nINSERT INTO ev VALUES (1, '2025-03-01 10:00'), (2, '2025-03-01 12:00'), (3, '2025-03-02 08:00'), (4, '2025-03-03 08:00');\nSELECT event_id FROM ev ORDER BY event_id LIMIT 4;\n",
+      "solution": "CREATE TABLE ev (event_id int, updated_at timestamp);\nCREATE TABLE etl_state (id int PRIMARY KEY CHECK (id = 1), watermark timestamp);\nINSERT INTO etl_state VALUES (1, '2025-03-01 12:00');\nINSERT INTO ev VALUES (1, '2025-03-01 10:00'), (2, '2025-03-01 12:00'), (3, '2025-03-02 08:00'), (4, '2025-03-03 08:00');\nSELECT event_id FROM ev WHERE updated_at > (SELECT watermark FROM etl_state) ORDER BY event_id;\n",
+      "hints": [
+        "The watermark is one value in `etl_state`; fetch it with a subquery.",
+        "`WHERE updated_at > (SELECT watermark FROM etl_state)`.",
+        "Add `ORDER BY event_id`."
+      ],
+      "ordered": true
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Run the pipeline three times",
+      "kind": "python",
+      "prompt": "Using the helper code in the starter (state table and `incremental_run`), run the pipeline on the given source list, add two new rows and run again, and run a third time unchanged. Print the three result dictionaries returned by `incremental_run` on separate lines, then `rows=<count in orders_clean> watermark=<stored watermark>`.",
+      "starter": "import sqlite3\nfrom datetime import datetime, timedelta\n\nFMT = \"%Y-%m-%dT%H:%M:%SZ\"\n\ndef open_db():\n    conn = sqlite3.connect(\":memory:\")\n    conn.execute(\"CREATE TABLE orders_clean (order_id INTEGER PRIMARY KEY, amount_cents INTEGER NOT NULL, status TEXT, updated_at TEXT)\")\n    conn.execute(\"CREATE TABLE etl_state (id INTEGER PRIMARY KEY CHECK (id = 1), watermark TEXT NOT NULL)\")\n    conn.execute(\"INSERT INTO etl_state VALUES (1, '1970-01-01T00:00:00Z')\")\n    conn.commit()\n    return conn\n\ndef incremental_run(conn, source):\n    watermark = conn.execute(\"SELECT watermark FROM etl_state\").fetchone()[0]\n    new = [r for r in source if r[3] > watermark]\n    if not new:\n        return {\"read\": 0, \"watermark\": watermark}\n    with conn:\n        conn.executemany(\"DELETE FROM orders_clean WHERE order_id = ?\", [(r[0],) for r in new])\n        conn.executemany(\"INSERT INTO orders_clean VALUES (?, ?, ?, ?)\", new)\n        newest = max(max(r[3] for r in new), watermark)\n        conn.execute(\"UPDATE etl_state SET watermark = ?\", (newest,))\n    return {\"read\": len(new), \"watermark\": newest}\n\nsource = [(1, 100, \"paid\", \"2025-03-01T10:00:00Z\"), (2, 200, \"paid\", \"2025-03-01T11:00:00Z\")]\nextra = [(3, 300, \"paid\", \"2025-03-02T09:00:00Z\"), (4, 400, \"failed\", \"2025-03-02T10:00:00Z\")]\nconn = open_db()\n# Your code here\n",
+      "solution": "import sqlite3\nfrom datetime import datetime, timedelta\n\nFMT = \"%Y-%m-%dT%H:%M:%SZ\"\n\ndef open_db():\n    conn = sqlite3.connect(\":memory:\")\n    conn.execute(\"CREATE TABLE orders_clean (order_id INTEGER PRIMARY KEY, amount_cents INTEGER NOT NULL, status TEXT, updated_at TEXT)\")\n    conn.execute(\"CREATE TABLE etl_state (id INTEGER PRIMARY KEY CHECK (id = 1), watermark TEXT NOT NULL)\")\n    conn.execute(\"INSERT INTO etl_state VALUES (1, '1970-01-01T00:00:00Z')\")\n    conn.commit()\n    return conn\n\ndef incremental_run(conn, source):\n    watermark = conn.execute(\"SELECT watermark FROM etl_state\").fetchone()[0]\n    new = [r for r in source if r[3] > watermark]\n    if not new:\n        return {\"read\": 0, \"watermark\": watermark}\n    with conn:\n        conn.executemany(\"DELETE FROM orders_clean WHERE order_id = ?\", [(r[0],) for r in new])\n        conn.executemany(\"INSERT INTO orders_clean VALUES (?, ?, ?, ?)\", new)\n        newest = max(max(r[3] for r in new), watermark)\n        conn.execute(\"UPDATE etl_state SET watermark = ?\", (newest,))\n    return {\"read\": len(new), \"watermark\": newest}\n\nsource = [(1, 100, \"paid\", \"2025-03-01T10:00:00Z\"), (2, 200, \"paid\", \"2025-03-01T11:00:00Z\")]\nextra = [(3, 300, \"paid\", \"2025-03-02T09:00:00Z\"), (4, 400, \"failed\", \"2025-03-02T10:00:00Z\")]\nconn = open_db()\nprint(incremental_run(conn, source))\nprint(incremental_run(conn, source + extra))\nprint(incremental_run(conn, source + extra))\nprint(f\"rows={conn.execute('SELECT COUNT(*) FROM orders_clean').fetchone()[0]} watermark={conn.execute('SELECT watermark FROM etl_state').fetchone()[0]}\")\n",
+      "expected": "{'read': 2, 'watermark': '2025-03-01T11:00:00Z'}\n{'read': 2, 'watermark': '2025-03-02T10:00:00Z'}\n{'read': 0, 'watermark': '2025-03-02T10:00:00Z'}\nrows=4 watermark=2025-03-02T10:00:00Z"
+    },
+    {
+      "id": "i2",
+      "title": "Lookback catches the late row",
+      "kind": "python",
+      "prompt": "In the starter, `load(source, lookback_hours)` runs two incremental runs as in the lesson (the second source contains one late row) and returns the sorted list of ids in the target. Complete `read_since(source, watermark, lookback_hours)` so that it returns the rows with `updated_at` strictly greater than the watermark minus the lookback (use `datetime.strptime` and `timedelta(hours=...)`), then print the results of `load(source2, 0)` and `load(source2, 3)`. Expected output: two lists.",
+      "starter": "from datetime import datetime, timedelta\n\nFMT = \"%Y-%m-%dT%H:%M:%SZ\"\n\ndef read_since(source, watermark, lookback_hours):\n    return []\n\ndef load(source, lookback_hours):\n    table, watermark = {}, \"1970-01-01T00:00:00Z\"\n    for batch in source:\n        rows = read_since(batch, watermark, lookback_hours)\n        for r in rows:\n            table[r[0]] = r\n        if rows:\n            watermark = max([watermark] + [r[1] for r in rows])\n    return sorted(table)\n\nsource2 = [[(5, \"2025-03-04T12:00:00Z\")], [(5, \"2025-03-04T12:00:00Z\"), (6, \"2025-03-04T10:00:00Z\")]]\nprint(load(source2, 0))\nprint(load(source2, 3))\n",
+      "solution": "from datetime import datetime, timedelta\n\nFMT = \"%Y-%m-%dT%H:%M:%SZ\"\n\ndef read_since(source, watermark, lookback_hours):\n    since = (datetime.strptime(watermark, FMT) - timedelta(hours=lookback_hours)).strftime(FMT)\n    return [r for r in source if r[1] > since]\n\ndef load(source, lookback_hours):\n    table, watermark = {}, \"1970-01-01T00:00:00Z\"\n    for batch in source:\n        rows = read_since(batch, watermark, lookback_hours)\n        for r in rows:\n            table[r[0]] = r\n        if rows:\n            watermark = max([watermark] + [r[1] for r in rows])\n    return sorted(table)\n\nsource2 = [[(5, \"2025-03-04T12:00:00Z\")], [(5, \"2025-03-04T12:00:00Z\"), (6, \"2025-03-04T10:00:00Z\")]]\nprint(load(source2, 0))\nprint(load(source2, 3))\n",
+      "expected": "[5]\n[5, 6]"
+    },
+    {
+      "id": "i3",
+      "title": "Review a watermark design",
+      "kind": "written",
+      "prompt": "A colleague's incremental pipeline stores `last_run = datetime.now()` in a file, reads `WHERE created_at > last_run` from the source, updates the file first and then loads the rows. The table is updated in place by the source application. List every way this design can lose or duplicate data and give the corrected design: where the state lives, which column is used, what the new watermark is, in which order things happen, and how late data is handled.",
+      "starter": "Problems:\nCorrected design:\n",
+      "solution": "Problems: (1) `last_run` is the wall-clock time of the run, not the data's own maximum, so rows committed after the extract but stamped earlier are skipped. (2) `created_at` ignores updates, so changed orders are never reloaded. (3) The file is updated before the load, so a failed load skips rows permanently (a silent gap). (4) A file outside the database cannot commit together with the load and may be lost with the machine. (5) Strict `>` and no lookback lose rows at the boundary and late rows. Corrected design: keep the watermark in an `etl_state` table in the target database; use an `updated_at` column set by the source; read `updated_at > watermark - N hours` (lookback) or `>=`; load by replacing rows by key (idempotent); then set the watermark to the maximum `updated_at` of the loaded rows, never to the current time, in the same transaction as the load; add a periodic full reload or backfill as a safety net.",
+      "required": false,
+      "rubric": [
+        "Identifies the wall-clock watermark and the created_at-only column as problems.",
+        "Identifies updating the state before the load as a source of silent gaps.",
+        "Moves the state into the database and commits it with the load.",
+        "Uses the maximum loaded updated_at and handles late data with a lookback and an idempotent load."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What should the new watermark be after a successful run that loaded rows?",
+      "options": [
+        "The time the run finished",
+        "The maximum `updated_at` among the loaded rows (never below the old mark)",
+        "The number of rows loaded",
+        "Yesterday's date"
+      ],
+      "answer": 1,
+      "explanation": "The mark must describe the data, not the clock: rows committed late may carry earlier timestamps than the run time. The maximum loaded value is the highest level reached."
+    },
+    {
+      "id": "c2",
+      "question": "The loader saves the new watermark first and then loads, and the load fails. What happens at the next run?",
+      "options": [
+        "Nothing; it retries the rows",
+        "The failed rows are skipped because the mark is already above them",
+        "The table doubles",
+        "The watermark resets"
+      ],
+      "answer": 1,
+      "explanation": "The next read starts above the unloaded rows, leaving a silent gap. Commit the load and the watermark in one transaction."
+    },
+    {
+      "id": "c3",
+      "question": "Why is an auto-increment id a poor watermark for an orders table whose rows change?",
+      "options": [
+        "Ids are text",
+        "Updating a row does not change its id, so updates are never seen",
+        "Ids can be negative",
+        "Ids are slow to compare"
+      ],
+      "answer": 1,
+      "explanation": "The id only grows when new rows are inserted. A refund on order 17 keeps id 17 and the incremental read never picks it up. An update timestamp changes with the row."
+    },
+    {
+      "id": "c4",
+      "question": "What does a three-hour lookback window do?",
+      "options": [
+        "Delays the run by three hours",
+        "Reads from watermark minus three hours, so late rows within that window are caught and reread rows are replaced",
+        "Deletes old rows",
+        "Shrinks the batch"
+      ],
+      "answer": 1,
+      "explanation": "The overlap costs rereading three hours of data, which is safe because the load replaces rows by key. It catches rows that arrive up to three hours late."
+    },
+    {
+      "id": "c5",
+      "question": "What does `CHECK (id = 1)` on a primary key column achieve in `etl_state`?",
+      "options": [
+        "It speeds up reads",
+        "It allows only one row in the table",
+        "It makes the watermark unique",
+        "It stores the time"
+      ],
+      "answer": 1,
+      "explanation": "The id can only be 1 and the primary key is unique, so a second row is impossible and the watermark is the only state."
+    }
+  ],
+  "id": "e125"
+}

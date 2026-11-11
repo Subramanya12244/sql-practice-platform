@@ -1,0 +1,183 @@
+{
+  "id": "a144",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "sum",
+      "lag"
+    ],
+    "questions": [
+      166,
+      160,
+      40
+    ],
+    "pyExercises": [
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "year-over-year-growth"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Revenue per year",
+      "kind": "sql",
+      "prompt": "Return `yr` (the order year as an integer) and `revenue` (sum of `unit_price * quantity * (1 - discount)` from `order_details`, cast to numeric and rounded to 2 decimals), one row per year, ordered by `yr`.",
+      "starter": "SELECT EXTRACT(year FROM order_date)::int AS yr\nFROM orders\nLIMIT 3;\n",
+      "solution": "SELECT EXTRACT(year FROM o.order_date)::int AS yr,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS revenue\nFROM orders o\nJOIN order_details od ON od.order_id = o.order_id\nGROUP BY 1\nORDER BY 1;\n",
+      "ordered": true,
+      "hints": [
+        "Join orders to order_details on order_id.",
+        "Group by the extracted year and SUM the line revenue.",
+        "Cast the sum with ::numeric before ROUND(..., 2)."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Average order value for 1997",
+      "kind": "sql",
+      "prompt": "For orders placed in 1997 return one row with columns `orders` (distinct orders), `revenue` (rounded to 2 decimals) and `aov` (revenue divided by orders, rounded to 2 decimals).",
+      "starter": "SELECT COUNT(*) AS orders\nFROM orders\nWHERE EXTRACT(year FROM order_date) = 1997;\n",
+      "solution": "SELECT COUNT(DISTINCT o.order_id) AS orders,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS revenue,\n       ROUND((SUM(od.unit_price * od.quantity * (1 - od.discount)) / COUNT(DISTINCT o.order_id))::numeric, 2) AS aov\nFROM orders o\nJOIN order_details od ON od.order_id = o.order_id\nWHERE EXTRACT(year FROM o.order_date) = 1997;\n",
+      "hints": [
+        "Count distinct order ids after the join, not rows.",
+        "Revenue is the same SUM as before, and AOV is revenue over the order count.",
+        "Cast the division to numeric before rounding."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Growth rates",
+      "kind": "python",
+      "prompt": "The yearly revenue list is `[120, 150, 135, 189]`. Print the growth from each year to the next as a percentage rounded to 1 decimal, one value per line, for example `25.0`.",
+      "starter": "revenue = [120, 150, 135, 189]\n# print the three growth percentages\n",
+      "solution": "revenue = [120, 150, 135, 189]\nfor prev, cur in zip(revenue, revenue[1:]):\n    print(round((cur - prev) / prev * 100, 1))\n",
+      "hints": [
+        "zip(revenue, revenue[1:]) pairs each year with the next.",
+        "Growth is (current - previous) / previous.",
+        "Multiply by 100 and round(..., 1)."
+      ],
+      "expected": "25.0\n-10.0\n40.0"
+    },
+    {
+      "id": "g4",
+      "title": "Price and volume effects",
+      "kind": "python",
+      "prompt": "Two products: units before `[40, 60]`, price before `[5.0, 10.0]`, units after `[50, 50]`, price after `[6.0, 10.0]`. Print `price effect:` and `volume and mix effect:` (each rounded to 1 decimal, on its own line) using price = sum(q1 * (p1 - p0)) and volume and mix = sum((q1 - q0) * p0).",
+      "starter": "q0, p0 = [40, 60], [5.0, 10.0]\nq1, p1 = [50, 50], [6.0, 10.0]\n",
+      "solution": "q0, p0 = [40, 60], [5.0, 10.0]\nq1, p1 = [50, 50], [6.0, 10.0]\nprice = sum(b * (n - o) for b, n, o in zip(q1, p1, p0))\nvm = sum((b - a) * o for a, b, o in zip(q0, q1, p0))\nprint('price effect:', round(price, 1))\nprint('volume and mix effect:', round(vm, 1))\n",
+      "hints": [
+        "zip the four lists together inside a generator expression.",
+        "Price: units after times the price difference.",
+        "Volume and mix: unit difference times the old price; print with the exact labels."
+      ],
+      "expected": "price effect: 50.0\nvolume and mix effect: -50.0"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Quarterly YoY for 1998",
+      "kind": "sql",
+      "prompt": "Return one row per quarter of 1998 with columns `qtr` (1 to 4), `revenue` (rounded to 0 decimals), `prior_year` (the same quarter of 1997, rounded to 0 decimals) and `yoy_pct` (growth in percent, rounded to 1 decimal). Order by `qtr`. Compute the previous year with `LAG(revenue, 4)` over a series that has every quarter.",
+      "starter": "SELECT EXTRACT(quarter FROM order_date)::int AS qtr\nFROM orders\nWHERE EXTRACT(year FROM order_date) = 1998\nLIMIT 4;\n",
+      "solution": "WITH q AS (\n  SELECT EXTRACT(year FROM o.order_date)::int AS yr, EXTRACT(quarter FROM o.order_date)::int AS qtr,\n         SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY 1, 2\n), g AS (\n  SELECT yr, qtr, revenue, LAG(revenue, 4) OVER (ORDER BY yr, qtr) AS prior_year FROM q\n)\nSELECT qtr, ROUND(revenue::numeric, 0) AS revenue, ROUND(prior_year::numeric, 0) AS prior_year,\n       ROUND(((revenue - prior_year) / NULLIF(prior_year, 0) * 100)::numeric, 1) AS yoy_pct\nFROM g\nWHERE yr = 1998\nORDER BY qtr;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Seasonal index and the peak month",
+      "kind": "python",
+      "prompt": "Monthly revenue for two years is `[80, 70, 90, 100, 110, 105, 95, 90, 100, 110, 140, 160]` and `[88, 77, 99, 110, 121, 115, 105, 99, 110, 121, 154, 176]`. Compute the seasonal index of each calendar month (average of that month over both years divided by the average of all 24 values). Print `peak month: N` with the 1-based month number of the largest index, then `peak index: X` rounded to 2 decimals, then `lowest index: X` rounded to 2 decimals.",
+      "starter": "y1 = [80, 70, 90, 100, 110, 105, 95, 90, 100, 110, 140, 160]\ny2 = [88, 77, 99, 110, 121, 115, 105, 99, 110, 121, 154, 176]\n",
+      "solution": "y1 = [80, 70, 90, 100, 110, 105, 95, 90, 100, 110, 140, 160]\ny2 = [88, 77, 99, 110, 121, 115, 105, 99, 110, 121, 154, 176]\noverall = (sum(y1) + sum(y2)) / 24\nindex = [((a + b) / 2) / overall for a, b in zip(y1, y2)]\npeak = index.index(max(index))\nprint('peak month:', peak + 1)\nprint('peak index:', round(max(index), 2))\nprint('lowest index:', round(min(index), 2))\n",
+      "expected": "peak month: 12\npeak index: 1.54\nlowest index: 0.67"
+    },
+    {
+      "id": "i3",
+      "title": "Explain a revenue change to a manager",
+      "kind": "written",
+      "required": false,
+      "prompt": "Revenue rose 8 percent year over year. Orders rose 12 percent, and the average order value fell 3.6 percent. Write 4 to 6 sentences for a sales manager: what the two factors say, what you would check next (price, units per order or mix), and one decision the answer could support.",
+      "starter": "Write your explanation here.",
+      "solution": "Revenue grew 8 percent because the number of orders grew 12 percent while each order was worth 3.6 percent less (1.12 times 0.964 is about 1.08). Growth therefore came from getting more customers to order, not from larger baskets, and the lower average order value deserves a look. I would check units per order and average price per unit to see whether customers are buying fewer items or cheaper ones, then run a price, volume and mix split by product to see whether discounts or a shift toward cheaper products explain it. If the extra orders come from a promotion that attracts small baskets, the manager can decide whether to keep it, add a minimum basket threshold or pair it with a cross-sell offer.",
+      "rubric": [
+        "Identifies that orders grew while average order value fell and that the factors multiply",
+        "Proposes a next check at units per order, price or mix level",
+        "Links the finding to a concrete decision",
+        "Does not claim a cause the data has not shown"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A query joins orders to order_details and uses COUNT(*) as the number of orders. What does it count?",
+      "options": [
+        "Order lines",
+        "Orders",
+        "Customers",
+        "Products"
+      ],
+      "answer": 0,
+      "explanation": "After the join each order appears once per line, so COUNT(*) counts lines. COUNT(DISTINCT order_id) counts orders."
+    },
+    {
+      "id": "c2",
+      "question": "Revenue rose 20% while the number of orders stayed the same. Which statement must be true?",
+      "options": [
+        "Average order value rose 20%",
+        "Customers are more loyal",
+        "Prices rose 20%",
+        "Units per order rose 20%"
+      ],
+      "answer": 0,
+      "explanation": "Revenue = orders x AOV, so with equal orders the AOV rose 20%. Price or units per order could each explain it, and loyalty is not shown by these numbers."
+    },
+    {
+      "id": "c3",
+      "question": "Why is year-over-year growth preferred to quarter-over-quarter growth for a seasonal business?",
+      "options": [
+        "It compares the same season, so the seasonal pattern cancels",
+        "It always gives smaller numbers",
+        "It needs fewer rows",
+        "It ignores price changes"
+      ],
+      "answer": 0,
+      "explanation": "Both periods share the same season, so the seasonal peak or dip is not read as growth or decline. It does not give smaller numbers, and price changes are still inside revenue."
+    },
+    {
+      "id": "c4",
+      "question": "Units sold stay at 100 and the price of every product rises 10%, with no change in the product proportions. Which effect is non-zero?",
+      "options": [
+        "Price effect only",
+        "Volume effect only",
+        "Mix effect only",
+        "All three"
+      ],
+      "answer": 0,
+      "explanation": "The units and their proportions are unchanged, so volume and mix are zero and the whole change is price."
+    },
+    {
+      "id": "c5",
+      "question": "A quarterly series is missing one quarter because there were no sales. What goes wrong with LAG(revenue, 4)?",
+      "options": [
+        "It points at the wrong quarter for later rows",
+        "It returns an error",
+        "It returns zero for every row",
+        "Nothing, LAG fills the gap"
+      ],
+      "answer": 0,
+      "explanation": "LAG counts rows, not calendar quarters. With a row missing, four rows back is five quarters back, so growth compares different seasons."
+    }
+  ]
+}

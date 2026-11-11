@@ -1,0 +1,194 @@
+{
+  "id": "a122",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-groupby-agg",
+      "safe-divide"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Contrast ratio",
+      "kind": "python",
+      "prompt": "Using the `luminance` and `contrast` functions below, print the contrast ratio of each text colour on a white (`#FFFFFF`) background as `colour: ratio` with the ratio rounded to 2 decimals, for `#767676`, `#999999` and `#D55E00`, then `passes: <n>` with the number of ratios of at least 4.5.",
+      "starter": "def luminance(hex_colour):\n    \"\"\"WCAG relative luminance of a colour like '#D55E00' (0 = black, 1 = white).\"\"\"\n    h = hex_colour.lstrip(\"#\")\n    channels = []\n    for i in (0, 2, 4):\n        c = int(h[i:i + 2], 16) / 255\n        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)\n    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]\n\n\ndef contrast(a, b):\n    la, lb = sorted([luminance(a), luminance(b)], reverse=True)\n    return (la + 0.05) / (lb + 0.05)\n\ncolours = [\"#767676\", \"#999999\", \"#D55E00\"]\n# print ratios and the number that pass\n",
+      "solution": "def luminance(hex_colour):\n    \"\"\"WCAG relative luminance of a colour like '#D55E00' (0 = black, 1 = white).\"\"\"\n    h = hex_colour.lstrip(\"#\")\n    channels = []\n    for i in (0, 2, 4):\n        c = int(h[i:i + 2], 16) / 255\n        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)\n    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]\n\n\ndef contrast(a, b):\n    la, lb = sorted([luminance(a), luminance(b)], reverse=True)\n    return (la + 0.05) / (lb + 0.05)\n\ncolours = [\"#767676\", \"#999999\", \"#D55E00\"]\nratios = {c: contrast(c, \"#FFFFFF\") for c in colours}\nfor c, r in ratios.items():\n    print(f\"{c}: {r:.2f}\")\nprint(\"passes:\", sum(r >= 4.5 for r in ratios.values()))\n",
+      "expected": "#767676: 4.54\n#999999: 2.85\n#D55E00: 3.87\npasses: 1",
+      "hints": [
+        "Call `contrast(colour, \"#FFFFFF\")` for each colour.",
+        "Format with `:.2f` in an f-string.",
+        "`sum(r >= 4.5 for r in ...)` counts passes."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Greyscale confusion",
+      "kind": "python",
+      "prompt": "For the palette dict below print the pair of colours whose luminance is closest as `closest: <name a> & <name b> (<difference rounded to 3 decimals>)`, using names in alphabetical order inside the pair.",
+      "starter": "def luminance(hex_colour):\n    \"\"\"WCAG relative luminance of a colour like '#D55E00' (0 = black, 1 = white).\"\"\"\n    h = hex_colour.lstrip(\"#\")\n    channels = []\n    for i in (0, 2, 4):\n        c = int(h[i:i + 2], 16) / 255\n        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)\n    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]\n\n\ndef contrast(a, b):\n    la, lb = sorted([luminance(a), luminance(b)], reverse=True)\n    return (la + 0.05) / (lb + 0.05)\n\npalette = {\"orange\": \"#E69F00\", \"sky\": \"#56B4E9\", \"green\": \"#009E73\", \"blue\": \"#0072B2\", \"red\": \"#D55E00\", \"pink\": \"#CC79A7\"}\n# closest pair\n",
+      "solution": "def luminance(hex_colour):\n    \"\"\"WCAG relative luminance of a colour like '#D55E00' (0 = black, 1 = white).\"\"\"\n    h = hex_colour.lstrip(\"#\")\n    channels = []\n    for i in (0, 2, 4):\n        c = int(h[i:i + 2], 16) / 255\n        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)\n    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]\n\n\ndef contrast(a, b):\n    la, lb = sorted([luminance(a), luminance(b)], reverse=True)\n    return (la + 0.05) / (lb + 0.05)\n\npalette = {\"orange\": \"#E69F00\", \"sky\": \"#56B4E9\", \"green\": \"#009E73\", \"blue\": \"#0072B2\", \"red\": \"#D55E00\", \"pink\": \"#CC79A7\"}\nnames = sorted(palette)\nbest = None\nfor i, a in enumerate(names):\n    for b in names[i + 1:]:\n        gap = abs(luminance(palette[a]) - luminance(palette[b]))\n        if best is None or gap < best[0]:\n            best = (gap, a, b)\nprint(f\"closest: {best[1]} & {best[2]} ({best[0]:.3f})\")\n",
+      "expected": "closest: orange & sky (0.011)",
+      "hints": [
+        "Compare every pair of names once.",
+        "The gap is the absolute difference of luminances.",
+        "Keep the smallest gap and its pair."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Generate an insight title",
+      "kind": "python",
+      "prompt": "Write `top_share_title(totals)` for a pandas Series of totals by category returning `<top> leads with <share>% of the total` with the share rounded to 0 decimals (for example `Home leads with 40% of the total`). Print it for the revenue by category of `orders`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\ndef top_share_title(totals):\n    pass\n\n\nprint(top_share_title(orders.groupby(\"category\")[\"revenue\"].sum()))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\ndef top_share_title(totals):\n    share = totals.max() / totals.sum() * 100\n    return f\"{totals.idxmax()} leads with {share:.0f}% of the total\"\n\n\nprint(top_share_title(orders.groupby(\"category\")[\"revenue\"].sum()))\n",
+      "expected": "Electronics leads with 46% of the total",
+      "hints": [
+        "The top category is `idxmax()` of the totals.",
+        "Share is `max / sum * 100`.",
+        "Format with `:.0f` inside an f-string."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Rewrite the legend",
+      "kind": "written",
+      "prompt": "A line chart has six lines coloured red, green, orange, brown, pink and purple, with a legend at the side, and the title `Sales`. Describe four changes that make it accessible and clearer, using this lesson.",
+      "starter": "1. ...\n2. ...\n3. ...\n4. ...",
+      "solution": "1. Reduce to the lines that matter: grey for context lines and one or two focus colours, because six similar hues cannot be told apart. 2. Replace the legend with direct labels at the ends of the lines, so no matching of colour swatches is needed and it works in greyscale. 3. Use a colour-blind-safe palette and add a second cue (marker or line style), so red and green are not the only difference. 4. Replace the title `Sales` with an insight title that states the finding and its size, for example `Electronics sales doubled in H2`, checked against the data, while the units and period go in the axis labels.",
+      "hints": [
+        "How many colours can readers tell apart?",
+        "What replaces a legend?",
+        "What should the title say?"
+      ],
+      "rubric": [
+        "Reduces the number of colours or uses grey for context.",
+        "Uses direct labels instead of a legend.",
+        "Colour-blind-safe palette with a redundant cue.",
+        "Insight title with the units elsewhere."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Check a palette",
+      "kind": "python",
+      "prompt": "Write `too_similar(palette, min_gap)` returning a sorted list of `(name_a, name_b)` pairs (names in alphabetical order inside each pair) whose luminance differ by less than `min_gap`. Print the result for the six-colour palette from the guided exercises with `min_gap=0.1`.",
+      "starter": "def luminance(hex_colour):\n    \"\"\"WCAG relative luminance of a colour like '#D55E00' (0 = black, 1 = white).\"\"\"\n    h = hex_colour.lstrip(\"#\")\n    channels = []\n    for i in (0, 2, 4):\n        c = int(h[i:i + 2], 16) / 255\n        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)\n    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]\n\n\ndef contrast(a, b):\n    la, lb = sorted([luminance(a), luminance(b)], reverse=True)\n    return (la + 0.05) / (lb + 0.05)\n\npalette = {\"orange\": \"#E69F00\", \"sky\": \"#56B4E9\", \"green\": \"#009E73\", \"blue\": \"#0072B2\", \"red\": \"#D55E00\", \"pink\": \"#CC79A7\"}\n\n\ndef too_similar(palette, min_gap):\n    pass\n\n\nprint(too_similar(palette, 0.1))\n",
+      "solution": "def luminance(hex_colour):\n    \"\"\"WCAG relative luminance of a colour like '#D55E00' (0 = black, 1 = white).\"\"\"\n    h = hex_colour.lstrip(\"#\")\n    channels = []\n    for i in (0, 2, 4):\n        c = int(h[i:i + 2], 16) / 255\n        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)\n    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]\n\n\ndef contrast(a, b):\n    la, lb = sorted([luminance(a), luminance(b)], reverse=True)\n    return (la + 0.05) / (lb + 0.05)\n\npalette = {\"orange\": \"#E69F00\", \"sky\": \"#56B4E9\", \"green\": \"#009E73\", \"blue\": \"#0072B2\", \"red\": \"#D55E00\", \"pink\": \"#CC79A7\"}\n\n\ndef too_similar(palette, min_gap):\n    names = sorted(palette)\n    pairs = []\n    for i, a in enumerate(names):\n        for b in names[i + 1:]:\n            if abs(luminance(palette[a]) - luminance(palette[b])) < min_gap:\n                pairs.append((a, b))\n    return sorted(pairs)\n\n\nprint(too_similar(palette, 0.1))\n",
+      "expected": "[('blue', 'red'), ('green', 'pink'), ('green', 'red'), ('orange', 'sky'), ('pink', 'red')]"
+    },
+    {
+      "id": "i2",
+      "title": "Focus-colour spec",
+      "kind": "python",
+      "prompt": "Write `focus_colours(names, focus, base='#999999', accent='#D55E00')` returning a list with the accent for the focus name and the base for the others, and `annotation(names, values, focus)` returning `<focus>: <share>% of total` with share rounded to 0 decimals. Print both for the category revenue of `orders` sorted descending, with the top category as focus.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\ndef focus_colours(names, focus, base=\"#999999\", accent=\"#D55E00\"):\n    pass\n\n\ndef annotation(names, values, focus):\n    pass\n\n\ntotals = orders.groupby(\"category\")[\"revenue\"].sum().sort_values(ascending=False)\nnames = list(totals.index)\nprint(focus_colours(names, names[0]))\nprint(annotation(names, list(totals.values), names[0]))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\ndef focus_colours(names, focus, base=\"#999999\", accent=\"#D55E00\"):\n    return [accent if n == focus else base for n in names]\n\n\ndef annotation(names, values, focus):\n    share = values[names.index(focus)] / sum(values) * 100\n    return f\"{focus}: {share:.0f}% of total\"\n\n\ntotals = orders.groupby(\"category\")[\"revenue\"].sum().sort_values(ascending=False)\nnames = list(totals.index)\nprint(focus_colours(names, names[0]))\nprint(annotation(names, list(totals.values), names[0]))\n",
+      "expected": "['#D55E00', '#999999', '#999999', '#999999']\nElectronics: 46% of total"
+    },
+    {
+      "id": "i3",
+      "title": "Redesign a chart for accessibility",
+      "kind": "written",
+      "prompt": "Take the category line chart from Example 2. Write the matplotlib code to produce the accessible version for a greyscale print: grey context lines, one focus line in a strong colour with direct label at the line end, a distinct marker on the focus line, and an insight title. Explain how you would verify that it works without colour.",
+      "starter": "# redesign\n",
+      "solution": "```python\nfig, ax = plt.subplots()\nfocus = \"Electronics\"\nfor name in table.columns:\n    if name == focus:\n        ax.plot(table.index, table[name], color=\"#D55E00\", marker=\"o\", linewidth=2.5)\n    else:\n        ax.plot(table.index, table[name], color=\"#999999\", linewidth=1)\n    ax.annotate(name, xy=(table.index[-1], table[name].iloc[-1]), xytext=(4, 0), textcoords=\"offset points\", va=\"center\")\nax.set_title(\"Electronics is the largest category in almost every month\")\nax.set_ylabel(\"Revenue (GBP)\")\n```\n\nTo verify it without colour I would compute the luminance of the accent and the grey (they must differ clearly, and if they do not I would darken the accent), render the figure in greyscale or print it in black and white, and check that the focus line is still identified by its weight, marker and direct label. The title must be checked against the data before use.",
+      "rubric": [
+        "Grey context lines and one accent line.",
+        "Direct labels instead of a legend, and a marker on the focus line.",
+        "Insight title and axis label with unit.",
+        "Verification without colour: luminance or greyscale print."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [
+      "matplotlib",
+      "seaborn",
+      "pandas",
+      "numpy"
+    ],
+    "note": "Examples 2 to 4 use matplotlib and seaborn, which the browser cannot load: run them on your own computer after `pip install matplotlib seaborn pandas numpy`. They print colours and annotation text instead of showing images. Examples 1 and 5 and the graded exercises are plain Python and pandas and run in the browser. The luminance and contrast formulas are the WCAG definitions. To check how a chart looks to a colour-blind reader, use a simulator tool on a saved image; the lesson's checks compute luminance only. Written exercises are self-assessed."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which palette type fits correlations that run from -1 to +1?",
+      "options": [
+        "Diverging, centred on zero",
+        "Rainbow",
+        "Categorical",
+        "Any sequential palette"
+      ],
+      "answer": 0,
+      "explanation": "Correlation has a meaningful middle at zero, so two hues meeting at a neutral centre suit it; a rainbow adds uneven brightness."
+    },
+    {
+      "id": "c2",
+      "question": "Two colours have almost the same luminance. What happens in a greyscale print?",
+      "options": [
+        "They look the same",
+        "They look very different",
+        "One disappears",
+        "Nothing, luminance is irrelevant"
+      ],
+      "answer": 0,
+      "explanation": "Greyscale keeps only brightness, so similar luminance means similar grey; a second cue such as a marker is needed."
+    },
+    {
+      "id": "c3",
+      "question": "What is the contrast ratio of black text on a white background?",
+      "options": [
+        "21 to 1",
+        "1 to 1",
+        "4.5 to 1",
+        "100 to 1"
+      ],
+      "answer": 0,
+      "explanation": "Luminance of black is 0 and white is 1, so (1 + 0.05) / (0 + 0.05) = 21."
+    },
+    {
+      "id": "c4",
+      "question": "What is the focus colour technique?",
+      "options": [
+        "Grey for context and one strong colour for the element that matters",
+        "Using the brand colour for every series",
+        "Rotating colours each chart",
+        "Colouring by value"
+      ],
+      "answer": 0,
+      "explanation": "It guides the eye to the message; spreading colour across everything removes the emphasis."
+    },
+    {
+      "id": "c5",
+      "question": "Which title is safest for a chart of sales before and after a redesign?",
+      "options": [
+        "Sales rose 12% after the redesign",
+        "Sales rose because of the redesign",
+        "The redesign was a success",
+        "Sales"
+      ],
+      "answer": 0,
+      "explanation": "The first states what the data show (a change and its timing). The second claims a cause that the chart cannot establish."
+    }
+  ]
+}

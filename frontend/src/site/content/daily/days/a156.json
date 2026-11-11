@@ -1,0 +1,187 @@
+{
+  "id": "a156",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "case"
+    ],
+    "questions": [
+      167,
+      183,
+      154
+    ],
+    "pyExercises": [
+      "group-and-aggregate",
+      "customer-transaction-stats"
+    ],
+    "projects": [
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [],
+    "patterns": [
+      "inactive-customers"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "The situation table",
+      "kind": "sql",
+      "prompt": "Return `yr`, `orders` (distinct orders), `customers` (distinct customers) and `revenue` (net revenue rounded to 0 decimals) for each order year, ordered by `yr`.",
+      "starter": "SELECT EXTRACT(year FROM order_date)::int AS yr\nFROM orders\nGROUP BY 1\nORDER BY 1;\n",
+      "solution": "SELECT EXTRACT(year FROM o.order_date)::int AS yr,\n       COUNT(DISTINCT o.order_id) AS orders,\n       COUNT(DISTINCT o.customer_id) AS customers,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 0) AS revenue\nFROM orders o JOIN order_details od ON od.order_id = o.order_id\nGROUP BY 1\nORDER BY 1;\n",
+      "ordered": true,
+      "hints": [
+        "Join orders and order_details and group by the year.",
+        "COUNT(DISTINCT ...) for orders and customers.",
+        "ROUND(SUM(...)::numeric, 0) for revenue."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Lapsed customers by country",
+      "kind": "sql",
+      "prompt": "Customers whose latest order is before 1998-01-01 are lapsed. Return `country` and `lapsed_customers` for the three countries with the most lapsed customers, ordered by `lapsed_customers` descending, then `country`. Use the customer's `country` column.",
+      "starter": "SELECT country, COUNT(*) AS customers\nFROM customers\nGROUP BY country\nLIMIT 3;\n",
+      "solution": "WITH last AS (SELECT customer_id, MAX(order_date) AS last_order FROM orders GROUP BY customer_id)\nSELECT c.country, COUNT(*) AS lapsed_customers\nFROM last l JOIN customers c ON c.customer_id = l.customer_id\nWHERE l.last_order < DATE '1998-01-01'\nGROUP BY c.country\nORDER BY lapsed_customers DESC, c.country\nLIMIT 3;\n",
+      "ordered": true,
+      "hints": [
+        "Find each customer's latest order in a CTE.",
+        "Join to customers and keep last_order < DATE '1998-01-01'.",
+        "Group by country, ORDER BY the count descending, then country, LIMIT 3."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Break-even response rate",
+      "kind": "python",
+      "prompt": "A call costs 30 per customer, an extra order is worth 900 and the margin is 20 percent. Print `break-even response: 16.7%` (cost over order value times margin, as a percentage with 1 decimal).",
+      "starter": "cost, value, margin = 30, 900, 0.20\n",
+      "solution": "cost, value, margin = 30, 900, 0.20\nprint('break-even response: ' + str(round(cost / (value * margin) * 100, 1)) + '%')\n",
+      "hints": [
+        "The gross profit of one extra order is value times margin.",
+        "Break-even response is cost divided by that profit.",
+        "Multiply by 100 and round to 1 decimal."
+      ],
+      "expected": "break-even response: 16.7%"
+    },
+    {
+      "id": "g4",
+      "title": "Three scenarios",
+      "kind": "python",
+      "prompt": "For 80 customers, a cost of 30 per customer, an order value of 900 and a margin of 20 percent, print the expected profit at response rates 10, 20 and 30 percent, one per line as `10%: X`, with X rounded to the nearest integer.",
+      "starter": "n, cost, value, margin = 80, 30, 900, 0.20\n",
+      "solution": "n, cost, value, margin = 80, 30, 900, 0.20\nfor r in (0.10, 0.20, 0.30):\n    print(f'{r:.0%}: {round(n * r * value * margin - n * cost)}')\n",
+      "hints": [
+        "Profit is n x response x value x margin minus n x cost.",
+        "Loop over the three response rates.",
+        "Format the label with f'{r:.0%}' and round the profit."
+      ],
+      "expected": "10%: -960\n20%: 480\n30%: 1920"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Build the business-case numbers",
+      "kind": "python",
+      "prompt": "A shop considers emailing 2000 lapsed customers at a cost of 0.50 each. An extra order is worth 55 and the gross margin is 30 percent. Compute and print, one per line: `cost: X` (total cost), `break-even response: X%` (1 decimal), then for response rates 1, 2 and 3 percent the line `R%: profit P` (P rounded to the nearest integer), and last `decision: test first` when the break-even response is between the lowest and the highest of the three rates, `decision: go` when it is below the lowest, and `decision: do not go` when it is above the highest.",
+      "starter": "n, cost_each, value, margin = 2000, 0.50, 55, 0.30\nrates = [0.01, 0.02, 0.03]\n",
+      "solution": "n, cost_each, value, margin = 2000, 0.50, 55, 0.30\nrates = [0.01, 0.02, 0.03]\ncost = n * cost_each\nbe = cost_each / (value * margin)\nprint('cost:', round(cost))\nprint('break-even response: ' + str(round(be * 100, 1)) + '%')\nfor r in rates:\n    print(f'{r:.0%}: profit {round(n * r * value * margin - cost)}')\nif be < min(rates):\n    print('decision: go')\nelif be > max(rates):\n    print('decision: do not go')\nelse:\n    print('decision: test first')\n",
+      "expected": "cost: 1000\nbreak-even response: 3.0%\n1%: profit -670\n2%: profit -340\n3%: profit -10\ndecision: do not go"
+    },
+    {
+      "id": "i2",
+      "title": "Who is worth calling first",
+      "kind": "sql",
+      "prompt": "For lapsed customers (latest order before 1998-01-01), return `customer_id`, `orders` (distinct orders) and `past_revenue` (net revenue rounded to 0 decimals) for the five with the highest past revenue, ordered by `past_revenue` descending, then `customer_id`.",
+      "starter": "SELECT customer_id, MAX(order_date) AS last_order\nFROM orders\nGROUP BY customer_id\nLIMIT 5;\n",
+      "solution": "WITH c AS (\n  SELECT o.customer_id, MAX(o.order_date) AS last_order, COUNT(DISTINCT o.order_id) AS orders,\n         SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY o.customer_id\n)\nSELECT customer_id, orders, ROUND(revenue::numeric, 0) AS past_revenue\nFROM c\nWHERE last_order < DATE '1998-01-01'\nORDER BY past_revenue DESC, customer_id\nLIMIT 5;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "The one-page business case",
+      "kind": "written",
+      "prompt": "Write the one-page business case for the win-back campaign on the 57 lapsed Northwind customers, using the numbers of this lesson (57 customers; past average order value 1,322; assumed margin 25 percent; call cost 25 per customer; break-even response about 7.6 percent; profit about 459 at 10 percent response and about -483 at 5 percent). Use the headings Headline, Situation, Evidence, Options, Recommendation, Risks and assumptions, Next step. Mark which numbers are facts and which are assumptions.",
+      "starter": "Headline:\nSituation:\nEvidence:\nOptions:\nRecommendation:\nRisks and assumptions:\nNext step:",
+      "solution": "Headline: Run a small pilot of the win-back campaign before committing to it.\n\nSituation: 57 of our 89 customers have not ordered for more than a year (fact). Their past orders averaged 1,322 each (fact). Orders per year are flat at about 33, so winning back even one or two customers matters.\n\nEvidence: A personal call costs about 25 per customer, so 1,425 for the whole group (assumption). At a 25 percent margin (assumption) one extra order earns about 330, so the campaign breaks even when 7.6 percent of customers, about 4 of 57, place an order. At a 10 percent response it earns about 459, at 5 percent it loses about 483.\n\nOptions: Go for the whole group: profit depends on a response rate nobody knows. Do nothing: no cost, no chance of recovering revenue. Pilot on 20 customers: costs about 500 and tells us the real response rate.\n\nRecommendation: Run the pilot, because the decision turns on whether the response is above or below 7.6 percent and the pilot is a cheap way to find out.\n\nRisks and assumptions: Response rate and margin are assumptions. The group is small, so one order changes the result noticeably, and a pilot of 20 gives only a rough reading. Customers may have lapsed because they moved to another supplier, which a call cannot change.\n\nNext step: The sales manager calls 20 of the lapsed customers with the highest past revenue and reports orders placed within 8 weeks; we then decide on the rest of the group.",
+      "rubric": [
+        "Headline states a clear recommendation in plain words",
+        "Facts and assumptions are visibly separated",
+        "Break-even response rate and at least one scenario profit are quoted correctly",
+        "Options are compared and the recommendation follows from the evidence",
+        "Risks name the unknown response rate and the small group, and the next step has an owner and a time"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which item belongs at the very top of a one-page business case?",
+      "options": [
+        "The recommendation as a headline",
+        "The SQL queries",
+        "A list of all tables",
+        "The assumptions"
+      ],
+      "answer": 0,
+      "explanation": "The reader scans from the top; a headline that states the recommendation lets a busy manager reach the right decision even if they read nothing else."
+    },
+    {
+      "id": "c2",
+      "question": "Cost per contact is 25, order value 1,000 and margin 25%. What is the break-even response rate?",
+      "options": [
+        "10%",
+        "2.5%",
+        "25%",
+        "4%"
+      ],
+      "answer": 0,
+      "explanation": "Break-even response = cost / (value x margin) = 25 / 250 = 10%. The other options divide by the wrong base."
+    },
+    {
+      "id": "c3",
+      "question": "The model assumes a response rate of 10%, which was not measured. How should the case present it?",
+      "options": [
+        "As an assumption, with a range and the break-even rate",
+        "As a fact",
+        "It should be left out",
+        "As the average of the previous campaigns without saying so"
+      ],
+      "answer": 0,
+      "explanation": "An unmeasured number is an assumption. Showing a range and the break-even response lets the reader see how the decision depends on it."
+    },
+    {
+      "id": "c4",
+      "question": "Why generate the text of the case from the same variables as the model?",
+      "options": [
+        "So the text cannot disagree with the numbers after an update",
+        "To make the code shorter",
+        "Because text cannot be typed",
+        "To hide the assumptions"
+      ],
+      "answer": 0,
+      "explanation": "A number copied by hand can go out of date when an assumption changes. A text built from the variables always reflects the current model."
+    },
+    {
+      "id": "c5",
+      "question": "The break-even response rate is 7.6%, scenarios are 5%, 10% and 15%, and the true rate is unknown. What is the most sensible recommendation?",
+      "options": [
+        "Run a small pilot to measure the real response rate",
+        "Run the full campaign",
+        "Cancel the campaign",
+        "Assume the 10% scenario is true"
+      ],
+      "answer": 0,
+      "explanation": "The break-even point lies between the low and base scenarios, so the decision depends on an unknown number. A cheap pilot measures it before the full cost is committed."
+    }
+  ]
+}

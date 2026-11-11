@@ -1,0 +1,189 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "sales-by-month",
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "month-over-month-growth",
+      "year-over-year-growth"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Compute the facts",
+      "kind": "python",
+      "prompt": "From `fact` compute: the country with the largest revenue and its share of total revenue (percent, 1 decimal), and the month (period) with the highest revenue and its value (2 decimals). Print two lines: `Largest market: <country> <share>%` and `Best month: <YYYY-MM> <value>`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# facts first\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nby = fact.groupby(\"country\")[\"revenue\"].sum()\ntop = by.idxmax()\nprint(f\"Largest market: {top} {by[top] / by.sum() * 100:.1f}%\")\nm = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\nprint(f\"Best month: {m.idxmax()} {m.max():.2f}\")\n",
+      "hints": [
+        "Group revenue by country and use idxmax.",
+        "The share is the country's revenue over the sum, times 100.",
+        "Group by monthly period for the best month; format both with f-strings."
+      ],
+      "expected": "Largest market: Germany 29.0%\nBest month: 2025-11 6652.50"
+    },
+    {
+      "id": "g2",
+      "title": "Is it an action title?",
+      "kind": "python",
+      "prompt": "Using `is_action_title` (given), print `action` or `topic` for each of: \"Orders by month\", \"Hardware accounts for 34.6% of revenue this year\", \"Revenue grew 65.7%\" , \"Germany is our largest market with 29.0%\". One word per line, in that order.",
+      "starter": "import re\n\nVERBS = {\"grew\", \"fell\", \"rose\", \"dropped\", \"accounts\", \"slowed\", \"peaked\"}\n\ndef is_action_title(title):\n    words = title.split()\n    has_number = bool(re.search(r\"\\d\", title))\n    has_verb = any(w.lower().strip(\",.\") in VERBS for w in words)\n    return len(words) >= 6 and has_number and has_verb\n\nfor t in [\"Orders by month\", \"Hardware accounts for 34.6% of revenue this year\", \"Revenue grew 65.7%\", \"Germany is our largest market with 29.0%\"]:\n    print(\"topic\")\n",
+      "solution": "import re\n\nVERBS = {\"grew\", \"fell\", \"rose\", \"dropped\", \"accounts\", \"slowed\", \"peaked\"}\n\ndef is_action_title(title):\n    words = title.split()\n    has_number = bool(re.search(r\"\\d\", title))\n    has_verb = any(w.lower().strip(\",.\") in VERBS for w in words)\n    return len(words) >= 6 and has_number and has_verb\n\nfor t in [\"Orders by month\", \"Hardware accounts for 34.6% of revenue this year\", \"Revenue grew 65.7%\", \"Germany is our largest market with 29.0%\"]:\n    print(\"action\" if is_action_title(t) else \"topic\")\n",
+      "hints": [
+        "Apply the three tests: length, a number, a verb.",
+        "The third title has too few words and the fourth has no listed verb.",
+        "Only the second passes all three."
+      ],
+      "expected": "topic\naction\ntopic\ntopic"
+    },
+    {
+      "id": "g3",
+      "title": "Build the SCR",
+      "kind": "python",
+      "prompt": "Given the facts dictionary, print three lines: `Situation: revenue was <revenue> with <orders> orders.`, `Complication: the top 5 customers hold <share>% of revenue.`, `Resolution: reduce dependence on the top 5 customers.` with revenue formatted with a thousands separator and 2 decimals and share with 1 decimal.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nby_customer = fact.groupby(\"customer_id\")[\"revenue\"].sum()\n# facts dictionary and three lines\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nby_customer = fact.groupby(\"customer_id\")[\"revenue\"].sum()\nfacts = {\"revenue\": float(fact[\"revenue\"].sum()), \"orders\": int(fact[\"order_id\"].nunique()), \"top5\": float(by_customer.nlargest(5).sum() / by_customer.sum() * 100)}\nprint(f\"Situation: revenue was {facts['revenue']:,.2f} with {facts['orders']} orders.\")\nprint(f\"Complication: the top 5 customers hold {facts['top5']:.1f}% of revenue.\")\nprint(\"Resolution: reduce dependence on the top 5 customers.\")\n",
+      "hints": [
+        "Compute total revenue, orders and the top-5 share first.",
+        "Put them in a dictionary.",
+        "Use f-strings with :,.2f for revenue and :.1f for the share."
+      ],
+      "expected": "Situation: revenue was 67,132.50 with 400 orders.\nComplication: the top 5 customers hold 21.5% of revenue.\nResolution: reduce dependence on the top 5 customers."
+    },
+    {
+      "id": "g4",
+      "title": "Rewrite a deck outline (written)",
+      "kind": "written",
+      "prompt": "A deck has these slides in order: 'Background and data sources', 'Method', 'Revenue by country', 'Revenue by month', 'Conclusions'. The audience is a commercial director with ten minutes. Rewrite the outline using SCR with the answer first and action titles. You may invent plausible numbers, marking them as examples.",
+      "starter": "1. ...\n2. ...\n3. ...",
+      "solution": "1. Resolution: 'Rebalance effort towards Spain and investigate August before planning' (the recommendation first, for the person who may stop reading).\n2. Situation: 'Revenue grew 65.7% to 67,132.50 in 2025' (one chart: yearly total).\n3. Complication, part 1: 'Spain grew 62.6%, the slowest of four markets' (one chart: growth by country, Spain highlighted).\n4. Complication, part 2: 'August fell 15.9% from July, the largest drop of the year' (one chart: monthly line, August marked).\n5. Appendix: data sources, method and the full tables for anyone who wants to check. Each slide has one message and one chart, the titles read as a summary, and the numbers shown are examples. The old 'Background' and 'Method' slides move to the appendix because the director's decision does not depend on them.",
+      "rubric": [
+        "Recommendation comes first.",
+        "Titles are action titles with numbers and verbs.",
+        "One message and one chart per slide.",
+        "Method and background are moved to an appendix."
+      ],
+      "hints": [
+        "What is the one thing the director must decide?",
+        "Turn each topic title into a finding.",
+        "What can wait for an appendix?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Check a deck",
+      "kind": "python",
+      "prompt": "Write `check_deck(slides)` returning problem strings in slide order: `slide N: not an action title` when `is_action_title` fails, `slide N: M messages` when it has other than one message, and `slide N: C charts` when it has more than one chart. Run it on the deck below and print each problem on its own line, or `deck ok` if there are none.",
+      "starter": "import re\n\nVERBS = {\"grew\", \"fell\", \"rose\", \"dropped\", \"accounts\", \"slowed\", \"peaked\"}\n\ndef is_action_title(title):\n    words = title.split()\n    has_number = bool(re.search(r\"\\d\", title))\n    has_verb = any(w.lower().strip(\",.\") in VERBS for w in words)\n    return len(words) >= 6 and has_number and has_verb\n\nslides = [\n    {\"title\": \"Revenue grew 65.7% to 67,132.50 in 2025\", \"messages\": 1, \"charts\": 1},\n    {\"title\": \"Revenue by country\", \"messages\": 1, \"charts\": 1},\n    {\"title\": \"Spain grew 62.6% and August fell 15.9% from July\", \"messages\": 2, \"charts\": 2},\n]\n\ndef check_deck(slides):\n    return []\n\nfound = check_deck(slides)\nprint(\"\\n\".join(found) if found else \"deck ok\")\n",
+      "solution": "import re\n\nVERBS = {\"grew\", \"fell\", \"rose\", \"dropped\", \"accounts\", \"slowed\", \"peaked\"}\n\ndef is_action_title(title):\n    words = title.split()\n    has_number = bool(re.search(r\"\\d\", title))\n    has_verb = any(w.lower().strip(\",.\") in VERBS for w in words)\n    return len(words) >= 6 and has_number and has_verb\n\nslides = [\n    {\"title\": \"Revenue grew 65.7% to 67,132.50 in 2025\", \"messages\": 1, \"charts\": 1},\n    {\"title\": \"Revenue by country\", \"messages\": 1, \"charts\": 1},\n    {\"title\": \"Spain grew 62.6% and August fell 15.9% from July\", \"messages\": 2, \"charts\": 2},\n]\n\ndef check_deck(slides):\n    problems = []\n    for i, s in enumerate(slides, start=1):\n        if not is_action_title(s[\"title\"]):\n            problems.append(f\"slide {i}: not an action title\")\n        if s[\"messages\"] != 1:\n            problems.append(f\"slide {i}: {s['messages']} messages\")\n        if s[\"charts\"] > 1:\n            problems.append(f\"slide {i}: {s['charts']} charts\")\n    return problems\n\nfound = check_deck(slides)\nprint(\"\\n\".join(found) if found else \"deck ok\")\n",
+      "expected": "slide 2: not an action title\nslide 3: 2 messages\nslide 3: 2 charts"
+    },
+    {
+      "id": "i2",
+      "title": "A story from segment data",
+      "kind": "python",
+      "prompt": "Using `fact` for 2025 and the 2024 rows `s24` (merge `s24` with `customers` on `customer_id`), compute per `segment` the 2025 revenue and the growth over 2024 in percent (1 decimal). Print: `Situation: Corporate is <share>% of 2025 revenue.` (share 1 decimal), `Complication: Retail grew <g>% against <g2>% for Corporate.` (Retail growth first), and `Resolution: ...` with the sentence `grow Retail faster than Corporate.` as `Resolution: grow Retail faster than Corporate.`",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\n# segment revenue, growth, three lines\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\nt24 = s24.merge(customers, on=\"customer_id\")\nr25 = fact.groupby(\"segment\")[\"revenue\"].sum()\nr24 = t24.groupby(\"segment\")[\"revenue\"].sum()\ng = (r25 / r24 - 1) * 100\nprint(f\"Situation: Corporate is {r25['Corporate'] / r25.sum() * 100:.1f}% of 2025 revenue.\")\nprint(f\"Complication: Retail grew {g['Retail']:.1f}% against {g['Corporate']:.1f}% for Corporate.\")\nprint(\"Resolution: grow Retail faster than Corporate.\")\n",
+      "expected": "Situation: Corporate is 56.5% of 2025 revenue.\nComplication: Retail grew 64.7% against 66.5% for Corporate.\nResolution: grow Retail faster than Corporate."
+    },
+    {
+      "id": "i3",
+      "title": "One-page memo for a stakeholder (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Write a one-page memo for the commercial director from these facts: revenue 67,132.50 (+65.7%), Germany 29.0% of revenue, UK 20.9% but the fastest growing market (+68.1%), Spain slowest (+62.6%), August -15.9% against July. Use SCR, the answer first and action titles as the headings, and state one limitation.",
+      "starter": "Recommendation: ...\nSituation: ...\nComplication: ...\nLimitation: ...",
+      "solution": "Recommendation: Review the Spain plan and find the cause of the August dip before the next planning round. Situation: Revenue grew 65.7% to 67,132.50 in 2025 and every market grew by more than 60%. Complication, markets: Spain grew 62.6%, the slowest of four, while the UK, the smallest market at 20.9% of revenue, grew fastest at 68.1%. Complication, timing: August fell 15.9% from July, the largest monthly drop of the year. Limitation: the comparison is year on year on one year of history, so the causes (seasonality, one large customer, a campaign) are not established; the next step is to look at the August orders by customer. The headings are the findings and the figures are those supplied.",
+      "rubric": [
+        "Recommendation is first.",
+        "Headings are action titles with numbers.",
+        "Uses situation, complication, resolution content from the facts only.",
+        "States a limitation honestly."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does the pyramid principle put at the top of a story?",
+      "options": [
+        "The data sources",
+        "The method",
+        "The conclusion or recommendation",
+        "The appendix"
+      ],
+      "answer": 2,
+      "explanation": "The answer comes first, with supporting points under it and data under those. A reader who stops early still has the recommendation."
+    },
+    {
+      "id": "c2",
+      "question": "Which is an action title?",
+      "options": [
+        "Revenue by country",
+        "Q3 results",
+        "Spain grew 62.6%, the slowest of four markets",
+        "Overview"
+      ],
+      "answer": 2,
+      "explanation": "An action title states the finding as a sentence with a number. The others only name a subject."
+    },
+    {
+      "id": "c3",
+      "question": "A slide proves two findings with two charts. What does the one-message rule say?",
+      "options": [
+        "Keep it, readers can cope",
+        "Split it into two slides",
+        "Remove both charts",
+        "Add a third chart"
+      ],
+      "answer": 1,
+      "explanation": "Each slide should prove one claim with one chart. Two claims on one slide make it unclear which chart supports which."
+    },
+    {
+      "id": "c4",
+      "question": "Why build headlines from a computed fact dictionary?",
+      "options": [
+        "It makes the slides look better",
+        "Numbers stay traceable and update with the data",
+        "Dictionaries are faster than tables",
+        "It avoids the need for a recommendation"
+      ],
+      "answer": 1,
+      "explanation": "A headline made from computed values cannot drift from the data and can be rerun by a reviewer. Hand-typed numbers become wrong after a refresh."
+    },
+    {
+      "id": "c5",
+      "question": "In SCR, which part is the 'complication'?",
+      "options": [
+        "The background everyone agrees on",
+        "What changed or is wrong, with a number",
+        "The recommended action",
+        "The method"
+      ],
+      "answer": 1,
+      "explanation": "The situation is the agreed background and the resolution is the action. The complication is the tension that makes the story necessary."
+    }
+  ],
+  "id": "a138"
+}

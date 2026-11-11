@@ -1,0 +1,189 @@
+{
+  "id": "e098",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "normalization",
+      "primary-foreign-keys",
+      "python-pandas",
+      "database-design"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Build the customer table",
+      "kind": "python",
+      "prompt": "The DataFrame `flat` repeats each customer on every order line. Build `customers` with the columns `email` and `name`, one row per email (keep the first row for each email), with the index reset. Print `customers.to_string(index=False)`. Expected output: three lines, a header and the rows for ana@x.com and ben@x.com.",
+      "starter": "import pandas as pd\n\nflat = pd.DataFrame({\n    \"order_id\": [1, 1, 2, 3],\n    \"email\": [\"ana@x.com\", \"ana@x.com\", \"ben@x.com\", \"ana@x.com\"],\n    \"name\": [\"Ana\", \"Ana\", \"Ben\", \"Ana\"],\n    \"qty\": [2, 1, 4, 5],\n})\ncustomers = flat\nprint(customers.to_string(index=False))\n",
+      "solution": "import pandas as pd\n\nflat = pd.DataFrame({\n    \"order_id\": [1, 1, 2, 3],\n    \"email\": [\"ana@x.com\", \"ana@x.com\", \"ben@x.com\", \"ana@x.com\"],\n    \"name\": [\"Ana\", \"Ana\", \"Ben\", \"Ana\"],\n    \"qty\": [2, 1, 4, 5],\n})\ncustomers = flat[[\"email\", \"name\"]].drop_duplicates(subset=\"email\").reset_index(drop=True)\nprint(customers.to_string(index=False))\n",
+      "expected": "    email name\nana@x.com  Ana\nben@x.com  Ben",
+      "hints": [
+        "Select the two columns first with a list of names.",
+        "`drop_duplicates` takes `subset=` to decide which columns define a duplicate.",
+        "`flat[[\"email\", \"name\"]].drop_duplicates(subset=\"email\").reset_index(drop=True)`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Add surrogate keys",
+      "kind": "python",
+      "prompt": "Starting from the `customers` table below, add a column `customer_key` with the integers 1, 2, ... in row order, then merge it into `flat` on `email` (left join, `validate=\"m:1\"`) and print the list of `customer_key` values of `flat` in its row order. Expected output: `[1, 1, 2, 1]`.",
+      "starter": "import pandas as pd\n\nflat = pd.DataFrame({\n    \"order_id\": [1, 1, 2, 3],\n    \"email\": [\"ana@x.com\", \"ana@x.com\", \"ben@x.com\", \"ana@x.com\"],\n    \"name\": [\"Ana\", \"Ana\", \"Ben\", \"Ana\"],\n    \"qty\": [2, 1, 4, 5],\n})\ncustomers = flat[[\"email\", \"name\"]].drop_duplicates(subset=\"email\").reset_index(drop=True)\nprint(flat[\"qty\"].tolist())\n",
+      "solution": "import pandas as pd\n\nflat = pd.DataFrame({\n    \"order_id\": [1, 1, 2, 3],\n    \"email\": [\"ana@x.com\", \"ana@x.com\", \"ben@x.com\", \"ana@x.com\"],\n    \"name\": [\"Ana\", \"Ana\", \"Ben\", \"Ana\"],\n    \"qty\": [2, 1, 4, 5],\n})\ncustomers = flat[[\"email\", \"name\"]].drop_duplicates(subset=\"email\").reset_index(drop=True)\ncustomers[\"customer_key\"] = customers.index + 1\nmerged = flat.merge(customers[[\"email\", \"customer_key\"]], on=\"email\", how=\"left\", validate=\"m:1\")\nprint(merged[\"customer_key\"].tolist())\n",
+      "expected": "[1, 1, 2, 1]",
+      "hints": [
+        "After `reset_index(drop=True)` the index is 0, 1, 2, ...",
+        "Add 1 to the index to start the keys at 1.",
+        "`customers[\"customer_key\"] = customers.index + 1`, then merge only `email` and `customer_key`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Find conflicting keys",
+      "kind": "python",
+      "prompt": "The rows below describe products. Print the list of `code` values that have more than one distinct `title`, sorted. Expected output: `['P2']`.",
+      "starter": "import pandas as pd\n\nrows = pd.DataFrame({\"code\": [\"P1\", \"P2\", \"P2\", \"P3\", \"P1\"], \"title\": [\"Pen\", \"Book\", \"Notebook\", \"Ink\", \"Pen\"]})\nprint([])\n",
+      "solution": "import pandas as pd\n\nrows = pd.DataFrame({\"code\": [\"P1\", \"P2\", \"P2\", \"P3\", \"P1\"], \"title\": [\"Pen\", \"Book\", \"Notebook\", \"Ink\", \"Pen\"]})\ncounts = rows.groupby(\"code\")[\"title\"].nunique()\nprint(sorted(counts[counts > 1].index.tolist()))\n",
+      "expected": "['P2']",
+      "hints": [
+        "Count the distinct titles for each code.",
+        "`groupby(\"code\")[\"title\"].nunique()` gives that count per code.",
+        "Keep the entries above 1 and print their index as a sorted list."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "List the orphans",
+      "kind": "python",
+      "prompt": "`orders` refers to customers by `customer_id`; `customers` lists the existing ids. Print the sorted list of distinct `customer_id` values in `orders` that are missing from `customers`. Expected output: `[7, 9]`.",
+      "starter": "import pandas as pd\n\ncustomers = pd.DataFrame({\"customer_id\": [1, 2, 3]})\norders = pd.DataFrame({\"order_id\": [10, 11, 12, 13], \"customer_id\": [1, 7, 3, 9]})\nprint([])\n",
+      "solution": "import pandas as pd\n\ncustomers = pd.DataFrame({\"customer_id\": [1, 2, 3]})\norders = pd.DataFrame({\"order_id\": [10, 11, 12, 13], \"customer_id\": [1, 7, 3, 9]})\nmissing = orders[~orders[\"customer_id\"].isin(customers[\"customer_id\"])]\nprint(sorted(missing[\"customer_id\"].unique().tolist()))\n",
+      "expected": "[7, 9]",
+      "hints": [
+        "`isin` tests membership in another column.",
+        "Negate the mask with `~` to get the rows that are not found.",
+        "Take the unique `customer_id` values of the unmatched rows and sort them."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Split and prove it",
+      "kind": "python",
+      "prompt": "Split `flat` into `customers` (`customer_key`, `email`, `name`), `products` (`product_key`, `code`, `title`) and `lines` (`order_id`, `customer_key`, `product_key`, `qty`), with surrogate keys numbered from 1 in order of first appearance. Print on the first line the three row counts separated by spaces (`customers products lines`), on the second line `True` or `False` for whether joining the three tables back, selecting `order_id, email, name, code, title, qty`, sorting by `order_id` and `code` and resetting the index equals `flat` sorted the same way, and on the third line whether every key column is unique in its table (`True`/`False`). Expected output: `2 2 5`, `True`, `True`.",
+      "starter": "import pandas as pd\n\nflat = pd.DataFrame({\n    \"order_id\": [1, 1, 2, 3, 3],\n    \"email\": [\"ana@x.com\", \"ana@x.com\", \"ben@x.com\", \"ana@x.com\", \"ana@x.com\"],\n    \"name\": [\"Ana\", \"Ana\", \"Ben\", \"Ana\", \"Ana\"],\n    \"code\": [\"P1\", \"P2\", \"P1\", \"P1\", \"P2\"],\n    \"title\": [\"Pen\", \"Book\", \"Pen\", \"Pen\", \"Book\"],\n    \"qty\": [2, 1, 4, 1, 3],\n})\n# split, join back, compare\n",
+      "solution": "import pandas as pd\n\nflat = pd.DataFrame({\n    \"order_id\": [1, 1, 2, 3, 3],\n    \"email\": [\"ana@x.com\", \"ana@x.com\", \"ben@x.com\", \"ana@x.com\", \"ana@x.com\"],\n    \"name\": [\"Ana\", \"Ana\", \"Ben\", \"Ana\", \"Ana\"],\n    \"code\": [\"P1\", \"P2\", \"P1\", \"P1\", \"P2\"],\n    \"title\": [\"Pen\", \"Book\", \"Pen\", \"Pen\", \"Book\"],\n    \"qty\": [2, 1, 4, 1, 3],\n})\ncustomers = flat[[\"email\", \"name\"]].drop_duplicates(subset=\"email\").reset_index(drop=True)\ncustomers.insert(0, \"customer_key\", customers.index + 1)\nproducts = flat[[\"code\", \"title\"]].drop_duplicates(subset=\"code\").reset_index(drop=True)\nproducts.insert(0, \"product_key\", products.index + 1)\nlines = (flat[[\"order_id\", \"email\", \"code\", \"qty\"]]\n         .merge(customers[[\"email\", \"customer_key\"]], on=\"email\", validate=\"m:1\")\n         .merge(products[[\"code\", \"product_key\"]], on=\"code\", validate=\"m:1\")\n         [[\"order_id\", \"customer_key\", \"product_key\", \"qty\"]])\nprint(len(customers), len(products), len(lines))\nback = (lines.merge(customers, on=\"customer_key\").merge(products, on=\"product_key\")\n        [[\"order_id\", \"email\", \"name\", \"code\", \"title\", \"qty\"]]\n        .sort_values([\"order_id\", \"code\"]).reset_index(drop=True))\nwant = flat.sort_values([\"order_id\", \"code\"]).reset_index(drop=True)\nprint(back.equals(want))\nprint(customers[\"customer_key\"].is_unique and products[\"product_key\"].is_unique and customers[\"email\"].is_unique)\n",
+      "expected": "2 2 5\nTrue\nTrue"
+    },
+    {
+      "id": "i2",
+      "title": "Relationship report for sheets",
+      "kind": "python",
+      "prompt": "`book` imitates `read_excel(sheet_name=None)` for a workbook with sheets `Customers` and `Orders`. Print three lines: `duplicate customer ids: ` and the sorted list of customer ids that appear more than once in `Customers`; `empty customer ids in orders: ` and how many rows of `Orders` have a missing `customer_id`; `orphan orders: ` and the sorted list of `order_id` values whose non-missing `customer_id` is not in `Customers`. Expected output: `duplicate customer ids: [2]`, `empty customer ids in orders: 1`, `orphan orders: [12, 14]`.",
+      "starter": "import pandas as pd\n\nnan = float(\"nan\")\nbook = {\n    \"Customers\": pd.DataFrame({\"customer_id\": [1, 2, 2, 3], \"name\": [\"Ana\", \"Ben\", \"Ben B.\", \"Cy\"]}),\n    \"Orders\": pd.DataFrame({\"order_id\": [10, 11, 12, 13, 14], \"customer_id\": [1, nan, 8, 3, 9]}),\n}\n# report\n",
+      "solution": "import pandas as pd\n\nnan = float(\"nan\")\nbook = {\n    \"Customers\": pd.DataFrame({\"customer_id\": [1, 2, 2, 3], \"name\": [\"Ana\", \"Ben\", \"Ben B.\", \"Cy\"]}),\n    \"Orders\": pd.DataFrame({\"order_id\": [10, 11, 12, 13, 14], \"customer_id\": [1, nan, 8, 3, 9]}),\n}\ncustomers, orders = book[\"Customers\"], book[\"Orders\"]\ndup = customers.loc[customers[\"customer_id\"].duplicated(keep=False), \"customer_id\"].unique().tolist()\nprint(\"duplicate customer ids:\", sorted(dup))\nprint(\"empty customer ids in orders:\", int(orders[\"customer_id\"].isna().sum()))\nknown = orders[orders[\"customer_id\"].notna()]\norphans = known[~known[\"customer_id\"].isin(customers[\"customer_id\"])]\nprint(\"orphan orders:\", sorted(orphans[\"order_id\"].tolist()))\n",
+      "expected": "duplicate customer ids: [2]\nempty customer ids in orders: 1\norphan orders: [12, 14]"
+    },
+    {
+      "id": "i3",
+      "title": "Design the split for your own sheet",
+      "kind": "written",
+      "prompt": "Pick a flat spreadsheet you know (invoices, timesheets, a shop export). Name its grain, the entity tables you would split out, each table's key (natural or surrogate, and why), the relationships, and the three checks you would run before loading.",
+      "starter": "Write your design here.",
+      "solution": "For a timesheet export where every row is one person on one project on one day: the grain is person-project-day. Entities: `employee` (key `employee_id`, natural, issued by HR), `project` (key `project_code`, natural, stable), and `time_entry` (key `employee_id, project_code, work_date`, composite). Relationships: one employee has many time entries and one project has many time entries, both through foreign keys in `time_entry`. Checks before loading: every key column is unique in its parent table, no `time_entry` row has an orphan `employee_id` or `project_code`, and the join of the three tables reproduces the original row count and the sum of hours.",
+      "rubric": [
+        "Names the grain of the sheet",
+        "Separates at least two entities with keys and explains the key choice",
+        "States the one-to-many relationships and where the foreign key lives",
+        "Lists uniqueness, orphan and join-back checks"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `df.drop_duplicates()` (no arguments) do on a sheet where one customer appears on two rows that differ only in the city?",
+      "options": [
+        "Keeps one row for the customer",
+        "Keeps both rows, because they are not identical in every column",
+        "Raises an error because of the conflict",
+        "Keeps the row with the longer city"
+      ],
+      "answer": 1,
+      "explanation": "Without `subset`, pandas compares all columns, so rows that differ in any column are different. Deduplicate on the key and check for disagreement with `nunique()`."
+    },
+    {
+      "id": "c2",
+      "question": "What does `validate=\"m:1\"` in `merge` do?",
+      "options": [
+        "Sorts the result by key",
+        "Raises an error if the right-hand table has a repeated key",
+        "Removes unmatched rows",
+        "Converts the key to integers"
+      ],
+      "answer": 1,
+      "explanation": "The check says many rows on the left match at most one on the right. If the lookup repeats a key, the merge would multiply rows, so pandas raises `MergeError` instead."
+    },
+    {
+      "id": "c3",
+      "question": "`orders` has `customer_id` values 1, 2, 7 and `customers` has 1, 2, 3. Which statement is true after an inner join on `customer_id`?",
+      "options": [
+        "All three orders are kept",
+        "The order of customer 7 disappears without any error",
+        "pandas raises because 7 is missing",
+        "Customer 3 is added with empty order columns"
+      ],
+      "answer": 1,
+      "explanation": "An inner join keeps only matching keys, so the orphan row is dropped silently. That is why you list orphans first. A left join would keep the order with empty customer columns; an outer join would also add customer 3."
+    },
+    {
+      "id": "c4",
+      "question": "Why do many pipelines add a surrogate key even when an email address is available?",
+      "options": [
+        "Emails cannot be stored in databases",
+        "A natural key can change or be reused, while an invented integer stays stable and keeps foreign keys small",
+        "Surrogate keys make queries slower but safer",
+        "Pandas requires integers for merges"
+      ],
+      "answer": 1,
+      "explanation": "If a person changes their email, every foreign key that stored the email would need rewriting. A surrogate key stays the same and the email becomes an ordinary unique column."
+    },
+    {
+      "id": "c5",
+      "question": "What proves that splitting a flat sheet lost nothing?",
+      "options": [
+        "The new tables have fewer rows",
+        "Joining the new tables back reproduces the original rows (sorted comparison)",
+        "`drop_duplicates` ran without error",
+        "Every table has a primary key"
+      ],
+      "answer": 1,
+      "explanation": "Only a comparison with the original shows that no row or value was lost or duplicated. Fewer rows are expected in the lookup tables and says nothing about correctness."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "openpyxl",
+      "pandas"
+    ],
+    "note": "Example 1 writes a three-sheet workbook with openpyxl into a temporary folder and reads it back with `pd.read_excel(path, sheet_name=None)`; the browser cannot import openpyxl, so run it locally after `pip install openpyxl pandas`. The other examples and every graded exercise express the same workbook as DataFrames, and `sqlite3` stands in for PostgreSQL (type names and some syntax differ, but primary keys, foreign key columns and joins behave as taught)."
+  }
+}

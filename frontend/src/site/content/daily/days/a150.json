@@ -1,0 +1,182 @@
+{
+  "id": "a150",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "sum",
+      "group-by"
+    ],
+    "questions": [
+      1,
+      160
+    ],
+    "pyExercises": [
+      "inventory-reorder",
+      "lowest-stock-items"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "conditional-aggregation"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Low stock share",
+      "kind": "sql",
+      "prompt": "Return one row with `total_products`, `low_stock` (products with `units_in_stock` below 30) and `pct` (low_stock as a percentage of total_products, rounded to 1 decimal).",
+      "starter": "SELECT COUNT(*) AS total_products\nFROM products;\n",
+      "solution": "SELECT COUNT(*) AS total_products,\n       COUNT(*) FILTER (WHERE units_in_stock < 30) AS low_stock,\n       ROUND((100.0 * COUNT(*) FILTER (WHERE units_in_stock < 30) / COUNT(*))::numeric, 1) AS pct\nFROM products;\n",
+      "hints": [
+        "COUNT(*) gives all products.",
+        "COUNT(*) FILTER (WHERE units_in_stock < 30) counts the low-stock ones.",
+        "Divide by COUNT(*) with 100.0 and cast to numeric before ROUND."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Units sold in 1998",
+      "kind": "sql",
+      "prompt": "Return `product_name` and `units_1998` (total quantity ordered in orders dated in 1998) for the five products with the most units, ordered by `units_1998` descending, then `product_name`.",
+      "starter": "SELECT product_name\nFROM products\nLIMIT 5;\n",
+      "solution": "SELECT p.product_name, SUM(od.quantity) AS units_1998\nFROM products p\nJOIN order_details od ON od.product_id = p.product_id\nJOIN orders o ON o.order_id = od.order_id\nWHERE o.order_date >= DATE '1998-01-01' AND o.order_date < DATE '1999-01-01'\nGROUP BY p.product_id, p.product_name\nORDER BY units_1998 DESC, p.product_name\nLIMIT 5;\n",
+      "ordered": true,
+      "hints": [
+        "Join products, order_details and orders.",
+        "Filter the order date to 1998 with a half-open range.",
+        "SUM(quantity), then ORDER BY units_1998 DESC, product_name LIMIT 5."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Turnover and days of inventory",
+      "kind": "python",
+      "prompt": "Cost of goods sold for the year was 600000. The inventory value was 100000 at the start and 140000 at the end. Print `turnover: 5.0` (COGS over the average of start and end inventory) and `days of inventory: 73.0`, both rounded to 1 decimal.",
+      "starter": "cogs = 600000\nstart_inv, end_inv = 100000, 140000\n",
+      "solution": "cogs = 600000\nstart_inv, end_inv = 100000, 140000\naverage = (start_inv + end_inv) / 2\nturnover = cogs / average\nprint('turnover:', round(turnover, 1))\nprint('days of inventory:', round(365 / turnover, 1))\n",
+      "hints": [
+        "Average inventory is the mean of start and end.",
+        "Turnover is COGS divided by that average.",
+        "Days of inventory is 365 divided by turnover."
+      ],
+      "expected": "turnover: 5.0\ndays of inventory: 73.0"
+    },
+    {
+      "id": "g4",
+      "title": "Reorder point",
+      "kind": "python",
+      "prompt": "Mean daily demand is 30 units, the standard deviation of daily demand is 8, the lead time is 5 days and the protection level is 95 percent. Using `NormalDist().inv_cdf(0.95)`, print `safety stock: X` and `reorder point: Y`, each rounded to 1 decimal.",
+      "starter": "from statistics import NormalDist\n\nmean, sd, lead = 30, 8, 5\n",
+      "solution": "from statistics import NormalDist\n\nmean, sd, lead = 30, 8, 5\nz = NormalDist().inv_cdf(0.95)\nsafety = z * sd * lead ** 0.5\nprint('safety stock:', round(safety, 1))\nprint('reorder point:', round(mean * lead + safety, 1))\n",
+      "hints": [
+        "Get z from NormalDist().inv_cdf(0.95).",
+        "Safety stock is z times sd times the square root of the lead time.",
+        "Reorder point is mean times lead time plus the safety stock."
+      ],
+      "expected": "safety stock: 29.4\nreorder point: 179.4"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Lowest stock cover",
+      "kind": "sql",
+      "prompt": "Using units sold in 1998 (order dates in 1998) as demand, return `product_name`, `units_in_stock` and `cover_days` (units in stock divided by 1998 units sold over 365, rounded to 1 decimal) for the five products with the lowest cover, ordered by `cover_days`, then `product_name`. Products with no 1998 sales are not included.",
+      "starter": "SELECT product_name, units_in_stock\nFROM products\nORDER BY units_in_stock\nLIMIT 5;\n",
+      "solution": "SELECT p.product_name, p.units_in_stock,\n       ROUND((p.units_in_stock / (SUM(od.quantity) / 365.0))::numeric, 1) AS cover_days\nFROM products p\nJOIN order_details od ON od.product_id = p.product_id\nJOIN orders o ON o.order_id = od.order_id\nWHERE o.order_date >= DATE '1998-01-01' AND o.order_date < DATE '1999-01-01'\nGROUP BY p.product_id, p.product_name, p.units_in_stock\nORDER BY cover_days, p.product_name\nLIMIT 5;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Fill rate with a late delivery",
+      "kind": "python",
+      "prompt": "Daily demand is `[5, 8, 6, 9, 7, 10, 4, 8]`. The opening stock is 40 units, a delivery of 20 units arrives at the start of day 5 (the fifth value, index 4), and demand that cannot be met is lost. Simulate the 8 days and print `sold: X`, `lost: Y`, `stock-out days: Z` and `fill rate: P%` (P rounded to 1 decimal, as a percentage of demanded units).",
+      "starter": "demand = [5, 8, 6, 9, 7, 10, 4, 8]\nstock = 40\n",
+      "solution": "demand = [5, 8, 6, 9, 7, 10, 4, 8]\nstock = 40\nsold = lost = out_days = 0\nfor day, d in enumerate(demand):\n    if day == 4:\n        stock += 20\n    s = min(stock, d)\n    stock -= s\n    sold += s\n    lost += d - s\n    out_days += int(s < d)\nprint('sold:', sold)\nprint('lost:', lost)\nprint('stock-out days:', out_days)\nprint('fill rate: ' + str(round(sold / (sold + lost) * 100, 1)) + '%')\n",
+      "expected": "sold: 57\nlost: 0\nstock-out days: 0\nfill rate: 100.0%"
+    },
+    {
+      "id": "i3",
+      "title": "Choose a service level",
+      "kind": "written",
+      "required": false,
+      "prompt": "A product earns a margin of 4 per unit and costs 0.5 per unit per year to hold. Raising protection from 95 to 99 percent needs 40 more units of safety stock and prevents an expected 30 lost units a year. Compute the annual cost and benefit, recommend whether to raise the level, and state one assumption you made.",
+      "starter": "Write your answer here.",
+      "solution": "The extra safety stock costs 40 x 0.5 = 20 a year to hold. The 30 prevented lost units would have earned 30 x 4 = 120 of margin. The benefit of 120 is six times the holding cost of 20, so raising the protection level pays for this product. One assumption is that the expected lost units estimate is right, which depends on demand being roughly normal and on lead time not varying; if a lost sale also costs future purchases the benefit is larger, and if the 40 extra units become obsolete the cost is larger. I would recommend the increase and track the actual stock-outs over the next quarters to check the estimate.",
+      "rubric": [
+        "Computes holding cost 20 and benefit 120 correctly",
+        "Recommends raising the level based on benefit exceeding cost",
+        "States an assumption such as the demand model, lead time or obsolescence"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A product has 300 units in stock and sells 20 units a day on average. What is its stock cover?",
+      "options": [
+        "15 days",
+        "20 days",
+        "300 days",
+        "6,000 days"
+      ],
+      "answer": 0,
+      "explanation": "Cover is units in stock over daily demand: 300 / 20 = 15 days. Multiplying instead of dividing gives 6,000, which is meaningless as a duration."
+    },
+    {
+      "id": "c2",
+      "question": "Lead time doubles from 4 to 8 days, with the same demand variability and the same z. By what factor does the safety stock z * sigma * sqrt(L) grow?",
+      "options": [
+        "About 1.41",
+        "2",
+        "4",
+        "It does not change"
+      ],
+      "answer": 0,
+      "explanation": "Safety stock grows with the square root of the lead time, so doubling it multiplies safety stock by sqrt(2), about 1.41. The reorder point's demand part, mean x L, does double."
+    },
+    {
+      "id": "c3",
+      "question": "A product runs out on 20 days of the year and the sales data shows zero sales on those days. What does the average of daily sales do to demand?",
+      "options": [
+        "Understates it, because sales are capped by stock",
+        "Overstates it",
+        "Measures it exactly",
+        "Has no relation to it"
+      ],
+      "answer": 0,
+      "explanation": "On stock-out days customers wanted the product but sales were zero, so average sales is below true demand."
+    },
+    {
+      "id": "c4",
+      "question": "A warehouse reports a 99% fill rate. Which statement is certain?",
+      "options": [
+        "99% of demanded units were supplied from stock",
+        "No stock-out ever occurred",
+        "99% of cycles had no stock-out",
+        "Turnover is 99"
+      ],
+      "answer": 0,
+      "explanation": "Fill rate is the share of demanded units supplied. Stock-outs can still occur briefly, and cycle service level is a different measure."
+    },
+    {
+      "id": "c5",
+      "question": "Why is high turnover not automatically good news?",
+      "options": [
+        "It can mean shelves are too bare and sales are lost to stock-outs",
+        "Turnover has no relation to inventory",
+        "It always means prices are too low",
+        "It means inventory is overvalued"
+      ],
+      "answer": 0,
+      "explanation": "Turnover rises when average stock is low. If stock is so low that products run out, the business gains turnover but loses sales, so turnover must be read with the stock-out rate."
+    }
+  ]
+}

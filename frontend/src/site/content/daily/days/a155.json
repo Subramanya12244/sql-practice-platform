@@ -1,0 +1,183 @@
+{
+  "id": "a155",
+  "time": {
+    "theory": 30,
+    "examples": 30,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "avg"
+    ],
+    "questions": [
+      166,
+      196
+    ],
+    "pyExercises": [
+      "percent-change",
+      "group-and-aggregate"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "year-over-year-growth"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Difference in differences",
+      "kind": "python",
+      "prompt": "Purchase rates (percent): treated before 20.0, treated after 26.0, comparison before 20.0, comparison after 22.0. Print `treated change: 6.0`, `comparison change: 2.0` and `difference in differences: 4.0`.",
+      "starter": "tb, ta = 20.0, 26.0\ncb, ca = 20.0, 22.0\n",
+      "solution": "tb, ta = 20.0, 26.0\ncb, ca = 20.0, 22.0\nprint('treated change:', ta - tb)\nprint('comparison change:', ca - cb)\nprint('difference in differences:', (ta - tb) - (ca - cb))\n",
+      "hints": [
+        "Each change is after minus before.",
+        "Subtract the comparison change from the treated change.",
+        "Print the three values with the exact labels."
+      ],
+      "expected": "treated change: 6.0\ncomparison change: 2.0\ndifference in differences: 4.0"
+    },
+    {
+      "id": "g2",
+      "title": "Uplift with an interval",
+      "kind": "python",
+      "prompt": "Treated: 5000 customers, 1250 bought. Holdout: 1000 customers, 220 bought. Print `uplift points: X`, `low: X` and `high: X` (95% interval, using 1.96 and the standard error of the difference), all in points rounded to 1 decimal.",
+      "starter": "nt, bt = 5000, 1250\nnc, bc = 1000, 220\n",
+      "solution": "nt, bt = 5000, 1250\nnc, bc = 1000, 220\npt, pc = bt / nt, bc / nc\nse = (pt * (1 - pt) / nt + pc * (1 - pc) / nc) ** 0.5\nu = pt - pc\nprint('uplift points:', round(u * 100, 1))\nprint('low:', round((u - 1.96 * se) * 100, 1))\nprint('high:', round((u + 1.96 * se) * 100, 1))\n",
+      "hints": [
+        "The two rates are bought over customers.",
+        "The standard error combines p(1-p)/n for both groups under a square root.",
+        "Interval is uplift plus or minus 1.96 se; multiply by 100 for points."
+      ],
+      "expected": "uplift points: 3.0\nlow: 0.2\nhigh: 5.8"
+    },
+    {
+      "id": "g3",
+      "title": "Pre and post by country",
+      "kind": "sql",
+      "prompt": "For customers whose `country` is Germany, France or UK, return `country`, `revenue_1997` and `revenue_1998` (net revenue of orders dated in that year, rounded to 0 decimals, 0 if none) and `change_pct` (percent change from 1997 to 1998, rounded to 1 decimal), ordered by `country`. Use the customer's country from the `customers` table.",
+      "starter": "SELECT country, COUNT(*) AS customers\nFROM customers\nWHERE country IN ('Germany', 'France', 'UK')\nGROUP BY country\nORDER BY country;\n",
+      "solution": "WITH r AS (\n  SELECT c.country,\n         SUM(od.unit_price * od.quantity * (1 - od.discount)) FILTER (WHERE EXTRACT(year FROM o.order_date) = 1997) AS r97,\n         SUM(od.unit_price * od.quantity * (1 - od.discount)) FILTER (WHERE EXTRACT(year FROM o.order_date) = 1998) AS r98\n  FROM customers c\n  JOIN orders o ON o.customer_id = c.customer_id\n  JOIN order_details od ON od.order_id = o.order_id\n  WHERE c.country IN ('Germany', 'France', 'UK')\n  GROUP BY c.country\n)\nSELECT country,\n       ROUND(COALESCE(r97, 0)::numeric, 0) AS revenue_1997,\n       ROUND(COALESCE(r98, 0)::numeric, 0) AS revenue_1998,\n       ROUND(((r98 - r97) / NULLIF(r97, 0) * 100)::numeric, 1) AS change_pct\nFROM r\nORDER BY country;\n",
+      "ordered": true,
+      "hints": [
+        "Join customers, orders and order_details and keep the three countries.",
+        "SUM(...) FILTER (WHERE EXTRACT(year FROM o.order_date) = 1997) gives one column per year.",
+        "Percent change is (r98 - r97) / NULLIF(r97, 0) * 100."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Incremental ROI",
+      "kind": "python",
+      "prompt": "A campaign cost 3000 and reached 6000 customers. The uplift is 1.5 points, each extra order is worth 80 and the gross margin is 40 percent. Print `extra orders: 90` and `incremental roi: -0.04` (extra orders rounded to the nearest integer, ROI rounded to 2 decimals).",
+      "starter": "cost, n, uplift, value, margin = 3000, 6000, 0.015, 80, 0.40\n",
+      "solution": "cost, n, uplift, value, margin = 3000, 6000, 0.015, 80, 0.40\nextra = uplift * n\nprint('extra orders:', round(extra))\nprint('incremental roi:', round((extra * value * margin - cost) / cost, 2))\n",
+      "hints": [
+        "Extra orders are the uplift times the customers reached.",
+        "Gross profit is extra orders x value x margin.",
+        "ROI is (profit - cost) / cost."
+      ],
+      "expected": "extra orders: 90\nincremental roi: -0.04"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Three comparisons on one table",
+      "kind": "python",
+      "prompt": "Counts for 1000 customers each: treated (loyal, sent) before 200, after 260; holdout (loyal, not sent) before 205, after 225; others (not loyal, not sent) before 60, after 80. Print three lines: `before and after: X` (treated change in points), `vs others: X` (treated after minus others after, in points) and `difference in differences: X` (treated change minus holdout change). All as points rounded to 1 decimal, then `most trustworthy: difference in differences`.",
+      "starter": "n = 1000\ntreated = (200, 260)\nholdout = (205, 225)\nothers = (60, 80)\n",
+      "solution": "n = 1000\ntreated = (200, 260)\nholdout = (205, 225)\nothers = (60, 80)\npts = lambda x: x / n * 100\nprint('before and after:', round(pts(treated[1] - treated[0]), 1))\nprint('vs others:', round(pts(treated[1] - others[1]), 1))\nprint('difference in differences:', round(pts(treated[1] - treated[0]) - pts(holdout[1] - holdout[0]), 1))\nprint('most trustworthy: difference in differences')\n",
+      "expected": "before and after: 6.0\nvs others: 18.0\ndifference in differences: 4.0\nmost trustworthy: difference in differences"
+    },
+    {
+      "id": "i2",
+      "title": "Decision rule from an interval",
+      "kind": "python",
+      "prompt": "Treated: 8000 customers, 1840 bought. Holdout: 2000, 420 bought. Cost 5000, order value 60, margin 35 percent. Compute the uplift and its 95% interval, then the incremental ROI at the central, pessimistic (low end) and optimistic (high end) uplift. Print `central: X`, `pessimistic: X`, `optimistic: X` (ROI, 2 decimals) and finally `decision: scale` if the pessimistic ROI is above 0, `decision: repeat test` if only the central ROI is above 0, otherwise `decision: stop`.",
+      "starter": "nt, bt = 8000, 1840\nnc, bc = 2000, 420\ncost, value, margin = 5000, 60, 0.35\n",
+      "solution": "nt, bt = 8000, 1840\nnc, bc = 2000, 420\ncost, value, margin = 5000, 60, 0.35\npt, pc = bt / nt, bc / nc\nse = (pt * (1 - pt) / nt + pc * (1 - pc) / nc) ** 0.5\nu = pt - pc\nroi = {}\nfor name, x in (('central', u), ('pessimistic', u - 1.96 * se), ('optimistic', u + 1.96 * se)):\n    roi[name] = (x * nt * value * margin - cost) / cost\n    print(name + ':', round(roi[name], 2))\nif roi['pessimistic'] > 0:\n    print('decision: scale')\nelif roi['central'] > 0:\n    print('decision: repeat test')\nelse:\n    print('decision: stop')\n",
+      "expected": "central: -0.33\npessimistic: -1.0\noptimistic: 0.35\ndecision: stop"
+    },
+    {
+      "id": "i3",
+      "title": "Write the campaign recommendation",
+      "kind": "written",
+      "prompt": "A loyalty email cost 4,000. Customers who received it bought 6 points more often than before. Customers in a random holdout bought 2 points more often than before. The interval for the difference in differences is 1.0 to 7.0 points, the extra orders are worth 70 each at a 35 percent margin, and 6,400 customers received the email. Write a recommendation of 5 to 8 sentences with finding, evidence, confidence, recommendation and next step. Compute the incremental ROI for the central (4 point) and the pessimistic (1 point) case.",
+      "starter": "Finding:\nEvidence:\nConfidence:\nRecommendation:\nNext step:",
+      "solution": "Finding: the email raised the purchase rate by about 4 points, which is the 6 point rise of the treated customers minus the 2 point general trend seen in the holdout. Evidence: 4 points on 6,400 customers is about 256 extra orders, worth 256 x 70 x 0.35 = 6,272 of gross profit against a cost of 4,000, an incremental ROI of about 0.57. In the pessimistic case of 1 point there are 64 extra orders worth 1,568, an ROI of about -0.61. Confidence: moderate to low, because the interval of 1.0 to 7.0 points is wide and includes cases where the campaign loses money; the ROI also excludes staff time and any pull-forward of future orders. Recommendation: do not scale the spend yet; repeat the campaign with a larger holdout so that the interval narrows, and continue only if the pessimistic case covers the cost. Next step: agree the size of the holdout with the marketing team (a larger holdout gives a narrower interval) and check whether orders in the following month fell for the treated group.",
+      "rubric": [
+        "Separates the treated change from the trend using the holdout (about 4 points)",
+        "Computes the central ROI (about 0.57) and the pessimistic ROI (about -0.61)",
+        "States the uncertainty and what the ROI leaves out",
+        "Recommends repeating the test with a larger holdout instead of scaling or stopping"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why does comparing customers who got a targeted email with those who did not give a biased uplift?",
+      "options": [
+        "The targeted customers differed before the campaign, so the groups are not alike",
+        "Emails have no effect",
+        "The untreated group is too large",
+        "The comparison needs a longer period"
+      ],
+      "answer": 0,
+      "explanation": "If the email went to the customers most likely to buy, they would have bought more anyway. The difference mixes who was chosen with what the email did."
+    },
+    {
+      "id": "c2",
+      "question": "Treated customers rose 6 points, the random holdout rose 2 points. What is the difference-in-differences estimate?",
+      "options": [
+        "4 points",
+        "6 points",
+        "2 points",
+        "8 points"
+      ],
+      "answer": 0,
+      "explanation": "Subtract the change in the comparison group (the trend) from the change in the treated group: 6 - 2 = 4 points."
+    },
+    {
+      "id": "c3",
+      "question": "The 95% interval for uplift is -0.5 to 3.5 points. What is the right statement?",
+      "options": [
+        "The data cannot rule out zero effect, so the evidence is not conclusive",
+        "The campaign works",
+        "The campaign failed",
+        "The interval is invalid"
+      ],
+      "answer": 0,
+      "explanation": "The interval includes zero and also meaningful positive values, so the data does not settle the question. The right next step is more data, such as a larger holdout."
+    },
+    {
+      "id": "c4",
+      "question": "A colleague says the biased comparison is fine because it uses 500,000 customers. What is the problem with this argument?",
+      "options": [
+        "A larger sample makes a biased estimate more precise but not correct",
+        "A larger sample makes the bias disappear",
+        "The sample is too large for SQL",
+        "Bias only matters in small samples"
+      ],
+      "answer": 0,
+      "explanation": "Bias is a systematic error of the comparison itself. More data narrows the random noise around the wrong value."
+    },
+    {
+      "id": "c5",
+      "question": "The central ROI is +0.5 but the pessimistic ROI (low end of the interval) is -0.4. What is the sensible decision rule outcome?",
+      "options": [
+        "Repeat the test with a larger holdout before scaling",
+        "Scale immediately",
+        "Stop immediately",
+        "Ignore the interval"
+      ],
+      "answer": 0,
+      "explanation": "The central estimate pays, but the data is also consistent with a loss. A larger holdout narrows the interval, so the decision can be based on stronger evidence."
+    }
+  ]
+}

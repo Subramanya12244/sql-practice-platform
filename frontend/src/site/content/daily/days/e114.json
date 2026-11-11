@@ -1,0 +1,181 @@
+{
+  "time": {
+    "theory": 25,
+    "examples": 25,
+    "guided": 25,
+    "independent": 45,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "python-database-connectivity",
+      "python-pandas",
+      "transactions"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Bind a value",
+      "kind": "python",
+      "prompt": "The in-memory table `accounts(name, secret)` is created for you. Write `lookup(name)` that returns the list of `(name, secret)` rows for exactly that name using a `?` placeholder, then print `lookup(\"ada\")` and `lookup(\"x' OR '1'='1\")`. Expected output: `[('ada', 's1')]` then `[]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE accounts (name TEXT, secret TEXT)\")\nconn.executemany(\"INSERT INTO accounts VALUES (?, ?)\", [(\"ada\", \"s1\"), (\"bob\", \"s2\")])\n\ndef lookup(name):\n    pass\n\nprint(lookup(\"ada\"))\nprint(lookup(\"x' OR '1'='1\"))\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE accounts (name TEXT, secret TEXT)\")\nconn.executemany(\"INSERT INTO accounts VALUES (?, ?)\", [(\"ada\", \"s1\"), (\"bob\", \"s2\")])\n\ndef lookup(name):\n    return conn.execute(\"SELECT name, secret FROM accounts WHERE name = ?\", (name,)).fetchall()\n\nprint(lookup(\"ada\"))\nprint(lookup(\"x' OR '1'='1\"))\n",
+      "hints": [
+        "The SQL text contains a `?` where the value goes, with no quotes around it.",
+        "`conn.execute(sql, (name,))` passes the value; note the comma that makes it a tuple.",
+        "`return conn.execute(\"SELECT name, secret FROM accounts WHERE name = ?\", (name,)).fetchall()`"
+      ],
+      "expected": "[('ada', 's1')]\n[]"
+    },
+    {
+      "id": "g2",
+      "title": "Named placeholders",
+      "kind": "python",
+      "prompt": "The table `orders(order_id, status, amount_cents)` is created for you. Using `:status` and `:min_amount` named placeholders and one dict of parameters, print the order ids of paid orders with `amount_cents >= 1000`, ordered by `order_id`, as a list of ints. Expected output: `[1, 4]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?, ?)\", [(1, \"paid\", 1500), (2, \"paid\", 900), (3, \"failed\", 2000), (4, \"paid\", 1000)])\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?, ?)\", [(1, \"paid\", 1500), (2, \"paid\", 900), (3, \"failed\", 2000), (4, \"paid\", 1000)])\nrows = conn.execute(\n    \"SELECT order_id FROM orders WHERE status = :status AND amount_cents >= :min_amount ORDER BY order_id\",\n    {\"status\": \"paid\", \"min_amount\": 1000},\n).fetchall()\nprint([r[0] for r in rows])\n",
+      "hints": [
+        "Named markers look like `:status`; the values come from a dict with the same names (without the colon).",
+        "`conn.execute(sql, {\"status\": \"paid\", \"min_amount\": 1000})`.",
+        "Each row is a tuple, so take `r[0]` in a list comprehension before printing."
+      ],
+      "expected": "[1, 4]"
+    },
+    {
+      "id": "g3",
+      "title": "Allowlisted sort column",
+      "kind": "python",
+      "prompt": "Write `sorted_ids(column)` that returns the list of `order_id` values of the `orders` table (created for you) ordered by the given column ascending, but raises `ValueError` when `column` is not `order_id` or `amount_cents`. Print `sorted_ids(\"amount_cents\")`, then catch the error for `\"status\"` and print `blocked`. Expected output: `[2, 4, 1, 3]` then `blocked`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?, ?)\", [(1, \"paid\", 1500), (2, \"paid\", 900), (3, \"failed\", 2000), (4, \"paid\", 1000)])\n\ndef sorted_ids(column):\n    pass\n\nprint(sorted_ids(\"amount_cents\"))\ntry:\n    sorted_ids(\"status\")\nexcept ValueError:\n    print(\"blocked\")\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?, ?)\", [(1, \"paid\", 1500), (2, \"paid\", 900), (3, \"failed\", 2000), (4, \"paid\", 1000)])\n\ndef sorted_ids(column):\n    if column not in {\"order_id\", \"amount_cents\"}:\n        raise ValueError(column)\n    rows = conn.execute(f\"SELECT order_id FROM orders ORDER BY {column}\").fetchall()\n    return [r[0] for r in rows]\n\nprint(sorted_ids(\"amount_cents\"))\ntry:\n    sorted_ids(\"status\")\nexcept ValueError:\n    print(\"blocked\")\n",
+      "hints": [
+        "A placeholder cannot carry a column name, so check the name first.",
+        "Check `column not in {...}` and raise before any SQL is built.",
+        "After the check, format the name into the SQL with an f-string; it is safe because it can only be one of the two allowed names."
+      ],
+      "expected": "[2, 4, 1, 3]\nblocked"
+    },
+    {
+      "id": "g4",
+      "title": "One marker per item",
+      "kind": "python",
+      "prompt": "Write `orders_in(ids)` that returns the sorted list of `amount_cents` for the order ids in the list `ids`, using one `?` per id (generate the markers with `\",\".join(\"?\" * len(ids))`). The `orders` table is created for you. Print `orders_in([1, 3, 4])`. Expected output: `[1000, 1500, 2000]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?, ?)\", [(1, \"paid\", 1500), (2, \"paid\", 900), (3, \"failed\", 2000), (4, \"paid\", 1000)])\n\ndef orders_in(ids):\n    pass\n\nprint(orders_in([1, 3, 4]))\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?, ?)\", [(1, \"paid\", 1500), (2, \"paid\", 900), (3, \"failed\", 2000), (4, \"paid\", 1000)])\n\ndef orders_in(ids):\n    markers = \",\".join(\"?\" * len(ids))\n    rows = conn.execute(f\"SELECT amount_cents FROM orders WHERE order_id IN ({markers}) ORDER BY amount_cents\", ids).fetchall()\n    return [r[0] for r in rows]\n\nprint(orders_in([1, 3, 4]))\n",
+      "hints": [
+        "`IN (?)` takes exactly one value, so you need as many markers as ids.",
+        "`\",\".join(\"?\" * 3)` gives `?,?,?`. Put that inside the parentheses of `IN (...)`.",
+        "Pass the list of ids itself as the parameters: `conn.execute(sql, ids)`."
+      ],
+      "expected": "[1000, 1500, 2000]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Typed frame from a parameterised query",
+      "kind": "python",
+      "prompt": "Create the in-memory table `shipments(shipment_id, shipped_at, courier_id)` with the three rows given in the starter (courier_id is NULL on one row). Read it with `pd.read_sql` and one `?` parameter (`shipment_id >= 1`), parsing `shipped_at` as dates and loading `courier_id` as the nullable `Int64`. Print three lines: the `courier_id` values as a list (missing shown as `<NA>`), the list of the shipped dates' days, and the count of missing couriers. Expected output: `[7, <NA>, 7]`, `[4, 5, 6]`, `1`.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE shipments (shipment_id INTEGER, shipped_at TEXT, courier_id INTEGER)\")\nconn.executemany(\"INSERT INTO shipments VALUES (?, ?, ?)\", [(1, \"2025-03-04\", 7), (2, \"2025-03-05\", None), (3, \"2025-03-06\", 7)])\n# Your code here\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE shipments (shipment_id INTEGER, shipped_at TEXT, courier_id INTEGER)\")\nconn.executemany(\"INSERT INTO shipments VALUES (?, ?, ?)\", [(1, \"2025-03-04\", 7), (2, \"2025-03-05\", None), (3, \"2025-03-06\", 7)])\ndf = pd.read_sql(\"SELECT * FROM shipments WHERE shipment_id >= ? ORDER BY shipment_id\", conn, params=(1,), parse_dates=[\"shipped_at\"], dtype={\"courier_id\": \"Int64\"})\nprint(df[\"courier_id\"].tolist())\nprint(df[\"shipped_at\"].dt.day.tolist())\nprint(int(df[\"courier_id\"].isna().sum()))\n",
+      "expected": "[7, <NA>, 7]\n[4, 5, 6]\n1"
+    },
+    {
+      "id": "i2",
+      "title": "Safe search with a dynamic filter list",
+      "kind": "python",
+      "prompt": "Write `search(conn, status=None, min_cents=None)` that builds a `WHERE` clause only from the filters that are not `None`, always with placeholders, and returns the list of `order_id` values ordered ascending. With both filters missing it returns every id. Using the table created in the starter, print `search(conn)`, `search(conn, status=\"paid\")`, `search(conn, status=\"paid\", min_cents=1000)`. Expected output: `[1, 2, 3, 4]`, `[1, 2, 4]`, `[1, 4]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?, ?)\", [(1, \"paid\", 1500), (2, \"paid\", 900), (3, \"failed\", 2000), (4, \"paid\", 1000)])\n\ndef search(conn, status=None, min_cents=None):\n    pass\n\nprint(search(conn))\nprint(search(conn, status=\"paid\"))\nprint(search(conn, status=\"paid\", min_cents=1000))\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER, status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?, ?)\", [(1, \"paid\", 1500), (2, \"paid\", 900), (3, \"failed\", 2000), (4, \"paid\", 1000)])\n\ndef search(conn, status=None, min_cents=None):\n    clauses, params = [], []\n    if status is not None:\n        clauses.append(\"status = ?\")\n        params.append(status)\n    if min_cents is not None:\n        clauses.append(\"amount_cents >= ?\")\n        params.append(min_cents)\n    where = (\" WHERE \" + \" AND \".join(clauses)) if clauses else \"\"\n    rows = conn.execute(\"SELECT order_id FROM orders\" + where + \" ORDER BY order_id\", params).fetchall()\n    return [r[0] for r in rows]\n\nprint(search(conn))\nprint(search(conn, status=\"paid\"))\nprint(search(conn, status=\"paid\", min_cents=1000))\n",
+      "expected": "[1, 2, 3, 4]\n[1, 2, 4]\n[1, 4]"
+    },
+    {
+      "id": "i3",
+      "title": "Review a query for injection",
+      "kind": "written",
+      "prompt": "A colleague's loader runs `conn.execute(f\"INSERT INTO customers (name, city) VALUES ('{name}', '{city}')\")` for every CSV row and `conn.execute(f\"SELECT * FROM customers ORDER BY {sort}\")` where `sort` comes from the job config. Write a short review: what fails for the row `O'Brien`, what an attacker-controlled `city` could do, which of the two statements can be fixed with placeholders and which needs another control, and the corrected code for both.",
+      "starter": "Problems:\nFix for the insert:\nFix for the sort:\n",
+      "solution": "The insert fails for `O'Brien` because the apostrophe closes the SQL string, so the statement has a syntax error and the row (and often the whole job) fails. An attacker-controlled `city` can end the string and add conditions or extra statements, so data becomes code. The insert is fixed with placeholders: `conn.execute(\"INSERT INTO customers (name, city) VALUES (?, ?)\", (name, city))`, or `executemany` for all rows. The `ORDER BY` cannot use a placeholder because it names a column, not a value: bind it to a constant and the order silently does nothing. The control is an allowlist: `ALLOWED = {\"name\", \"city\"}`, raise `ValueError` when `sort` is not in it, then format the checked name into the text.",
+      "required": false,
+      "rubric": [
+        "Explains that the apostrophe breaks the string and that malicious input becomes SQL.",
+        "Fixes the insert with placeholders (and mentions executemany or a tuple).",
+        "States that identifiers cannot be bound and uses an allowlist for the sort column.",
+        "Does not suggest hand-escaping quotes as the fix."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `conn.execute(\"SELECT * FROM t WHERE name = ?\", (\"x' OR '1'='1\",)).fetchall()` return if no row has that exact name?",
+      "options": [
+        "Every row",
+        "An empty list",
+        "A syntax error",
+        "Only the first row"
+      ],
+      "answer": 1,
+      "explanation": "The placeholder treats the whole text as one literal value, so it is compared as a name and matches nothing. String building would have turned the quote into SQL and returned every row."
+    },
+    {
+      "id": "c2",
+      "question": "Which statement can NOT be made safe by placeholders alone?",
+      "options": [
+        "`WHERE status = <user value>`",
+        "`LIMIT <user number>`",
+        "`ORDER BY <user column>`",
+        "`VALUES (<user text>, <user text>)`"
+      ],
+      "answer": 2,
+      "explanation": "Placeholders carry values. A column name is part of the query structure, so it needs an allowlist check before being formatted into the text."
+    },
+    {
+      "id": "c3",
+      "question": "`conn.execute(sql, (\"paid\"))` fails with a wrong number of bindings. Why?",
+      "options": [
+        "The driver needs named markers",
+        "`(\"paid\")` is a string, not a one-item tuple, so it is read as four characters",
+        "The status is reserved",
+        "The table is empty"
+      ],
+      "answer": 1,
+      "explanation": "A tuple with one item needs a trailing comma: `(\"paid\",)`. Without it the string itself is the parameter sequence and its characters are counted as bindings."
+    },
+    {
+      "id": "c4",
+      "question": "After `pd.read_sql` on SQLite, a text column of ISO dates and a nullable integer column have these dtypes by default:",
+      "options": [
+        "datetime64 and Int64",
+        "object and float64",
+        "object and int64",
+        "string and Int64"
+      ],
+      "answer": 1,
+      "explanation": "SQLite returns text for dates, so the column is `object`, and pandas turns an integer column with NULLs into `float64` with NaN. `parse_dates` and `dtype={\"col\": \"Int64\"}` fix both."
+    },
+    {
+      "id": "c5",
+      "question": "Why is replacing `'` with `''` by hand not recommended as the defence?",
+      "options": [
+        "It is slower",
+        "It is easy to miss in one place and has driver-specific edge cases; placeholders do it for every value",
+        "It changes the data permanently",
+        "SQL does not allow it"
+      ],
+      "answer": 1,
+      "explanation": "Manual escaping depends on every call site remembering it and on rules that vary by database and encoding. Placeholders make the separation of code and data the default."
+    }
+  ],
+  "id": "e114"
+}

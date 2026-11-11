@@ -1,0 +1,187 @@
+{
+  "id": "e106",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-api-integration",
+      "etl-extraction",
+      "etl-incremental-load"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "The page loop",
+      "kind": "python",
+      "prompt": "Using `get_page(page, page_size)` (23 records), read every page with `page_size=10`. Print the list of page sizes, then the total number of records collected. Expected output: `[10, 10, 3]` then `23`.",
+      "starter": "DATA = list(range(1, 24))\n\ndef get_page(page, page_size):\n    pages = -(-len(DATA) // page_size)\n    return {\"data\": DATA[(page - 1) * page_size:page * page_size], \"page\": page, \"total_pages\": pages}\n\nsizes = []\ncollected = []\nprint(sizes)\nprint(len(collected))\n",
+      "solution": "DATA = list(range(1, 24))\n\ndef get_page(page, page_size):\n    pages = -(-len(DATA) // page_size)\n    return {\"data\": DATA[(page - 1) * page_size:page * page_size], \"page\": page, \"total_pages\": pages}\n\nsizes = []\ncollected = []\npage = 1\nwhile True:\n    body = get_page(page, 10)\n    collected.extend(body[\"data\"])\n    sizes.append(len(body[\"data\"]))\n    if page >= body[\"total_pages\"]:\n        break\n    page += 1\nprint(sizes)\nprint(len(collected))\n",
+      "expected": "[10, 10, 3]\n23",
+      "hints": [
+        "Start at page 1 and keep a counter.",
+        "After each response, stop when the page number reaches `total_pages`; otherwise add 1.",
+        "`if page >= body[\"total_pages\"]: break` at the end of the loop body."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "How many pages",
+      "kind": "python",
+      "prompt": "Write `pages_needed(total, size)` using ceiling division (without `math`) and print it for `(120, 50)`, `(120, 40)`, `(0, 50)` and `(1, 50)`, one per line. Expected output: `3`, `3`, `0`, `1`.",
+      "starter": "def pages_needed(total, size):\n    return 0\n\nfor total, size in [(120, 50), (120, 40), (0, 50), (1, 50)]:\n    print(pages_needed(total, size))\n",
+      "solution": "def pages_needed(total, size):\n    return -(-total // size)\n\nfor total, size in [(120, 50), (120, 40), (0, 50), (1, 50)]:\n    print(pages_needed(total, size))\n",
+      "expected": "3\n3\n0\n1",
+      "hints": [
+        "Ordinary division rounds down with `//`.",
+        "Negating before and after the floor division rounds up.",
+        "`-(-total // size)`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Offset with a short-page stop",
+      "kind": "python",
+      "prompt": "`fetch(offset, limit)` returns `DATA[offset:offset + limit]` for 20 records. Read all records with `limit=10` and stop when a response has fewer than `limit` records. Print the number of requests and the number of records. Then do the same with 25 records and `limit=5` (a full last page) and print the same two numbers. Expected output: `3 20`, then `6 25`.",
+      "starter": "def read_all(data, limit):\n    requests_made, collected = 0, []\n    # loop with offset\n    return requests_made, len(collected)\n\nprint(*read_all(list(range(20)), 10))\nprint(*read_all(list(range(25)), 5))\n",
+      "solution": "def read_all(data, limit):\n    requests_made, collected, offset = 0, [], 0\n    while True:\n        batch = data[offset:offset + limit]\n        requests_made += 1\n        collected.extend(batch)\n        if len(batch) < limit:\n            break\n        offset += limit\n    return requests_made, len(collected)\n\nprint(*read_all(list(range(20)), 10))\nprint(*read_all(list(range(25)), 5))\n",
+      "expected": "3 20\n6 25",
+      "hints": [
+        "Each iteration takes `data[offset:offset + limit]` and counts one request.",
+        "Stop when the batch is shorter than `limit`.",
+        "When the last page is exactly full, one more request returns an empty batch, which is shorter than `limit`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "A cursor generator",
+      "kind": "python",
+      "prompt": "`get_batch(cursor)` returns `{\"data\": [...], \"next_cursor\": ...}` over the numbers 0 to 9 in batches of 4, with `None` as the final cursor. Write the generator `iter_cursor(get_batch)` that yields every record, starting with the cursor `\"\"`, and print the list of all records. Expected output: `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]`.",
+      "starter": "def get_batch(cursor):\n    start = int(cursor or 0)\n    end = start + 4\n    return {\"data\": list(range(start, min(end, 10))), \"next_cursor\": str(end) if end < 10 else None}\n\ndef iter_cursor(get_batch):\n    return iter([])\n\nprint(list(iter_cursor(get_batch)))\n",
+      "solution": "def get_batch(cursor):\n    start = int(cursor or 0)\n    end = start + 4\n    return {\"data\": list(range(start, min(end, 10))), \"next_cursor\": str(end) if end < 10 else None}\n\ndef iter_cursor(get_batch):\n    cursor = \"\"\n    while cursor is not None:\n        body = get_batch(cursor)\n        yield from body[\"data\"]\n        cursor = body[\"next_cursor\"]\n\nprint(list(iter_cursor(get_batch)))\n",
+      "expected": "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]",
+      "hints": [
+        "A generator uses `yield` or `yield from`.",
+        "Loop while the cursor is not `None`.",
+        "`yield from body[\"data\"]` then `cursor = body[\"next_cursor\"]`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A guarded page generator",
+      "kind": "python",
+      "prompt": "Write `iter_pages(get_page, page_size, max_pages)` that yields every record of a page-number API, stops after `page >= total_pages` or after an empty page, and raises `RuntimeError(\"max_pages exceeded\")` when it still has not stopped after `max_pages` requests. Use it on the normal stand-in (23 records, size 10, cap 10) and on `broken_get_page`, which always claims `total_pages = 999` and returns 5 records (cap 4). Print the number of records read from the normal one, then the number of records read and the error text for the broken one. Expected: `23`, then `20 max_pages exceeded`.",
+      "starter": "DATA = list(range(1, 24))\n\ndef get_page(page, page_size):\n    pages = -(-len(DATA) // page_size)\n    return {\"data\": DATA[(page - 1) * page_size:page * page_size], \"page\": page, \"total_pages\": pages}\n\ndef broken_get_page(page, page_size):\n    return {\"data\": list(range(5)), \"page\": page, \"total_pages\": 999}\n\ndef iter_pages(get_page, page_size, max_pages):\n    return iter([])\n\nprint(len(list(iter_pages(get_page, 10, 10))))\ngot = 0\ntry:\n    for _ in iter_pages(broken_get_page, 10, 4):\n        got += 1\nexcept RuntimeError as err:\n    print(got, err)\n",
+      "solution": "DATA = list(range(1, 24))\n\ndef get_page(page, page_size):\n    pages = -(-len(DATA) // page_size)\n    return {\"data\": DATA[(page - 1) * page_size:page * page_size], \"page\": page, \"total_pages\": pages}\n\ndef broken_get_page(page, page_size):\n    return {\"data\": list(range(5)), \"page\": page, \"total_pages\": 999}\n\ndef iter_pages(get_page, page_size, max_pages):\n    for page in range(1, max_pages + 1):\n        body = get_page(page, page_size)\n        yield from body[\"data\"]\n        if not body[\"data\"] or page >= body[\"total_pages\"]:\n            return\n    raise RuntimeError(\"max_pages exceeded\")\n\nprint(len(list(iter_pages(get_page, 10, 10))))\ngot = 0\ntry:\n    for _ in iter_pages(broken_get_page, 10, 4):\n        got += 1\nexcept RuntimeError as err:\n    print(got, err)\n",
+      "expected": "23\n20 max_pages exceeded"
+    },
+    {
+      "id": "i2",
+      "title": "Completeness checks",
+      "kind": "python",
+      "prompt": "Write `problems(ids, expected_total)` returning a list of strings: `count 118 != 120` style (`count <got> != <expected>`) when the number of ids differs from `expected_total`, `duplicates: [..]` with the sorted list of repeated ids when there are any, and `gaps: [..]` with the sorted missing ids between the smallest and the largest id when there are any (checked on the distinct ids). Print the result for the three cases given, one list per line. Expected: `[]`, `['count 5 != 6', 'gaps: [4]']`, `['duplicates: [2]']`.",
+      "starter": "def problems(ids, expected_total):\n    return []\n\nprint(problems([1, 2, 3, 4, 5, 6], 6))\nprint(problems([1, 2, 3, 5, 6], 6))\nprint(problems([1, 2, 2, 3], 4))\n",
+      "solution": "def problems(ids, expected_total):\n    found = []\n    if len(ids) != expected_total:\n        found.append(f\"count {len(ids)} != {expected_total}\")\n    distinct = set(ids)\n    repeated = sorted(i for i in distinct if ids.count(i) > 1)\n    if repeated:\n        found.append(f\"duplicates: {repeated}\")\n    missing = sorted(set(range(min(distinct), max(distinct) + 1)) - distinct)\n    if missing:\n        found.append(f\"gaps: {missing}\")\n    return found\n\nprint(problems([1, 2, 3, 4, 5, 6], 6))\nprint(problems([1, 2, 3, 5, 6], 6))\nprint(problems([1, 2, 2, 3], 4))\n",
+      "expected": "[]\n['count 5 != 6', 'gaps: [4]']\n['duplicates: [2]']"
+    },
+    {
+      "id": "i3",
+      "title": "Choose the paging style",
+      "kind": "written",
+      "prompt": "An events API holds 50 million records, receives about 200 new records per second and lets you read them newest first. You must copy the last 24 hours every night. Which paging style would you ask the provider for, how would you stop the loop, and which checks would you run afterwards? Explain what goes wrong with offset paging here.",
+      "starter": "Write your answer here.",
+      "solution": "Ask for cursor (keyset) paging. With 200 inserts a second and newest-first order, offset paging would shift under the reader constantly: each new batch of inserts moves every following record down, so pages overlap and the reader sees many duplicates (and can never be sure of the set that it read). With a cursor each request continues after the last record's own key, so it is not disturbed by new records at the head of the list. Stop when the cursor is null, or earlier when the records' timestamps pass the 24-hour boundary, and always keep a request cap and a repeated-cursor guard. After the loop, check that the ids are unique, that the timestamps cover the whole window without a gap larger than the normal inter-event time, and that the count is close to the provider's own count for the window.",
+      "rubric": [
+        "Chooses cursor paging and explains why",
+        "Explains the duplicates and shifts of offset paging under inserts",
+        "Gives stopping rules: null cursor or time boundary, with cap and repeat guard",
+        "Lists completeness checks"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "The Orders API returns `total_pages: 3` on page 1. Which stopping rule is correct?",
+      "options": [
+        "Stop when `data` is empty only",
+        "Stop after reading `page == total_pages`",
+        "Stop after three seconds",
+        "Stop after the first page"
+      ],
+      "answer": 1,
+      "explanation": "The field tells you how many pages exist. An empty page is a useful extra guard but, used alone, it costs an extra request and never ends on a server that repeats the last page."
+    },
+    {
+      "id": "c2",
+      "question": "Records are listed newest first and two new records are inserted between your page 1 and page 2 (offset paging, 4 per page). What happens?",
+      "options": [
+        "Nothing, offsets are stable",
+        "Some records appear on both pages",
+        "Page 2 is empty",
+        "The server returns 409"
+      ],
+      "answer": 1,
+      "explanation": "Inserting at the head shifts every record down by two positions, so the last records of page 1 reappear at the start of page 2. A cursor is anchored on a record key and does not shift."
+    },
+    {
+      "id": "c3",
+      "question": "What is the safest way to build the next cursor value?",
+      "options": [
+        "Increment the last cursor number",
+        "Use the `next_cursor` from the response unchanged",
+        "Base64-encode the page number",
+        "Use the last record's id"
+      ],
+      "answer": 1,
+      "explanation": "Cursors are opaque and the provider may change their format. Only the provider's value is guaranteed to work."
+    },
+    {
+      "id": "c4",
+      "question": "`-(-120 // 50)` evaluates to?",
+      "options": [
+        "2",
+        "3",
+        "2.4",
+        "-3"
+      ],
+      "answer": 1,
+      "explanation": "`-120 // 50` is -3 (floor of -2.4), and negating gives 3, the ceiling of 2.4. It is the idiom for the number of pages."
+    },
+    {
+      "id": "c5",
+      "question": "Why add a `max_pages` cap to a pagination loop?",
+      "options": [
+        "To make the job faster",
+        "To turn a server that never signals the end into a clear error instead of an endless run",
+        "To avoid duplicates",
+        "Because pages are limited to 1000 by HTTP"
+      ],
+      "answer": 1,
+      "explanation": "A bug or a server fault that repeats the last page or always returns another cursor would otherwise loop for ever. The cap makes it fail loudly and quickly."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "requests"
+    ],
+    "note": "Example 4 reads the stand-in Orders API with the requests library from a throwaway http.server on 127.0.0.1 started in a thread, so it runs locally after `pip install requests` and is shown read-only in the browser. No real service is contacted. The browser examples and all graded exercises use stand-in functions with the same page, offset and cursor shapes."
+  }
+}

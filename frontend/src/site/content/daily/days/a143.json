@@ -1,0 +1,190 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "count",
+      "sum",
+      "avg",
+      "group-by"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "year-over-year-growth",
+      "moving-average"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Two definitions of an active customer",
+      "kind": "python",
+      "prompt": "Count the customers that are active in 2025-06 under two definitions: (a) at least one order in the month, (b) at least three distinct orders in the month. Print `any <n>` and `three_plus <m>` on two lines.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# June orders per customer\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\njune = fact[fact[\"order_date\"].dt.to_period(\"M\") == \"2025-06\"]\nper = june.groupby(\"customer_id\")[\"order_id\"].nunique()\nprint(\"any\", int((per >= 1).sum()))\nprint(\"three_plus\", int((per >= 3).sum()))\n",
+      "hints": [
+        "Filter the rows of June 2025 first.",
+        "Count distinct order ids per customer.",
+        "Count customers with at least 1 and at least 3."
+      ],
+      "expected": "any 22\nthree_plus 1"
+    },
+    {
+      "id": "g2",
+      "title": "Check the revenue tree",
+      "kind": "python",
+      "prompt": "Compute for 2025 the four drivers: `customers` (distinct customer ids), `orders_per_customer`, `units_per_order` and `price_per_unit`. Print each as `name value` with 4 decimals, then `product` and the product of the four with 2 decimals, then `revenue` and the revenue with 2 decimals.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# four drivers and the check\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nc = fact[\"customer_id\"].nunique()\no = fact[\"order_id\"].nunique()\nu = fact[\"quantity\"].sum()\nr = fact[\"revenue\"].sum()\nd = {\"customers\": c, \"orders_per_customer\": o / c, \"units_per_order\": u / o, \"price_per_unit\": r / u}\nfor k, v in d.items():\n    print(k, f\"{float(v):.4f}\")\np = 1.0\nfor v in d.values():\n    p *= float(v)\nprint(\"product\", f\"{p:.2f}\")\nprint(\"revenue\", f\"{float(r):.2f}\")\n",
+      "hints": [
+        "Distinct customers and orders, total units and revenue are the base numbers.",
+        "orders_per_customer = orders / customers; units_per_order = units / orders; price_per_unit = revenue / units.",
+        "Multiply the four values and compare with revenue."
+      ],
+      "expected": "customers 40.0000\norders_per_customer 10.0000\nunits_per_order 3.0050\nprice_per_unit 55.8507\nproduct 67132.50\nrevenue 67132.50"
+    },
+    {
+      "id": "g3",
+      "title": "Lead or concurrent?",
+      "kind": "python",
+      "prompt": "Using monthly distinct customers as the indicator and monthly revenue as the outcome, print the same-month correlation and the correlation with next month's revenue, both rounded to 3 decimals, as `same <x>` and `next <y>`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# monthly active customers and revenue\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nm = fact[\"order_date\"].dt.to_period(\"M\")\nactive = fact.groupby(m)[\"customer_id\"].nunique()\nrevenue = fact.groupby(m)[\"revenue\"].sum()\nprint(\"same\", round(float(active.corr(revenue)), 3))\nprint(\"next\", round(float(active.corr(revenue.shift(-1))), 3))\n",
+      "hints": [
+        "Group both measures by the monthly period.",
+        "Series.corr between two Series.",
+        "revenue.shift(-1) is next month's revenue."
+      ],
+      "expected": "same 0.589\nnext 0.46"
+    },
+    {
+      "id": "g4",
+      "title": "Define and tree a metric (written)",
+      "kind": "written",
+      "prompt": "For a subscription business, define 'monthly recurring revenue' (MRR) with numerator, denominator (if any), window, grain and filters, and draw its metric tree to at least three leaves. Say which leaf you would treat as leading and why.",
+      "starter": "Definition: ...\nTree: ...\nLeading leaf: ...",
+      "solution": "Definition: MRR is the sum, over active paying subscriptions at the end of the calendar month, of the monthly price (annual plans divided by 12), after discounts, excluding one-off fees and free trials; grain is the subscription, window the calendar month, no denominator. Tree: MRR = active subscriptions x average revenue per subscription. Active subscriptions = subscriptions at the start of the month + new - churned. Average revenue per subscription = list price x (1 - average discount) x plan mix. Leading leaf: trial sign-ups or qualified trials this month, because they precede new paying subscriptions by days or weeks; this must be tested by correlating this month's trials with next month's new subscriptions. MRR itself is lagging.",
+      "rubric": [
+        "Definition includes numerator, window, grain and filters.",
+        "Tree has at least three leaves that rebuild MRR.",
+        "Names a plausible leading indicator and says it must be tested.",
+        "Treats MRR as lagging."
+      ],
+      "hints": [
+        "What counts as recurring and what does not?",
+        "Subscriptions times price per subscription is a start.",
+        "Which driver moves before revenue does?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Attribute the change in orders",
+      "kind": "python",
+      "prompt": "The orders tree is `orders = customers x orders_per_customer`. Build the 2024 drivers from `s24` merged with `customers` and the 2025 drivers from `fact`, but split by segment: for each segment print `segment change customers orders_per_customer` where `change` is the change in distinct orders 2025 minus 2024 and the last two are the contributions of substituting `customers` first, then `orders_per_customer` (rounded to 2 decimals).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\nt24 = s24.merge(customers, on=\"customer_id\")\n# per segment: change and the two contributions\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\nt24 = s24.merge(customers, on=\"customer_id\")\nfor seg in [\"Corporate\", \"Retail\"]:\n    a = t24[t24[\"segment\"] == seg]\n    b = fact[fact[\"segment\"] == seg]\n    c0, o0 = a[\"customer_id\"].nunique(), a[\"order_id\"].nunique()\n    c1, o1 = b[\"customer_id\"].nunique(), b[\"order_id\"].nunique()\n    opc0, opc1 = o0 / c0, o1 / c1\n    step1 = c1 * opc0 - c0 * opc0\n    step2 = c1 * opc1 - c1 * opc0\n    print(seg, o1 - o0, round(step1, 2), round(step2, 2))\n",
+      "expected": "Corporate 0 0.0 0.0\nRetail 0 0.0 0.0"
+    },
+    {
+      "id": "i2",
+      "title": "Audit a dashboard for vanity metrics",
+      "kind": "python",
+      "prompt": "A dashboard lists metrics with a flag `can_fall` and a decision. Write `audit(metrics)` returning the names of metrics that are vanity: those with `can_fall` False or an empty `decision`. Print the names in the list order, one per line, for the list in the code (add nothing to it).",
+      "starter": "metrics = [\n    {\"name\": \"Total registered customers\", \"can_fall\": False, \"decision\": \"\"},\n    {\"name\": \"Monthly active customers\", \"can_fall\": True, \"decision\": \"Adjust retention spend\"},\n    {\"name\": \"Cumulative orders\", \"can_fall\": False, \"decision\": \"None\"},\n    {\"name\": \"Repeat purchase rate\", \"can_fall\": True, \"decision\": \"Change loyalty offer\"},\n    {\"name\": \"Page views\", \"can_fall\": True, \"decision\": \"\"},\n]\n\ndef audit(metrics):\n    return []\n\nfor name in audit(metrics):\n    print(name)\n",
+      "solution": "metrics = [\n    {\"name\": \"Total registered customers\", \"can_fall\": False, \"decision\": \"\"},\n    {\"name\": \"Monthly active customers\", \"can_fall\": True, \"decision\": \"Adjust retention spend\"},\n    {\"name\": \"Cumulative orders\", \"can_fall\": False, \"decision\": \"None\"},\n    {\"name\": \"Repeat purchase rate\", \"can_fall\": True, \"decision\": \"Change loyalty offer\"},\n    {\"name\": \"Page views\", \"can_fall\": True, \"decision\": \"\"},\n]\n\ndef audit(metrics):\n    return [m[\"name\"] for m in metrics if not m[\"can_fall\"] or not m[\"decision\"]]\n\nfor name in audit(metrics):\n    print(name)\n",
+      "expected": "Total registered customers\nCumulative orders\nPage views"
+    },
+    {
+      "id": "i3",
+      "title": "Design a metric tree for a problem (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A retailer's online conversion has fallen. Design a metric tree for online revenue with at least three levels, mark which metrics are leading and which lagging, name two vanity metrics to avoid in the report, and say which leaves you would examine first to explain the fall and why.",
+      "starter": "Tree: ...\nLeading / lagging: ...\nVanity to avoid: ...\nExamine first: ...",
+      "solution": "Tree: online revenue = sessions x conversion rate x average order value. Sessions = new visitors + returning visitors. Conversion rate = product page to basket rate x basket to checkout rate x checkout completion rate. Average order value = items per order x price per item. Leading: sessions, product page views, basket additions (they precede orders); lagging: orders, revenue, returns. Vanity: total page views and cumulative registered users, which rise regardless of performance. Examine first: the three conversion steps separately, because a fall in conversion shows in one of them (for example a checkout completion problem after a release), then the split of sessions by source to see whether a change of traffic mix lowered conversion. Check the funnel by device and by week to separate a real change from a tracking issue.",
+      "rubric": [
+        "Tree has three levels and multiplies or adds to revenue.",
+        "Distinguishes leading and lagging metrics.",
+        "Names vanity metrics that cannot fall or guide action.",
+        "Chooses leaves to examine first with reasons."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which is NOT part of a complete metric definition?",
+      "options": [
+        "Numerator",
+        "Time window",
+        "Chart colour",
+        "Filters"
+      ],
+      "answer": 2,
+      "explanation": "A definition needs the numerator, the denominator if a ratio, the window, the grain and the filters. Colour belongs to presentation."
+    },
+    {
+      "id": "c2",
+      "question": "Orders = customers x orders per customer. Customers 40 and orders per customer 10 in both years, units per order from 1.8 to 3.0. Which driver explains revenue growth?",
+      "options": [
+        "Customers",
+        "Orders per customer",
+        "Units per order",
+        "None"
+      ],
+      "answer": 2,
+      "explanation": "Customers and orders per customer are unchanged, so the revenue change comes from the basket: units per order (with price per unit a tiny part)."
+    },
+    {
+      "id": "c3",
+      "question": "An indicator has correlation 0.62 with this month's revenue and -0.24 with next month's. What do you conclude?",
+      "options": [
+        "It is a strong leading indicator",
+        "It moves with the same month; it is not shown to lead",
+        "It predicts next month well",
+        "It is a vanity metric"
+      ],
+      "answer": 1,
+      "explanation": "A leading indicator should relate to the later outcome. Here the relationship is concurrent, and with twelve points even that is weak evidence."
+    },
+    {
+      "id": "c4",
+      "question": "Which metric is most clearly a vanity metric?",
+      "options": [
+        "Monthly active customers",
+        "Cumulative registered users",
+        "Repeat purchase rate",
+        "Orders per active customer"
+      ],
+      "answer": 1,
+      "explanation": "A cumulative count can only rise, so it flatters whatever happens and rarely guides a decision. The others can fall and tie to actions."
+    },
+    {
+      "id": "c5",
+      "question": "In sequential substitution, why state the order of the drivers?",
+      "options": [
+        "It changes the total change",
+        "The split between drivers depends on the order when several change together",
+        "It sets the target",
+        "It is needed for correlation"
+      ],
+      "answer": 1,
+      "explanation": "The total change is the same, but the joint effect of drivers changing together is assigned to whichever is substituted later, so the order affects the split."
+    }
+  ],
+  "id": "a143"
+}

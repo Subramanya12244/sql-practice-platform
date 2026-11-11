@@ -1,0 +1,187 @@
+{
+  "id": "e105",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-api-integration",
+      "python-virtual-environments",
+      "etl-error-handling"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Required secrets",
+      "kind": "python",
+      "prompt": "Write `get_secret(env, name)` that returns `env[name]` and raises `RuntimeError` with the message `missing environment variable NAME` (with the real name) when it is absent; the message must not contain any value. Print the value length for `ORDERS_API_KEY`, then the error text for `ORDERS_CLIENT_SECRET`. Expected output: `12` then `missing environment variable ORDERS_CLIENT_SECRET`.",
+      "starter": "def get_secret(env, name):\n    return env[name]\n\nenv = {\"ORDERS_API_KEY\": \"demo-key-123\"}\nprint(len(get_secret(env, \"ORDERS_API_KEY\")))\ntry:\n    get_secret(env, \"ORDERS_CLIENT_SECRET\")\nexcept RuntimeError as err:\n    print(err)\n",
+      "solution": "def get_secret(env, name):\n    try:\n        return env[name]\n    except KeyError:\n        raise RuntimeError(f\"missing environment variable {name}\") from None\n\nenv = {\"ORDERS_API_KEY\": \"demo-key-123\"}\nprint(len(get_secret(env, \"ORDERS_API_KEY\")))\ntry:\n    get_secret(env, \"ORDERS_CLIENT_SECRET\")\nexcept RuntimeError as err:\n    print(err)\n",
+      "expected": "12\nmissing environment variable ORDERS_CLIENT_SECRET",
+      "hints": [
+        "A missing key raises `KeyError` when you index the dictionary.",
+        "Catch `KeyError` and raise a `RuntimeError` with your own message.",
+        "`raise RuntimeError(f\"missing environment variable {name}\") from None`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Mask for logs",
+      "kind": "python",
+      "prompt": "Write `mask(secret)` that replaces all but the last two characters with `*` and `redact_headers(headers)` that returns a copy of a headers dictionary in which the values of `X-Api-Key` and `Authorization` (any capitalisation) are masked. Print `redact_headers` of `{\"x-api-key\": \"abcdef\", \"Accept\": \"application/json\", \"Authorization\": \"Bearer tok-1\"}` as a sorted list of items. Expected output: `[('Accept', 'application/json'), ('Authorization', '*********-1'), ('x-api-key', '****ef')]`.",
+      "starter": "def mask(secret):\n    return secret\n\ndef redact_headers(headers):\n    return dict(headers)\n\nprint(sorted(redact_headers({\"x-api-key\": \"abcdef\", \"Accept\": \"application/json\", \"Authorization\": \"Bearer tok-1\"}).items()))\n",
+      "solution": "def mask(secret):\n    return \"*\" * max(len(secret) - 2, 0) + secret[-2:]\n\ndef redact_headers(headers):\n    secret_names = {\"x-api-key\", \"authorization\"}\n    return {k: mask(v) if k.lower() in secret_names else v for k, v in headers.items()}\n\nprint(sorted(redact_headers({\"x-api-key\": \"abcdef\", \"Accept\": \"application/json\", \"Authorization\": \"Bearer tok-1\"}).items()))\n",
+      "expected": "[('Accept', 'application/json'), ('Authorization', '**********-1'), ('x-api-key', '****ef')]",
+      "hints": [
+        "Compare header names in lower case.",
+        "Build a new dictionary with a comprehension, masking only the secret ones.",
+        "`\"*\" * max(len(secret) - 2, 0) + secret[-2:]` masks all but two characters."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "401 or 403",
+      "kind": "python",
+      "prompt": "Write `explain(status)` returning `\"fix the credential\"` for 401, `\"ask for permission\"` for 403, `\"ok\"` for any 2xx code and `\"other\"` otherwise. Print the result for `[200, 401, 403, 404]` on one line separated by ` | `. Expected output: `ok | fix the credential | ask for permission | other`.",
+      "starter": "def explain(status):\n    return \"other\"\n\nprint(\" | \".join(explain(s) for s in [200, 401, 403, 404]))\n",
+      "solution": "def explain(status):\n    if status == 401:\n        return \"fix the credential\"\n    if status == 403:\n        return \"ask for permission\"\n    if status // 100 == 2:\n        return \"ok\"\n    return \"other\"\n\nprint(\" | \".join(explain(s) for s in [200, 401, 403, 404]))\n",
+      "expected": "ok | fix the credential | ask for permission | other",
+      "hints": [
+        "Handle the two special codes before the general rule.",
+        "`status // 100 == 2` covers every success code.",
+        "Order the checks 401, 403, 2xx, then the default."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Is the token still valid?",
+      "kind": "python",
+      "prompt": "Write `needs_refresh(now, expires_at, margin=60)` that returns `True` when a token has no more than `margin` seconds left (including when it has expired) and `False` otherwise. Print the result for `now` values `0`, `3539`, `3540`, `4000` with `expires_at=3600`. Expected output: `False`, `False`, `True`, `True`, one per line.",
+      "starter": "def needs_refresh(now, expires_at, margin=60):\n    return False\n\nfor now in (0, 3539, 3540, 4000):\n    print(needs_refresh(now, 3600))\n",
+      "solution": "def needs_refresh(now, expires_at, margin=60):\n    return now >= expires_at - margin\n\nfor now in (0, 3539, 3540, 4000):\n    print(needs_refresh(now, 3600))\n",
+      "expected": "False\nFalse\nTrue\nTrue",
+      "hints": [
+        "Compare the current time with the expiry minus the margin.",
+        "At the boundary (exactly `margin` seconds left) the answer is `True`.",
+        "`return now >= expires_at - margin`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A provider that refreshes",
+      "kind": "python",
+      "prompt": "Write `TokenProvider(fetch, clock, margin=60)` where `fetch()` returns `{\"access_token\": ..., \"expires_in\": ...}` and `clock()` returns the current time. `get()` returns the cached token and fetches a new one when there is none or when `needs refresh` (no more than `margin` seconds left). `call(do_request)` calls `do_request(token)`; if it returns 401 it discards the token, fetches a new one and calls once more, returning that second status. Run the scenario in the starter and print, for each of the four calls, the status and the number of fetches so far. Expected: `200 1`, `200 1`, `200 2`, `401 3`.",
+      "starter": "fetches = []\n\ndef fetch():\n    fetches.append(1)\n    return {\"access_token\": f\"tok-{len(fetches)}\", \"expires_in\": 100}\n\nclass TokenProvider:\n    pass\n\nnow = [0]\nprovider = TokenProvider(fetch, lambda: now[0])\nbad_tokens = set()\n\ndef request(token):\n    return 401 if token in bad_tokens else 200\n\nprint(provider.call(request), len(fetches))\nnow[0] = 30\nprint(provider.call(request), len(fetches))\nnow[0] = 45\nprint(provider.call(request), len(fetches))\nbad_tokens.update({\"tok-2\", \"tok-3\"})\nprint(provider.call(request), len(fetches))\n",
+      "solution": "fetches = []\n\ndef fetch():\n    fetches.append(1)\n    return {\"access_token\": f\"tok-{len(fetches)}\", \"expires_in\": 100}\n\nclass TokenProvider:\n    def __init__(self, fetch, clock, margin=60):\n        self.fetch, self.clock, self.margin = fetch, clock, margin\n        self.token, self.expires_at = None, 0\n\n    def get(self):\n        if self.token is None or self.clock() >= self.expires_at - self.margin:\n            reply = self.fetch()\n            self.token = reply[\"access_token\"]\n            self.expires_at = self.clock() + reply[\"expires_in\"]\n        return self.token\n\n    def call(self, do_request):\n        status = do_request(self.get())\n        if status == 401:\n            self.token = None\n            status = do_request(self.get())\n        return status\n\nnow = [0]\nprovider = TokenProvider(fetch, lambda: now[0])\nbad_tokens = set()\n\ndef request(token):\n    return 401 if token in bad_tokens else 200\n\nprint(provider.call(request), len(fetches))\nnow[0] = 30\nprint(provider.call(request), len(fetches))\nnow[0] = 45\nprint(provider.call(request), len(fetches))\nbad_tokens.update({\"tok-2\", \"tok-3\"})\nprint(provider.call(request), len(fetches))\n",
+      "expected": "200 1\n200 1\n200 2\n401 3"
+    },
+    {
+      "id": "i2",
+      "title": "A safe log line",
+      "kind": "python",
+      "prompt": "Write `log_line(method, url, headers, status)` returning the text `<method> <url> <status> headers=<sorted list of header names>` where the url has any `api_key=` or `token=` query value replaced by `***` (use `re.sub`) and the header list shows names only. Print the line for `GET`, `https://api.shop.example/orders?page=1&token=abc123&api_key=k9`, headers `{\"X-Api-Key\": \"secret\", \"Accept\": \"application/json\"}` and status `200`. Expected output: `GET https://api.shop.example/orders?page=1&token=***&api_key=*** 200 headers=['Accept', 'X-Api-Key']`.",
+      "starter": "import re\n\ndef log_line(method, url, headers, status):\n    return f\"{method} {url} {status}\"\n\nprint(log_line(\"GET\", \"https://api.shop.example/orders?page=1&token=abc123&api_key=k9\", {\"X-Api-Key\": \"secret\", \"Accept\": \"application/json\"}, 200))\n",
+      "solution": "import re\n\ndef log_line(method, url, headers, status):\n    safe = re.sub(r\"((?:api_key|token)=)[^&]+\", r\"\\1***\", url)\n    return f\"{method} {safe} {status} headers={sorted(headers)}\"\n\nprint(log_line(\"GET\", \"https://api.shop.example/orders?page=1&token=abc123&api_key=k9\", {\"X-Api-Key\": \"secret\", \"Accept\": \"application/json\"}, 200))\n",
+      "expected": "GET https://api.shop.example/orders?page=1&token=***&api_key=*** 200 headers=['Accept', 'X-Api-Key']"
+    },
+    {
+      "id": "i3",
+      "title": "Review a leak",
+      "kind": "written",
+      "prompt": "A teammate commits a script containing `API_KEY = \"live-9f3a...\"` and pushes it to a shared repository. Write the steps you take in the first hour and the changes that prevent a repeat.",
+      "starter": "Write your steps here.",
+      "solution": "First, revoke the key at the provider and issue a new one, because removing the line from the repository does not remove it from history or from clones. Second, check the provider's logs for use of the old key between the commit and the revocation. Third, rotate the secret everywhere it was used and put the new value in the secret store or the scheduler's environment, not in the code. Fourth, remove the key from the repository history if policy requires it (this is clean-up, not a fix). Prevention: read the key with `os.environ[\"API_KEY\"]`, keep `.env` in `.gitignore`, add a secret scanner to the commit and pull request checks, give each environment its own key with the least permissions, and document the rotation procedure so it takes minutes.",
+      "rubric": [
+        "Revokes and replaces the key first",
+        "Checks usage in provider logs",
+        "Moves the secret to the environment or secret store",
+        "Names prevention measures such as .gitignore, scanning and least privilege"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A call with a valid read-only token tries to delete an order and gets 403. What should the pipeline do?",
+      "options": [
+        "Refresh the token and retry",
+        "Stop and report that the credential lacks permission",
+        "Retry with the key in the URL",
+        "Treat it as a server error and retry in a minute"
+      ],
+      "answer": 1,
+      "explanation": "403 means the server knows the caller and refuses the action. A new token with the same permissions gets the same answer. The permission must change, which needs a person."
+    },
+    {
+      "id": "c2",
+      "question": "Why avoid putting an API key in the query string?",
+      "options": [
+        "Query strings are limited to 10 characters",
+        "URLs are recorded in logs, histories and error messages",
+        "Servers ignore query parameters",
+        "It makes the request slower"
+      ],
+      "answer": 1,
+      "explanation": "A key in the URL ends up in server logs, proxy logs and exception messages. A header is not normally written to those places."
+    },
+    {
+      "id": "c3",
+      "question": "What does the client send to the token endpoint in the client-credentials grant?",
+      "options": [
+        "The user's password",
+        "`grant_type=client_credentials`, `client_id` and `client_secret`",
+        "The previous access token only",
+        "An API key in the URL"
+      ],
+      "answer": 1,
+      "explanation": "The client authenticates itself with its id and secret and names the grant. The reply carries `access_token` and `expires_in`. The authorization-code grant involves a person approving access in a browser."
+    },
+    {
+      "id": "c4",
+      "question": "A request returns 401 after the token provider refreshed once and retried. What is the right next step?",
+      "options": [
+        "Refresh again, repeatedly, until it works",
+        "Stop with a clear error: the credentials themselves are wrong or revoked",
+        "Switch to a different endpoint",
+        "Ignore the error and continue"
+      ],
+      "answer": 1,
+      "explanation": "Repeated refreshing cannot fix wrong credentials and can lock the account. One retry covers expiry and revocation; the second 401 means a person has to look."
+    },
+    {
+      "id": "c5",
+      "question": "Where should a pipeline's API key live?",
+      "options": [
+        "In a constant at the top of the script",
+        "In the environment (or a secret store), read at start-up, with `.env` files kept out of the repository",
+        "In a comment next to the call",
+        "In the README"
+      ],
+      "answer": 1,
+      "explanation": "Environment variables keep the value out of the code and of the repository history. Failing early with a message that names the missing variable avoids a confusing error later."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "requests"
+    ],
+    "note": "Example 4 starts a throwaway http.server on 127.0.0.1 with a token endpoint and calls it with the requests library, so it runs locally after `pip install requests` and is shown read-only in the browser; it sets its demo environment variables inside the script and contacts no real service. The browser examples and graded exercises use stand-in functions, a fake clock and fake token endpoints. Real OAuth providers differ in endpoint names, scopes and token lifetimes; read the provider's documentation before copying the flow."
+  }
+}

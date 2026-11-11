@@ -1,0 +1,193 @@
+{
+  "id": "a116",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pivot-records",
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": [
+      "pivot-report"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Panel grid shape",
+      "kind": "python",
+      "prompt": "Write `grid_shape(n_panels, ncols)` that returns a tuple `(nrows, ncols)` where `nrows` is the smallest number of rows that fits `n_panels` panels in `ncols` columns. Print `grid_shape(4, 2)`, `grid_shape(5, 2)` and `grid_shape(7, 3)` on separate lines.",
+      "starter": "def grid_shape(n_panels, ncols):\n    pass\n\n\nprint(grid_shape(4, 2))\nprint(grid_shape(5, 2))\nprint(grid_shape(7, 3))\n",
+      "solution": "import math\n\n\ndef grid_shape(n_panels, ncols):\n    return (math.ceil(n_panels / ncols), ncols)\n\n\nprint(grid_shape(4, 2))\nprint(grid_shape(5, 2))\nprint(grid_shape(7, 3))\n",
+      "expected": "(2, 2)\n(3, 2)\n(3, 3)",
+      "hints": [
+        "Rows needed is panels divided by columns, rounded up.",
+        "`math.ceil(a / b)` rounds up.",
+        "Return the tuple `(rows, ncols)`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "One shared y limit",
+      "kind": "python",
+      "prompt": "Using `orders`, build the month by category table of revenue (as in Example 1, rounded to 0 decimals) and print the shared y-axis top: the largest cell, rounded up to the next multiple of 500, as an integer.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\nimport math\n\n# shared y top\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\nimport math\n\ntable = orders.pivot_table(index=orders[\"order_date\"].dt.month, columns=\"category\", values=\"revenue\", aggfunc=\"sum\", fill_value=0).round(0)\nprint(int(math.ceil(table.to_numpy().max() / 500) * 500))\n",
+      "expected": "4500",
+      "hints": [
+        "Pivot by month and category and sum revenue.",
+        "`table.to_numpy().max()` is the largest cell.",
+        "Divide by 500, `math.ceil`, multiply by 500."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Annotation text for each panel",
+      "kind": "python",
+      "prompt": "For each category in `orders` (alphabetical), find the month number with the highest revenue and print `<category>: peak month <m> (<revenue>)` where revenue is rounded to 0 decimals and printed as an integer.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\n# one line per category\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\ntable = orders.pivot_table(index=orders[\"order_date\"].dt.month, columns=\"category\", values=\"revenue\", aggfunc=\"sum\", fill_value=0)\nfor name in sorted(table.columns):\n    month = int(table[name].idxmax())\n    print(f\"{name}: peak month {month} ({int(round(table[name].max()))})\")\n",
+      "expected": "Beauty: peak month 6 (915)\nElectronics: peak month 3 (4071)\nHome: peak month 10 (1573)\nSports: peak month 2 (1224)",
+      "hints": [
+        "Build the month by category table first.",
+        "`idxmax()` gives the month; `max()` the value.",
+        "Loop over the sorted column names."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Subplot code on paper",
+      "kind": "written",
+      "prompt": "Write the matplotlib code for a 2-by-2 grid, one panel per category, sharing the y axis, with a figure title and each panel titled with its category. Then state what `axes.shape` is and how to loop over every panel without two indices.",
+      "starter": "import matplotlib.pyplot as plt\n\n# fig, axes = ...\n",
+      "solution": "```python\nfig, axes = plt.subplots(2, 2, figsize=(8, 6), sharey=True, layout=\"constrained\")\nfor ax, name in zip(axes.flat, table.columns):\n    ax.plot(table.index, table[name])\n    ax.set_title(name)\nfig.suptitle(\"Monthly revenue by category\")\n```\n\n`axes.shape` is `(2, 2)`, so a single panel is `axes[row, col]`. `axes.flat` iterates over all four panels in row order without needing two indices, which also works for a one-dimensional array.",
+      "hints": [
+        "Two rows and two columns.",
+        "sharey is a keyword of plt.subplots.",
+        "axes.flat gives one-dimensional iteration."
+      ],
+      "rubric": [
+        "Calls plt.subplots(2, 2, sharey=True).",
+        "Loops with zip over axes.flat and the categories.",
+        "Uses fig.suptitle and ax.set_title.",
+        "States the shape (2, 2) and uses .flat."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Index each series to 100",
+      "kind": "python",
+      "prompt": "To compare category trends of different size, index each category's monthly revenue to 100 at its first month. Build the month by category table (revenue summed, `fill_value=0`), divide each column by its first row, multiply by 100, round to 0 decimals, and print the last row with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\n# index each column to its first month\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\ntable = orders.pivot_table(index=orders[\"order_date\"].dt.month, columns=\"category\", values=\"revenue\", aggfunc=\"sum\", fill_value=0)\nindexed = (table / table.iloc[0] * 100).round(0)\nprint(indexed.tail(1).to_string())\n",
+      "expected": "category    Beauty  Electronics  Home  Sports\norder_date                                   \n12           115.0        118.0  67.0   256.0"
+    },
+    {
+      "id": "i2",
+      "title": "Annotation spec builder",
+      "kind": "python",
+      "prompt": "Write `annotate_peaks(table)` returning a list of dicts, one per column in column order, with keys `panel` (the column name), `text` (`Peak: month <m>`) and `xy` (a tuple `(month, value)` with the value rounded to 0 decimals and converted to `int`). Print the list for the month by category revenue table of `orders`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\ntable = orders.pivot_table(index=orders[\"order_date\"].dt.month, columns=\"category\", values=\"revenue\", aggfunc=\"sum\", fill_value=0)\n\n\ndef annotate_peaks(table):\n    pass\n\n\nprint(annotate_peaks(table))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\n\ntable = orders.pivot_table(index=orders[\"order_date\"].dt.month, columns=\"category\", values=\"revenue\", aggfunc=\"sum\", fill_value=0)\n\n\ndef annotate_peaks(table):\n    out = []\n    for name in table.columns:\n        month = int(table[name].idxmax())\n        out.append({\"panel\": name, \"text\": f\"Peak: month {month}\", \"xy\": (month, int(round(table[name].max())))})\n    return out\n\n\nprint(annotate_peaks(table))\n",
+      "expected": "[{'panel': 'Beauty', 'text': 'Peak: month 6', 'xy': (6, 915)}, {'panel': 'Electronics', 'text': 'Peak: month 3', 'xy': (3, 4071)}, {'panel': 'Home', 'text': 'Peak: month 10', 'xy': (10, 1573)}, {'panel': 'Sports', 'text': 'Peak: month 2', 'xy': (2, 1224)}]"
+    },
+    {
+      "id": "i3",
+      "title": "A saved, annotated small-multiples report",
+      "kind": "written",
+      "prompt": "Write the full matplotlib script for a report figure: a 1-by-4 row of panels (one per category) on a shared y axis, a dashed target line at 1000 in each panel, an annotation on each panel's peak, a figure title that states a finding, and the figure saved as PNG (150 dpi, trimmed) and then closed. Explain in two sentences why the y axis is shared.",
+      "starter": "import matplotlib.pyplot as plt\n\n# your script\n",
+      "solution": "```python\nfig, axes = plt.subplots(1, 4, figsize=(12, 3), sharey=True, layout=\"constrained\")\nfor ax, name in zip(axes, table.columns):\n    ax.plot(table.index, table[name])\n    ax.axhline(1000, linestyle=\"--\", color=\"grey\")\n    month = table[name].idxmax()\n    ax.annotate(f\"Peak: month {month}\", xy=(month, table[name].max()),\n                xytext=(month - 3, table[name].max() * 1.1), arrowprops={\"arrowstyle\": \"->\"})\n    ax.set_title(name)\nfig.suptitle(\"Electronics is the only category that regularly beats the 1000 target\")\nfig.savefig(\"report.png\", dpi=150, bbox_inches=\"tight\")\nplt.close(fig)\n```\n\nThe axis is shared so that a taller line really means more revenue in every panel; with independent axes a small category would look as large as a big one and the comparison would mislead. (The title must be checked against the data before it is used; it is an example of the form.)",
+      "rubric": [
+        "Uses plt.subplots(1, 4, sharey=True).",
+        "Draws a target line and one annotation per panel.",
+        "Saves with dpi and bbox_inches, then closes.",
+        "Explains shared axes as keeping comparisons honest."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [
+      "matplotlib"
+    ],
+    "note": "Examples 2 to 5 need matplotlib, which the browser cannot load: run them on your own computer after `pip install matplotlib`; they use the Agg backend and print figure properties instead of showing images. Example 1 and the graded exercises are pandas only and run in the browser. Written exercises are self-assessed against a model answer."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `plt.subplots(1, 3)` return as its second value?",
+      "options": [
+        "A one-dimensional array of 3 axes",
+        "A single axes",
+        "A 3-by-1 two-dimensional array",
+        "A list of 3 figures"
+      ],
+      "answer": 0,
+      "explanation": "A single row of three panels gives a 1-D array; use axes[i]. A 2-D index would fail with IndexError."
+    },
+    {
+      "id": "c2",
+      "question": "Why use `sharey=True` for small multiples?",
+      "options": [
+        "So panels share one scale and heights can be compared",
+        "To make plots render faster",
+        "To hide the titles",
+        "To join the lines into one"
+      ],
+      "answer": 0,
+      "explanation": "Shared scale makes heights comparable. Independent scales can make a small category look as big as a large one."
+    },
+    {
+      "id": "c3",
+      "question": "What is the effect of `plt.style.use('ggplot')` in a notebook?",
+      "options": [
+        "It changes the defaults for every chart drawn afterwards",
+        "It changes only the next chart",
+        "It changes only existing charts",
+        "Nothing until `plt.show()`"
+      ],
+      "answer": 0,
+      "explanation": "The style stays active until changed. A `with plt.style.context(...)` block limits it."
+    },
+    {
+      "id": "c4",
+      "question": "In `ax.annotate('Peak', xy=(7, 2500), xytext=(8, 2800), arrowprops={'arrowstyle': '->'})`, what does `xy` mean?",
+      "options": [
+        "The point the arrow points at",
+        "Where the text sits",
+        "The figure size",
+        "The arrow colour"
+      ],
+      "answer": 0,
+      "explanation": "xy is the data point being described; xytext is where the text is placed."
+    },
+    {
+      "id": "c5",
+      "question": "A loop saves 200 charts with `fig.savefig` and never calls `plt.close(fig)`. What happens?",
+      "options": [
+        "Matplotlib keeps every figure open, warns after 20 and uses more memory",
+        "Each file is overwritten by the next",
+        "The files are saved empty",
+        "Nothing, matplotlib frees figures after savefig"
+      ],
+      "answer": 0,
+      "explanation": "Figures stay registered with pyplot until closed. savefig does not release them, so call plt.close(fig)."
+    }
+  ]
+}

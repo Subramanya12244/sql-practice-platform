@@ -1,0 +1,191 @@
+{
+  "id": "a124",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "dwh-star-schema",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-merge-anti-join",
+      "reconcile-sources"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "warehousing-track"
+    ],
+    "patterns": [
+      "unmatched-records"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Rows and distinct counts",
+      "kind": "python",
+      "prompt": "Print one line per table in the order Sales, Customers, Products as `<name>: <rows> rows, <columns> columns` using `sales`, `customers` and `products`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\nimport io\n\ntables = dict(zip([\"Sales\", \"Customers\", \"Products\", \"Calendar\"], make_model()))\ncsv_text = {name: df.to_csv(index=False) for name, df in tables.items()}\nsales = pd.read_csv(io.StringIO(csv_text[\"Sales\"]), parse_dates=[\"order_date\"])\ncustomers = pd.read_csv(io.StringIO(csv_text[\"Customers\"]))\nproducts = pd.read_csv(io.StringIO(csv_text[\"Products\"]))\n\n# one line per table\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\nimport io\n\ntables = dict(zip([\"Sales\", \"Customers\", \"Products\", \"Calendar\"], make_model()))\ncsv_text = {name: df.to_csv(index=False) for name, df in tables.items()}\nsales = pd.read_csv(io.StringIO(csv_text[\"Sales\"]), parse_dates=[\"order_date\"])\ncustomers = pd.read_csv(io.StringIO(csv_text[\"Customers\"]))\nproducts = pd.read_csv(io.StringIO(csv_text[\"Products\"]))\n\nfor name, df in [(\"Sales\", sales), (\"Customers\", customers), (\"Products\", products)]:\n    print(f\"{name}: {len(df)} rows, {len(df.columns)} columns\")\n",
+      "expected": "Sales: 400 rows, 6 columns\nCustomers: 40 rows, 4 columns\nProducts: 12 rows, 4 columns",
+      "hints": [
+        "Loop over name and DataFrame pairs.",
+        "`len(df)` is the rows and `len(df.columns)` the columns.",
+        "Print with an f-string."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Is the key unique",
+      "kind": "python",
+      "prompt": "For each of `Sales.order_id`, `Customers.customer_id` and `Products.product_id` print `<table>.<column>: unique` or `<table>.<column>: duplicates` depending on whether the column has any repeated value.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\nimport io\n\ntables = dict(zip([\"Sales\", \"Customers\", \"Products\", \"Calendar\"], make_model()))\ncsv_text = {name: df.to_csv(index=False) for name, df in tables.items()}\nsales = pd.read_csv(io.StringIO(csv_text[\"Sales\"]), parse_dates=[\"order_date\"])\ncustomers = pd.read_csv(io.StringIO(csv_text[\"Customers\"]))\nproducts = pd.read_csv(io.StringIO(csv_text[\"Products\"]))\n\n# check the three keys\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\nimport io\n\ntables = dict(zip([\"Sales\", \"Customers\", \"Products\", \"Calendar\"], make_model()))\ncsv_text = {name: df.to_csv(index=False) for name, df in tables.items()}\nsales = pd.read_csv(io.StringIO(csv_text[\"Sales\"]), parse_dates=[\"order_date\"])\ncustomers = pd.read_csv(io.StringIO(csv_text[\"Customers\"]))\nproducts = pd.read_csv(io.StringIO(csv_text[\"Products\"]))\n\nfor name, df, col in [(\"Sales\", sales, \"order_id\"), (\"Customers\", customers, \"customer_id\"), (\"Products\", products, \"product_id\")]:\n    print(f\"{name}.{col}:\", \"unique\" if df[col].is_unique else \"duplicates\")\n",
+      "expected": "Sales.order_id: unique\nCustomers.customer_id: unique\nProducts.product_id: unique",
+      "hints": [
+        "`Series.is_unique` returns True or False.",
+        "Loop over (name, DataFrame, column) triples.",
+        "Print the word that matches the result."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Date coverage",
+      "kind": "python",
+      "prompt": "Print the first and last order date as `first: YYYY-MM-DD` and `last: YYYY-MM-DD`, then `order days: <n>` (distinct order dates) and `days with no orders: <m>` counting the days of 2025 (365 days from 2025-01-01) with no order.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\nimport io\n\ntables = dict(zip([\"Sales\", \"Customers\", \"Products\", \"Calendar\"], make_model()))\ncsv_text = {name: df.to_csv(index=False) for name, df in tables.items()}\nsales = pd.read_csv(io.StringIO(csv_text[\"Sales\"]), parse_dates=[\"order_date\"])\ncustomers = pd.read_csv(io.StringIO(csv_text[\"Customers\"]))\nproducts = pd.read_csv(io.StringIO(csv_text[\"Products\"]))\n\n# date coverage\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\nimport io\n\ntables = dict(zip([\"Sales\", \"Customers\", \"Products\", \"Calendar\"], make_model()))\ncsv_text = {name: df.to_csv(index=False) for name, df in tables.items()}\nsales = pd.read_csv(io.StringIO(csv_text[\"Sales\"]), parse_dates=[\"order_date\"])\ncustomers = pd.read_csv(io.StringIO(csv_text[\"Customers\"]))\nproducts = pd.read_csv(io.StringIO(csv_text[\"Products\"]))\n\nprint(\"first:\", sales[\"order_date\"].min().strftime(\"%Y-%m-%d\"))\nprint(\"last:\", sales[\"order_date\"].max().strftime(\"%Y-%m-%d\"))\ndays = sales[\"order_date\"].nunique()\nprint(\"order days:\", days)\nprint(\"days with no orders:\", 365 - days)\n",
+      "expected": "first: 2025-01-02\nlast: 2025-12-31\norder days: 237\ndays with no orders: 128",
+      "hints": [
+        "`min()` and `max()` of a datetime column return Timestamps.",
+        "`strftime(\"%Y-%m-%d\")` formats them.",
+        "`nunique()` counts distinct days; subtract from 365."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Choose the connector and mode",
+      "kind": "written",
+      "prompt": "Your manager gives you (a) a monthly Excel workbook with three sheets, (b) a SQL Server table of 80 million rows updated every minute, and (c) a folder of 12 monthly CSV files. For each choose the connector and the storage mode and give one reason.",
+      "starter": "(a) ...\n(b) ...\n(c) ...",
+      "solution": "(a) Excel workbook connector, Import: the data is small, changes monthly, and Import gives full modelling features and speed; refresh after each monthly update.\n\n(b) SQL Server connector, DirectQuery (or Import of an aggregated view): 80 million rows that change every minute are too large and too fresh to import in full, so queries go to the database; the cost is slower interaction and some feature limits.\n\n(c) Folder connector, Import: it combines all files of a folder into one table, and a new month's file is picked up at the next refresh.",
+      "hints": [
+        "How big is the data?",
+        "How fresh must it be?",
+        "Which connector combines many files?"
+      ],
+      "rubric": [
+        "Excel workbook with Import for small, slow-changing data.",
+        "DirectQuery or an aggregated import for the very large fast table.",
+        "Folder connector with Import for the monthly files."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Column profile function",
+      "kind": "python",
+      "prompt": "Write `column_profile(df)` returning a DataFrame with the columns `valid %` (share of non-missing values, rounded to 0 decimals), `distinct` (distinct count) and `unique` (True if every value is distinct), indexed by column name. Print it for `customers` with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\nimport io\n\ntables = dict(zip([\"Sales\", \"Customers\", \"Products\", \"Calendar\"], make_model()))\ncsv_text = {name: df.to_csv(index=False) for name, df in tables.items()}\nsales = pd.read_csv(io.StringIO(csv_text[\"Sales\"]), parse_dates=[\"order_date\"])\ncustomers = pd.read_csv(io.StringIO(csv_text[\"Customers\"]))\nproducts = pd.read_csv(io.StringIO(csv_text[\"Products\"]))\n\ndef column_profile(df):\n    pass\n\n\nprint(column_profile(customers).to_string())\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\nimport io\n\ntables = dict(zip([\"Sales\", \"Customers\", \"Products\", \"Calendar\"], make_model()))\ncsv_text = {name: df.to_csv(index=False) for name, df in tables.items()}\nsales = pd.read_csv(io.StringIO(csv_text[\"Sales\"]), parse_dates=[\"order_date\"])\ncustomers = pd.read_csv(io.StringIO(csv_text[\"Customers\"]))\nproducts = pd.read_csv(io.StringIO(csv_text[\"Products\"]))\n\ndef column_profile(df):\n    return pd.DataFrame({\n        \"valid %\": ((1 - df.isna().mean()) * 100).round(0),\n        \"distinct\": df.nunique(),\n        \"unique\": df.nunique() == len(df),\n    })\n\n\nprint(column_profile(customers).to_string())\n",
+      "expected": "               valid %  distinct  unique\ncustomer_id      100.0        40    True\ncustomer_name    100.0        40    True\ncountry          100.0         4   False\nsegment          100.0         3   False"
+    },
+    {
+      "id": "i2",
+      "title": "Orphan and revenue check",
+      "kind": "python",
+      "prompt": "Write `orphans(fact, dim, key)` returning the sorted list of key values in `fact` that are missing from `dim`. Test it on `sales`/`customers` and on a copy of `sales` where the first row's `customer_id` is replaced by 999. Print the two lists on separate lines.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\nimport io\n\ntables = dict(zip([\"Sales\", \"Customers\", \"Products\", \"Calendar\"], make_model()))\ncsv_text = {name: df.to_csv(index=False) for name, df in tables.items()}\nsales = pd.read_csv(io.StringIO(csv_text[\"Sales\"]), parse_dates=[\"order_date\"])\ncustomers = pd.read_csv(io.StringIO(csv_text[\"Customers\"]))\nproducts = pd.read_csv(io.StringIO(csv_text[\"Products\"]))\n\ndef orphans(fact, dim, key):\n    pass\n\n\nprint(orphans(sales, customers, \"customer_id\"))\nbroken = sales.copy()\nbroken.loc[0, \"customer_id\"] = 999\nprint(orphans(broken, customers, \"customer_id\"))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\nimport io\n\ntables = dict(zip([\"Sales\", \"Customers\", \"Products\", \"Calendar\"], make_model()))\ncsv_text = {name: df.to_csv(index=False) for name, df in tables.items()}\nsales = pd.read_csv(io.StringIO(csv_text[\"Sales\"]), parse_dates=[\"order_date\"])\ncustomers = pd.read_csv(io.StringIO(csv_text[\"Customers\"]))\nproducts = pd.read_csv(io.StringIO(csv_text[\"Products\"]))\n\ndef orphans(fact, dim, key):\n    missing = fact.loc[~fact[key].isin(dim[key]), key]\n    return sorted(int(v) for v in missing.unique())\n\n\nprint(orphans(sales, customers, \"customer_id\"))\nbroken = sales.copy()\nbroken.loc[0, \"customer_id\"] = 999\nprint(orphans(broken, customers, \"customer_id\"))\n",
+      "expected": "[]\n[999]"
+    },
+    {
+      "id": "i3",
+      "title": "Plan a first load",
+      "kind": "written",
+      "prompt": "You receive `sales.csv` where `order_date` looks like `02/01/2025` (day first) and some `unit_price` cells contain `N/A`. Describe in steps what you do in Power BI Desktop before loading, and what checks you run after, using the checks from this lesson.",
+      "starter": "Before loading:\n1. ...\n\nAfter loading:\n1. ...",
+      "solution": "Before loading: choose `Transform data`; set `order_date` to a Date column using a locale that reads day-first dates (a plain type change would read 02/01/2025 as 1 February in a US locale, which is wrong); replace `N/A` in `unit_price` with null (or remove the rows after asking the business) and set the type to a number; confirm in column quality that the empty share of `unit_price` is what you expect.\n\nAfter loading: check row counts against the file, check that order_id is unique and that date range is inside the Calendar, check there are no orphan customer_id or product_id values, and compare a total (sum of quantity times unit price) with the source or with pandas.",
+      "rubric": [
+        "Uses Transform data and handles the day-first dates with the right locale.",
+        "Replaces N/A and sets a numeric type.",
+        "After load: row count, key uniqueness, orphans, date range.",
+        "Compares a total with an independent calculation."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Power BI Desktop is a Windows-only application and has no runtime in this course's browser; Power BI Service runs in any browser. Every Desktop step and M snippet is shown as text, and each number is reproduced with pandas, which the browser runs. Menu names vary between Power BI releases. The graded exercises are pandas replicas of the loading and model checks; the written exercises are self-assessed."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Where does Power BI Desktop run?",
+      "options": [
+        "Windows only",
+        "Windows, Mac and Linux",
+        "In any browser",
+        "Only on the Service"
+      ],
+      "answer": 0,
+      "explanation": "Desktop is a Windows application. The Service is the browser product, with fewer modelling features."
+    },
+    {
+      "id": "c2",
+      "question": "What does DirectQuery do differently from Import?",
+      "options": [
+        "It queries the source each time a visual loads instead of copying the data",
+        "It copies the data faster",
+        "It disables relationships",
+        "It stores data in the Service only"
+      ],
+      "answer": 0,
+      "explanation": "Import keeps a copy in the model's engine; DirectQuery sends queries to the source, so numbers are current but interaction depends on the database."
+    },
+    {
+      "id": "c3",
+      "question": "A dimension key shows 38 distinct values in 40 rows. What is the problem?",
+      "options": [
+        "The key has duplicates, so a one-to-many relationship will not work or totals inflate",
+        "None, keys may repeat in dimensions",
+        "The table is too small",
+        "The key is a text column"
+      ],
+      "answer": 0,
+      "explanation": "A dimension key must be unique. Duplicates break the one-to-many relationship or multiply rows when joined."
+    },
+    {
+      "id": "c4",
+      "question": "What does `sales[~sales['customer_id'].isin(customers['customer_id'])]` find?",
+      "options": [
+        "Orphan sales rows whose customer is missing from Customers",
+        "Customers without sales",
+        "Duplicate sales rows",
+        "Rows with null customer"
+      ],
+      "answer": 0,
+      "explanation": "It selects fact rows whose key is absent from the dimension. In Power BI they would appear under a blank customer."
+    },
+    {
+      "id": "c5",
+      "question": "`Load` versus `Transform data` in the preview: which is true?",
+      "options": [
+        "Transform data opens the Power Query Editor so you can clean before loading",
+        "Load cleans the data automatically",
+        "Transform data publishes the report",
+        "They are the same"
+      ],
+      "answer": 0,
+      "explanation": "Load imports as-is; Transform data lets you fix types and values first."
+    }
+  ]
+}

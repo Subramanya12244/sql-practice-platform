@@ -1,0 +1,184 @@
+{
+  "id": "a158",
+  "time": {
+    "theory": 30,
+    "examples": 30,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-database-connectivity",
+      "python-pandas",
+      "group-by"
+    ],
+    "questions": [
+      31,
+      39
+    ],
+    "pyExercises": [
+      "group-and-aggregate",
+      "pandas-groupby-agg"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "interview-patterns"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Same answer, two places",
+      "kind": "python",
+      "prompt": "Create the in-memory table `t(g TEXT, v INTEGER)` with the rows `('a', 1), ('b', 5), ('a', 3), ('b', 2), ('a', 4)`. Compute the sum per `g` in SQL (ordered by g) and in pandas (`groupby`, sorted by g) and print `same: True` if they match followed by the SQL totals as a list of tuples, such as `[('a', 8), ...]`.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE t (g TEXT, v INTEGER)')\nconn.executemany('INSERT INTO t VALUES (?, ?)', [('a', 1), ('b', 5), ('a', 3), ('b', 2), ('a', 4)])\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE t (g TEXT, v INTEGER)')\nconn.executemany('INSERT INTO t VALUES (?, ?)', [('a', 1), ('b', 5), ('a', 3), ('b', 2), ('a', 4)])\nsql_totals = conn.execute('SELECT g, SUM(v) FROM t GROUP BY g ORDER BY g').fetchall()\ndf = pd.read_sql_query('SELECT g, v FROM t', conn)\npd_totals = [(g, int(v)) for g, v in df.groupby('g')['v'].sum().sort_index().items()]\nprint('same:', sql_totals == pd_totals)\nprint(sql_totals)\nconn.close()\n",
+      "hints": [
+        "conn.execute('SELECT g, SUM(v) ...').fetchall() gives a list of tuples.",
+        "In pandas: df.groupby('g')['v'].sum() then sort_index().",
+        "Convert the pandas result to a list of (group, int) tuples and compare the two lists."
+      ],
+      "expected": "same: True\n[('a', 8), ('b', 7)]"
+    },
+    {
+      "id": "g2",
+      "title": "Cells moved",
+      "kind": "python",
+      "prompt": "A table of 1000 rows and 6 columns is loaded completely with `SELECT *`. A better query returns 12 rows and 2 columns. Print `loaded: 6000 cells`, `pushed down: 24 cells` and `saved: 99.6%` (percent of cells saved, 1 decimal), computing the numbers from the shapes.",
+      "starter": "full = (1000, 6)\npushed = (12, 2)\n",
+      "solution": "full = (1000, 6)\npushed = (12, 2)\na = full[0] * full[1]\nb = pushed[0] * pushed[1]\nprint('loaded:', a, 'cells')\nprint('pushed down:', b, 'cells')\nprint('saved: ' + str(round((a - b) / a * 100, 1)) + '%')\n",
+      "hints": [
+        "Cells are rows times columns.",
+        "Saved is (loaded - pushed) over loaded.",
+        "Print with the exact labels and round to 1 decimal."
+      ],
+      "expected": "loaded: 6000 cells\npushed down: 24 cells\nsaved: 99.6%"
+    },
+    {
+      "id": "g3",
+      "title": "Rows returned by an aggregation",
+      "kind": "sql",
+      "prompt": "Return one row with `lines` (the number of rows in `order_details`) and `categories_returned` (the number of distinct categories that appear in the sold products, joining `order_details` to `products`), to show how much an aggregation reduces data.",
+      "starter": "SELECT COUNT(*) AS lines\nFROM order_details;\n",
+      "solution": "SELECT COUNT(*) AS lines,\n       COUNT(DISTINCT p.category_id) AS categories_returned\nFROM order_details od\nJOIN products p ON p.product_id = od.product_id;\n",
+      "hints": [
+        "Join order_details to products on product_id.",
+        "COUNT(*) counts the joined lines.",
+        "COUNT(DISTINCT p.category_id) counts categories."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "A chunked total",
+      "kind": "python",
+      "prompt": "Create an in-memory table `n(x INTEGER)` with the values 1 to 100. Read it with `pd.read_sql_query(..., chunksize=30)` and print `chunks: 4` and `total: 5050` (use an int for the total).",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE n (x INTEGER)')\nconn.executemany('INSERT INTO n VALUES (?)', [(i,) for i in range(1, 101)])\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE n (x INTEGER)')\nconn.executemany('INSERT INTO n VALUES (?)', [(i,) for i in range(1, 101)])\nchunks = 0\ntotal = 0\nfor c in pd.read_sql_query('SELECT x FROM n ORDER BY x', conn, chunksize=30):\n    chunks += 1\n    total += int(c['x'].sum())\nprint('chunks:', chunks)\nprint('total:', total)\nconn.close()\n",
+      "hints": [
+        "pd.read_sql_query(sql, conn, chunksize=30) yields DataFrames.",
+        "Count the chunks and add each chunk's sum to a running total.",
+        "Convert the sum with int() before adding."
+      ],
+      "expected": "chunks: 4\ntotal: 5050"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Share of group total, two ways",
+      "kind": "python",
+      "prompt": "Create the in-memory table `s(region TEXT, amount REAL)` with `('n', 10.0), ('n', 30.0), ('s', 20.0), ('s', 20.0), ('s', 10.0)`. Compute each row's percentage of its region's total with a SQL window function (`SUM(amount) OVER (PARTITION BY region)`, ordered by `rowid`) and with pandas `transform`. Print `agree: True` if all five values match (use `numpy.allclose`), then the five pandas percentages rounded to 1 decimal as a list.",
+      "starter": "import sqlite3\nimport numpy as np\nimport pandas as pd\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE s (region TEXT, amount REAL)')\nconn.executemany('INSERT INTO s VALUES (?, ?)', [('n', 10.0), ('n', 30.0), ('s', 20.0), ('s', 20.0), ('s', 10.0)])\n",
+      "solution": "import sqlite3\nimport numpy as np\nimport pandas as pd\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE s (region TEXT, amount REAL)')\nconn.executemany('INSERT INTO s VALUES (?, ?)', [('n', 10.0), ('n', 30.0), ('s', 20.0), ('s', 20.0), ('s', 10.0)])\nq = pd.read_sql_query('SELECT amount * 100.0 / SUM(amount) OVER (PARTITION BY region) AS pct FROM s ORDER BY rowid', conn)\nd = pd.read_sql_query('SELECT region, amount FROM s ORDER BY rowid', conn)\nd['pct'] = d['amount'] * 100 / d.groupby('region')['amount'].transform('sum')\nprint('agree:', bool(np.allclose(q['pct'], d['pct'])))\nprint([round(float(v), 1) for v in d['pct']])\nconn.close()\n",
+      "expected": "agree: True\n[25.0, 75.0, 40.0, 40.0, 20.0]"
+    },
+    {
+      "id": "i2",
+      "title": "Push the aggregation into SQL",
+      "kind": "sql",
+      "prompt": "A Python report needs one small table: for each customer country, `country`, `customers_with_orders` (distinct customers who placed orders), `orders` (distinct orders) and `revenue` (net revenue rounded to 0 decimals). Return the five countries with the highest revenue, ordered by `revenue` descending, then `country`.",
+      "starter": "SELECT country, COUNT(*) AS customers\nFROM customers\nGROUP BY country\nORDER BY customers DESC\nLIMIT 5;\n",
+      "solution": "SELECT c.country,\n       COUNT(DISTINCT o.customer_id) AS customers_with_orders,\n       COUNT(DISTINCT o.order_id) AS orders,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 0) AS revenue\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nJOIN order_details od ON od.order_id = o.order_id\nGROUP BY c.country\nORDER BY revenue DESC, c.country\nLIMIT 5;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "A recommendation on where to work",
+      "kind": "written",
+      "required": false,
+      "prompt": "A colleague loads a 30-million-row events table with `SELECT *` into pandas every morning to compute daily active users by country, and the notebook often runs out of memory. Write 5 to 7 sentences recommending a change: what to do in SQL, what to leave in pandas, how you would check that the result is unchanged and one trade-off of your design.",
+      "starter": "Write your answer here.",
+      "solution": "I would move the aggregation into the database: a query that selects only the date, country and user id columns, filters to the needed day, and returns COUNT(DISTINCT user_id) per country and day, which is a few hundred rows instead of thirty million. Pandas would then receive the small table and be used for formatting, charts and comparison with earlier days. To check that the result is unchanged, I would run the old notebook and the new query on one day (or a one percent sample) and compare the counts per country, which must be equal. A trade-off is that the heavy work now runs on the shared database, so I would schedule it when load is low or use a replica, and the metric definition should live in a view so other tools agree. If distinct counts across many days were needed, I would aggregate per day in SQL and not try to add daily distinct counts together, because that would double count users.",
+      "rubric": [
+        "Moves filtering and aggregation to SQL and selects only needed columns",
+        "Leaves presentation or small-table work in pandas",
+        "Describes a way to verify equal results before switching",
+        "Names a trade-off such as database load, shared definitions or distinct-count pitfalls"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A table has 80 million rows and you need one total per month. Where should the grouping happen and why?",
+      "options": [
+        "In SQL, because the result is tiny compared with the input",
+        "In pandas, because pandas is more flexible",
+        "It makes no difference",
+        "In pandas, because SQL cannot group by month"
+      ],
+      "answer": 0,
+      "explanation": "An aggregation reduces data, so doing it near the data avoids moving 80 million rows. SQL can group by month, and pandas would need all the rows in memory."
+    },
+    {
+      "id": "c2",
+      "question": "Which operation is NOT correctly done by combining per-chunk results?",
+      "options": [
+        "Median of the whole column",
+        "Sum",
+        "Count of rows",
+        "Maximum"
+      ],
+      "answer": 0,
+      "explanation": "Sums, counts and extremes combine across chunks. The median of chunk medians is not the overall median, so a median needs all the data (or a database computation)."
+    },
+    {
+      "id": "c3",
+      "question": "`SELECT * FROM sales` followed by `df[df['amount'] > 60]` returns the same rows as `SELECT * FROM sales WHERE amount > 60`. Why prefer the second?",
+      "options": [
+        "It moves fewer rows to Python, with the same result",
+        "It returns more columns",
+        "It always runs faster than any pandas code",
+        "It avoids needing a connection"
+      ],
+      "answer": 0,
+      "explanation": "The result is the same, but with the WHERE the database sends only the rows that are needed. 'Always faster' is a claim you should measure instead of assume."
+    },
+    {
+      "id": "c4",
+      "question": "Which statement about pandas and large data is the most accurate?",
+      "options": [
+        "There is no universal row count; it depends on columns, operations and memory, so measure",
+        "pandas fails above one million rows",
+        "pandas can always handle any file",
+        "Memory use equals the file size exactly"
+      ],
+      "answer": 0,
+      "explanation": "Memory use depends on the number and types of columns and on intermediate copies. Test on a sample and reduce the data in the database when needed."
+    },
+    {
+      "id": "c5",
+      "question": "Window `SUM(x) OVER (PARTITION BY g)` and pandas `groupby('g')['x'].transform('sum')` both return a result with how many rows?",
+      "options": [
+        "The same number as the input, one per row",
+        "One per group",
+        "One row in total",
+        "Zero until you aggregate"
+      ],
+      "answer": 0,
+      "explanation": "Both attach the group total to every input row, so they do not reduce data. For reducing, use GROUP BY or groupby.agg."
+    }
+  ]
+}

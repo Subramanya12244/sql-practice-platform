@@ -1,0 +1,182 @@
+{
+  "id": "a147",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "count",
+      "filter-clause"
+    ],
+    "questions": [
+      193,
+      40
+    ],
+    "pyExercises": [
+      "percent-change",
+      "safe-divide"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "conditional-aggregation"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Step conversion",
+      "kind": "python",
+      "prompt": "A funnel has the counts `[1000, 400, 120, 60]` for visit, cart, checkout and paid. Print the step conversion of each step after the first as a percentage with 1 decimal, one per line.",
+      "starter": "counts = [1000, 400, 120, 60]\n",
+      "solution": "counts = [1000, 400, 120, 60]\nfor prev, cur in zip(counts, counts[1:]):\n    print(round(cur / prev * 100, 1))\n",
+      "hints": [
+        "Pair each count with the next one.",
+        "Divide the next by the previous.",
+        "Multiply by 100 and round to 1 decimal."
+      ],
+      "expected": "40.0\n30.0\n50.0"
+    },
+    {
+      "id": "g2",
+      "title": "Overall conversion and lost",
+      "kind": "python",
+      "prompt": "With the counts `[1000, 400, 120, 60]` print `overall: 6.0%` (paid over visits, 1 decimal) and `biggest loss: 600` (the largest number lost between two neighbouring steps).",
+      "starter": "counts = [1000, 400, 120, 60]\n",
+      "solution": "counts = [1000, 400, 120, 60]\nprint('overall: ' + str(round(counts[-1] / counts[0] * 100, 1)) + '%')\nprint('biggest loss: ' + str(max(a - b for a, b in zip(counts, counts[1:]))))\n",
+      "hints": [
+        "Overall conversion is the last count over the first.",
+        "The numbers lost are the differences between neighbours.",
+        "max() over a generator of those differences."
+      ],
+      "expected": "overall: 6.0%\nbiggest loss: 600"
+    },
+    {
+      "id": "g3",
+      "title": "Fulfilment counts",
+      "kind": "sql",
+      "prompt": "Return one row with `placed` (all orders), `not_shipped` (orders with NULL `shipped_date`), `shipped_late` (shipped after `required_date`) and `shipped_on_time` (shipped on or before `required_date`).",
+      "starter": "SELECT COUNT(*) AS placed\nFROM orders;\n",
+      "solution": "SELECT COUNT(*) AS placed,\n       COUNT(*) FILTER (WHERE shipped_date IS NULL) AS not_shipped,\n       COUNT(*) FILTER (WHERE shipped_date > required_date) AS shipped_late,\n       COUNT(*) FILTER (WHERE shipped_date <= required_date) AS shipped_on_time\nFROM orders;\n",
+      "hints": [
+        "COUNT(*) FILTER (WHERE ...) counts rows meeting a condition.",
+        "NULL needs IS NULL, not = NULL.",
+        "Compare shipped_date with required_date for late and on time."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Shipped share by year",
+      "kind": "sql",
+      "prompt": "Return `yr`, `placed` and `shipped_pct` (percent of orders with a shipping date, rounded to 1 decimal) for each order year, ordered by `yr`.",
+      "starter": "SELECT EXTRACT(year FROM order_date)::int AS yr\nFROM orders\nLIMIT 3;\n",
+      "solution": "SELECT EXTRACT(year FROM order_date)::int AS yr,\n       COUNT(*) AS placed,\n       ROUND((100.0 * COUNT(shipped_date) / COUNT(*))::numeric, 1) AS shipped_pct\nFROM orders\nGROUP BY 1\nORDER BY 1;\n",
+      "ordered": true,
+      "hints": [
+        "Group by the extracted year.",
+        "COUNT(shipped_date) skips NULL values.",
+        "Divide by COUNT(*) and cast the result to numeric before ROUND."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Weakest step per segment",
+      "kind": "python",
+      "prompt": "Counts of sessions reaching each step for two channels are: email `[500, 300, 150, 90]`, search `[2000, 800, 240, 120]` (steps: visit, cart, checkout, paid). For each channel in this order, print `channel: step N` where N is the 1-based index of the step conversion with the lowest value (step 1 is visit to cart), and then print `lowest overall: NAME` for the channel with the lowest overall conversion (paid over visits).",
+      "starter": "funnels = {'email': [500, 300, 150, 90], 'search': [2000, 800, 240, 120]}\n",
+      "solution": "funnels = {'email': [500, 300, 150, 90], 'search': [2000, 800, 240, 120]}\noverall = {}\nfor name, c in funnels.items():\n    conv = [b / a for a, b in zip(c, c[1:])]\n    print(name + ': step ' + str(conv.index(min(conv)) + 1))\n    overall[name] = c[-1] / c[0]\nprint('lowest overall: ' + min(overall, key=overall.get))\n",
+      "expected": "email: step 2\nsearch: step 2\nlowest overall: search"
+    },
+    {
+      "id": "i2",
+      "title": "On-time delivery by shipper",
+      "kind": "sql",
+      "prompt": "For shipped orders only, return `shipper` (the shipper's `company_name`), `shipped` (orders), `on_time` (shipped on or before the required date) and `on_time_pct` (rounded to 1 decimal), ordered by `shipper`.",
+      "starter": "SELECT ship_via, COUNT(*) AS n\nFROM orders\nGROUP BY ship_via\nLIMIT 3;\n",
+      "solution": "SELECT s.company_name AS shipper,\n       COUNT(*) AS shipped,\n       COUNT(*) FILTER (WHERE o.shipped_date <= o.required_date) AS on_time,\n       ROUND((100.0 * COUNT(*) FILTER (WHERE o.shipped_date <= o.required_date) / COUNT(*))::numeric, 1) AS on_time_pct\nFROM orders o\nJOIN shippers s ON s.shipper_id = o.ship_via\nWHERE o.shipped_date IS NOT NULL\nGROUP BY s.company_name\nORDER BY s.company_name;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Prioritise two bottlenecks",
+      "kind": "written",
+      "required": false,
+      "prompt": "Step A converts 50 percent of 2,000 people (a benchmark segment converts 60 percent). Step B converts 20 percent of 300 people (the benchmark is 40 percent). Compute how many extra people each fix would produce, say which you would examine first and what extra information you need before committing the team.",
+      "starter": "Write your answer here.",
+      "solution": "Step A: 2,000 x (0.60 - 0.50) = 200 extra people. Step B: 300 x (0.40 - 0.20) = 60 extra people. Step B has the larger percentage gap (20 points against 10) but step A is worth more than three times as many people, so I would examine step A first. Before committing I would want to know the value per person at each step (later steps can be worth more per person), whether the benchmark segments are comparable (same device or channel), how hard each fix is, and whether the gap reflects a real problem or a different audience. These numbers are upper bounds under the assumption that the benchmark is reachable.",
+      "rubric": [
+        "Computes 200 and 60 extra people correctly",
+        "Chooses by opportunity (rate times exposure), not by percentage alone",
+        "Names at least one piece of extra information needed (value per person, comparability, effort)"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A funnel has four transitions, each with 70% step conversion. What is the overall conversion from the first step to the last?",
+      "options": [
+        "About 24%",
+        "70%",
+        "28%",
+        "About 49%"
+      ],
+      "answer": 0,
+      "explanation": "Overall conversion is the product of the step conversions: 0.7 x 0.7 x 0.7 x 0.7 is about 0.24. It is far below any single step, which is why long funnels convert so little overall. 28% adds the drop-offs, and 49% multiplies only two steps."
+    },
+    {
+      "id": "c2",
+      "question": "In `SELECT COUNT(*), COUNT(shipped_date) FROM orders`, why can the two numbers differ?",
+      "options": [
+        "COUNT(shipped_date) skips rows where shipped_date is NULL",
+        "COUNT(*) skips duplicates",
+        "COUNT(shipped_date) counts distinct dates",
+        "They cannot differ"
+      ],
+      "answer": 0,
+      "explanation": "COUNT(column) counts only non-NULL values; COUNT(*) counts rows. It does not remove duplicates in either case."
+    },
+    {
+      "id": "c3",
+      "question": "Step 2 loses 40% of 100 people and step 3 loses 10% of 2,000 people. Which loses more people?",
+      "options": [
+        "Step 3",
+        "Step 2",
+        "They are equal",
+        "Cannot tell"
+      ],
+      "answer": 0,
+      "explanation": "Step 2 loses 40 people and step 3 loses 200. The percentage drop is larger at step 2 but the number lost, which sets the opportunity, is larger at step 3."
+    },
+    {
+      "id": "c4",
+      "question": "Overall conversion fell after a campaign that sent many mobile users, although no step got worse for either device. What explains this?",
+      "options": [
+        "A change in traffic mix toward the lower-converting segment",
+        "A tracking error",
+        "Higher prices",
+        "Seasonality always"
+      ],
+      "answer": 0,
+      "explanation": "Mobile converts lower at each step, so more mobile traffic lowers the average. Looking at funnels within each segment shows that nothing deteriorated."
+    },
+    {
+      "id": "c5",
+      "question": "A funnel count for 'paid' is higher than for 'checkout'. What should you do first?",
+      "options": [
+        "Check the data for tracking gaps or a different counting unit",
+        "Report a conversion above 100%",
+        "Remove the checkout step",
+        "Round the numbers"
+      ],
+      "answer": 0,
+      "explanation": "A later step cannot normally exceed an earlier one, so the data has a gap (an event not recorded) or the steps count different units. Fix the data before computing conversions."
+    }
+  ]
+}

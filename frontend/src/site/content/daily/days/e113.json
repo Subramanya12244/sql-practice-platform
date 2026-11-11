@@ -1,0 +1,176 @@
+{
+  "time": {
+    "theory": 15,
+    "examples": 25,
+    "guided": 25,
+    "independent": 75,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "python-api-integration",
+      "etl-data-validation",
+      "python-database-connectivity"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "moving-average"
+    ]
+  },
+  "environment": {
+    "packages": [
+      "matplotlib"
+    ],
+    "note": "Example 4 uses Matplotlib, which the browser runner does not load: install it with `pip install matplotlib` and run the example locally. It uses the Agg backend and prints figure properties instead of showing a window, and it saves one PNG in the working folder. The Orders API and PostgreSQL are replaced by a stand-in function and in-memory sqlite3; with a real server the SQL is the same except for placeholders (psycopg uses %s) and types (numeric, timestamptz)."
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Revenue per day",
+      "kind": "python",
+      "prompt": "The list `paid` holds `(date, amount_cents)` pairs for paid orders. Build a dictionary of total cents per date, then print one line per date in date order in the form `<date> <total_cents>`. Expected output: `2025-03-01 1500`, `2025-03-02 800`, `2025-03-03 2400` on separate lines.",
+      "starter": "paid = [(\"2025-03-02\", 800), (\"2025-03-01\", 700), (\"2025-03-03\", 2400), (\"2025-03-01\", 800)]\n# Your code here\n",
+      "solution": "paid = [(\"2025-03-02\", 800), (\"2025-03-01\", 700), (\"2025-03-03\", 2400), (\"2025-03-01\", 800)]\ntotals = {}\nfor day, cents in paid:\n    totals[day] = totals.get(day, 0) + cents\nfor day in sorted(totals):\n    print(day, totals[day])\n",
+      "hints": [
+        "You need one running total per date; a dictionary keyed by date holds them.",
+        "`totals[day] = totals.get(day, 0) + cents` adds to the total, starting at 0.",
+        "Loop over `sorted(totals)` and `print(day, totals[day])`."
+      ],
+      "expected": "2025-03-01 1500\n2025-03-02 800\n2025-03-03 2400"
+    },
+    {
+      "id": "g2",
+      "title": "Paid revenue by currency",
+      "kind": "sql",
+      "prompt": "On PGlite the table `api_orders(order_id, currency, amount_cents, status)` is created for you. Return the columns `currency` and `revenue_cents` (the sum of `amount_cents` of orders with status `paid`), one row per currency, ordered by `currency`.",
+      "starter": "CREATE TABLE api_orders (order_id int PRIMARY KEY, currency text, amount_cents int, status text);\nINSERT INTO api_orders VALUES (1,'EUR',1000,'paid'),(2,'EUR',500,'refunded'),(3,'USD',700,'paid'),(4,'USD',300,'paid'),(5,'EUR',200,'paid'),(6,'USD',900,'failed');\nSELECT currency FROM api_orders ORDER BY currency LIMIT 1;\n",
+      "solution": "CREATE TABLE api_orders (order_id int PRIMARY KEY, currency text, amount_cents int, status text);\nINSERT INTO api_orders VALUES (1,'EUR',1000,'paid'),(2,'EUR',500,'refunded'),(3,'USD',700,'paid'),(4,'USD',300,'paid'),(5,'EUR',200,'paid'),(6,'USD',900,'failed');\nSELECT currency, SUM(amount_cents) AS revenue_cents\nFROM api_orders\nWHERE status = 'paid'\nGROUP BY currency\nORDER BY currency;\n",
+      "hints": [
+        "Filter first with WHERE, then group.",
+        "`WHERE status = 'paid'` keeps the rows to be summed; `GROUP BY currency` makes one row per currency.",
+        "`SELECT currency, SUM(amount_cents) AS revenue_cents FROM orders WHERE status = 'paid' GROUP BY currency ORDER BY currency`."
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g3",
+      "title": "A sentence from numbers",
+      "kind": "python",
+      "prompt": "Write `refund_sentence(refunded, total)` that returns `Refunds were <share> of orders (<refunded> of <total>).` where share is the fraction as a percentage with one decimal. Print the result for `(20, 120)`. Expected output: `Refunds were 16.7% of orders (20 of 120).`",
+      "starter": "def refund_sentence(refunded, total):\n    pass\n\nprint(refund_sentence(20, 120))\n",
+      "solution": "def refund_sentence(refunded, total):\n    return f\"Refunds were {refunded / total:.1%} of orders ({refunded} of {total}).\"\n\nprint(refund_sentence(20, 120))\n",
+      "hints": [
+        "Compute the fraction as `refunded / total`.",
+        "`:.1%` formats a fraction as a percentage with one decimal.",
+        "`return f\"Refunds were {refunded / total:.1%} of orders ({refunded} of {total}).\"`"
+      ],
+      "expected": "Refunds were 16.7% of orders (20 of 120)."
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Top customers as chart data",
+      "kind": "python",
+      "prompt": "The list `orders` holds `(customer_id, amount_cents, status)`. Compute paid revenue per customer in cents, take the three customers with the most revenue (ties broken by the smaller customer id), and print two lines: `labels: <list of customer ids as strings like 'C7'>` and `values: <list of revenue in cents>`. Expected output: `labels: ['C2', 'C1', 'C3']` and `values: [2600, 1500, 900]`.",
+      "starter": "orders = [(1, 500, \"paid\"), (2, 1600, \"paid\"), (3, 900, \"paid\"), (1, 1000, \"paid\"), (2, 1000, \"paid\"), (3, 400, \"refunded\"), (4, 300, \"failed\"), (4, 200, \"paid\")]\n# Your code here\n",
+      "solution": "orders = [(1, 500, \"paid\"), (2, 1600, \"paid\"), (3, 900, \"paid\"), (1, 1000, \"paid\"), (2, 1000, \"paid\"), (3, 400, \"refunded\"), (4, 300, \"failed\"), (4, 200, \"paid\")]\nrevenue = {}\nfor customer, cents, status in orders:\n    if status == \"paid\":\n        revenue[customer] = revenue.get(customer, 0) + cents\ntop = sorted(revenue.items(), key=lambda kv: (-kv[1], kv[0]))[:3]\nprint(\"labels:\", [f\"C{c}\" for c, _ in top])\nprint(\"values:\", [v for _, v in top])\n",
+      "expected": "labels: ['C2', 'C1', 'C3']\nvalues: [2600, 1500, 900]"
+    },
+    {
+      "id": "i2",
+      "title": "Handover checks",
+      "kind": "python",
+      "prompt": "Write `handover(read, loaded, rejected, duplicate_ids, statuses)` returning a list of lines. Line 1: `reconciled: yes` if `read == loaded + rejected`, else `reconciled: NO`. Line 2: `duplicates: <duplicate_ids>`. Line 3: `statuses ok: yes` if every status is one of `paid`, `refunded`, `failed`, else `statuses ok: NO`. Print the lines for `(120, 118, 2, 0, [\"paid\", \"failed\"])` and for `(120, 117, 2, 1, [\"paid\", \"pending\"])`, one line per print, with a line `--` between the two reports. Expected output has seven lines.",
+      "starter": "def handover(read, loaded, rejected, duplicate_ids, statuses):\n    pass\n\nfor line in handover(120, 118, 2, 0, [\"paid\", \"failed\"]):\n    print(line)\nprint(\"--\")\nfor line in handover(120, 117, 2, 1, [\"paid\", \"pending\"]):\n    print(line)\n",
+      "solution": "def handover(read, loaded, rejected, duplicate_ids, statuses):\n    allowed = {\"paid\", \"refunded\", \"failed\"}\n    return [\n        \"reconciled: \" + (\"yes\" if read == loaded + rejected else \"NO\"),\n        f\"duplicates: {duplicate_ids}\",\n        \"statuses ok: \" + (\"yes\" if all(s in allowed for s in statuses) else \"NO\"),\n    ]\n\nfor line in handover(120, 118, 2, 0, [\"paid\", \"failed\"]):\n    print(line)\nprint(\"--\")\nfor line in handover(120, 117, 2, 1, [\"paid\", \"pending\"]):\n    print(line)\n",
+      "expected": "reconciled: yes\nduplicates: 0\nstatuses ok: yes\n--\nreconciled: NO\nduplicates: 1\nstatuses ok: NO"
+    },
+    {
+      "id": "i3",
+      "title": "Explain a chart in a handover",
+      "kind": "written",
+      "prompt": "Choose the chart you would put first in a weekly report on the Orders data and write the handover paragraph for it: the chart type and why, the exact title and axis labels, the one-sentence insight with its number and definition, one caveat, and what the reader should do with it. Use the status, currency and daily revenue results from the lesson.",
+      "starter": "Chart type and why:\nTitle and axes:\nInsight (number, definition):\nCaveat:\nWhat the reader should do:\n",
+      "solution": "A bar chart of order count by status is the first chart, because the question is how the orders divide into a few categories and bar length compares categories honestly (axis starting at zero). Title: 'Orders by status, March 2025'; x label 'Status'; y label 'Orders'. Insight: 20 of 120 orders (16.7 percent) were refunded and 20 failed, so one order in three did not end as paid revenue; definition: all statuses counted by order. Caveat: counts, not value; EUR and USD amounts are not converted, so a revenue chart would need a currency split first. Action: ask the payments team to review the failed and refunded orders before the next review.",
+      "required": false,
+      "rubric": [
+        "The chart type fits a comparison of a few categories and the answer says why.",
+        "The title and both axis labels are stated exactly, and the title names the subject and period.",
+        "The insight contains a number and its definition (which rows are counted).",
+        "At least one honest caveat (currency mix, counts versus value, or period) is named.",
+        "The reader gets a concrete next action."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A report says 'Revenue was 2,180'. What is the main thing missing for a reader to trust it?",
+      "options": [
+        "A chart",
+        "The definition: which statuses, which currency, which period",
+        "More decimals",
+        "The name of the table"
+      ],
+      "answer": 1,
+      "explanation": "A number is only usable with its definition. Without the filter (here paid orders only) and the unit, two people can compute different numbers with the same word. A chart or more decimals do not fix that."
+    },
+    {
+      "id": "c2",
+      "question": "Which chart suits comparing paid revenue across three currencies?",
+      "options": [
+        "A bar chart with a zero baseline",
+        "A line chart across the currencies",
+        "A pie chart with 30 slices",
+        "A bar chart whose axis starts at the smallest value"
+      ],
+      "answer": 0,
+      "explanation": "Bars compare categories, and their length is honest only from zero. A line implies an order between categories, and a truncated axis exaggerates differences."
+    },
+    {
+      "id": "c3",
+      "question": "What does `len(ax.patches)` return after `ax.bar(['paid','refunded','failed'], [80, 20, 20])`?",
+      "options": [
+        "1",
+        "3",
+        "120",
+        "0"
+      ],
+      "answer": 1,
+      "explanation": "Each bar is one rectangle patch, so three bars give three patches. It counts bars, not the sum of the values."
+    },
+    {
+      "id": "c4",
+      "question": "A narrative sentence is typed by hand: 'Refunds were 16.7% of orders.' Next week 30 more orders arrive. What is the best fix?",
+      "options": [
+        "Retype it each week",
+        "Format the sentence from the query result with an f-string",
+        "Remove the number",
+        "Round it to 17%"
+      ],
+      "answer": 1,
+      "explanation": "Generated text always matches the data it is built from. Retyping depends on someone remembering, and rounding or removing the number does not make the sentence current."
+    },
+    {
+      "id": "c5",
+      "question": "Why is `SELECT COUNT(*) FROM orders` the right source for the loaded count in a handover?",
+      "options": [
+        "It is faster than a counter",
+        "It measures what is actually in the table, so a loader bug cannot hide itself",
+        "It includes rejected rows",
+        "It is required by SQL"
+      ],
+      "answer": 1,
+      "explanation": "A counter in the loader can be wrong in the same way as the loader. The table count is an independent measurement, which is what reconciliation needs."
+    }
+  ],
+  "id": "e113"
+}

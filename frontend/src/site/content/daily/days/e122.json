@@ -1,0 +1,183 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "python-csv-json",
+      "python-virtual-environments",
+      "etl-architecture",
+      "python-modules-packages"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Read settings from the environment",
+      "kind": "python",
+      "prompt": "Set `os.environ[\"ETL_BATCH_SIZE\"] = \"250\"` in the code, then print three lines: the batch size as an `int` read with a default of `\"500\"`, the table read with `os.environ.get` and the default `orders_clean`, and the result of adding 1 to the batch size. Expected output: `250`, `orders_clean`, `251`.",
+      "starter": "import os\n\nos.environ[\"ETL_BATCH_SIZE\"] = \"250\"\n# Your code here\n",
+      "solution": "import os\n\nos.environ[\"ETL_BATCH_SIZE\"] = \"250\"\nbatch_size = int(os.environ.get(\"ETL_BATCH_SIZE\", \"500\"))\nprint(batch_size)\nprint(os.environ.get(\"ETL_TABLE\", \"orders_clean\"))\nprint(batch_size + 1)\n",
+      "hints": [
+        "Environment values are text; convert the batch size with `int(...)`.",
+        "`os.environ.get(\"ETL_BATCH_SIZE\", \"500\")` returns the text or the default.",
+        "Print `batch_size`, then `os.environ.get(\"ETL_TABLE\", \"orders_clean\")`, then `batch_size + 1`."
+      ],
+      "expected": "250\norders_clean\n251"
+    },
+    {
+      "id": "g2",
+      "title": "Parse TOML",
+      "kind": "python",
+      "prompt": "Parse the TOML text in the starter with `tomllib.loads`, then print the `batch_size` plus 1 and the number of statuses in the list. Expected output: `501` then `2`.",
+      "starter": "import tomllib\n\nTEXT = 'batch_size = 500\\nstatuses = [\"paid\", \"refunded\"]\\n'\n# Your code here\n",
+      "solution": "import tomllib\n\nTEXT = 'batch_size = 500\\nstatuses = [\"paid\", \"refunded\"]\\n'\nconfig = tomllib.loads(TEXT)\nprint(config[\"batch_size\"] + 1)\nprint(len(config[\"statuses\"]))\n",
+      "hints": [
+        "`tomllib.loads(text)` returns a dictionary.",
+        "TOML keeps types: `batch_size` is already an int and `statuses` a list.",
+        "`config = tomllib.loads(TEXT)`; then `print(config[\"batch_size\"] + 1)` and `print(len(config[\"statuses\"]))`."
+      ],
+      "expected": "501\n2"
+    },
+    {
+      "id": "g3",
+      "title": "Layer defaults and an environment",
+      "kind": "python",
+      "prompt": "Write `merge(defaults, env_settings)` returning a new dict where the environment's settings override the defaults. Print `merge(DEFAULTS, PROD)` with the keys sorted, as `key=value` pairs separated by a single space. Expected output: `batch_size=5000 retries=3 table=orders_clean`.",
+      "starter": "DEFAULTS = {\"table\": \"orders_clean\", \"batch_size\": 500, \"retries\": 3}\nPROD = {\"batch_size\": 5000}\n\ndef merge(defaults, env_settings):\n    pass\n\nmerged = merge(DEFAULTS, PROD)\nprint(\" \".join(f\"{k}={merged[k]}\" for k in sorted(merged)))\n",
+      "solution": "DEFAULTS = {\"table\": \"orders_clean\", \"batch_size\": 500, \"retries\": 3}\nPROD = {\"batch_size\": 5000}\n\ndef merge(defaults, env_settings):\n    return {**defaults, **env_settings}\n\nmerged = merge(DEFAULTS, PROD)\nprint(\" \".join(f\"{k}={merged[k]}\" for k in sorted(merged)))\n",
+      "hints": [
+        "Later keys win when two dictionaries are merged.",
+        "`{**a, **b}` builds a new dict from both, with `b` winning.",
+        "`return {**defaults, **env_settings}`"
+      ],
+      "expected": "batch_size=5000 retries=3 table=orders_clean"
+    },
+    {
+      "id": "g4",
+      "title": "Mask a secret",
+      "kind": "python",
+      "prompt": "Write `mask(value)` that returns `****` followed by the last two characters of the value, or just `****` when the value has fewer than 6 characters. Print `mask(\"s3cr3t-value\")` and `mask(\"abc\")`. Expected output: `****ue` then `****`.",
+      "starter": "def mask(value):\n    pass\n\nprint(mask(\"s3cr3t-value\"))\nprint(mask(\"abc\"))\n",
+      "solution": "def mask(value):\n    return \"****\" + value[-2:] if len(value) >= 6 else \"****\"\n\nprint(mask(\"s3cr3t-value\"))\nprint(mask(\"abc\"))\n",
+      "hints": [
+        "Short secrets must not leak any character.",
+        "Use a conditional expression on `len(value) >= 6`.",
+        "`\"****\" + value[-2:] if len(value) >= 6 else \"****\"`"
+      ],
+      "expected": "****ue\n****"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Load config for an environment",
+      "kind": "python",
+      "prompt": "Use the TOML text in the starter. Write `load_config(env, environ)` that starts from the `[default]` table, applies the table of the environment `env`, then lets `ETL_RETRIES` from the mapping `environ` (converted to int) override `retries`. Print the result for `(\"dev\", {})`, `(\"prod\", {})` and `(\"prod\", {\"ETL_RETRIES\": \"7\"})` as dictionaries sorted by key (use `dict(sorted(config.items()))`), one per line.",
+      "starter": "import tomllib\n\nTEXT = \"\"\"\n[default]\ntable = \"orders_clean\"\nretries = 3\nbatch_size = 500\n\n[dev]\nbatch_size = 50\n\n[prod]\nretries = 5\nbatch_size = 5000\n\"\"\"\n# Your code here\n",
+      "solution": "import tomllib\n\nTEXT = \"\"\"\n[default]\ntable = \"orders_clean\"\nretries = 3\nbatch_size = 500\n\n[dev]\nbatch_size = 50\n\n[prod]\nretries = 5\nbatch_size = 5000\n\"\"\"\n\ndef load_config(env, environ):\n    data = tomllib.loads(TEXT)\n    config = {**data[\"default\"], **data.get(env, {})}\n    if \"ETL_RETRIES\" in environ:\n        config[\"retries\"] = int(environ[\"ETL_RETRIES\"])\n    return config\n\nfor env, environ in [(\"dev\", {}), (\"prod\", {}), (\"prod\", {\"ETL_RETRIES\": \"7\"})]:\n    print(dict(sorted(load_config(env, environ).items())))\n",
+      "expected": "{'batch_size': 50, 'retries': 3, 'table': 'orders_clean'}\n{'batch_size': 5000, 'retries': 5, 'table': 'orders_clean'}\n{'batch_size': 5000, 'retries': 7, 'table': 'orders_clean'}"
+    },
+    {
+      "id": "i2",
+      "title": "Report every config problem",
+      "kind": "python",
+      "prompt": "Write `problems(config)` returning a list of strings in this order for the keys `table` (str), `batch_size` (int, must be greater than 0) and `password` (str, must not be empty): `missing <key>` when absent, `<key> must be <type name>` for a wrong type, `batch_size must be positive` when it is an int but 0 or negative, `password is empty` when it is an empty string. Print the problem lists for the three configs in the starter, one per line.",
+      "starter": "def problems(config):\n    return []\n\nconfigs = [\n    {\"table\": \"orders_clean\", \"batch_size\": 500, \"password\": \"x\"},\n    {\"table\": \"orders_clean\", \"batch_size\": \"500\"},\n    {\"table\": 5, \"batch_size\": 0, \"password\": \"\"},\n]\nfor c in configs:\n    print(problems(c))\n",
+      "solution": "def problems(config):\n    found = []\n    for key, kind in [(\"table\", str), (\"batch_size\", int), (\"password\", str)]:\n        if key not in config:\n            found.append(f\"missing {key}\")\n        elif not isinstance(config[key], kind):\n            found.append(f\"{key} must be {kind.__name__}\")\n    if isinstance(config.get(\"batch_size\"), int) and config[\"batch_size\"] <= 0:\n        found.append(\"batch_size must be positive\")\n    if config.get(\"password\") == \"\":\n        found.append(\"password is empty\")\n    return found\n\nconfigs = [\n    {\"table\": \"orders_clean\", \"batch_size\": 500, \"password\": \"x\"},\n    {\"table\": \"orders_clean\", \"batch_size\": \"500\"},\n    {\"table\": 5, \"batch_size\": 0, \"password\": \"\"},\n]\nfor c in configs:\n    print(problems(c))\n",
+      "expected": "[]\n['batch_size must be int', 'missing password']\n['table must be str', 'batch_size must be positive', 'password is empty']"
+    },
+    {
+      "id": "i3",
+      "title": "Review a leaked-secret pipeline",
+      "kind": "written",
+      "prompt": "A repository contains `etl.py` with `PASSWORD = \"hunter2\"` and a connection built from it, a committed `config.ini` with the production host and the API key, and a logging line `log.info(f\"config: {config}\")`. Write the remediation plan: what to do first about the secrets already committed, how the code should receive them, what to change in the config files and `.gitignore`, how to fix the log line and how to prevent a repeat.",
+      "starter": "First action:\nHow the code gets secrets:\nConfig files and gitignore:\nLog line:\nPrevention:\n",
+      "solution": "First action: treat both the password and the API key as leaked: revoke or rotate them at once, because removing the line from the code does not remove it from Git history. How the code gets secrets: read them from environment variables (`os.environ[\"ETL_DB_PASSWORD\"]`) or a secret manager at startup, separate per environment, with no default value for a secret so a missing one fails fast. Config files and gitignore: keep non-secret settings (host, table, batch size) in a committed config file with `[default]`, `[dev]`, `[prod]` sections, remove the API key from it, add any `.env` file to `.gitignore` and commit a `.env.example` with fake values. Log line: log only non-secret keys or wrap secrets so they print as `***`, and print a masked value at most. Prevention: add a secret scanner to the commit hook or CI, review the config for new keys, and validate the config at startup.",
+      "required": false,
+      "rubric": [
+        "Rotates or revokes the committed secrets first, noting that history keeps them.",
+        "Moves secrets to environment variables or a secret manager with no default.",
+        "Separates secret-free config from secrets and uses .gitignore plus an example file.",
+        "Stops the log line from printing secrets (mask or wrapper).",
+        "Names a preventive control such as a scanner or startup validation."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`os.environ.get(\"ETL_BATCH_SIZE\", 500)` returns `\"250\"` when the variable is set to 250. What is the type?",
+      "options": [
+        "int",
+        "str",
+        "float",
+        "bool"
+      ],
+      "answer": 1,
+      "explanation": "Environment values are always text. The default is an int only when the variable is absent, so convert explicitly to get a consistent type."
+    },
+    {
+      "id": "c2",
+      "question": "A password was committed and the line was deleted in the next commit. What must you do?",
+      "options": [
+        "Nothing; it is deleted",
+        "Revoke or rotate the password, because Git history still contains it",
+        "Rename the file",
+        "Make the repository private only"
+      ],
+      "answer": 1,
+      "explanation": "Anyone with the history can read the old commit. Rotation is the only reliable fix."
+    },
+    {
+      "id": "c3",
+      "question": "In `{**defaults, **prod}`, which value wins for a key present in both?",
+      "options": [
+        "The default",
+        "The one from prod",
+        "The larger one",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "In a dictionary merge the later mapping overrides the earlier one, which is how environment settings override defaults."
+    },
+    {
+      "id": "c4",
+      "question": "Why validate the config at the start of the run?",
+      "options": [
+        "It is faster",
+        "A missing or wrong setting is reported at once with all problems, not hours in at the line that needs it",
+        "SQL needs it",
+        "It encrypts secrets"
+      ],
+      "answer": 1,
+      "explanation": "Failing early with a clear message saves a long run and an obscure KeyError."
+    },
+    {
+      "id": "c5",
+      "question": "Which setting belongs in a committed config file?",
+      "options": [
+        "The database password",
+        "The API key",
+        "The batch size and table name",
+        "A private token"
+      ],
+      "answer": 2,
+      "explanation": "Batch size and table name are not sensitive. Passwords, keys and tokens belong in the environment or a secret manager."
+    }
+  ],
+  "id": "e122"
+}

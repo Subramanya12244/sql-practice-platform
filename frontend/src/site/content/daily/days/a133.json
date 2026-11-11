@@ -1,0 +1,192 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "filter-clause"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "sales-by-month"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "pivot-report"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Complete the visual rule",
+      "kind": "python",
+      "prompt": "Complete `choose_visual(question)`: `single` gives \"card\", `trend` gives \"line\", `relationship` gives \"scatter\", `detail` gives \"table\", `part` gives \"donut\" for 5 or fewer categories and otherwise \"bar\", and any other kind (comparison) gives \"column\" for 7 or fewer categories and otherwise \"bar\". Print the choice for three questions, one per line: a `part` question with 4 categories, a `part` question with 9, and a comparison with 8.",
+      "starter": "def choose_visual(q):\n    k = q[\"kind\"]\n    # fill in the rule\n    return \"table\"\n\nfor q in [{\"kind\": \"part\", \"categories\": 4}, {\"kind\": \"part\", \"categories\": 9}, {\"kind\": \"compare\", \"categories\": 8}]:\n    print(choose_visual(q))\n",
+      "solution": "def choose_visual(q):\n    k = q[\"kind\"]\n    if k == \"single\":\n        return \"card\"\n    if k == \"trend\":\n        return \"line\"\n    if k == \"relationship\":\n        return \"scatter\"\n    if k == \"detail\":\n        return \"table\"\n    n = q[\"categories\"]\n    if k == \"part\":\n        return \"donut\" if n <= 5 else \"bar\"\n    return \"column\" if n <= 7 else \"bar\"\n\nfor q in [{\"kind\": \"part\", \"categories\": 4}, {\"kind\": \"part\", \"categories\": 9}, {\"kind\": \"compare\", \"categories\": 8}]:\n    print(choose_visual(q))\n",
+      "hints": [
+        "Handle the kinds that need no count first.",
+        "Part-to-whole and comparison both depend on q[\"categories\"].",
+        "part: donut if n <= 5 else bar; otherwise column if n <= 7 else bar."
+      ],
+      "expected": "donut\nbar\nbar"
+    },
+    {
+      "id": "g2",
+      "title": "Slicer on two fields",
+      "kind": "python",
+      "prompt": "Simulate two slicers: segment = Corporate and country in [France, Spain]. Print the number of order rows and the total revenue (2 decimals) of the filtered `fact` on one line as `rows revenue`, for example `12 345.67`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# apply both slicers\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nv = fact[(fact[\"segment\"] == \"Corporate\") & (fact[\"country\"].isin([\"France\", \"Spain\"]))]\nprint(len(v), round(float(v[\"revenue\"].sum()), 2))\n",
+      "hints": [
+        "Two slicers combine with AND.",
+        "Use & between two boolean conditions, each in parentheses.",
+        "print(len(v), round(float(v[\"revenue\"].sum()), 2))"
+      ],
+      "expected": "111 16845.0"
+    },
+    {
+      "id": "g3",
+      "title": "Drill-through to a product",
+      "kind": "python",
+      "prompt": "Write `drill_through(product)` that returns the three customers with the highest revenue for that product, as a Series indexed by `customer_name` (ties broken by name, ascending). Print `drill_through(\"Product 10\").round(2).to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef drill_through(product):\n    pass\n\nprint(drill_through(\"Product 10\").round(2).to_string())\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef drill_through(product):\n    r = fact[fact[\"product_name\"] == product].groupby(\"customer_name\")[\"revenue\"].sum().reset_index()\n    r = r.sort_values([\"revenue\", \"customer_name\"], ascending=[False, True], kind=\"stable\").head(3)\n    return r.set_index(\"customer_name\")[\"revenue\"]\n\nprint(drill_through(\"Product 10\").round(2).to_string())\n",
+      "hints": [
+        "Filter the rows of one product first.",
+        "Sum revenue per customer_name, sort revenue descending then name ascending.",
+        "Take head(3) and return the Series indexed by customer_name."
+      ],
+      "expected": "customer_name\nCustomer 06    1237.5\nCustomer 16    1155.0\nCustomer 11     990.0"
+    },
+    {
+      "id": "g4",
+      "title": "Critique a page (written)",
+      "kind": "written",
+      "prompt": "A page has twelve slices of a donut for revenue by product, a line chart of revenue by customer name, six cards, and a country slicer that nobody can see because it is hidden behind a bookmark. Name each problem and replace each with a better choice.",
+      "starter": "Problem 1: ...\nFix: ...",
+      "solution": "The twelve-slice donut hides small differences: a horizontal bar chart sorted by revenue, perhaps limited to the top ten products, shows them exactly. A line chart across customer names implies an order and a trend that do not exist: the customers are categories, so a bar chart (with a top-N filter, since there are 40 customers) is right, and a line should be kept for the monthly trend. Six cards compete for attention: keep the two or three numbers the page is about and give the rest a table or a tooltip page. A hidden slicer is dangerous because the reader cannot see which filter is active: show the slicer selection on the page, or add a visible reset button linked to a bookmark that clears it.",
+      "rubric": [
+        "Replaces the donut with a sorted bar chart or top-N.",
+        "Explains why a line across categories is wrong and keeps lines for time.",
+        "Reduces the number of cards.",
+        "Makes the active filter visible."
+      ],
+      "hints": [
+        "Count the parts.",
+        "Is customer name a time axis?",
+        "Can the reader see the filter state?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Suggest a visual from the data",
+      "kind": "python",
+      "prompt": "Write `suggest(df, x, y)` using the data types: if `x` is a datetime column return \"line\"; if both `x` and `y` are numeric return \"scatter\"; if `x` is categorical return \"column\" when it has 7 or fewer distinct values, otherwise \"bar\". Test it on four frames and print `name: choice` lines in this order: monthly revenue (`month`, `revenue` where month is a datetime), revenue by category, revenue by customer name, quantity against revenue per order (both numeric: `quantity`, `revenue`).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef suggest(df, x, y):\n    return \"column\"\n\nmonthly = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\").dt.to_timestamp())[\"revenue\"].sum().reset_index().rename(columns={\"order_date\": \"month\"})\nby_cat = fact.groupby(\"category\")[\"revenue\"].sum().reset_index()\nby_cust = fact.groupby(\"customer_name\")[\"revenue\"].sum().reset_index()\nprint(\"monthly revenue:\", suggest(monthly, \"month\", \"revenue\"))\nprint(\"by category:\", suggest(by_cat, \"category\", \"revenue\"))\nprint(\"by customer:\", suggest(by_cust, \"customer_name\", \"revenue\"))\nprint(\"quantity vs revenue:\", suggest(fact, \"quantity\", \"revenue\"))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nimport pandas as pd\n\ndef suggest(df, x, y):\n    if pd.api.types.is_datetime64_any_dtype(df[x]):\n        return \"line\"\n    if pd.api.types.is_numeric_dtype(df[x]) and pd.api.types.is_numeric_dtype(df[y]):\n        return \"scatter\"\n    return \"column\" if df[x].nunique() <= 7 else \"bar\"\n\nmonthly = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\").dt.to_timestamp())[\"revenue\"].sum().reset_index().rename(columns={\"order_date\": \"month\"})\nby_cat = fact.groupby(\"category\")[\"revenue\"].sum().reset_index()\nby_cust = fact.groupby(\"customer_name\")[\"revenue\"].sum().reset_index()\nprint(\"monthly revenue:\", suggest(monthly, \"month\", \"revenue\"))\nprint(\"by category:\", suggest(by_cat, \"category\", \"revenue\"))\nprint(\"by customer:\", suggest(by_cust, \"customer_name\", \"revenue\"))\nprint(\"quantity vs revenue:\", suggest(fact, \"quantity\", \"revenue\"))\n",
+      "expected": "monthly revenue: line\nby category: column\nby customer: bar\nquantity vs revenue: scatter"
+    },
+    {
+      "id": "i2",
+      "title": "Edit interactions",
+      "kind": "python",
+      "prompt": "A page has visuals `card` (total revenue), `line` (revenue by month) and `bar` (revenue by category). Interactions from `bar` are `{\"card\": \"none\", \"line\": \"filter\"}`. The reader clicks the Hardware bar. Compute what each visual shows: the card is the total revenue (2 decimals), the line is the Hardware revenue of the first month (`2025-01`) because it is filtered, and the bar keeps its own full values. Print `card 67132.5`-style lines for `card`, `line` and `bar` where bar shows the Hardware revenue (2 decimals), in that order as `name value`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ninteractions = {\"card\": \"none\", \"line\": \"filter\"}\nselected = fact[fact[\"category\"] == \"Hardware\"]\n# values for card, line, bar\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ninteractions = {\"card\": \"none\", \"line\": \"filter\"}\nselected = fact[fact[\"category\"] == \"Hardware\"]\nmonthly_all = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\nmonthly_sel = selected.groupby(selected[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\nvalues = {\n    \"card\": fact[\"revenue\"].sum() if interactions[\"card\"] == \"none\" else selected[\"revenue\"].sum(),\n    \"line\": (monthly_sel if interactions[\"line\"] == \"filter\" else monthly_all)[\"2025-01\"],\n    \"bar\": selected[\"revenue\"].sum(),\n}\nfor name in [\"card\", \"line\", \"bar\"]:\n    print(name, round(float(values[name]), 2))\n",
+      "expected": "card 67132.5\nline 1710.0\nbar 23227.5"
+    },
+    {
+      "id": "i3",
+      "title": "Design the interactions (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A regional sales manager (UK only) and the finance director (all regions) share one report page showing revenue by month, revenue by category and a list of top customers. Specify which slicers, cross-filter settings, a drill-through page, a tooltip and two bookmarks you would build, and one limitation of using slicers to separate the two audiences.",
+      "starter": "Slicers: ...\nInteractions: ...\nDrill-through: ...\nBookmarks: ...\nLimitation: ...",
+      "solution": "Slicers: country and year, both visible, with the selection shown in the page title. Interactions: clicking the category bar filters the month line and the customer list, but not the total card, so the overall figure remains a reference. Drill-through: a customer page that receives the customer name and lists orders, products and the revenue trend. Tooltip: a small page with the monthly trend for the hovered category. Bookmarks: `UK view` (country slicer set to UK) and `All regions` (cleared), switched by two buttons. Limitation: a slicer is only a convenience filter. The manager can change it and see other countries, so if the data must be restricted, row-level security is needed, which is covered on Day 135.",
+      "rubric": [
+        "Slicers are visible and their state is shown.",
+        "Interactions keep the total card unaffected and justify it.",
+        "Drill-through and tooltip add detail without crowding the page.",
+        "Bookmarks restore both audiences' views.",
+        "States that a slicer is not security."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Slicers, cross-filtering, drill-through, tooltips and bookmarks are built on the report canvas of Power BI Desktop (Windows-only) or in the Power BI Service editor in a browser; neither runs in this course. The graded exercises encode the choices as Python functions and simulate the filtering with pandas."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which visual does the course rule choose for the share of revenue across 9 products?",
+      "options": [
+        "Donut",
+        "Bar chart",
+        "Line chart",
+        "Scatter plot"
+      ],
+      "answer": 1,
+      "explanation": "More than five parts make a donut hard to read, so the rule falls back to a bar chart. A line implies time and a scatter plot is for the relationship of two measures."
+    },
+    {
+      "id": "c2",
+      "question": "A reader clicks a bar and a card showing the overall total should not change. What does the author use?",
+      "options": [
+        "A visual-level filter on the card",
+        "Edit interactions: set the bar's effect on the card to none",
+        "A bookmark",
+        "Drill-through"
+      ],
+      "answer": 1,
+      "explanation": "Edit interactions controls, per pair of visuals, whether a click filters, highlights or does nothing. Bookmarks and drill-through do not govern cross-filtering."
+    },
+    {
+      "id": "c3",
+      "question": "What is the difference between drill-down and drill-through?",
+      "options": [
+        "They are the same feature",
+        "Drill-down moves down a hierarchy in the same visual; drill-through opens a detail page filtered to the item",
+        "Drill-through moves down a hierarchy; drill-down opens a page",
+        "Drill-down is for tables only"
+      ],
+      "answer": 1,
+      "explanation": "Drill-down uses a hierarchy such as year, quarter, month inside one visual. Drill-through navigates to another page that receives the clicked item as a filter."
+    },
+    {
+      "id": "c4",
+      "question": "Why is a hidden filter not a security measure?",
+      "options": [
+        "Hidden filters cannot be saved",
+        "The reader can change filters in the Filters pane or with slicers, so data is still reachable",
+        "Filters are slow",
+        "Filters only work in Desktop"
+      ],
+      "answer": 1,
+      "explanation": "Filters shape what the report shows, but a reader can change them. Only row-level security restricts the data the reader's account can reach."
+    },
+    {
+      "id": "c5",
+      "question": "What does a bookmark save?",
+      "options": [
+        "The data of the model",
+        "The state of a page: filters, slicer selections and visibility of visuals",
+        "The DAX measures",
+        "The refresh schedule"
+      ],
+      "answer": 1,
+      "explanation": "A bookmark stores the report state, not data or formulas. Restoring it applies the saved selections again, which is why a stale selection can reappear."
+    }
+  ],
+  "id": "a133"
+}

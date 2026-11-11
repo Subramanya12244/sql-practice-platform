@@ -1,0 +1,181 @@
+{
+  "id": "e109",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "etl-data-validation",
+      "etl-transformation"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres",
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Pages to rows",
+      "kind": "python",
+      "prompt": "Build `df` with `pd.json_normalize(pages, record_path=\"data\", meta=[\"page\"])`. Print the shape as a tuple and then the list of values of the `page` column. Expected output: `(4, 4)` then `[1, 1, 2, 2]`.",
+      "starter": "import pandas as pd\n\npages = [\n    {\"page\": 1, \"data\": [{\"order_id\": 1, \"amount_cents\": \"500\", \"status\": \"paid\"}, {\"order_id\": 2, \"amount_cents\": \"abc\", \"status\": \" Failed \"}]},\n    {\"page\": 2, \"data\": [{\"order_id\": 2, \"amount_cents\": 700, \"status\": \"failed\"}, {\"order_id\": 3, \"amount_cents\": -40, \"status\": \"refunded\"}]},\n]\n\ndf = None\nprint(df.shape)\nprint(df[\"page\"].tolist())\n",
+      "solution": "import pandas as pd\n\npages = [\n    {\"page\": 1, \"data\": [{\"order_id\": 1, \"amount_cents\": \"500\", \"status\": \"paid\"}, {\"order_id\": 2, \"amount_cents\": \"abc\", \"status\": \" Failed \"}]},\n    {\"page\": 2, \"data\": [{\"order_id\": 2, \"amount_cents\": 700, \"status\": \"failed\"}, {\"order_id\": 3, \"amount_cents\": -40, \"status\": \"refunded\"}]},\n]\n\ndf = pd.json_normalize(pages, record_path=\"data\", meta=[\"page\"])\nprint(df.shape)\nprint(df[\"page\"].tolist())\n",
+      "expected": "(4, 4)\n[1, 1, 2, 2]",
+      "hints": [
+        "`record_path` names the list of records inside each page.",
+        "`meta` copies fields of the page onto each record.",
+        "`pd.json_normalize(pages, record_path=\"data\", meta=[\"page\"])`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Count unreadable amounts",
+      "kind": "python",
+      "prompt": "Convert `amount_cents` with `pd.to_numeric(..., errors=\"coerce\")` and print the converted values as a list (use `.tolist()`), then the number of values that could not be read as an `int`. Expected output: `[500.0, nan, 700.0, -40.0]` then `1`.",
+      "starter": "import pandas as pd\n\npages = [\n    {\"page\": 1, \"data\": [{\"order_id\": 1, \"amount_cents\": \"500\", \"status\": \"paid\"}, {\"order_id\": 2, \"amount_cents\": \"abc\", \"status\": \" Failed \"}]},\n    {\"page\": 2, \"data\": [{\"order_id\": 2, \"amount_cents\": 700, \"status\": \"failed\"}, {\"order_id\": 3, \"amount_cents\": -40, \"status\": \"refunded\"}]},\n]\n\ndf = pd.json_normalize(pages, record_path=\"data\", meta=[\"page\"])\nprint(df[\"amount_cents\"].tolist())\nprint(0)\n",
+      "solution": "import pandas as pd\n\npages = [\n    {\"page\": 1, \"data\": [{\"order_id\": 1, \"amount_cents\": \"500\", \"status\": \"paid\"}, {\"order_id\": 2, \"amount_cents\": \"abc\", \"status\": \" Failed \"}]},\n    {\"page\": 2, \"data\": [{\"order_id\": 2, \"amount_cents\": 700, \"status\": \"failed\"}, {\"order_id\": 3, \"amount_cents\": -40, \"status\": \"refunded\"}]},\n]\n\ndf = pd.json_normalize(pages, record_path=\"data\", meta=[\"page\"])\namounts = pd.to_numeric(df[\"amount_cents\"], errors=\"coerce\")\nprint(amounts.tolist())\nprint(int(amounts.isna().sum()))\n",
+      "expected": "[500.0, nan, 700.0, -40.0]\n1",
+      "hints": [
+        "`errors=\"coerce\"` turns unreadable values into `NaN`.",
+        "Missing values make the column float, which prints as `500.0`.",
+        "Count them with `.isna().sum()` and convert with `int(...)`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Normalise then validate",
+      "kind": "python",
+      "prompt": "Normalise `status` with `.str.strip().str.lower()`, then print the list of statuses that are not in `{\"paid\", \"refunded\", \"failed\"}` (an empty list is fine) and the sorted list of the normalised distinct statuses. The data has `status` values `[\" Paid \", \"FAILED\", \"refunded\", \"paidd\"]`. Expected output: `['paidd']` then `['failed', 'paid', 'paidd', 'refunded']`.",
+      "starter": "import pandas as pd\n\nstatus = pd.Series([\" Paid \", \"FAILED\", \"refunded\", \"paidd\"])\nprint(status[~status.isin({\"paid\", \"refunded\", \"failed\"})].tolist())\nprint(sorted(status.unique()))\n",
+      "solution": "import pandas as pd\n\nstatus = pd.Series([\" Paid \", \"FAILED\", \"refunded\", \"paidd\"]).str.strip().str.lower()\nprint(status[~status.isin({\"paid\", \"refunded\", \"failed\"})].tolist())\nprint(sorted(status.unique()))\n",
+      "expected": "['paidd']\n['failed', 'paid', 'paidd', 'refunded']",
+      "hints": [
+        "Normalise first, then validate.",
+        "Chain `.str.strip().str.lower()` on the Series.",
+        "`~status.isin({...})` selects the unknown values."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Last seen wins",
+      "kind": "python",
+      "prompt": "The frame lists orders in fetch order. Keep one row per `order_id`, the last seen, and print the pairs `(order_id, status)` as a list of tuples sorted by `order_id`. Expected output: `[(1, 'paid'), (2, 'refunded'), (3, 'failed')]`.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\"order_id\": [1, 2, 3, 2], \"status\": [\"paid\", \"paid\", \"failed\", \"refunded\"]})\nprint(list(zip(df[\"order_id\"], df[\"status\"])))\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\"order_id\": [1, 2, 3, 2], \"status\": [\"paid\", \"paid\", \"failed\", \"refunded\"]})\nlatest = df.drop_duplicates(subset=\"order_id\", keep=\"last\").sort_values(\"order_id\")\nprint(list(zip(latest[\"order_id\"], latest[\"status\"])))\n",
+      "expected": "[(1, 'paid'), (2, 'refunded'), (3, 'failed')]",
+      "hints": [
+        "`drop_duplicates` takes `subset` and `keep`.",
+        "`keep=\"last\"` keeps the final occurrence in the frame's order.",
+        "Sort by `order_id` before printing."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Clean, split and reconcile",
+      "kind": "python",
+      "prompt": "Using `pages` from the starter, write code that flattens the pages (with the page number), converts `amount_cents` to numbers and `created_at` to UTC datetimes (unreadable become missing), strips and lower-cases `status`, removes duplicate `order_id` rows keeping the last, and then rejects rows by the first failing rule in this order: `unreadable amount`, `unreadable created_at`, `negative amount`, `unknown status`. Print the rejects as `<order_id> <reason>` lines ordered by `order_id`, then the line `in <n> clean <c> rejected <r> removed <d>` and the word `closes` or `open` for whether `n == c + r + d`. The valid statuses are `paid`, `refunded`, `failed`.",
+      "starter": "import pandas as pd\n\npages = [\n    {\"page\": 1, \"data\": [\n        {\"order_id\": 1, \"amount_cents\": \"500\", \"status\": \"paid\", \"created_at\": \"2026-03-01T08:00:00Z\"},\n        {\"order_id\": 2, \"amount_cents\": \"abc\", \"status\": \" Failed \", \"created_at\": \"2026-03-01T09:00:00Z\"},\n        {\"order_id\": 3, \"amount_cents\": 900, \"status\": \"paid\", \"created_at\": \"2026-02-30T09:00:00Z\"}]},\n    {\"page\": 2, \"data\": [\n        {\"order_id\": 3, \"amount_cents\": 900, \"status\": \"paid\", \"created_at\": \"2026-03-02T09:00:00Z\"},\n        {\"order_id\": 4, \"amount_cents\": -40, \"status\": \"refunded\", \"created_at\": \"2026-03-02T10:00:00Z\"},\n        {\"order_id\": 5, \"amount_cents\": 120, \"status\": \"shipped\", \"created_at\": \"2026-03-02T11:00:00Z\"}]},\n]\n# clean and report\n",
+      "solution": "import pandas as pd\n\npages = [\n    {\"page\": 1, \"data\": [\n        {\"order_id\": 1, \"amount_cents\": \"500\", \"status\": \"paid\", \"created_at\": \"2026-03-01T08:00:00Z\"},\n        {\"order_id\": 2, \"amount_cents\": \"abc\", \"status\": \" Failed \", \"created_at\": \"2026-03-01T09:00:00Z\"},\n        {\"order_id\": 3, \"amount_cents\": 900, \"status\": \"paid\", \"created_at\": \"2026-02-30T09:00:00Z\"}]},\n    {\"page\": 2, \"data\": [\n        {\"order_id\": 3, \"amount_cents\": 900, \"status\": \"paid\", \"created_at\": \"2026-03-02T09:00:00Z\"},\n        {\"order_id\": 4, \"amount_cents\": -40, \"status\": \"refunded\", \"created_at\": \"2026-03-02T10:00:00Z\"},\n        {\"order_id\": 5, \"amount_cents\": 120, \"status\": \"shipped\", \"created_at\": \"2026-03-02T11:00:00Z\"}]},\n]\ndf = pd.json_normalize(pages, record_path=\"data\", meta=[\"page\"])\nn = len(df)\ndf[\"amount_cents\"] = pd.to_numeric(df[\"amount_cents\"], errors=\"coerce\")\ndf[\"created_at\"] = pd.to_datetime(df[\"created_at\"], utc=True, errors=\"coerce\")\ndf[\"status\"] = df[\"status\"].str.strip().str.lower()\ndf = df.drop_duplicates(subset=\"order_id\", keep=\"last\")\nremoved = n - len(df)\nrules = [\n    (\"unreadable amount\", df[\"amount_cents\"].notna()),\n    (\"unreadable created_at\", df[\"created_at\"].notna()),\n    (\"negative amount\", df[\"amount_cents\"].fillna(0) >= 0),\n    (\"unknown status\", df[\"status\"].isin({\"paid\", \"refunded\", \"failed\"})),\n]\nreason = pd.Series(\"\", index=df.index)\nfor name, ok in rules:\n    reason = reason.mask((reason == \"\") & ~ok, name)\nrejects = df[reason != \"\"].assign(reason=reason[reason != \"\"]).sort_values(\"order_id\")\nfor order_id, why in zip(rejects[\"order_id\"], rejects[\"reason\"]):\n    print(order_id, why)\nclean = (reason == \"\").sum()\nprint(f\"in {n} clean {clean} rejected {len(rejects)} removed {removed}\", \"closes\" if n == clean + len(rejects) + removed else \"open\")\n",
+      "expected": "2 unreadable amount\n4 negative amount\n5 unknown status\nin 6 clean 2 rejected 3 removed 1 closes"
+    },
+    {
+      "id": "i2",
+      "title": "Report the conflicts",
+      "kind": "python",
+      "prompt": "The frame has several rows per `order_id`. Print a line `<order_id>: <statuses>` for each order whose rows disagree in `status` (more than one distinct status), with the statuses in order of first appearance joined by ` -> `, ordered by `order_id`, then `exact duplicates removed: ` and the number of rows that are exact copies of an earlier row (same `order_id` and `status`). Expected output: `2: paid -> refunded`, `4: failed -> paid -> refunded`, `exact duplicates removed: 2`.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 2, 4, 1, 4, 3, 4],\n    \"status\": [\"paid\", \"paid\", \"failed\", \"refunded\", \"failed\", \"paid\", \"paid\", \"failed\", \"refunded\"],\n})\n# report\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 2, 4, 1, 4, 3, 4],\n    \"status\": [\"paid\", \"paid\", \"failed\", \"refunded\", \"failed\", \"paid\", \"paid\", \"failed\", \"refunded\"],\n})\nfor order_id, group in sorted(df.groupby(\"order_id\"), key=lambda item: item[0]):\n    statuses = list(dict.fromkeys(group[\"status\"]))\n    if len(statuses) > 1:\n        print(f\"{order_id}: {' -> '.join(statuses)}\")\nprint(\"exact duplicates removed:\", int(df.duplicated(subset=[\"order_id\", \"status\"]).sum()))\n",
+      "expected": "2: paid -> refunded\n4: failed -> paid -> refunded\nexact duplicates removed: 2"
+    },
+    {
+      "id": "i3",
+      "title": "Choose the duplicate rule",
+      "kind": "written",
+      "prompt": "The Orders API gets a field `updated_at`. Explain how your duplicate rule changes, what you do when two versions have the same `updated_at` but different values, and what you report to the data owner.",
+      "starter": "Write your answer here.",
+      "solution": "With `updated_at` the rule becomes the version with the latest `updated_at` wins: sort by `order_id` and `updated_at` and keep the last row per key, which is better than fetch order because it does not depend on which page a record happened to appear on. When two versions have the same `updated_at` but different values the source contradicts itself and there is no principled winner; keep the later fetched one only as a documented fallback, flag the key in the report, and, if it happens often, raise it with the provider. Report to the data owner: the number of keys with several versions, the list of keys with ties, which rule was used, and how many rows were removed, so the totals reconcile.",
+      "rubric": [
+        "Uses updated_at (latest wins) instead of fetch order",
+        "Treats equal timestamps with different values as a reported conflict",
+        "Reports counts and the rule used"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `pd.to_numeric(pd.Series([\"500\", \"abc\"]), errors=\"coerce\").tolist()` return?",
+      "options": [
+        "`[500, 'abc']`",
+        "`[500.0, nan]`",
+        "`[500, 0]`",
+        "It raises `ValueError`"
+      ],
+      "answer": 1,
+      "explanation": "`coerce` turns unreadable values into `NaN`, and a column with `NaN` is float. Without `errors=\"coerce\"` the call would raise."
+    },
+    {
+      "id": "c2",
+      "question": "Why normalise `status` (strip, lower-case) before checking it against the allowed list?",
+      "options": [
+        "Strings cannot be compared otherwise",
+        "So that cosmetic differences such as spaces or case do not cause rejections, while real unknown values are still caught",
+        "To make the column an integer",
+        "To remove duplicates"
+      ],
+      "answer": 1,
+      "explanation": "`' PAID '` is a valid status written untidily. Normalising first repairs it, and the validation still rejects `'paidd'`."
+    },
+    {
+      "id": "c3",
+      "question": "Two rows have `order_id` 5, one `paid` and one `refunded`. `df.drop_duplicates()` with no arguments does what?",
+      "options": [
+        "Keeps one of them",
+        "Keeps both, because the rows differ in `status`",
+        "Raises an error",
+        "Keeps the `paid` one"
+      ],
+      "answer": 1,
+      "explanation": "Without `subset`, all columns are compared, so the rows are different and both stay. Deduplicate on the key with `subset=\"order_id\"` and choose `keep` deliberately."
+    },
+    {
+      "id": "c4",
+      "question": "After cleaning, `rows_in` is 11, there are 8 clean rows and 2 rejected rows. How many duplicates were removed if the counts reconcile?",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ],
+      "answer": 1,
+      "explanation": "11 = 8 + 2 + removed, so one duplicate was removed. If the equation did not hold, rows would have disappeared without being counted."
+    },
+    {
+      "id": "c5",
+      "question": "What does `pd.to_datetime(s, utc=True, errors=\"coerce\")` do with `\"2026-13-45T00:00:00Z\"`?",
+      "options": [
+        "Raises `ValueError`",
+        "Returns `NaT`",
+        "Returns today's date",
+        "Returns 2026-01-01"
+      ],
+      "answer": 1,
+      "explanation": "Month 13 is impossible; with `errors=\"coerce\"` the result is `NaT`, the missing-timestamp marker, which a validation rule can reject."
+    }
+  ]
+}

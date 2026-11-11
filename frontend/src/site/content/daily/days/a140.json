@@ -1,0 +1,191 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "avg",
+      "sum",
+      "moving-averages",
+      "lag"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "percent-change",
+      "running-totals"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "month-over-month-growth",
+      "moving-average"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Variance to target",
+      "kind": "python",
+      "prompt": "Monthly revenue `monthly` is given. With a target of 5,500 per month, print for 2025-03 and 2025-04 a line `month absolute pct` where absolute is actual minus target and pct the percentage variance, both rounded to 1 decimal, e.g. `2025-05 12.5 0.2`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nmonthly = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n# variance for two months\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nmonthly = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\nfor m in [\"2025-03\", \"2025-04\"]:\n    actual = float(monthly[m])\n    print(m, round(actual - 5500, 1), round((actual - 5500) / 5500 * 100, 1))\n",
+      "hints": [
+        "Absolute variance is actual minus target.",
+        "Percentage variance divides that by the target and multiplies by 100.",
+        "Round both to 1 decimal and print month, absolute and pct."
+      ],
+      "expected": "2025-03 -872.5 -15.9\n2025-04 -220.0 -4.0"
+    },
+    {
+      "id": "g2",
+      "title": "RAG function",
+      "kind": "python",
+      "prompt": "Write `rag(actual, target, higher_is_better=True)`: attainment is `actual / target` (or `target / actual` when lower is better); green at 1.0 or more, amber from 0.9 up to 1.0, otherwise red. Print the results for `rag(5500, 5500)`, `rag(4950, 5500)`, `rag(4900, 5500)`, `rag(4.4, 4.0, False)` and `rag(5.0, 4.0, False)`, one per line.",
+      "starter": "def rag(actual, target, higher_is_better=True):\n    return \"green\"\n\nprint(rag(5500, 5500))\nprint(rag(4950, 5500))\nprint(rag(4900, 5500))\nprint(rag(4.4, 4.0, False))\nprint(rag(5.0, 4.0, False))\n",
+      "solution": "def rag(actual, target, higher_is_better=True):\n    ratio = actual / target if higher_is_better else target / actual\n    if ratio >= 1.0:\n        return \"green\"\n    if ratio >= 0.9:\n        return \"amber\"\n    return \"red\"\n\nprint(rag(5500, 5500))\nprint(rag(4950, 5500))\nprint(rag(4900, 5500))\nprint(rag(4.4, 4.0, False))\nprint(rag(5.0, 4.0, False))\n",
+      "hints": [
+        "Compute the attainment ratio first, flipping it for lower-is-better KPIs.",
+        "Check the thresholds from the top: 1.0, then 0.9.",
+        "For 4.4 against 4.0 the ratio is 4.0 / 4.4, about 0.91."
+      ],
+      "expected": "green\namber\nred\namber\nred"
+    },
+    {
+      "id": "g3",
+      "title": "Rolling average and year to date",
+      "kind": "python",
+      "prompt": "With `monthly` given, print the 3-month rolling average for 2025-06 and the year-to-date total at 2025-06, rounded to 2 decimals, as `rolling 5855.0` style lines: `rolling <value>` then `ytd <value>`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nmonthly = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n# rolling average and YTD at 2025-06\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nmonthly = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\nprint(\"rolling\", round(float(monthly.rolling(3).mean()[\"2025-06\"]), 2))\nprint(\"ytd\", round(float(monthly.cumsum()[\"2025-06\"]), 2))\n",
+      "hints": [
+        "A rolling mean of window 3 uses the current and two earlier months.",
+        "monthly.rolling(3).mean() and monthly.cumsum() give the series.",
+        "Select the 2025-06 entry and round."
+      ],
+      "expected": "rolling 5612.5\nytd 32100.0"
+    },
+    {
+      "id": "g4",
+      "title": "Fix a vague KPI (written)",
+      "kind": "written",
+      "prompt": "A team lists these KPIs: 'Sales performance', 'Customer satisfaction' and 'Efficiency'. Rewrite one of them as a complete KPI with name, formula, owner, period, target and direction, and explain what was wrong with the original.",
+      "starter": "Name: ...\nFormula: ...\nOwner: ...\nPeriod: ...\nTarget: ...\nDirection: ...",
+      "solution": "Original problem: 'Sales performance' has no formula, so two analysts would compute it differently, no target, so nobody can say if it is good, and no owner or direction. Rewrite: Name: Monthly net revenue. Formula: sum of quantity times unit price for orders dated in the month, excluding cancelled orders. Owner: commercial director. Period: calendar month, reviewed on the third working day. Target: 5,500 per month (the agreed budget). Direction: higher is better. Status: green at 100% of target or more, amber from 90%, red below. The rewritten KPI can be computed identically by anyone, judged against a target and acted on by one person.",
+      "rubric": [
+        "Names the missing parts of the original.",
+        "Gives a precise formula with inclusion rules.",
+        "Names an owner, period, target and direction.",
+        "States how status is decided."
+      ],
+      "hints": [
+        "What would two analysts compute differently?",
+        "Who acts if it is red?",
+        "Is higher better?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Scorecard for three KPIs",
+      "kind": "python",
+      "prompt": "Build a scorecard for the latest month (2025-12) for: `Revenue` (monthly revenue, target 5,500, higher is better), `Orders` (distinct orders in the month, target 35, higher is better), and `Avg order value` (revenue / orders, target 160, higher is better). Print one line per KPI: `name actual target status` with actual rounded to 2 decimals and status from the RAG rule (green at 100% or more, amber from 90%, else red).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndec = fact[fact[\"order_date\"].dt.to_period(\"M\") == \"2025-12\"]\n# revenue, orders, average order value, status\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndec = fact[fact[\"order_date\"].dt.to_period(\"M\") == \"2025-12\"]\nrevenue = float(dec[\"revenue\"].sum())\norders = int(dec[\"order_id\"].nunique())\n\ndef rag(actual, target):\n    r = actual / target\n    return \"green\" if r >= 1.0 else (\"amber\" if r >= 0.9 else \"red\")\n\nfor name, actual, target in [(\"Revenue\", revenue, 5500), (\"Orders\", orders, 35), (\"Avg order value\", revenue / orders, 160)]:\n    print(name, round(actual, 2), target, rag(actual, target))\n",
+      "expected": "Revenue 6067.5 5500 green\nOrders 42 35 green\nAvg order value 144.46 160 amber"
+    },
+    {
+      "id": "i2",
+      "title": "Year to date against target",
+      "kind": "python",
+      "prompt": "For each month of 2025 compute the cumulative revenue (YTD) and the cumulative target (5,500 per month), and the YTD attainment in percent (1 decimal). Print the rows for 2025-03, 2025-06, 2025-09 and 2025-12 as `month ytd ytd_target attainment`, with ytd rounded to 2 decimals and the target as a whole number.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nmonthly = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n# YTD, cumulative target and attainment\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nmonthly = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\nytd = monthly.cumsum()\nytd_target = pd.Series([5500 * (i + 1) for i in range(12)], index=monthly.index)\nfor m in [\"2025-03\", \"2025-06\", \"2025-09\", \"2025-12\"]:\n    print(m, round(float(ytd[m]), 2), int(ytd_target[m]), round(float(ytd[m] / ytd_target[m] * 100), 1))\n",
+      "expected": "2025-03 15262.5 16500 92.5\n2025-06 32100.0 33000 97.3\n2025-09 49290.0 49500 99.6\n2025-12 67132.5 66000 101.7"
+    },
+    {
+      "id": "i3",
+      "title": "Design a scorecard (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Design a scorecard of five KPIs for a customer-support team (for example response time, resolution rate, backlog, customer satisfaction and cost per ticket). For each give the direction, a target and the context you would show, and explain the RAG rule and one weakness of RAG for this scorecard.",
+      "starter": "KPI 1: ...\nKPI 2: ...\nRAG rule: ...\nWeakness: ...",
+      "solution": "Response time (minutes to first reply, lower is better, target 30, shown with the previous week and a 4-week rolling average), resolution rate (share of tickets solved within 48 hours, higher is better, target 85%, shown with week-over-week change), backlog (open tickets, lower is better, target 120, with a trend sparkline), customer satisfaction (average score of surveys, higher is better, target 4.5 out of 5, shown with the number of responses so small samples are visible) and cost per ticket (currency, lower is better, target 6.00, shown against budget year to date). RAG rule: for higher-is-better KPIs green at 100% of target or more, amber from 90%, red below; for lower-is-better KPIs the ratio target / actual is used with the same thresholds. Weakness: RAG hides magnitude and the sample size, so a satisfaction score of 4.4 from five surveys is amber like one from five hundred; showing the numbers and the response count next to the colour fixes it.",
+      "rubric": [
+        "Each KPI has a direction, target and context.",
+        "RAG rule is stated with thresholds and direction handling.",
+        "Identifies a real weakness of RAG.",
+        "Uses comparisons like previous period or rolling average."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Average days to ship is 4.6 against a target of 4.0 (lower is better). What is the variance reading?",
+      "options": [
+        "Favourable, +0.6",
+        "Unfavourable, +0.6",
+        "Favourable, because it is close",
+        "Cannot be computed"
+      ],
+      "answer": 1,
+      "explanation": "The gap is +0.6 days, and for a lower-is-better KPI a positive gap is unfavourable. Direction decides the meaning of the sign."
+    },
+    {
+      "id": "c2",
+      "question": "With the rule green at 100% or more, amber from 90%, red below, what is the status of attainment exactly 90.0%?",
+      "options": [
+        "Green",
+        "Amber",
+        "Red",
+        "Undefined"
+      ],
+      "answer": 1,
+      "explanation": "The rule says amber from 90% up to but not including 100%, so exactly 90% is amber. Boundaries must be written into the rule and tested."
+    },
+    {
+      "id": "c3",
+      "question": "Why show a rolling 3-month average next to the monthly actual?",
+      "options": [
+        "To replace the target",
+        "To smooth noise so one odd month does not trigger a reaction",
+        "To compute variance",
+        "To compute year to date"
+      ],
+      "answer": 1,
+      "explanation": "A single month can be unusual. The rolling average shows the recent level; it complements the target and the previous period and does not replace them."
+    },
+    {
+      "id": "c4",
+      "question": "Which of these is a complete KPI?",
+      "options": [
+        "Sales performance",
+        "Customer happiness",
+        "Monthly net revenue, formula defined, owner named, target 5,500, higher is better",
+        "Number of dashboards"
+      ],
+      "answer": 2,
+      "explanation": "A KPI needs a formula, owner, period, target and direction. The others lack some or all of them."
+    },
+    {
+      "id": "c5",
+      "question": "What does RAG hide?",
+      "options": [
+        "Which KPI it applies to",
+        "The magnitude of the gap inside a band",
+        "The target",
+        "The period"
+      ],
+      "answer": 1,
+      "explanation": "A KPI at 99.9% and another at 90.1% are both amber although they differ a lot. Show the variance with the colour."
+    }
+  ],
+  "id": "a140"
+}

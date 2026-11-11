@@ -1,0 +1,188 @@
+{
+  "id": "e111",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "etl-pipeline-monitoring",
+      "python-api-integration"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres",
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Counts and key uniqueness",
+      "kind": "python",
+      "prompt": "`rows` is a list of dictionaries loaded from a table. Write `key_report(rows, expected_rows)` returning a dictionary with `rows` (the count), `distinct_keys` (the number of distinct `order_id` values), `duplicates` (the sorted list of `order_id` values that appear more than once) and `count_ok` (whether the count equals `expected_rows`). Print `sorted(report.items())`. Expected output: `[('count_ok', False), ('distinct_keys', 3), ('duplicates', [2]), ('rows', 4)]`.",
+      "starter": "def key_report(rows, expected_rows):\n    return {}\n\nrows = [{\"order_id\": 1}, {\"order_id\": 2}, {\"order_id\": 2}, {\"order_id\": 3}]\nprint(sorted(key_report(rows, 5).items()))\n",
+      "solution": "def key_report(rows, expected_rows):\n    ids = [r[\"order_id\"] for r in rows]\n    return {\n        \"rows\": len(ids),\n        \"distinct_keys\": len(set(ids)),\n        \"duplicates\": sorted({i for i in ids if ids.count(i) > 1}),\n        \"count_ok\": len(ids) == expected_rows,\n    }\n\nrows = [{\"order_id\": 1}, {\"order_id\": 2}, {\"order_id\": 2}, {\"order_id\": 3}]\nprint(sorted(key_report(rows, 5).items()))\n",
+      "expected": "[('count_ok', False), ('distinct_keys', 3), ('duplicates', [2]), ('rows', 4)]",
+      "hints": [
+        "Collect the ids into a list first.",
+        "`set(ids)` removes repeats; `ids.count(i) > 1` finds the repeated ones.",
+        "Return a dictionary with the four keys."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Compare per-status counts",
+      "kind": "python",
+      "prompt": "Write `compare(expected, actual)` that returns a sorted list of strings `status: expected E, got A` for every status whose counts differ (a status missing from `actual` counts as 0). Print the list for the dictionaries in the starter. Expected output: `['failed: expected 30, got 29', 'refunded: expected 30, got 0']`.",
+      "starter": "def compare(expected, actual):\n    return []\n\nexpected = {\"paid\": 60, \"refunded\": 30, \"failed\": 30}\nactual = {\"paid\": 60, \"failed\": 29}\nprint(compare(expected, actual))\n",
+      "solution": "def compare(expected, actual):\n    return sorted(f\"{k}: expected {v}, got {actual.get(k, 0)}\" for k, v in expected.items() if actual.get(k, 0) != v)\n\nexpected = {\"paid\": 60, \"refunded\": 30, \"failed\": 30}\nactual = {\"paid\": 60, \"failed\": 29}\nprint(compare(expected, actual))\n",
+      "expected": "['failed: expected 30, got 29', 'refunded: expected 30, got 0']",
+      "hints": [
+        "Loop over the expected dictionary.",
+        "Use `actual.get(k, 0)` so a missing status counts as 0.",
+        "Build one string per differing status and sort the list."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "A repeatable sample",
+      "kind": "python",
+      "prompt": "`ids` are the numbers 1 to 120. Draw a sample of 5 with `random.Random(5).sample(ids, 5)`, print it sorted, and print again the sorted sample drawn by a fresh `random.Random(5)` to show that it is the same. Then print `True` or `False` for whether the two samples are equal. Expected output: two identical lists and `True` (run the solution to see the ids).",
+      "starter": "import random\n\nids = list(range(1, 121))\nfirst = []\nsecond = []\nprint(first)\nprint(second)\nprint(False)\n",
+      "solution": "import random\n\nids = list(range(1, 121))\nfirst = sorted(random.Random(5).sample(ids, 5))\nsecond = sorted(random.Random(5).sample(ids, 5))\nprint(first)\nprint(second)\nprint(first == second)\n",
+      "expected": "[33, 46, 80, 95, 102]\n[33, 46, 80, 95, 102]\nTrue",
+      "hints": [
+        "A new generator with the same seed gives the same sequence.",
+        "`rng.sample(population, k)` draws without replacement.",
+        "Create `random.Random(5)` twice, once for each sample."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Null and range checks in SQL",
+      "kind": "sql",
+      "prompt": "The block creates `loaded` with some defects. Replace the last query so that it returns one row with the columns `rows`, `null_status`, `negative_amount` and `distinct_ids` (the counts of rows, rows with a NULL `status`, rows with `amount_cents < 0` and distinct `order_id` values), using `count(*) FILTER (WHERE ...)`.",
+      "starter": "CREATE TABLE loaded (order_id integer, amount_cents integer, status text);\nINSERT INTO loaded VALUES (1, 500, 'paid'), (2, -20, 'paid'), (3, 700, NULL), (3, 700, 'failed'), (4, 100, NULL);\nSELECT count(*) AS rows FROM loaded;\n",
+      "solution": "CREATE TABLE loaded (order_id integer, amount_cents integer, status text);\nINSERT INTO loaded VALUES (1, 500, 'paid'), (2, -20, 'paid'), (3, 700, NULL), (3, 700, 'failed'), (4, 100, NULL);\nSELECT count(*) AS rows,\n       count(*) FILTER (WHERE status IS NULL) AS null_status,\n       count(*) FILTER (WHERE amount_cents < 0) AS negative_amount,\n       count(DISTINCT order_id) AS distinct_ids\nFROM loaded;\n",
+      "ordered": true,
+      "hints": [
+        "All four numbers come from one query over the whole table.",
+        "`count(*) FILTER (WHERE condition)` counts only the rows that meet the condition.",
+        "`count(DISTINCT order_id)` counts distinct ids."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A validation report with severities",
+      "kind": "python",
+      "prompt": "`table_rows` is the loaded table as a list of dictionaries and `SOURCE` the source records by id. Write `report(table_rows)` returning `(lines, verdict)`: lines for these checks in this order: blocking `row count` (equals the number of source records), blocking `sum of amount_cents` (equals the source sum), blocking `unique keys`, warning `all statuses known` (every status is `paid` or `failed`). A passing check prints `PASS <name>`, a failing blocking check `FAIL <name>`, a failing warning `WARN <name>`. The verdict is `FAILED` when any blocking check fails, else `OK`. Run it on `good` (the full table) and `damaged` (order 5 missing, order 6's status `unknown`) and print the verdict and the lines that are not PASS for each. Expected: `OK []` then `FAILED ['FAIL row count', 'FAIL sum of amount_cents', 'WARN all statuses known']`.",
+      "starter": "SOURCE = {i: {\"order_id\": i, \"amount_cents\": 100 * i, \"status\": \"paid\" if i % 2 else \"failed\"} for i in range(1, 21)}\ngood = [dict(v) for v in SOURCE.values()]\ndamaged = [dict(v) for k, v in SOURCE.items() if k != 5]\ndamaged[4][\"status\"] = \"unknown\"\n\ndef report(table_rows):\n    return [], \"OK\"\n\nfor table in (good, damaged):\n    lines, verdict = report(table)\n    print(verdict, [l for l in lines if not l.startswith(\"PASS\")])\n",
+      "solution": "SOURCE = {i: {\"order_id\": i, \"amount_cents\": 100 * i, \"status\": \"paid\" if i % 2 else \"failed\"} for i in range(1, 21)}\ngood = [dict(v) for v in SOURCE.values()]\ndamaged = [dict(v) for k, v in SOURCE.items() if k != 5]\ndamaged[4][\"status\"] = \"unknown\"\n\ndef report(table_rows):\n    ids = [r[\"order_id\"] for r in table_rows]\n    checks = [\n        (\"blocking\", \"row count\", len(table_rows) == len(SOURCE)),\n        (\"blocking\", \"sum of amount_cents\", sum(r[\"amount_cents\"] for r in table_rows) == sum(o[\"amount_cents\"] for o in SOURCE.values())),\n        (\"blocking\", \"unique keys\", len(ids) == len(set(ids))),\n        (\"warning\", \"all statuses known\", all(r[\"status\"] in (\"paid\", \"failed\") for r in table_rows)),\n    ]\n    lines = [(\"PASS\" if ok else \"FAIL\" if sev == \"blocking\" else \"WARN\") + \" \" + name for sev, name, ok in checks]\n    verdict = \"FAILED\" if any(not ok for sev, _, ok in checks if sev == \"blocking\") else \"OK\"\n    return lines, verdict\n\nfor table in (good, damaged):\n    lines, verdict = report(table)\n    print(verdict, [l for l in lines if not l.startswith(\"PASS\")])\n",
+      "expected": "OK []\nFAILED ['FAIL row count', 'FAIL sum of amount_cents', 'WARN all statuses known']"
+    },
+    {
+      "id": "i2",
+      "title": "Spot-check a sample field by field",
+      "kind": "python",
+      "prompt": "Write `spot_check(table, source, ids)` returning a dictionary `{order_id: [differing field names sorted]}` for the ids whose table row differs from the source record (an id missing from the table counts as `['missing']`). Draw the sample with `random.Random(3).sample(sorted(SOURCE), 8)` sorted, run the check on the table in the starter (order 4's amount changed, order 9 deleted, order 15's status changed) and print the sample and then the result dictionary with sorted keys. The sample is drawn for you; print what the check finds.",
+      "starter": "SOURCE = {i: {\"order_id\": i, \"amount_cents\": 100 * i, \"status\": \"paid\" if i % 2 else \"failed\"} for i in range(1, 21)}\ntable = {k: dict(v) for k, v in SOURCE.items() if k != 9}\ntable[4][\"amount_cents\"] += 1\ntable[15][\"status\"] = \"paid\" if SOURCE[15][\"status\"] == \"failed\" else \"failed\"\n\nimport random\n\nsample = sorted(random.Random(3).sample(sorted(SOURCE), 8))\n\ndef spot_check(table, source, ids):\n    return {}\n\nprint(sample)\nprint(spot_check(table, SOURCE, sample))\n",
+      "solution": "SOURCE = {i: {\"order_id\": i, \"amount_cents\": 100 * i, \"status\": \"paid\" if i % 2 else \"failed\"} for i in range(1, 21)}\ntable = {k: dict(v) for k, v in SOURCE.items() if k != 9}\ntable[4][\"amount_cents\"] += 1\ntable[15][\"status\"] = \"paid\" if SOURCE[15][\"status\"] == \"failed\" else \"failed\"\n\nimport random\n\nsample = sorted(random.Random(3).sample(sorted(SOURCE), 8))\n\ndef spot_check(table, source, ids):\n    problems = {}\n    for i in ids:\n        if i not in table:\n            problems[i] = [\"missing\"]\n        else:\n            diff = sorted(k for k in source[i] if source[i][k] != table[i].get(k))\n            if diff:\n                problems[i] = diff\n    return dict(sorted(problems.items()))\n\nprint(sample)\nprint(spot_check(table, SOURCE, sample))\n",
+      "expected": "[5, 8, 10, 12, 15, 18, 19, 20]\n{15: ['status']}"
+    },
+    {
+      "id": "i3",
+      "title": "Plan the sign-off",
+      "kind": "written",
+      "prompt": "Write the validation plan for the nightly orders load: which checks are blocking and which are warnings, where each expected value comes from (never from your own pipeline), what sample size you use and why, and what happens to the dashboards when a blocking check fails.",
+      "starter": "Write your plan here.",
+      "solution": "Blocking: row count equal to the API's `total` for the extract window; sum of `amount_cents` equal to the source's figure (or to the sum of the extracted records computed before cleaning plus the rejected amounts); per-status and per-day counts equal to the source's aggregates; primary key unique and no NULLs in required columns; no values outside the vocabularies. Warnings: freshness (the latest `created_at` older than expected), a sample mismatch rate below a threshold, a rise in the dead-letter count. Expected values come from the provider (the API total, its report) or from figures computed on the raw extract before cleaning, never from the DataFrame that was loaded. A seeded sample of 50 orders is compared with `GET /orders/{id}` field by field; it detects widespread problems with high probability but not single wrong rows, which is why it complements the aggregates. When a blocking check fails the load log gets `failed validation`, the previous day's data stays visible, the dashboard refresh is skipped and the on-call engineer receives the check names and numbers.",
+      "rubric": [
+        "Separates blocking checks from warnings",
+        "Takes expected values from the source, not from the pipeline",
+        "States the sample size and its limits",
+        "Describes what happens to downstream consumers on failure"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why is comparing the table's row count with `len(df)` of the DataFrame you loaded a weak validation?",
+      "options": [
+        "DataFrames cannot be counted",
+        "It proves the insert worked but not that the extract was complete",
+        "It is slower than SQL",
+        "Row counts never match"
+      ],
+      "answer": 1,
+      "explanation": "The DataFrame already lost any rows the extract skipped. The expectation must come from the source's own total or from figures computed before cleaning."
+    },
+    {
+      "id": "c2",
+      "question": "A load has the correct number of rows and unique keys, but one amount was altered. Which check catches it?",
+      "options": [
+        "Row count",
+        "Unique keys",
+        "The sum of `amount_cents` compared with the source's sum",
+        "A NOT NULL check"
+      ],
+      "answer": 2,
+      "explanation": "The count and the keys are unchanged by a changed value. A sum (or a sample compared field by field) exposes it."
+    },
+    {
+      "id": "c3",
+      "question": "You sample 10 of 120 orders and one is wrong. What is the chance that the sample contains it?",
+      "options": [
+        "About 8 percent",
+        "About 50 percent",
+        "About 92 percent",
+        "100 percent"
+      ],
+      "answer": 0,
+      "explanation": "A random sample of 10 of 120 contains a given row with probability 10/120, about 8 percent. A clean sample is therefore weak evidence of a rare problem; aggregates cover all rows."
+    },
+    {
+      "id": "c4",
+      "question": "Why seed the random generator that draws the sample?",
+      "options": [
+        "Seeded samples are more random",
+        "The check can be repeated exactly and an engineer can look at the same orders",
+        "It makes the sample larger",
+        "The database requires it"
+      ],
+      "answer": 1,
+      "explanation": "A fixed seed yields the same sample every time, so a failing check can be reproduced. The sample is no less random for the purposes of the check."
+    },
+    {
+      "id": "c5",
+      "question": "Which result should stop the pipeline?",
+      "options": [
+        "A warning about data freshness being 2 hours late",
+        "Row count 118 against an expected 120",
+        "A sample of 50 with 1 mismatch (2 percent) when the threshold is 5 percent",
+        "A dead-letter count of 3"
+      ],
+      "answer": 1,
+      "explanation": "A missing row count is a blocking failure: the table is incomplete. The other results are warnings or within the stated tolerance."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "requests"
+    ],
+    "note": "Example 4 spot-checks a sqlite3 table against a throwaway http.server on 127.0.0.1 with the requests library, so it runs locally after `pip install requests` and is shown read-only in the browser. No real service is contacted. The SQL validation queries run as PostgreSQL syntax on PGlite (the browser database already has Northwind's orders table, so the examples use loaded_orders). The graded Python exercises use dictionaries and sqlite3 in place of the API and PostgreSQL."
+  }
+}
