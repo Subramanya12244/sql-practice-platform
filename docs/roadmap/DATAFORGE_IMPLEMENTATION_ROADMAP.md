@@ -272,3 +272,30 @@ Why this order: S1 is cheap and protects every later change, S2 gives visibility
 2. **Merge and deploy flow:** the fix branch is unmerged while production already runs it. Merge it first, so `main` matches production, before Phase 1 starts.
 3. **Mastery labels:** keep the Analytics labels (Strong, Developing, Needs practice) or the Progress labels (Learning to Mastered) as the single vocabulary.
 4. **New dev dependencies for S1:** ESLint and Playwright test runner (both free, dev only).
+
+## 10. Implementation status
+
+Updated at the end of implementation. Branch `feature/dataforge-evolution`, not pushed, not merged, not deployed.
+
+| ID | Item | Status | Where | Verified by |
+|---|---|---|---|---|
+| S1 | Regression guards | Done | `scripts/check-prerender.mjs`, `eslint.config.js`, `e2e/`, CI steps | Guard fails on a bad page; lint clean; browser suite |
+| S2 | Persistent error log | Done | `lib/diagnostics.ts`, `/debug` | 7 unit tests, browser test |
+| S3 | Supabase live verification | **Not run** | `docs/SUPABASE_TEST_PLAN.md`, `e2e/sync.spec.ts` (skipped) | Needs a safe Supabase project; merge logic is unit-tested only |
+| S4 | One mastery scorer | Done | `lib/solveAnalytics.ts`, Progress page | Equivalence test |
+| 5 | Mistake notebook | Done | `/mistakes`, `lib/mistakes.ts` | 15 tests, browser flow |
+| 7 | Revision v2 | Done | `lib/revision.ts`, `/review` | 12 tests |
+| 8 | Insights and recommendations | Done | `lib/learningInsights.ts`, `/analytics` | 13 tests |
+| 6 | SQL review panel | Done | `lib/sqlReview.ts`, `SqlReviewPanel` | 10 tests incl. real PostgreSQL, browser flow |
+| 13 | Interview mode v2 | Done | `lib/mockReport.ts`, `/mock-interview` | 5 tests, browser flow. Hidden test cases are not added; grading is by result rows |
+| 14 | Python assessment polish | Done | `lib/pyAssessment.ts` | 7 tests, browser flow with a real timeout |
+| 16 | GitHub scope | Done | `lib/portfolioExport.ts` | 3 tests. A real GitHub connect was not tested |
+| 17 | Resume generator | Done | `lib/resume.ts`, `/portfolio` | 10 tests, real project content |
+| 18 | Planner v2 | Done | `lib/plannerWeek.ts`, `/career/planner` | 12 tests, browser flow |
+| 9 | ETL builder | Done | `/etl-builder`, `lib/lab/etl.ts` | 21 tests, browser flow |
+| 12 | DAG simulator | Done | `/dag-simulator`, `lib/lab/dag.ts` | 14 tests, browser flow |
+| 10 | Database design playground | Done | `/schema-designer`, `lib/lab/schemaDesign.ts` | 23 tests incl. real PostgreSQL, browser flow |
+| 11 | Data quality guided exercises | Done | `/dq-exercises` | Every solution run on PostgreSQL or CPython |
+| 15 | Data engineering scenarios | Done | `/de-scenarios` | Every solution run on PostgreSQL or CPython |
+
+Known gaps: S3; Python exercises in the two guided labs were validated in CPython but not driven through the browser editor; the original `/data-quality` lab does not link to the new exercises except from the menu.
