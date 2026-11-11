@@ -1,0 +1,178 @@
+{
+  "time": {
+    "theory": 25,
+    "examples": 20,
+    "guided": 20,
+    "independent": 60,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Decide from p-values",
+      "prompt": "For each p-value in the list print `reject` if it is below `alpha = 0.05`, otherwise `fail to reject`, one per line, in the order of the list.",
+      "starter": "pvalues = [0.003, 0.049, 0.05, 0.2]\nalpha = 0.05\nprint(len(pvalues))\n",
+      "solution": "pvalues = [0.003, 0.049, 0.05, 0.2]\nalpha = 0.05\nfor p in pvalues:\n    print(\"reject\" if p < alpha else \"fail to reject\")\n",
+      "hints": [
+        "Compare each p-value with alpha.",
+        "The rule is strict: reject only when p is below alpha.",
+        "Use a conditional expression inside `print`."
+      ],
+      "kind": "python",
+      "expected": "reject\nreject\nfail to reject\nfail to reject"
+    },
+    {
+      "id": "g2",
+      "title": "One-sample t by hand",
+      "prompt": "For the sample `x` test H0 that the mean is 10. Print the t statistic and the two-sided p-value, each rounded to 3 places, on one line separated by a space. Use `stats.t.sf` for the tail probability.",
+      "starter": "import numpy as np\nfrom scipy import stats\nx = np.array([10.8, 11.2, 9.9, 10.5, 11.0, 10.7, 10.1, 11.4])\nprint(x.mean())\n",
+      "solution": "import numpy as np\nfrom scipy import stats\nx = np.array([10.8, 11.2, 9.9, 10.5, 11.0, 10.7, 10.1, 11.4])\nn = len(x)\nt = (x.mean() - 10) / (x.std(ddof=1) / np.sqrt(n))\np = 2 * stats.t.sf(abs(t), n - 1)\nprint(round(float(t), 3), round(float(p), 3))\n",
+      "hints": [
+        "t is the difference between the sample mean and 10, divided by the standard error.",
+        "The standard error is `x.std(ddof=1) / np.sqrt(n)`, and the degrees of freedom are `n - 1`.",
+        "Two-sided p is `2 * stats.t.sf(abs(t), n - 1)`."
+      ],
+      "kind": "python",
+      "expected": "3.82 0.007"
+    },
+    {
+      "id": "g3",
+      "title": "Welch test",
+      "prompt": "Run a Welch two-sample t-test on `a` and `b` with SciPy. Print the t statistic and the p-value, rounded to 3 places, on one line, then `significant` if the p-value is below 0.05, otherwise `not significant`.",
+      "starter": "from scipy import stats\na = [23, 25, 28, 30, 27, 26]\nb = [20, 22, 21, 24, 19, 23]\nprint(len(a), len(b))\n",
+      "solution": "from scipy import stats\na = [23, 25, 28, 30, 27, 26]\nb = [20, 22, 21, 24, 19, 23]\nres = stats.ttest_ind(a, b, equal_var=False)\nprint(round(float(res.statistic), 3), round(float(res.pvalue), 3))\nprint(\"significant\" if res.pvalue < 0.05 else \"not significant\")\n",
+      "hints": [
+        "SciPy has a function for two independent samples.",
+        "Pass `equal_var=False` for the Welch version.",
+        "The result has `.statistic` and `.pvalue`."
+      ],
+      "kind": "python",
+      "expected": "3.995 0.003\nsignificant"
+    },
+    {
+      "id": "g4",
+      "title": "Two proportions by hand",
+      "prompt": "Group A has 45 purchases from 500 visitors, group B has 63 from 500. Compute the z statistic with the pooled proportion, then the two-sided p-value with `stats.norm.sf`. Print z and p rounded to 3 places on one line separated by a space.",
+      "starter": "import math\nfrom scipy import stats\nk = [45, 63]\nn = [500, 500]\nprint(sum(k) / sum(n))\n",
+      "solution": "import math\nfrom scipy import stats\nk = [45, 63]\nn = [500, 500]\npool = sum(k) / sum(n)\nse = math.sqrt(pool * (1 - pool) * (1 / n[0] + 1 / n[1]))\nz = (k[0] / n[0] - k[1] / n[1]) / se\np = 2 * stats.norm.sf(abs(z))\nprint(round(z, 3), round(p, 3))\n",
+      "hints": [
+        "The pooled proportion is total purchases divided by total visitors.",
+        "The standard error is `sqrt(pool * (1 - pool) * (1/n1 + 1/n2))`.",
+        "z is the difference of the two proportions divided by the standard error; p is `2 * stats.norm.sf(abs(z))`."
+      ],
+      "kind": "python",
+      "expected": "-1.834 0.067"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Permutation test against Welch",
+      "prompt": "Using the groups `a` and `b` in the starter, run a permutation test: shuffle the pooled values 4000 times (order by `np.argsort(rng.random(len(pooled)))` with `rng = np.random.default_rng(7)`), split into groups of the original sizes, and count shuffles whose absolute mean difference is at least the observed one. Print the observed difference (2 places), the permutation p-value (2 places), the Welch p-value (2 places), and on the last line `agree` if the two p-values differ by less than 0.03, otherwise `differ`.",
+      "starter": "import numpy as np\nfrom scipy import stats\na = np.array([14.0, 16.0, 15.5, 17.0, 18.5, 16.5, 15.0])\nb = np.array([14.0, 15.0, 13.5, 16.0, 14.5, 15.5, 13.0, 14.0])\nprint(len(a), len(b))\n",
+      "solution": "import numpy as np\nfrom scipy import stats\na = np.array([14.0, 16.0, 15.5, 17.0, 18.5, 16.5, 15.0])\nb = np.array([14.0, 15.0, 13.5, 16.0, 14.5, 15.5, 13.0, 14.0])\nobs = a.mean() - b.mean()\npooled = np.concatenate([a, b])\nrng = np.random.default_rng(7)\nruns = 4000\ncount = 0\nfor _ in range(runs):\n    order = np.argsort(rng.random(len(pooled)))\n    d = pooled[order[:len(a)]].mean() - pooled[order[len(a):]].mean()\n    if abs(d) >= abs(obs):\n        count += 1\np_perm = count / runs\np_w = stats.ttest_ind(a, b, equal_var=False).pvalue\nprint(round(float(obs), 2))\nprint(round(p_perm, 2))\nprint(round(float(p_w), 2))\nprint(\"agree\" if abs(p_perm - p_w) < 0.03 else \"differ\")\n",
+      "kind": "python",
+      "expected": "1.63\n0.02\n0.03\nagree"
+    },
+    {
+      "id": "i2",
+      "title": "From raw rows to a decision",
+      "prompt": "`orders` has text `amount` (some with a `$`), `customer_id` and a `variant` column (`A` or `B`). Convert `amount` to numbers (remove `$`, coerce failures), drop rows with missing amounts, and print the number of rows kept. Print a table of `variant` with named aggregations `n` (rows) and `mean` (rounded to 2 places) using `to_string()`. Then run a Welch test and print the p-value rounded to 3 places and `reject` or `fail to reject` at 0.05.",
+      "starter": "import pandas as pd\nfrom scipy import stats\norders = pd.DataFrame({\"variant\": list(\"AAAAAAABBBBBBB\"), \"amount\": [\"20\", \"22\", \"$25\", \"21\", \"n/a\", \"24\", \"23\", \"30\", \"$33\", \"29\", \"31\", \"35\", \"32\", \"oops\"]})\nprint(len(orders))\n",
+      "solution": "import pandas as pd\nfrom scipy import stats\norders = pd.DataFrame({\"variant\": list(\"AAAAAAABBBBBBB\"), \"amount\": [\"20\", \"22\", \"$25\", \"21\", \"n/a\", \"24\", \"23\", \"30\", \"$33\", \"29\", \"31\", \"35\", \"32\", \"oops\"]})\norders[\"amount\"] = pd.to_numeric(orders[\"amount\"].str.replace(\"$\", \"\", regex=False), errors=\"coerce\")\nclean = orders.dropna(subset=[\"amount\"])\nprint(len(clean))\nprint(clean.groupby(\"variant\").agg(n=(\"amount\", \"size\"), mean=(\"amount\", \"mean\")).round(2).to_string())\nres = stats.ttest_ind(clean.loc[clean[\"variant\"] == \"A\", \"amount\"], clean.loc[clean[\"variant\"] == \"B\", \"amount\"], equal_var=False)\nprint(round(float(res.pvalue), 3))\nprint(\"reject\" if res.pvalue < 0.05 else \"fail to reject\")\n",
+      "kind": "python",
+      "expected": "12\n         n   mean\nvariant          \nA        6  22.50\nB        6  31.67\n0.0\nreject"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: choose your path",
+      "kind": "written",
+      "required": false,
+      "prompt": "Write a short plan (150 to 250 words) for choosing between the Data Analyst and Data Engineer paths. Name three activities from Days 1 to 90 you enjoyed most and three you found hardest, say which path each points to and why, then list the first five topics you will study on the path you pick and one project you would like to finish by Day 180.",
+      "starter": "Activities I enjoyed:\nActivities I found hard:\nPath I choose and why:\nFirst five topics:\nProject for Day 180:\n",
+      "solution": "A model answer: I enjoyed cleaning messy tables (Day 85), grouping and summarising (Days 79 and 80) and explaining what a difference of means implies (Day 90). I found SQL query plans, Git and writing tests harder. Those preferences point to the Data Analyst path: it uses cleaning, summarising and testing every day, while the engineer path leans on pipeline code, error handling and operations. My first five topics are Excel tables and formatting, formulas and lookups, PivotTables, Power Query and statistics for analysts. My project goal is a sales analytics report that goes from a raw file through cleaning and a hypothesis test to a short written recommendation. I would revisit the choice at Day 100, since both paths share SQL and Python and switching early costs little.",
+      "rubric": [
+        "Names at least three enjoyed and three difficult activities taken from the common core",
+        "Connects each preference to a path with a reason, not only a preference",
+        "Lists five concrete first topics that exist on the chosen path",
+        "Describes one finishable project and states how it would be checked"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A test gives p = 0.03. Which statement is correct?",
+      "options": [
+        "There is a 3% chance that H0 is true",
+        "If H0 were true, data this extreme would occur in about 3% of samples",
+        "The effect is large",
+        "There is a 97% chance the alternative is true"
+      ],
+      "answer": 1,
+      "explanation": "A p-value is calculated assuming H0 is true: it is the probability of results at least this extreme. It is not the probability of H0 and says nothing about effect size."
+    },
+    {
+      "id": "c2",
+      "question": "You run 20 independent tests where every null is true, at alpha 0.05. About how many will be significant?",
+      "options": [
+        "0",
+        "1",
+        "5",
+        "10"
+      ],
+      "answer": 1,
+      "explanation": "Each test has a 5% chance of a false alarm, so on average 20 times 0.05 = 1 test is significant by chance. This is why picking only the significant tests misleads."
+    },
+    {
+      "id": "c3",
+      "question": "p = 0.20 with 5 observations per group. What can you conclude?",
+      "options": [
+        "The groups are equal",
+        "There is insufficient evidence of a difference; the test may lack power",
+        "H0 is true with 80% probability",
+        "The alternative is false"
+      ],
+      "answer": 1,
+      "explanation": "Failing to reject is not proof of no effect. With so little data, a real difference could easily be missed (a Type II error). The p-value is not a probability for H0."
+    },
+    {
+      "id": "c4",
+      "question": "With a million customers, two groups differ in mean spend by 0.10, p = 0.001. What should you do?",
+      "options": [
+        "Act immediately because p is small",
+        "Also judge whether a difference of 0.10 matters in practice",
+        "Ignore the result",
+        "Lower alpha to 0.0001"
+      ],
+      "answer": 1,
+      "explanation": "Large samples make tiny differences statistically significant. The effect size and its business value decide whether it matters. Changing alpha does not address that."
+    },
+    {
+      "id": "c5",
+      "question": "Which pairing of path and focus is accurate?",
+      "options": [
+        "Analyst: Excel, EDA, visualisation, Power BI; Engineer: ingestion, ETL, warehousing, Airflow, Spark",
+        "Analyst: Airflow and Spark; Engineer: Power BI and PivotTables",
+        "Both: identical topics in a different order",
+        "Analyst: ingestion and ETL; Engineer: storytelling"
+      ],
+      "answer": 0,
+      "explanation": "The analyst path covers Excel, statistics, EDA, visualisation, Power BI and business analytics, and the engineer path covers PostgreSQL ingestion, APIs, ETL, data quality, warehousing, Airflow and Spark. They share the common core."
+    }
+  ],
+  "id": "d090"
+}

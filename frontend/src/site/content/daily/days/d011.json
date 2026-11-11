@@ -1,0 +1,172 @@
+{
+  "id": "d011",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-loops",
+      "python-collections"
+    ],
+    "questions": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Square each number",
+      "prompt": "`nums` is `[2, 3, 5]`. Use a `for` loop to print the square of each number (the number times itself), one per line.",
+      "starter": "nums = [2, 3, 5]\n",
+      "solution": "nums = [2, 3, 5]\nfor n in nums:\n    print(n * n)\n",
+      "hints": [
+        "A `for` loop gives you one item at a time.",
+        "`for n in nums:` followed by an indented `print()`.",
+        "The body is `print(n * n)`."
+      ],
+      "kind": "python",
+      "expected": "4\n9\n25"
+    },
+    {
+      "id": "g2",
+      "title": "Countdown with range",
+      "prompt": "Print the numbers from 5 down to 1, one per line, and then the word `Go!`, using `range` with a negative step.",
+      "starter": "# loop here\n",
+      "solution": "for n in range(5, 0, -1):\n    print(n)\nprint(\"Go!\")\n",
+      "hints": [
+        "`range(start, stop, step)` can count down when the step is negative.",
+        "The stop value is not included, so it must be 0 to include 1.",
+        "`for n in range(5, 0, -1):` then print `n`; print `Go!` after the loop, unindented."
+      ],
+      "kind": "python",
+      "expected": "5\n4\n3\n2\n1\nGo!"
+    },
+    {
+      "id": "g3",
+      "title": "Total and count",
+      "prompt": "`prices` is `[4.5, 10.0, 7.25, 3.0]`. Use one loop with two accumulators to find the total and how many prices are above 5. Print the total on the first line and the count on the second.",
+      "starter": "prices = [4.5, 10.0, 7.25, 3.0]\n",
+      "solution": "prices = [4.5, 10.0, 7.25, 3.0]\ntotal = 0\nabove = 0\nfor p in prices:\n    total += p\n    if p > 5:\n        above += 1\nprint(total)\nprint(above)\n",
+      "hints": [
+        "Create both accumulators before the loop, starting at 0.",
+        "Inside the loop add every price to `total`, and add 1 to `above` only when the price is over 5.",
+        "Print `total` and `above` after the loop, not inside it."
+      ],
+      "kind": "python",
+      "expected": "24.75\n2"
+    },
+    {
+      "id": "g4",
+      "title": "Numbered list with names and scores",
+      "prompt": "`names` is `[\"Ada\", \"Bo\", \"Cy\"]` and `scores` is `[91, 78, 85]`. Print one line per person in the format `1. Ada: 91`, numbering from 1. Use `enumerate` and `zip` together: `for i, (name, score) in enumerate(zip(names, scores), 1):`.",
+      "starter": "names = [\"Ada\", \"Bo\", \"Cy\"]\nscores = [91, 78, 85]\n",
+      "solution": "names = [\"Ada\", \"Bo\", \"Cy\"]\nscores = [91, 78, 85]\nfor i, (name, score) in enumerate(zip(names, scores), 1):\n    print(f\"{i}. {name}: {score}\")\n",
+      "hints": [
+        "The loop header is given in the prompt; you only need the body.",
+        "Use an f-string from Day 5 to build the line.",
+        "`print(f\"{i}. {name}: {score}\")`."
+      ],
+      "kind": "python",
+      "expected": "1. Ada: 91\n2. Bo: 78\n3. Cy: 85"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Word length table",
+      "prompt": "`words` is `[\"data\", \"sql\", \"python\", \"loop\", \"set\"]`. Build a dictionary `lengths` that maps each word to its number of characters, using a loop. Then print the dictionary, then the total number of characters across all words, then the list of words longer than 3 characters in the original order.",
+      "starter": "words = [\"data\", \"sql\", \"python\", \"loop\", \"set\"]\n",
+      "solution": "words = [\"data\", \"sql\", \"python\", \"loop\", \"set\"]\nlengths = {}\nlong_words = []\nfor w in words:\n    lengths[w] = len(w)\n    if len(w) > 3:\n        long_words.append(w)\nprint(lengths)\nprint(sum(lengths.values()))\nprint(long_words)\n",
+      "kind": "python",
+      "expected": "{'data': 4, 'sql': 3, 'python': 6, 'loop': 4, 'set': 3}\n20\n['data', 'python', 'loop']"
+    },
+    {
+      "id": "i2",
+      "title": "Sales by region",
+      "prompt": "`sales` is the list of tuples `[(\"north\", 120), (\"south\", 95), (\"north\", 80), (\"east\", 60), (\"south\", 40)]`. Use a loop to total the amounts per region in a dictionary. Then print one line per region in alphabetical order of region (use `sorted()` on the dictionary) in the format `north: 200`, and finally the name of the region with the highest total on a line starting `Top: `.",
+      "starter": "sales = [(\"north\", 120), (\"south\", 95), (\"north\", 80), (\"east\", 60), (\"south\", 40)]\n",
+      "solution": "sales = [(\"north\", 120), (\"south\", 95), (\"north\", 80), (\"east\", 60), (\"south\", 40)]\ntotals = {}\nfor region, amount in sales:\n    totals[region] = totals.get(region, 0) + amount\nbest = None\nfor region in sorted(totals):\n    print(f\"{region}: {totals[region]}\")\n    if best is None or totals[region] > totals[best]:\n        best = region\nprint(\"Top:\", best)\n",
+      "kind": "python",
+      "expected": "east: 60\nnorth: 200\nsouth: 135\nTop: north"
+    },
+    {
+      "id": "i3",
+      "title": "Running total and growth (stretch)",
+      "prompt": "`monthly` is `[100, 120, 90, 150, 150]`. Use a loop to print one line per month in the format `month 1: total 100, change +0`, where `total` is the running total so far and `change` is the difference from the previous month (the first month has change 0). Show the sign of the change with the format spec `+d`, for example `{change:+d}`. Month numbers start at 1.",
+      "starter": "monthly = [100, 120, 90, 150, 150]\n",
+      "solution": "monthly = [100, 120, 90, 150, 150]\nrunning = 0\nprevious = monthly[0]\nfor month, value in enumerate(monthly, 1):\n    running += value\n    change = value - previous\n    previous = value\n    print(f\"month {month}: total {running}, change {change:+d}\")\n",
+      "kind": "python",
+      "expected": "month 1: total 100, change +0\nmonth 2: total 220, change +20\nmonth 3: total 310, change -30\nmonth 4: total 460, change +60\nmonth 5: total 610, change +0",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `list(range(2, 8, 2))` return?",
+      "options": [
+        "`[2, 4, 6, 8]`",
+        "`[2, 4, 6]`",
+        "`[2, 3, 4, 5, 6, 7]`",
+        "`[4, 6, 8]`"
+      ],
+      "answer": 1,
+      "explanation": "The range starts at 2, steps by 2 and stops before 8, so it gives 2, 4 and 6. The stop value is never included."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\ntotal = 0\nfor n in [1, 2, 3]:\n    total = 0\n    total += n\nprint(total)\n```",
+      "options": [
+        "`6`",
+        "`3`",
+        "`1`",
+        "`0`"
+      ],
+      "answer": 1,
+      "explanation": "`total` is reset to 0 on every pass, so after the last pass it holds only the last item, 3. The accumulator must be created before the loop."
+    },
+    {
+      "id": "c3",
+      "question": "What does `len(list(zip([1, 2, 3], [\"a\", \"b\"])))` return?",
+      "options": [
+        "`2`",
+        "`3`",
+        "`5`",
+        "An error"
+      ],
+      "answer": 0,
+      "explanation": "`zip` stops when the shorter input runs out, so there are 2 pairs. It does not raise an error and does not pad the shorter list."
+    },
+    {
+      "id": "c4",
+      "question": "What does `for x in {\"a\": 1, \"b\": 2}:` give `x`?",
+      "options": [
+        "The values 1 and 2",
+        "The keys `\"a\"` and `\"b\"`",
+        "The pairs `(\"a\", 1)` and `(\"b\", 2)`",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "Looping over a dictionary gives its keys. Use `.items()` for pairs and `.values()` for values."
+    },
+    {
+      "id": "c5",
+      "question": "What does this print?\n\n```python\nfor i, ch in enumerate(\"ab\", 1):\n    print(i, ch)\n```",
+      "options": [
+        "`0 a` then `1 b`",
+        "`1 a` then `2 b`",
+        "`a 1` then `b 2`",
+        "`1 a` then `1 b`"
+      ],
+      "answer": 1,
+      "explanation": "`enumerate(..., 1)` starts counting at 1 and yields `(position, item)`, so the position comes first."
+    }
+  ]
+}

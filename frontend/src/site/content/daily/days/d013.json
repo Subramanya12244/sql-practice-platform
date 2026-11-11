@@ -1,0 +1,172 @@
+{
+  "id": "d013",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-loops",
+      "python-collections"
+    ],
+    "questions": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A star triangle",
+      "prompt": "Use nested loops to print a triangle of stars with 4 rows: row 1 has 1 star, row 2 has 2 stars, up to row 4 with 4 stars. Print each star followed by nothing (use `end=\"\"`) and end each row with an empty `print()`.",
+      "starter": "# nested loops here\n",
+      "solution": "for row in range(1, 5):\n    for _ in range(row):\n        print(\"*\", end=\"\")\n    print()\n",
+      "hints": [
+        "The outer loop chooses the row number; the inner loop repeats once per star in that row.",
+        "The inner loop count equals the row number: `range(row)`.",
+        "After the inner loop (one indent less), call `print()` to end the line."
+      ],
+      "kind": "python",
+      "expected": "*\n**\n***\n****"
+    },
+    {
+      "id": "g2",
+      "title": "Row totals",
+      "prompt": "`table` is `[[2, 4], [10, 20, 30], [5]]`. For each row print its total on one line, using an inner loop with an accumulator that restarts for every row.",
+      "starter": "table = [[2, 4], [10, 20, 30], [5]]\n",
+      "solution": "table = [[2, 4], [10, 20, 30], [5]]\nfor row in table:\n    total = 0\n    for value in row:\n        total += value\n    print(total)\n",
+      "hints": [
+        "You need an outer loop over rows and an inner loop over the values of one row.",
+        "Set `total = 0` inside the outer loop, before the inner loop.",
+        "Print `total` once per row, after the inner loop, at the outer level."
+      ],
+      "kind": "python",
+      "expected": "6\n60\n5"
+    },
+    {
+      "id": "g3",
+      "title": "Filter the emails",
+      "prompt": "`emails` is `[\"a@x.com\", \"bad.address\", \"b@y.org\", \"no-at-sign\", \"c@z.net\"]`. Build a new list `valid` of the emails that contain `\"@\"`, and print `valid` and then the number of invalid ones.",
+      "starter": "emails = [\"a@x.com\", \"bad.address\", \"b@y.org\", \"no-at-sign\", \"c@z.net\"]\n",
+      "solution": "emails = [\"a@x.com\", \"bad.address\", \"b@y.org\", \"no-at-sign\", \"c@z.net\"]\nvalid = []\nfor email in emails:\n    if \"@\" in email:\n        valid.append(email)\nprint(valid)\nprint(len(emails) - len(valid))\n",
+      "hints": [
+        "Start with an empty list before the loop.",
+        "Test `\"@\" in email` and append only the passing ones.",
+        "The number of invalid emails is the original length minus the valid length."
+      ],
+      "kind": "python",
+      "expected": "['a@x.com', 'b@y.org', 'c@z.net']\n2"
+    },
+    {
+      "id": "g4",
+      "title": "Largest of negatives",
+      "prompt": "`changes` is `[-8, -3, -15, -6]`. Find the largest value using the pattern with `best = None`, not by calling `max()`. Print it.",
+      "starter": "changes = [-8, -3, -15, -6]\n",
+      "solution": "changes = [-8, -3, -15, -6]\nbest = None\nfor c in changes:\n    if best is None or c > best:\n        best = c\nprint(best)\n",
+      "hints": [
+        "Start with `best = None`, because 0 would be larger than every item here.",
+        "The condition is `best is None or c > best`.",
+        "Inside the `if`, set `best = c`; print after the loop."
+      ],
+      "kind": "python",
+      "expected": "-3"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Pairs that add up",
+      "prompt": "`nums` is `[1, 3, 4, 6, 7, 9]`. Print every pair of two different numbers `(a, b)` with `a` before `b` in the list whose sum is 10, one per line in the format `1 + 9`. Use nested loops with `range(len(nums))` and index positions so that each pair appears once.",
+      "starter": "nums = [1, 3, 4, 6, 7, 9]\n",
+      "solution": "nums = [1, 3, 4, 6, 7, 9]\nfor i in range(len(nums)):\n    for j in range(i + 1, len(nums)):\n        if nums[i] + nums[j] == 10:\n            print(nums[i], \"+\", nums[j])\n",
+      "kind": "python",
+      "expected": "1 + 9\n3 + 7\n4 + 6"
+    },
+    {
+      "id": "i2",
+      "title": "Order lines with prices",
+      "prompt": "`orders` is `[{\"id\": 1, \"items\": [\"pen\", \"ink\"]}, {\"id\": 2, \"items\": [\"paper\"]}, {\"id\": 3, \"items\": [\"pen\", \"cover\", \"ink\"]}]` and `prices` is `{\"pen\": 2, \"ink\": 5, \"paper\": 4}`. For each order compute the total price, using `prices.get(item, 0)` so unknown items cost 0. Print `Order 1: 7` style lines, one per order, then a final line `Unknown items: ` followed by the sorted list of distinct item names that were not in `prices`.",
+      "starter": "orders = [{\"id\": 1, \"items\": [\"pen\", \"ink\"]}, {\"id\": 2, \"items\": [\"paper\"]}, {\"id\": 3, \"items\": [\"pen\", \"cover\", \"ink\"]}]\nprices = {\"pen\": 2, \"ink\": 5, \"paper\": 4}\n",
+      "solution": "orders = [{\"id\": 1, \"items\": [\"pen\", \"ink\"]}, {\"id\": 2, \"items\": [\"paper\"]}, {\"id\": 3, \"items\": [\"pen\", \"cover\", \"ink\"]}]\nprices = {\"pen\": 2, \"ink\": 5, \"paper\": 4}\nunknown = set()\nfor order in orders:\n    total = 0\n    for item in order[\"items\"]:\n        total += prices.get(item, 0)\n        if item not in prices:\n            unknown.add(item)\n    print(f\"Order {order['id']}: {total}\")\nprint(\"Unknown items:\", sorted(unknown))\n",
+      "kind": "python",
+      "expected": "Order 1: 7\nOrder 2: 4\nOrder 3: 7\nUnknown items: ['cover']"
+    },
+    {
+      "id": "i3",
+      "title": "Match students to classes (stretch)",
+      "prompt": "`students` is `[{\"name\": \"Ada\", \"class_id\": 2}, {\"name\": \"Bo\", \"class_id\": 5}, {\"name\": \"Cy\", \"class_id\": 1}]` and `classes` is `[{\"id\": 1, \"room\": \"A1\"}, {\"id\": 2, \"room\": \"B7\"}]`. For each student find the room by searching `classes` with an inner loop and `break`, defaulting to `\"TBC\"`. Print `Ada: B7` style lines, in student order. Then print `Missing rooms: ` followed by the number of students whose room is `\"TBC\"`.",
+      "starter": "students = [{\"name\": \"Ada\", \"class_id\": 2}, {\"name\": \"Bo\", \"class_id\": 5}, {\"name\": \"Cy\", \"class_id\": 1}]\nclasses = [{\"id\": 1, \"room\": \"A1\"}, {\"id\": 2, \"room\": \"B7\"}]\n",
+      "solution": "students = [{\"name\": \"Ada\", \"class_id\": 2}, {\"name\": \"Bo\", \"class_id\": 5}, {\"name\": \"Cy\", \"class_id\": 1}]\nclasses = [{\"id\": 1, \"room\": \"A1\"}, {\"id\": 2, \"room\": \"B7\"}]\nmissing = 0\nfor student in students:\n    room = \"TBC\"\n    for c in classes:\n        if c[\"id\"] == student[\"class_id\"]:\n            room = c[\"room\"]\n            break\n    if room == \"TBC\":\n        missing += 1\n    print(f\"{student['name']}: {room}\")\nprint(\"Missing rooms:\", missing)\n",
+      "kind": "python",
+      "expected": "Ada: B7\nBo: TBC\nCy: A1\nMissing rooms: 1",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "How many times does `print` run?\n\n```python\nfor i in range(3):\n    for j in range(4):\n        print(i, j)\n```",
+      "options": [
+        "`7`",
+        "`12`",
+        "`3`",
+        "`4`"
+      ],
+      "answer": 1,
+      "explanation": "The inner loop makes 4 passes for each of the 3 outer passes, so 3 times 4 equals 12. The counts multiply; they are not added."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\nfor i in range(2):\n    for j in range(3):\n        if j == 1:\n            break\n        print(i, j)\n```",
+      "options": [
+        "`0 0` only",
+        "`0 0` then `1 0`",
+        "`0 0`, `0 1`, `0 2`, `1 0`, `1 1`, `1 2`",
+        "`0 0`, `1 0`, `1 1`"
+      ],
+      "answer": 1,
+      "explanation": "`break` stops only the inner loop, so for each `i` only `j == 0` prints. The outer loop still makes both passes."
+    },
+    {
+      "id": "c3",
+      "question": "A programmer finds the maximum of `[-4, -9, -2]` with `best = 0` and the usual comparison. What result do they get?",
+      "options": [
+        "`-2`",
+        "`0`",
+        "`-9`",
+        "`None`"
+      ],
+      "answer": 1,
+      "explanation": "No item is greater than 0, so `best` is never replaced and stays 0, which is not even in the list. Start with `None` or the first item."
+    },
+    {
+      "id": "c4",
+      "question": "Where must `total = 0` go to get one total per row of a table?",
+      "options": [
+        "Before the outer loop",
+        "Inside the outer loop, before the inner loop",
+        "Inside the inner loop",
+        "After both loops"
+      ],
+      "answer": 1,
+      "explanation": "The total must restart for each row, so it belongs in the outer loop's block before the inner loop. Before the outer loop it would keep adding across rows; inside the inner loop it would reset on every cell."
+    },
+    {
+      "id": "c5",
+      "question": "After the loops below, what is `result`?\n\n```python\nresult = []\nfor x in [1, 2, 3, 4]:\n    if x % 2 == 0:\n        result.append(x * 10)\n```",
+      "options": [
+        "`[20, 40]`",
+        "`[10, 20, 30, 40]`",
+        "`[2, 4]`",
+        "`[]`"
+      ],
+      "answer": 0,
+      "explanation": "Only the even numbers pass the test, and each is multiplied by 10 before being appended, giving `[20, 40]`."
+    }
+  ]
+}

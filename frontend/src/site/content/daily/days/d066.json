@@ -1,0 +1,184 @@
+{
+  "id": "d066",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Summarise one array",
+      "prompt": "For `a = np.array([12, 7, 9, 15, 6, 11])` print four lines: the sum, the mean rounded to 2 decimals, the maximum, and the index of the maximum.",
+      "starter": "import numpy as np\n\na = np.array([12, 7, 9, 15, 6, 11])\n",
+      "solution": "import numpy as np\n\na = np.array([12, 7, 9, 15, 6, 11])\nprint(a.sum())\nprint(round(a.mean(), 2))\nprint(a.max())\nprint(a.argmax())\n",
+      "hints": [
+        "The methods are `sum()`, `mean()`, `max()` and `argmax()`.",
+        "`round(a.mean(), 2)` rounds the average to two decimals.",
+        "Print `a.sum()`, `round(a.mean(), 2)`, `a.max()` and `a.argmax()`, one per line."
+      ],
+      "kind": "python",
+      "expected": "60\n10.0\n15\n3"
+    },
+    {
+      "id": "g2",
+      "title": "Totals per row and per column",
+      "prompt": "The table `t = np.array([[3, 5, 7], [2, 4, 6]])` has days as rows and products as columns. Print, as lists, the total per product on line 1 and the total per day on line 2.",
+      "starter": "import numpy as np\n\nt = np.array([[3, 5, 7], [2, 4, 6]])\n",
+      "solution": "import numpy as np\n\nt = np.array([[3, 5, 7], [2, 4, 6]])\nprint(t.sum(axis=0).tolist())\nprint(t.sum(axis=1).tolist())\n",
+      "hints": [
+        "One total per product means the rows must collapse.",
+        "The axis you name is the axis that disappears: `axis=0` collapses rows.",
+        "`t.sum(axis=0).tolist()` then `t.sum(axis=1).tolist()`."
+      ],
+      "kind": "python",
+      "expected": "[5, 9, 13]\n[15, 12]"
+    },
+    {
+      "id": "g3",
+      "title": "Running totals",
+      "prompt": "With `daily = np.array([4, 0, 7, 3, 6])` print the running total as a list on line 1, and on line 2 the differences between neighbouring running totals (which must equal `daily` without its first value).",
+      "starter": "import numpy as np\n\ndaily = np.array([4, 0, 7, 3, 6])\n",
+      "solution": "import numpy as np\n\ndaily = np.array([4, 0, 7, 3, 6])\nrun = np.cumsum(daily)\nprint(run.tolist())\nprint(np.diff(run).tolist())\n",
+      "hints": [
+        "`np.cumsum` returns the running total.",
+        "`np.diff` returns differences and is one element shorter.",
+        "Store `run = np.cumsum(daily)` and print `run.tolist()` and `np.diff(run).tolist()`."
+      ],
+      "kind": "python",
+      "expected": "[4, 4, 11, 14, 20]\n[0, 7, 3, 6]"
+    },
+    {
+      "id": "g4",
+      "title": "Winner by name",
+      "prompt": "The arrays `teams = np.array([\"red\", \"blue\", \"green\"])` and `points = np.array([41, 56, 48])` are given. Print the name of the team with the most points on line 1 and the team names ordered from the fewest points to the most on line 2 as a list.",
+      "starter": "import numpy as np\n\nteams = np.array([\"red\", \"blue\", \"green\"])\npoints = np.array([41, 56, 48])\n",
+      "solution": "import numpy as np\n\nteams = np.array([\"red\", \"blue\", \"green\"])\npoints = np.array([41, 56, 48])\nprint(teams[points.argmax()])\nprint(teams[np.argsort(points)].tolist())\n",
+      "hints": [
+        "`argmax()` gives a position, not a value.",
+        "Use the position to index the `teams` array. `np.argsort` gives the positions in ascending order.",
+        "`teams[points.argmax()]` and `teams[np.argsort(points)].tolist()`."
+      ],
+      "kind": "python",
+      "expected": "blue\n['red', 'green', 'blue']"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Standardise columns",
+      "prompt": "The table `x` has three rows (customers) and two columns (monthly spend and visits). Compute the mean and the population standard deviation of each column, then the standardised table `z = (x - mean) / std` using broadcasting. Print three lines: the column means as a list, the column standard deviations rounded to 3 decimals as a list, and `z` rounded to 3 decimals as a nested list.",
+      "starter": "import numpy as np\n\nx = np.array([[100.0, 2.0], [160.0, 5.0], [220.0, 11.0]])\n",
+      "solution": "import numpy as np\n\nx = np.array([[100.0, 2.0], [160.0, 5.0], [220.0, 11.0]])\nmean = x.mean(axis=0)\nstd = x.std(axis=0)\nz = (x - mean) / std\nprint(mean.tolist())\nprint(np.round(std, 3).tolist())\nprint(np.round(z, 3).tolist())\n",
+      "kind": "python",
+      "expected": "[160.0, 6.0]\n[48.99, 3.742]\n[[-1.225, -1.069], [0.0, -0.267], [1.225, 1.336]]"
+    },
+    {
+      "id": "i2",
+      "title": "Gaps in a series",
+      "prompt": "The readings `r = np.array([5.0, np.nan, 7.0, 9.0, np.nan, 4.0])` have gaps. Print four lines: the number of gaps; the mean of the readings that exist, rounded to 2 decimals; the readings with every gap replaced by that mean, rounded to 2 decimals, as a list; and the index of the largest existing reading (use `np.nanargmax`).",
+      "starter": "import numpy as np\n\nr = np.array([5.0, np.nan, 7.0, 9.0, np.nan, 4.0])\n",
+      "solution": "import numpy as np\n\nr = np.array([5.0, np.nan, 7.0, 9.0, np.nan, 4.0])\nprint(int(np.isnan(r).sum()))\nm = np.nanmean(r)\nprint(round(float(m), 2))\nprint(np.round(np.where(np.isnan(r), m, r), 2).tolist())\nprint(int(np.nanargmax(r)))\n",
+      "kind": "python",
+      "expected": "2\n6.25\n[5.0, 6.25, 7.0, 9.0, 6.25, 4.0]\n3"
+    },
+    {
+      "id": "i3",
+      "title": "Best month and growth",
+      "required": false,
+      "prompt": "The array `rev` holds the monthly revenue for 6 months: `[200, 220, 210, 260, 300, 280]`, and `months = np.array([\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\"])`. Print on separate lines: the best month's name; the month-to-month change as a list; the names of the months in which revenue fell compared with the month before (use `np.diff` and a mask, offsetting by one position); and the cumulative revenue as a list.",
+      "starter": "import numpy as np\n\nrev = np.array([200, 220, 210, 260, 300, 280])\nmonths = np.array([\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\"])\n",
+      "solution": "import numpy as np\n\nrev = np.array([200, 220, 210, 260, 300, 280])\nmonths = np.array([\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\"])\nprint(months[rev.argmax()])\nchange = np.diff(rev)\nprint(change.tolist())\nprint(months[1:][change < 0].tolist())\nprint(np.cumsum(rev).tolist())\n",
+      "kind": "python",
+      "expected": "May\n[20, -10, 50, 40, -20]\n['Mar', 'Jun']\n[200, 420, 630, 890, 1190, 1470]"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "For `t = np.arange(6).reshape(2, 3)`, what is the shape of `t.sum(axis=0)`?",
+      "options": [
+        "(2,)",
+        "(3,)",
+        "(2, 3)",
+        "()"
+      ],
+      "answer": 1,
+      "explanation": "The axis you name disappears. `axis=0` removes the length-2 axis (rows), leaving one value per column, so shape `(3,)`. `(2,)` is what `axis=1` gives, which is the usual mix-up."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\nimport numpy as np\nt = np.array([[1, 2], [3, 4]])\nprint(t.sum(axis=1).tolist())\n```",
+      "options": [
+        "[4, 6]",
+        "[3, 7]",
+        "[10]",
+        "[[3], [7]]"
+      ],
+      "answer": 1,
+      "explanation": "`axis=1` adds across the columns of each row: 1+2 and 3+4. `[4, 6]` is the column totals from `axis=0`, and `keepdims=True` would be needed for the nested form."
+    },
+    {
+      "id": "c3",
+      "question": "What does `np.array([1.0, np.nan, 3.0]).mean()` return?",
+      "options": [
+        "2.0",
+        "nan",
+        "4.0",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "A single `nan` makes an ordinary aggregation `nan`; there is no error. `np.nanmean` would return 2.0 by skipping the gap, and 4.0 would be the sum of the existing values."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\nimport numpy as np\nprint(np.cumsum(np.array([2, 3, 5])).tolist())\n```",
+      "options": [
+        "[2, 3, 5]",
+        "[2, 5, 10]",
+        "[10]",
+        "[2, 6, 30]"
+      ],
+      "answer": 1,
+      "explanation": "`cumsum` returns the running total: 2, then 2+3=5, then 5+5=10. A single 10 is the plain `sum`, and `[2, 6, 30]` would be a running product."
+    },
+    {
+      "id": "c5",
+      "question": "For `a = np.array([3, 9, 4, 9])`, what does `a.argmax()` return?",
+      "options": [
+        "9",
+        "1",
+        "3",
+        "[1, 3]"
+      ],
+      "answer": 1,
+      "explanation": "`argmax` returns a position, not a value, and when the maximum occurs more than once it returns the first position, here index 1. It never returns a list of all ties."
+    },
+    {
+      "id": "c6",
+      "question": "A spreadsheet reports a standard deviation slightly larger than `a.std()` for the same numbers. What is the most likely reason?",
+      "options": [
+        "The spreadsheet rounds differently",
+        "The spreadsheet divides by n - 1, while NumPy divides by n unless `ddof=1` is given",
+        "`std` ignores the last value",
+        "NumPy computes the variance instead"
+      ],
+      "answer": 1,
+      "explanation": "NumPy's default is the population standard deviation (divide by n); spreadsheets and pandas default to the sample version (divide by n - 1), which is slightly larger. `a.std(ddof=1)` matches them."
+    }
+  ]
+}

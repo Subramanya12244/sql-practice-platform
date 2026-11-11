@@ -1,0 +1,189 @@
+{
+  "id": "d037",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "having"
+    ],
+    "questions": [
+      192,
+      193
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "aggregation",
+      "execution-order"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Customers with repeat orders",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `orders`, return `customer_id` and `orders` (the number of orders) for customers who placed at least 2 orders. Order by `orders` descending, then `customer_id` ascending.",
+      "starter": "-- Customers with at least 2 orders\nSELECT customer_id, COUNT(*) AS orders\nFROM orders\nGROUP BY customer_id\nORDER BY orders DESC, customer_id;\n",
+      "solution": "SELECT customer_id, COUNT(*) AS orders\nFROM orders\nGROUP BY customer_id\nHAVING COUNT(*) >= 2\nORDER BY orders DESC, customer_id;\n",
+      "hints": [
+        "The starter lists every customer. The condition is about the size of each group, so it cannot go in WHERE.",
+        "HAVING goes after GROUP BY and before ORDER BY, and it can use an aggregate.",
+        "HAVING COUNT(*) >= 2"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Pricey categories",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `products`, return `category_id`, `products` (how many products) and `avg_price` (average `unit_price` rounded to 2 decimals) for the categories whose average price is above 30. Order by `category_id` ascending.",
+      "starter": "-- Categories whose average unit_price is above 30\nSELECT category_id, COUNT(*) AS products, ROUND(AVG(unit_price), 2) AS avg_price\nFROM products\nGROUP BY category_id\nORDER BY category_id;\n",
+      "solution": "SELECT category_id, COUNT(*) AS products, ROUND(AVG(unit_price), 2) AS avg_price\nFROM products\nGROUP BY category_id\nHAVING AVG(unit_price) > 30\nORDER BY category_id;\n",
+      "hints": [
+        "The grouping and aggregates are already in the starter. Only the filter on the groups is missing.",
+        "The average per group exists after GROUP BY, so use HAVING, and repeat the aggregate expression.",
+        "HAVING AVG(unit_price) > 30"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Shipped orders per carrier",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Count only the orders that have shipped (`shipped_date` is not NULL). Return `ship_via`, `orders` (count) and `total_freight` (sum of `freight`) for each carrier, ordered by `ship_via` ascending.",
+      "starter": "-- Shipped orders and freight per carrier\nSELECT ship_via, COUNT(*) AS orders, SUM(freight) AS total_freight\nFROM orders\nGROUP BY ship_via\nORDER BY ship_via;\n",
+      "solution": "SELECT ship_via, COUNT(*) AS orders, SUM(freight) AS total_freight\nFROM orders\nWHERE shipped_date IS NOT NULL\nGROUP BY ship_via\nORDER BY ship_via;\n",
+      "hints": [
+        "The starter counts all orders. The condition is about single rows, so it belongs before the grouping.",
+        "WHERE comes after FROM and before GROUP BY. Day 35 showed the NULL test for a missing date.",
+        "WHERE shipped_date IS NOT NULL"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Categories with many active products",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Ignore discontinued products (use `NOT discontinued`). Then return `category_id` and `active_products` (count) for categories that have at least 11 active products. Order by `category_id` ascending.",
+      "starter": "-- Categories with at least 11 active products\nSELECT category_id, COUNT(*) AS active_products\nFROM products\nWHERE NOT discontinued AND COUNT(*) >= 11\nGROUP BY category_id\nORDER BY category_id;\n",
+      "solution": "SELECT category_id, COUNT(*) AS active_products\nFROM products\nWHERE NOT discontinued\nGROUP BY category_id\nHAVING COUNT(*) >= 11\nORDER BY category_id;\n",
+      "hints": [
+        "Run the starter: PostgreSQL says aggregate functions are not allowed in WHERE.",
+        "Split the two conditions: the discontinued flag is a row condition, the count is a group condition.",
+        "WHERE NOT discontinued ... GROUP BY category_id HAVING COUNT(*) >= 11"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Busy cities",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `customers`, return `country`, `city` and `customers` (the number of customers) for each country and city pair with at least 3 customers. Order by `customers` descending, then `country`, then `city`.",
+      "starter": "-- Country and city pairs with at least 3 customers\nSELECT country, city, COUNT(*) AS customers\nFROM customers\nGROUP BY country\nORDER BY customers DESC, country, city;\n",
+      "solution": "SELECT country, city, COUNT(*) AS customers\nFROM customers\nGROUP BY country, city\nHAVING COUNT(*) >= 3\nORDER BY customers DESC, country, city;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Steady sellers",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `order_details`, return for each product `product_id`, `lines` (number of order lines), `units` (sum of `quantity`) and `revenue` (sum of `unit_price * quantity * (1 - discount)` rounded to 2 decimals, with `discount` cast to `numeric`). Keep only products with at least 5 lines and at least 100 units. Order by `revenue` descending, then `product_id`.",
+      "starter": "-- Products with at least 5 lines and 100 units\nSELECT product_id, COUNT(*) AS lines, SUM(quantity) AS units,\n       ROUND(SUM(unit_price * quantity * (1 - discount::numeric)), 2) AS revenue\nFROM order_details\nGROUP BY product_id\nHAVING COUNT(*) >= 5\nORDER BY revenue DESC, product_id;\n",
+      "solution": "SELECT product_id, COUNT(*) AS lines, SUM(quantity) AS units,\n       ROUND(SUM(unit_price * quantity * (1 - discount::numeric)), 2) AS revenue\nFROM order_details\nGROUP BY product_id\nHAVING COUNT(*) >= 5 AND SUM(quantity) >= 100\nORDER BY revenue DESC, product_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Employees with expensive freight in 1997",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. Using only orders placed in 1997 (1997-01-01 to 1997-12-31) and ignoring orders with no employee, return `employee_id`, `orders`, `total_freight` and `avg_freight` (rounded to 2 decimals) for employees with at least 10 such orders and an average freight above 80. Order by `employee_id`.",
+      "starter": "-- 1997 orders per employee: at least 10 orders and average freight above 80\nSELECT employee_id, COUNT(*) AS orders, SUM(freight) AS total_freight,\n       ROUND(AVG(freight), 2) AS avg_freight\nFROM orders\nWHERE order_date BETWEEN '1997-01-01' AND '1997-12-31'\nGROUP BY employee_id\nORDER BY employee_id;\n",
+      "solution": "SELECT employee_id, COUNT(*) AS orders, SUM(freight) AS total_freight,\n       ROUND(AVG(freight), 2) AS avg_freight\nFROM orders\nWHERE order_date BETWEEN '1997-01-01' AND '1997-12-31'\n  AND employee_id IS NOT NULL\nGROUP BY employee_id\nHAVING COUNT(*) >= 10 AND AVG(freight) > 80\nORDER BY employee_id;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "You want the countries that have at least 5 orders. Where does the condition `COUNT(*) >= 5` go?",
+      "options": [
+        "In WHERE, before GROUP BY",
+        "In HAVING, after GROUP BY",
+        "In ORDER BY",
+        "In the FROM clause"
+      ],
+      "answer": 1,
+      "explanation": "The count of a group exists only after rows are grouped, and WHERE runs before grouping, so it cannot use aggregates. HAVING runs on the finished groups. ORDER BY only sorts and does not remove groups."
+    },
+    {
+      "id": "c2",
+      "question": "One order has a NULL `employee_id`, and eight different employees have orders. How many rows does `SELECT employee_id, COUNT(*) FROM orders GROUP BY employee_id` return?",
+      "options": [
+        "8, because NULL is not a value",
+        "9, because all NULLs form one group",
+        "10, because the NULL row counts twice",
+        "It raises an error because of the NULL"
+      ],
+      "answer": 1,
+      "explanation": "GROUP BY puts all NULLs in one group, so there are 8 employee groups plus one NULL group, 9 rows. It is not an error, and NULL rows are not dropped the way WHERE would drop them."
+    },
+    {
+      "id": "c3",
+      "question": "Which statement fails?",
+      "options": [
+        "SELECT ship_country, COUNT(*) FROM orders GROUP BY ship_country",
+        "SELECT ship_country, COUNT(*) FROM orders GROUP BY ship_country HAVING COUNT(*) > 5",
+        "SELECT ship_country, ship_via, COUNT(*) FROM orders GROUP BY ship_country",
+        "SELECT COUNT(*) FROM orders GROUP BY ship_country"
+      ],
+      "answer": 2,
+      "explanation": "ship_via is neither a grouping column nor inside an aggregate, so one Germany group would need several ship_via values in one cell. PostgreSQL rejects it. The last query is valid: grouping columns need not be selected, though the result is hard to read."
+    },
+    {
+      "id": "c4",
+      "question": "Which description matches `SELECT category_id, COUNT(*) FROM products WHERE unit_price > 20 GROUP BY category_id HAVING COUNT(*) > 3`?",
+      "options": [
+        "Count all products per category, then keep categories whose price is over 20",
+        "Keep products over 20, group them by category, then keep categories with more than 3 such products",
+        "Keep categories with more than 3 products, then keep products over 20",
+        "Group first, then count only products over 20 inside each category, keeping all categories"
+      ],
+      "answer": 1,
+      "explanation": "The logical order is WHERE, then GROUP BY, then HAVING. The count therefore only includes products priced over 20, and HAVING removes categories whose count of those products is 3 or less. The last option is wrong because categories with a count of 3 or less disappear."
+    },
+    {
+      "id": "c5",
+      "question": "A query selects `COUNT(*) AS orders` and ends with `HAVING orders >= 5`. What happens in PostgreSQL?",
+      "options": [
+        "It works, because HAVING can use any alias",
+        "It fails, because the alias does not exist yet when HAVING runs; write HAVING COUNT(*) >= 5",
+        "It works only if the alias is in capital letters",
+        "It returns every group, because HAVING ignores aliases"
+      ],
+      "answer": 1,
+      "explanation": "SELECT is evaluated after HAVING, so aliases defined in it are not visible. PostgreSQL reports that the column does not exist. ORDER BY comes after SELECT, which is why it can use aliases."
+    },
+    {
+      "id": "c6",
+      "question": "Customers per country: Brazil 9, France 11, Germany 11, UK 7, USA 13, and every other country fewer than 7. How many rows does a query ending in `GROUP BY country HAVING COUNT(*) >= 7` return?",
+      "options": [
+        "3",
+        "4",
+        "5",
+        "All 21 countries"
+      ],
+      "answer": 2,
+      "explanation": "Five countries have at least 7 customers: Brazil, France, Germany, UK and USA. HAVING removes the other countries entirely. The groups with exactly 7 count because the test is >=."
+    }
+  ]
+}

@@ -61,6 +61,9 @@ import { InterviewSetPage, InterviewSetsPage } from "./pages/InterviewSetPages";
 import { AchievementsPage } from "./pages/AchievementsPage";
 import { AnswerPracticePage, CareerPage, CompanyPrepPage, PlannerPage, PortfolioPage } from "./pages/CareerPages";
 import { COMPANY_TYPES } from "./lib/career";
+import { DailyLessonPage, DailyPage } from "./pages/DailyPages";
+import { CURRICULUM, dayHref, findDay, linksFor, loadDay, type PathId } from "./lib/daily";
+import { resolveLinks } from "./lib/dailyLinks";
 
 export interface SiteRoute {
   path: string;
@@ -92,7 +95,28 @@ const careerData = async (): Promise<PageData> => {
   };
 };
 
+/** One Daily Learning day: its lesson (if written) and links into existing notes, questions and projects. */
+const dailyDay = async (path: PathId, n: string | undefined): Promise<PageData | null> => {
+  const day = findDay(path, Number(n));
+  if (!day) return null;
+  const dailyContent = await loadDay(day.id);
+  return { ...(await base()), dailyContent, dailyLinks: await resolveLinks(linksFor(day, dailyContent)) };
+};
+
 export const routes: SiteRoute[] = [
+  { path: "/daily", element: <DailyPage />, load: base, paths: one("/daily") },
+  {
+    path: "/daily/day/:n",
+    element: <DailyLessonPage />,
+    load: (params) => dailyDay("common", params.n),
+    paths: async () => CURRICULUM.days.filter((d) => d.path === "common").map(dayHref),
+  },
+  {
+    path: "/daily/:path/day/:n",
+    element: <DailyLessonPage />,
+    load: (params) => (params.path === "analyst" || params.path === "engineer" ? dailyDay(params.path, params.n) : Promise.resolve(null)),
+    paths: async () => CURRICULUM.days.filter((d) => d.path !== "common").map(dayHref),
+  },
   {
     path: "/",
     element: <HomePage />,

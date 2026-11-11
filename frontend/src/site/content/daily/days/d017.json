@@ -1,0 +1,176 @@
+{
+  "id": "d017",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-lambdas",
+      "python-functions"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "sort-products-price-name",
+      "top-k-largest"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Lambda twin",
+      "prompt": "Write a lambda called `square` that returns its argument times itself, then print `square(7)` and `square(1.5)`.",
+      "starter": "# write square as a lambda\n",
+      "solution": "square = lambda x: x * x\nprint(square(7))\nprint(square(1.5))\n",
+      "hints": [
+        "A lambda is written `lambda parameter: expression`.",
+        "There is no `return`; the expression is the result.",
+        "`square = lambda x: x * x`."
+      ],
+      "kind": "python",
+      "expected": "49\n2.25"
+    },
+    {
+      "id": "g2",
+      "title": "Map to uppercase initials",
+      "prompt": "`names` is `[\"ada lovelace\", \"grace hopper\", \"alan turing\"]`. Use `map` with a lambda that returns the upper-case first letter of each name, and print the resulting list.",
+      "starter": "names = [\"ada lovelace\", \"grace hopper\", \"alan turing\"]\n",
+      "solution": "names = [\"ada lovelace\", \"grace hopper\", \"alan turing\"]\nprint(list(map(lambda n: n[0].upper(), names)))\n",
+      "hints": [
+        "`map(function, items)` applies the function to every item; wrap it in `list()`.",
+        "The function takes one name and returns its first character in upper case.",
+        "`list(map(lambda n: n[0].upper(), names))`."
+      ],
+      "kind": "python",
+      "expected": "['A', 'G', 'A']"
+    },
+    {
+      "id": "g3",
+      "title": "Filter the passes",
+      "prompt": "`marks` is `[45, 72, 38, 90, 51, 49]`. Use `filter` with a lambda to keep the marks of 50 or more, and print the list of those marks, then how many there are.",
+      "starter": "marks = [45, 72, 38, 90, 51, 49]\n",
+      "solution": "marks = [45, 72, 38, 90, 51, 49]\npasses = list(filter(lambda m: m >= 50, marks))\nprint(passes)\nprint(len(passes))\n",
+      "hints": [
+        "`filter` keeps the items for which the function returns True.",
+        "The lambda is `lambda m: m >= 50`.",
+        "Convert with `list()` before using `len()`."
+      ],
+      "kind": "python",
+      "expected": "[72, 90, 51]\n3"
+    },
+    {
+      "id": "g4",
+      "title": "Sort by last letter",
+      "prompt": "`words` is `[\"data\", \"sql\", \"python\", \"loop\"]`. Print the words sorted by their last letter (use `key=lambda w: w[-1]`), then print the words sorted by length from longest to shortest.",
+      "starter": "words = [\"data\", \"sql\", \"python\", \"loop\"]\n",
+      "solution": "words = [\"data\", \"sql\", \"python\", \"loop\"]\nprint(sorted(words, key=lambda w: w[-1]))\nprint(sorted(words, key=len, reverse=True))\n",
+      "hints": [
+        "`sorted` takes a `key` function that computes the value to compare.",
+        "A negative index gets the last character: `w[-1]`.",
+        "The second line is `sorted(words, key=len, reverse=True)`; equal lengths keep their original order."
+      ],
+      "kind": "python",
+      "expected": "['data', 'sql', 'python', 'loop']\n['python', 'data', 'loop', 'sql']"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Top earners",
+      "prompt": "`staff` is `[{\"name\": \"Ada\", \"dept\": \"IT\", \"pay\": 5200}, {\"name\": \"Bo\", \"dept\": \"HR\", \"pay\": 3900}, {\"name\": \"Cy\", \"dept\": \"IT\", \"pay\": 6100}, {\"name\": \"Di\", \"dept\": \"HR\", \"pay\": 4300}, {\"name\": \"Ed\", \"dept\": \"IT\", \"pay\": 4800}]`. Print, one per line: the names of the IT staff sorted by pay from highest to lowest as a list (use `filter`, `sorted` and `map`); the name of the best paid person overall (`max` with a key); and the staff sorted by department then pay descending, printed as `dept name` pairs, one per line.",
+      "starter": "staff = [{\"name\": \"Ada\", \"dept\": \"IT\", \"pay\": 5200}, {\"name\": \"Bo\", \"dept\": \"HR\", \"pay\": 3900}, {\"name\": \"Cy\", \"dept\": \"IT\", \"pay\": 6100}, {\"name\": \"Di\", \"dept\": \"HR\", \"pay\": 4300}, {\"name\": \"Ed\", \"dept\": \"IT\", \"pay\": 4800}]\n",
+      "solution": "staff = [{\"name\": \"Ada\", \"dept\": \"IT\", \"pay\": 5200}, {\"name\": \"Bo\", \"dept\": \"HR\", \"pay\": 3900}, {\"name\": \"Cy\", \"dept\": \"IT\", \"pay\": 6100}, {\"name\": \"Di\", \"dept\": \"HR\", \"pay\": 4300}, {\"name\": \"Ed\", \"dept\": \"IT\", \"pay\": 4800}]\nit = filter(lambda s: s[\"dept\"] == \"IT\", staff)\nit_sorted = sorted(it, key=lambda s: s[\"pay\"], reverse=True)\nprint(list(map(lambda s: s[\"name\"], it_sorted)))\nprint(max(staff, key=lambda s: s[\"pay\"])[\"name\"])\nfor s in sorted(staff, key=lambda s: (s[\"dept\"], -s[\"pay\"])):\n    print(s[\"dept\"], s[\"name\"])\n",
+      "kind": "python",
+      "expected": "['Cy', 'Ada', 'Ed']\nCy\nHR Di\nHR Bo\nIT Cy\nIT Ada\nIT Ed"
+    },
+    {
+      "id": "i2",
+      "title": "Clean and rank words",
+      "prompt": "`raw` is `[\"  Python \", \"sql\", \"\", \"  DATA\", \"  \", \"Loop\"]`. Using `map`, `filter` and `sorted` only (no loops): strip every item and lower-case it, drop the empty results, then print the list sorted by length and then alphabetically (key is a tuple), and finally print the longest word with `max` and `key=len`.",
+      "starter": "raw = [\"  Python \", \"sql\", \"\", \"  DATA\", \"  \", \"Loop\"]\n",
+      "solution": "raw = [\"  Python \", \"sql\", \"\", \"  DATA\", \"  \", \"Loop\"]\ncleaned = list(filter(None, map(lambda s: s.strip().lower(), raw)))\nprint(sorted(cleaned, key=lambda w: (len(w), w)))\nprint(max(cleaned, key=len))\n",
+      "kind": "python",
+      "expected": "['sql', 'data', 'loop', 'python']\npython"
+    },
+    {
+      "id": "i3",
+      "title": "Stable tie-breaking (stretch)",
+      "prompt": "`scores` is `[(\"Ada\", 90), (\"Bo\", 85), (\"Cy\", 90), (\"Di\", 85), (\"Ed\", 70)]`. Sort the pairs by score from highest to lowest while keeping the original order for equal scores, using one `sorted` call with `reverse=True` (remember that reversing keeps ties in their original order). Print the names in that order as a list. Then print the names sorted by score ascending and, for ties, by name descending. (Hint: a key can negate numbers but not strings; sort twice, using stability: first by name descending, then by score ascending.)",
+      "starter": "scores = [(\"Ada\", 90), (\"Bo\", 85), (\"Cy\", 90), (\"Di\", 85), (\"Ed\", 70)]\n",
+      "solution": "scores = [(\"Ada\", 90), (\"Bo\", 85), (\"Cy\", 90), (\"Di\", 85), (\"Ed\", 70)]\nhigh_first = sorted(scores, key=lambda p: p[1], reverse=True)\nprint(list(map(lambda p: p[0], high_first)))\nby_name_desc = sorted(scores, key=lambda p: p[0], reverse=True)\nfinal = sorted(by_name_desc, key=lambda p: p[1])\nprint(list(map(lambda p: p[0], final)))\n",
+      "kind": "python",
+      "expected": "['Ada', 'Cy', 'Bo', 'Di', 'Ed']\n['Ed', 'Di', 'Bo', 'Cy', 'Ada']",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `print(map(len, [\"a\", \"bb\"]))` show?",
+      "options": [
+        "`[1, 2]`",
+        "`<map object at 0x...>`",
+        "`(1, 2)`",
+        "`2`"
+      ],
+      "answer": 1,
+      "explanation": "`map` returns a lazy object, so printing it shows its description, not the results. Wrap it in `list()` to see `[1, 2]`."
+    },
+    {
+      "id": "c2",
+      "question": "Which is a valid way to sort `words` by length?",
+      "options": [
+        "`sorted(words, key=len())`",
+        "`sorted(words, key=len)`",
+        "`sorted(words, len)`",
+        "`sorted(words.len)`"
+      ],
+      "answer": 1,
+      "explanation": "`key` takes the function itself, with no brackets. `len()` would call it with no argument and fail."
+    },
+    {
+      "id": "c3",
+      "question": "What does this print?\n\n```python\nprint(list(filter(lambda n: n % 2, [1, 2, 3, 4, 5])))\n```",
+      "options": [
+        "`[2, 4]`",
+        "`[1, 3, 5]`",
+        "`[1, 2, 3, 4, 5]`",
+        "`[]`"
+      ],
+      "answer": 1,
+      "explanation": "`n % 2` is 1 (truthy) for odd numbers and 0 (falsy) for even numbers, so `filter` keeps the odd ones."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\nprint(sorted([\"bb\", \"a\", \"cc\", \"d\"], key=len))\n```",
+      "options": [
+        "`['a', 'bb', 'cc', 'd']`",
+        "`['a', 'd', 'bb', 'cc']`",
+        "`['bb', 'cc', 'a', 'd']`",
+        "`['d', 'cc', 'bb', 'a']`"
+      ],
+      "answer": 1,
+      "explanation": "Items of length 1 come first, then length 2. Equal lengths keep their original order because the sort is stable, so `a` before `d` and `bb` before `cc`."
+    },
+    {
+      "id": "c5",
+      "question": "Which of these is not allowed inside a lambda?",
+      "options": [
+        "A conditional expression such as `a if c else b`",
+        "A call to `len()`",
+        "An assignment statement such as `x = 1`",
+        "Arithmetic like `x * 2`"
+      ],
+      "answer": 2,
+      "explanation": "A lambda holds a single expression. Statements such as assignments, loops and `return` are not allowed, although conditional expressions and function calls are expressions."
+    }
+  ]
+}

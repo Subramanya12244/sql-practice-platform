@@ -1,0 +1,173 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Three summaries",
+      "prompt": "For the list `x`, print the mean, the median and the list of modes on one line separated by spaces, using pandas: `print(s.mean(), s.median(), s.mode().tolist())`.",
+      "starter": "import pandas as pd\nx = [1, 2, 2, 3, 10]\ns = pd.Series(x)\nprint(len(s))\n",
+      "solution": "import pandas as pd\nx = [1, 2, 2, 3, 10]\ns = pd.Series(x)\nprint(s.mean(), s.median(), s.mode().tolist())\n",
+      "hints": [
+        "pandas has one method for each of the three summaries.",
+        "`mean()`, `median()` and `mode()`; the mode comes back as a series.",
+        "Convert the mode to a list with `.tolist()` to print it."
+      ],
+      "kind": "python",
+      "expected": "3.6 2.0 [2]"
+    },
+    {
+      "id": "g2",
+      "title": "Median by hand",
+      "prompt": "Compute the median of the list `x` without `statistics` or pandas: sort it, and if the length is even average the two middle values. Print the result.",
+      "starter": "x = [7, 1, 9, 3]\nprint(sorted(x))\n",
+      "solution": "x = [7, 1, 9, 3]\ns = sorted(x)\nmid = len(s) // 2\nmedian = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]\nprint(median)\n",
+      "hints": [
+        "Sort the list first.",
+        "With 4 values the two middle ones are at positions 1 and 2, which is `len(s) // 2 - 1` and `len(s) // 2`.",
+        "Average them: `(s[mid - 1] + s[mid]) / 2`."
+      ],
+      "kind": "python",
+      "expected": "5.0"
+    },
+    {
+      "id": "g3",
+      "title": "A percentile",
+      "prompt": "Print the 80th percentile of `x` using `np.percentile`, then print the position `(n - 1) * 80 / 100` you would use to find it by hand, on a second line.",
+      "starter": "import numpy as np\nx = [5, 10, 15, 20, 25, 30]\nprint(len(x))\n",
+      "solution": "import numpy as np\nx = [5, 10, 15, 20, 25, 30]\nprint(np.percentile(x, 80))\nprint((len(x) - 1) * 80 / 100)\n",
+      "hints": [
+        "`np.percentile` expects the percentage from 0 to 100.",
+        "The first argument is the data, the second is 80.",
+        "The position is `(len(x) - 1) * 80 / 100`."
+      ],
+      "kind": "python",
+      "expected": "25.0\n4.0"
+    },
+    {
+      "id": "g4",
+      "title": "Mean against median",
+      "prompt": "Print two lines for `wages`: the mean and the median. Then print `skewed` on a third line when the mean is more than 1.5 times the median, otherwise `balanced`.",
+      "starter": "import pandas as pd\nwages = pd.Series([30, 32, 35, 36, 40, 250])\nprint(wages.sum())\n",
+      "solution": "import pandas as pd\nwages = pd.Series([30, 32, 35, 36, 40, 250])\nprint(wages.mean())\nprint(wages.median())\nprint(\"skewed\" if wages.mean() > 1.5 * wages.median() else \"balanced\")\n",
+      "hints": [
+        "Compute both summaries first.",
+        "Compare the mean with 1.5 times the median.",
+        "Use `\"skewed\" if wages.mean() > 1.5 * wages.median() else \"balanced\"`."
+      ],
+      "kind": "python",
+      "expected": "70.5\n35.5\nskewed"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Report with and without the outlier",
+      "prompt": "`days` holds delivery times. Print four lines: the mean and median (mean rounded to 2 places), the 90th percentile (`quantile(0.9)`, rounded to 2), the list of values strictly above the 90th percentile, and the mean after removing those values (rounded to 2).",
+      "starter": "import pandas as pd\ndays = pd.Series([3, 4, 4, 5, 5, 5, 6, 7, 8, 9, 10, 60])\nprint(days.sum())\n",
+      "solution": "import pandas as pd\ndays = pd.Series([3, 4, 4, 5, 5, 5, 6, 7, 8, 9, 10, 60])\nprint(round(days.mean(), 2), days.median())\ncut = days.quantile(0.9)\nprint(round(cut, 2))\nprint(days[days > cut].tolist())\nprint(round(days[days <= cut].mean(), 2))\n",
+      "kind": "python",
+      "expected": "10.5 5.5\n9.9\n[10, 60]\n5.6"
+    },
+    {
+      "id": "i2",
+      "title": "Percentile function and check",
+      "prompt": "Write `percentile(values, p)` that sorts the values, computes the position `(n - 1) * p / 100`, and interpolates linearly between the two neighbouring values (return the last value when there is no upper neighbour). Print `percentile(x, p)` rounded to 2 places for p = 10, 50 and 95 on three lines, then print `True` if all three match `np.percentile` rounded to 2 places.",
+      "starter": "import numpy as np\nx = [12, 7, 30, 18, 25, 9, 41, 15]\nprint(sorted(x))\n",
+      "solution": "import numpy as np\n\ndef percentile(values, p):\n    s = sorted(values)\n    pos = (len(s) - 1) * p / 100\n    lo = int(pos)\n    if lo + 1 >= len(s):\n        return s[-1]\n    return s[lo] + (pos - lo) * (s[lo + 1] - s[lo])\n\nx = [12, 7, 30, 18, 25, 9, 41, 15]\nmine = [round(percentile(x, p), 2) for p in (10, 50, 95)]\nfor v in mine:\n    print(v)\nprint(mine == [round(float(np.percentile(x, p)), 2) for p in (10, 50, 95)])\n",
+      "kind": "python",
+      "expected": "8.4\n16.5\n37.15\nTrue"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: choose the summary per group",
+      "required": false,
+      "prompt": "For each `shop` in `t`, compute the mean and median `sale`, rounded to 1 place, into a table with those two columns. Add a column `typical` holding `\"mean\"` when the mean is within 20% of the median (absolute difference at most 0.2 times the median) and `\"median\"` otherwise. Print the table with `to_string()`.",
+      "starter": "import pandas as pd\nt = pd.DataFrame({\"shop\": list(\"AAAABBBB\"), \"sale\": [10, 11, 12, 13, 10, 11, 12, 200]})\nprint(t.shape)\n",
+      "solution": "import pandas as pd\nt = pd.DataFrame({\"shop\": list(\"AAAABBBB\"), \"sale\": [10, 11, 12, 13, 10, 11, 12, 200]})\nr = t.groupby(\"shop\")[\"sale\"].agg([\"mean\", \"median\"])\nr[\"typical\"] = (r[\"mean\"] - r[\"median\"]).abs().le(0.2 * r[\"median\"]).map({True: \"mean\", False: \"median\"})\nr[[\"mean\", \"median\"]] = r[[\"mean\", \"median\"]].round(1)\nprint(r.to_string())\n",
+      "kind": "python",
+      "expected": "      mean  median typical\nshop                      \nA     11.5    11.5    mean\nB     58.2    11.5  median"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "The values are 1, 2, 3, 4, 100. Which statement is true?",
+      "options": [
+        "Mean 22, median 3",
+        "Mean 3, median 22",
+        "Mean 22, median 22",
+        "Mean 3, median 3"
+      ],
+      "answer": 0,
+      "explanation": "The sum is 110 and there are 5 values, so the mean is 22. The middle sorted value is 3. The mean is pulled up by 100, the median is not."
+    },
+    {
+      "id": "c2",
+      "question": "`np.percentile([10, 20, 30, 40, 100], 90)` returns what?",
+      "options": [
+        "40",
+        "76.0",
+        "100",
+        "90"
+      ],
+      "answer": 1,
+      "explanation": "The position is (5 - 1) * 0.9 = 3.6, between 40 and 100: 40 + 0.6 * 60 = 76. Taking the nearest value (40 or 100) ignores the interpolation that NumPy uses."
+    },
+    {
+      "id": "c3",
+      "question": "Which summary of a categorical column such as payment method is meaningful?",
+      "options": [
+        "Mean",
+        "Median",
+        "Mode",
+        "90th percentile"
+      ],
+      "answer": 2,
+      "explanation": "Only the mode (most frequent value) needs no arithmetic or ordering of the values. Mean and percentiles need numbers; the median needs an order."
+    },
+    {
+      "id": "c4",
+      "question": "A column has mean 120 and median 45. What does this suggest?",
+      "options": [
+        "A long tail of large values",
+        "Symmetric data",
+        "Many missing values",
+        "A typing error in every row"
+      ],
+      "answer": 0,
+      "explanation": "A mean far above the median is the classic sign of right skew: a few large values pull the mean up. Symmetric data has mean close to median. Missing values are skipped by both."
+    },
+    {
+      "id": "c5",
+      "question": "You find one amount of 100000 where all others are below 500. What is the right first step?",
+      "options": [
+        "Delete it",
+        "Investigate whether it is an error or a real order",
+        "Replace it with the mean",
+        "Use only the mean from now on"
+      ],
+      "answer": 1,
+      "explanation": "Decide on the cause first: an error should be corrected or rejected with a note, and a real order should be kept and handled with a robust summary. Deleting or replacing it without knowing changes the totals."
+    }
+  ],
+  "id": "d086"
+}

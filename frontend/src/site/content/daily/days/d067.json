@@ -1,0 +1,174 @@
+{
+  "id": "d067",
+  "time": {
+    "theory": 25,
+    "examples": 25,
+    "guided": 30,
+    "independent": 60,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Flag the bad readings",
+      "prompt": "The setup below builds a 20 by 3 table of readings with three placeholder values `-1` and one spike of `500.0`. Create `bad`, a mask that is true for readings equal to `-1` or greater than 100. Print the total number of bad readings on line 1 and the number of bad readings per column as a list on line 2.",
+      "starter": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\n",
+      "solution": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\nbad = (raw == -1) | (raw > 100)\nprint(bad.sum())\nprint(bad.sum(axis=0).tolist())\n",
+      "hints": [
+        "Combine two comparisons with `|` and put each in parentheses.",
+        "`bad.sum()` counts the `True` values; `axis=0` counts per column.",
+        "`bad = (raw == -1) | (raw > 100)`, then `bad.sum()` and `bad.sum(axis=0).tolist()`."
+      ],
+      "kind": "python",
+      "expected": "4\n[1, 2, 1]"
+    },
+    {
+      "id": "g2",
+      "title": "Clean on a copy",
+      "prompt": "Using the same setup, make `clean` as a copy of `raw` where every bad reading (`-1` or above 100) is `np.nan`. Print the number of `nan` values in `clean` on line 1 and the minimum value in `raw` on line 2, to show the raw data was not changed.",
+      "starter": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\n",
+      "solution": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\nclean = raw.copy()\nclean[(raw == -1) | (raw > 100)] = np.nan\nprint(int(np.isnan(clean).sum()))\nprint(raw.min())\n",
+      "hints": [
+        "Copy first so that `raw` is not modified.",
+        "Assign `np.nan` through a mask: `clean[mask] = np.nan`.",
+        "`clean = raw.copy()`, `clean[(raw == -1) | (raw > 100)] = np.nan`, then print `int(np.isnan(clean).sum())` and `raw.min()`."
+      ],
+      "kind": "python",
+      "expected": "4\n-1.0"
+    },
+    {
+      "id": "g3",
+      "title": "Per-sensor means",
+      "prompt": "Using the setup and the cleaned copy (bad readings replaced by `nan`), print the per-column mean of `clean` ignoring the gaps, rounded to 2 decimals, as a list on line 1, and the per-column maximum ignoring gaps as a list on line 2.",
+      "starter": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\nclean = raw.copy()\nclean[(raw == -1) | (raw > 100)] = np.nan\n",
+      "solution": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\nclean = raw.copy()\nclean[(raw == -1) | (raw > 100)] = np.nan\nprint(np.round(np.nanmean(clean, axis=0), 2).tolist())\nprint(np.nanmax(clean, axis=0).tolist())\n",
+      "hints": [
+        "Plain `mean` returns `nan` when a column has gaps; the `nan` versions skip them.",
+        "Use `np.nanmean` and `np.nanmax` with `axis=0` for one number per column.",
+        "`np.round(np.nanmean(clean, axis=0), 2).tolist()` and `np.nanmax(clean, axis=0).tolist()`."
+      ],
+      "kind": "python",
+      "expected": "[9.91, 50.24, 30.07]\n[11.1, 57.8, 32.8]"
+    },
+    {
+      "id": "g4",
+      "title": "Min-max scaling",
+      "prompt": "With the cleaned array `clean` from the setup, compute the min-max scaled table (each column rescaled to the range 0 to 1 with `(x - min) / (max - min)`, ignoring `nan`). Print the first row rounded to 3 decimals as a list, and then the per-column minimum and maximum of the scaled table as two lists.",
+      "starter": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\nclean = raw.copy()\nclean[(raw == -1) | (raw > 100)] = np.nan\n",
+      "solution": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\nclean = raw.copy()\nclean[(raw == -1) | (raw > 100)] = np.nan\nlo = np.nanmin(clean, axis=0)\nhi = np.nanmax(clean, axis=0)\nscaled = (clean - lo) / (hi - lo)\nprint(np.round(scaled[0], 3).tolist())\nprint(np.nanmin(scaled, axis=0).tolist())\nprint(np.nanmax(scaled, axis=0).tolist())\n",
+      "hints": [
+        "You need one minimum and one maximum per column.",
+        "`lo` and `hi` have shape `(3,)` and broadcast over the rows.",
+        "`scaled = (clean - lo) / (hi - lo)` where `lo = np.nanmin(clean, axis=0)` and `hi = np.nanmax(clean, axis=0)`."
+      ],
+      "kind": "python",
+      "expected": "[0.633, 0.94, 0.911]\n[0.0, 0.0, 0.0]\n[1.0, 1.0, 1.0]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Complete cleaning report",
+      "prompt": "Using the setup, build the cleaned copy (bad: `-1` or above 100). Then print one line per column in the form `col <i>: bad <n> mean <m> std <s>`, where `<i>` runs from 0, `<n>` is the number of bad readings, and `<m>` and `<s>` are the mean and population standard deviation of the good readings with 2 decimals (use an f-string with `:.2f`). Finally print `Bad share: <p>%` with the percentage of all readings that were bad, using 1 decimal.",
+      "starter": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\n",
+      "solution": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\nbad = (raw == -1) | (raw > 100)\nclean = raw.copy()\nclean[bad] = np.nan\nmeans = np.nanmean(clean, axis=0)\nstds = np.nanstd(clean, axis=0)\nfor i in range(raw.shape[1]):\n    print(f\"col {i}: bad {bad[:, i].sum()} mean {means[i]:.2f} std {stds[i]:.2f}\")\nprint(f\"Bad share: {bad.mean() * 100:.1f}%\")\n",
+      "kind": "python",
+      "expected": "col 0: bad 1 mean 9.91 std 0.96\ncol 1: bad 2 mean 50.24 std 4.65\ncol 2: bad 1 mean 30.07 std 1.23\nBad share: 6.7%"
+    },
+    {
+      "id": "i2",
+      "title": "Z-scores and outlier hours",
+      "prompt": "Using the setup and the cleaned copy, compute z-scores per column, `(clean - mean) / std`, with the `nan`-aware mean and population standard deviation. Print, on separate lines: whether every column's z-score mean is close to 0 and std close to 1 (`True` or `False` from one `np.allclose` call each, joined on one line with a space); the number of readings whose absolute z-score is above 1.5 (ignore `nan`, which compares as False); and the row numbers (hours) in which at least one reading has an absolute z-score above 1.5, as a list. Use a comprehension over the rows of the mask, `bool(row.any())`, or `np.flatnonzero`.",
+      "starter": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\n",
+      "solution": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\nclean = raw.copy()\nclean[(raw == -1) | (raw > 100)] = np.nan\nz = (clean - np.nanmean(clean, axis=0)) / np.nanstd(clean, axis=0)\nprint(np.allclose(np.nanmean(z, axis=0), 0), np.allclose(np.nanstd(z, axis=0), 1))\nbig = np.abs(z) > 1.5\nprint(int(big.sum()))\nprint([i for i, row in enumerate(big) if row.any()])\n",
+      "kind": "python",
+      "expected": "True True\n6\n[0, 3, 8, 16, 19]"
+    },
+    {
+      "id": "i3",
+      "title": "Daily profile and best hour",
+      "required": false,
+      "prompt": "Using the setup and the cleaned copy, treat the 20 rows as two blocks of 10 hours (rows 0 to 9 and 10 to 19). Print the per-column mean of each block rounded to 2 decimals as two lists (first block, then second block), the difference between the blocks (second minus first) rounded to 2 as a list, and the row and column of the largest scaled value of the whole table. For the last line, scale each column to 0 to 1, locate the maximum with `np.nanargmax` and `np.unravel_index`, and print the two numbers as a list of integers.",
+      "starter": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\n",
+      "solution": "import numpy as np\n\nrng = np.random.default_rng(11)\nraw = np.round(rng.normal(loc=[10, 50, 30], scale=[1, 5, 2], size=(20, 3)), 1)\nraw[[2, 7, 15], [0, 2, 1]] = -1\nraw[[9], [1]] = 500.0\nclean = raw.copy()\nclean[(raw == -1) | (raw > 100)] = np.nan\na = np.nanmean(clean[:10], axis=0)\nb = np.nanmean(clean[10:], axis=0)\nprint(np.round(a, 2).tolist())\nprint(np.round(b, 2).tolist())\nprint(np.round(b - a, 2).tolist())\nlo = np.nanmin(clean, axis=0)\nhi = np.nanmax(clean, axis=0)\nscaled = (clean - lo) / (hi - lo)\nr, c = np.unravel_index(np.nanargmax(scaled), scaled.shape)\nprint([int(r), int(c)])\n",
+      "kind": "python",
+      "expected": "[9.34, 51.94, 29.88]\n[10.42, 48.53, 30.25]\n[1.08, -3.41, 0.37]\n[3, 1]"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why is the raw array copied before cleaning?",
+      "options": [
+        "`nan` cannot be assigned to the original",
+        "So that the raw data stays available and unchanged",
+        "Copies run faster",
+        "Masks only work on copies"
+      ],
+      "answer": 1,
+      "explanation": "Assignment through a mask changes an array in place. Cleaning a copy keeps the raw data for audit and for re-running with a different rule. Masks work on any array, and copying is not about speed."
+    },
+    {
+      "id": "c2",
+      "question": "What does `np.nanmean(np.array([2.0, np.nan, 4.0]))` return?",
+      "options": [
+        "nan",
+        "3.0",
+        "2.0",
+        "6.0"
+      ],
+      "answer": 1,
+      "explanation": "`nanmean` skips the missing value and averages 2.0 and 4.0, which gives 3.0. The ordinary mean would return `nan`; 6.0 is the sum of the existing values."
+    },
+    {
+      "id": "c3",
+      "question": "For a table of shape (48, 4), what is the shape of `np.nanmean(clean, axis=0)`?",
+      "options": [
+        "(48,)",
+        "(4,)",
+        "(48, 4)",
+        "(1,)"
+      ],
+      "answer": 1,
+      "explanation": "`axis=0` removes the length-48 axis, leaving one average per column, shape `(4,)`. `(48,)` is what `axis=1` would give, one per row."
+    },
+    {
+      "id": "c4",
+      "question": "After z-score standardisation of a column, what should its mean and standard deviation be?",
+      "options": [
+        "Mean 1 and standard deviation 0",
+        "Mean 0 and standard deviation 1",
+        "Mean 0.5 and standard deviation 0.5",
+        "They keep their original values"
+      ],
+      "answer": 1,
+      "explanation": "A z-score subtracts the mean and divides by the standard deviation, so the new column is centred on 0 with spread 1 (to within rounding). Min-max scaling, not z-scoring, is the method that targets the range 0 to 1."
+    },
+    {
+      "id": "c5",
+      "question": "Why does `clean == np.nan` fail to find the missing values?",
+      "options": [
+        "`nan` is always equal to itself",
+        "`nan` is never equal to anything, even itself, so the comparison is always False",
+        "`==` is not allowed on floats",
+        "It works only on integer arrays"
+      ],
+      "answer": 1,
+      "explanation": "By definition, `nan` compares unequal to every value including itself, so `==` never finds it. `np.isnan(clean)` is the correct test."
+    }
+  ]
+}

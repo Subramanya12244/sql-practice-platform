@@ -1,0 +1,186 @@
+{
+  "id": "d072",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "One condition",
+      "prompt": "Print the rows of `df` whose salary is above 4500 with `print(...)`, then on a new line the number of such rows.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"IT\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 6100], \"age\": [31, 45, 29, 52, 38, 41]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"IT\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 6100], \"age\": [31, 45, 29, 52, 38, 41]})\nmask = df[\"salary\"] > 4500\nprint(df[mask])\nprint(mask.sum())\n",
+      "hints": [
+        "A comparison on a column gives a mask.",
+        "Put the mask inside `df[...]`; summing the mask counts the `True` values.",
+        "`mask = df[\"salary\"] > 4500`, `print(df[mask])`, `print(mask.sum())`."
+      ],
+      "kind": "python",
+      "expected": "  name dept  salary  age\n0  Ana   IT    5000   31\n2   Cy   IT    5300   29\n5  Flo   IT    6100   41\n3"
+    },
+    {
+      "id": "g2",
+      "title": "Two conditions",
+      "prompt": "Print the list of names of employees who work in `IT` and are younger than 40, on line 1, and the list of names of those who work in `HR` or earn more than 6000 on line 2.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"IT\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 6100], \"age\": [31, 45, 29, 52, 38, 41]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"IT\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 6100], \"age\": [31, 45, 29, 52, 38, 41]})\nprint(df[(df[\"dept\"] == \"IT\") & (df[\"age\"] < 40)][\"name\"].tolist())\nprint(df[(df[\"dept\"] == \"HR\") | (df[\"salary\"] > 6000)][\"name\"].tolist())\n",
+      "hints": [
+        "Use `&` for and and `|` for or, not the words.",
+        "Put each condition in parentheses.",
+        "`df[(df[\"dept\"] == \"IT\") & (df[\"age\"] < 40)][\"name\"].tolist()` and the `|` version."
+      ],
+      "kind": "python",
+      "expected": "['Ana', 'Cy']\n['Ben', 'Ed', 'Flo']"
+    },
+    {
+      "id": "g3",
+      "title": "isin and between",
+      "prompt": "Print the names of employees whose department is `HR` or `Ops` (use `isin`) on line 1, and the names of those whose salary is between 4200 and 5300 inclusive (use `between`) on line 2, both as lists.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"IT\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 6100], \"age\": [31, 45, 29, 52, 38, 41]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"IT\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 6100], \"age\": [31, 45, 29, 52, 38, 41]})\nprint(df[df[\"dept\"].isin([\"HR\", \"Ops\"])][\"name\"].tolist())\nprint(df[df[\"salary\"].between(4200, 5300)][\"name\"].tolist())\n",
+      "hints": [
+        "`isin` takes a list of allowed values.",
+        "`between(a, b)` includes both ends.",
+        "`df[df[\"dept\"].isin([\"HR\", \"Ops\"])][\"name\"].tolist()` and `df[df[\"salary\"].between(4200, 5300)][\"name\"].tolist()`."
+      ],
+      "kind": "python",
+      "expected": "['Ben', 'Di', 'Ed']\n['Ana', 'Ben', 'Cy', 'Ed']"
+    },
+    {
+      "id": "g4",
+      "title": "The same with query",
+      "prompt": "With `query`, print the list of names of employees in `IT` who earn at least 5300 on line 1. Then set `limit = 4400` and print the list of names of employees earning less than the limit (use `@limit`) on line 2.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"IT\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 6100], \"age\": [31, 45, 29, 52, 38, 41]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"IT\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 6100], \"age\": [31, 45, 29, 52, 38, 41]})\nprint(df.query(\"dept == 'IT' and salary >= 5300\")[\"name\"].tolist())\nlimit = 4400\nprint(df.query(\"salary < @limit\")[\"name\"].tolist())\n",
+      "hints": [
+        "Inside `query` the column names are used directly and `and` is allowed.",
+        "Text values inside the string need their own quotes (single quotes inside double quotes).",
+        "`df.query(\"dept == 'IT' and salary >= 5300\")` and `df.query(\"salary < @limit\")`."
+      ],
+      "kind": "python",
+      "expected": "['Cy', 'Flo']\n['Ben', 'Di']"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Clean and count",
+      "prompt": "The table `df` has an impossible age (-1) and a missing price. Using masks, print on separate lines: the number of rows with a negative age; the names of rows in `Oslo` with a price above 5 (a missing price never qualifies); the number of rows that are not (price above 5), which includes the missing one; and the table of a copy in which the negative age was set to 0 using `loc`, printed with `print(...)`, leaving `df` unchanged.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"a\", \"b\", \"c\", \"d\", \"e\"], \"city\": [\"Oslo\", \"Rome\", \"Oslo\", \"Oslo\", \"Rome\"], \"price\": [7.0, 3.0, None, 5.5, 9.0], \"age\": [30, -1, 41, 25, 52]})\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"a\", \"b\", \"c\", \"d\", \"e\"], \"city\": [\"Oslo\", \"Rome\", \"Oslo\", \"Oslo\", \"Rome\"], \"price\": [7.0, 3.0, None, 5.5, 9.0], \"age\": [30, -1, 41, 25, 52]})\nprint((df[\"age\"] < 0).sum())\nprint(df[(df[\"city\"] == \"Oslo\") & (df[\"price\"] > 5)][\"name\"].tolist())\nprint((~(df[\"price\"] > 5)).sum())\nfixed = df.copy()\nfixed.loc[fixed[\"age\"] < 0, \"age\"] = 0\nprint(fixed)\n",
+      "kind": "python",
+      "expected": "1\n['a', 'd']\n2\n  name  city  price  age\n0    a  Oslo    7.0   30\n1    b  Rome    3.0    0\n2    c  Oslo    NaN   41\n3    d  Oslo    5.5   25\n4    e  Rome    9.0   52"
+    },
+    {
+      "id": "i2",
+      "title": "A report from CSV text",
+      "prompt": "Read the CSV text into `orders`. Print: the shape of the rows with quantity at least 3 in the cities `Oslo` or `Lima` (use `isin`) as a tuple; the total of `qty * price` of those rows rounded to 2 decimals (compute it as `(sub[\"qty\"] * sub[\"price\"]).sum()` for the filtered table `sub`); and the same row count obtained with `query` using `in` and `and`. Finally print the sorted list of ids of the rows that are NOT in those cities.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ntext = \"id,city,qty,price\\n1,Oslo,3,9.5\\n2,Rome,8,4.0\\n3,Oslo,2,12.25\\n4,Lima,5,7.0\\n5,Rome,9,3.5\\n6,Lima,4,8.0\\n\"\norders = pd.read_csv(io.StringIO(text))\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ntext = \"id,city,qty,price\\n1,Oslo,3,9.5\\n2,Rome,8,4.0\\n3,Oslo,2,12.25\\n4,Lima,5,7.0\\n5,Rome,9,3.5\\n6,Lima,4,8.0\\n\"\norders = pd.read_csv(io.StringIO(text))\nsub = orders[orders[\"city\"].isin([\"Oslo\", \"Lima\"]) & (orders[\"qty\"] >= 3)]\nprint(sub.shape)\nprint(round((sub[\"qty\"] * sub[\"price\"]).sum(), 2))\nprint(len(orders.query(\"city in ['Oslo', 'Lima'] and qty >= 3\")))\nprint(sorted(orders[~orders[\"city\"].isin([\"Oslo\", \"Lima\"])][\"id\"].tolist()))\n",
+      "kind": "python",
+      "expected": "(3, 4)\n95.5\n3\n[2, 5]"
+    },
+    {
+      "id": "i3",
+      "title": "Range edges and the opposite mask",
+      "required": false,
+      "prompt": "For `s = pd.Series([1, 5, 10, 15, 20])` print four lines: the list of values between 5 and 15 inclusive; the list of values between 5 and 15 with `inclusive=\"left\"` (5 kept, 15 dropped); the list of values that are not between 5 and 15 inclusive, using `~`; and the share of values greater than 8 as a number rounded to 2 decimals.",
+      "starter": "import pandas as pd\n\ns = pd.Series([1, 5, 10, 15, 20])\n",
+      "solution": "import pandas as pd\n\ns = pd.Series([1, 5, 10, 15, 20])\nprint(s[s.between(5, 15)].tolist())\nprint(s[s.between(5, 15, inclusive=\"left\")].tolist())\nprint(s[~s.between(5, 15)].tolist())\nprint(round((s > 8).mean(), 2))\n",
+      "kind": "python",
+      "expected": "[5, 10, 15]\n[5, 10]\n[1, 20]\n0.6"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which expression keeps rows where `qty` is above 3 and `city` is `Oslo`?",
+      "options": [
+        "df[df[\"qty\"] > 3 and df[\"city\"] == \"Oslo\"]",
+        "df[(df[\"qty\"] > 3) & (df[\"city\"] == \"Oslo\")]",
+        "df[df[\"qty\"] > 3 & df[\"city\"] == \"Oslo\"]",
+        "df[(df[\"qty\"] > 3) + (df[\"city\"] == \"Oslo\")]"
+      ],
+      "answer": 1,
+      "explanation": "Masks combine with `&`, and each condition needs parentheses. `and` raises a ValueError about an ambiguous truth value, and without parentheses `&` binds first and fails. Adding masks behaves like or, not and."
+    },
+    {
+      "id": "c2",
+      "question": "What does `pd.Series([4, 8, 12]).between(4, 8).tolist()` return?",
+      "options": [
+        "[False, True, False]",
+        "[True, True, False]",
+        "[True, False, False]",
+        "[4, 8]"
+      ],
+      "answer": 1,
+      "explanation": "`between` includes both ends by default, so 4 and 8 are true and 12 is false. It returns booleans, not the values."
+    },
+    {
+      "id": "c3",
+      "question": "With the column `price` equal to `[5.0, NaN, 9.0]`, what does `(~(df[\"price\"] > 6)).sum()` return?",
+      "options": [
+        "1",
+        "2",
+        "0",
+        "3"
+      ],
+      "answer": 1,
+      "explanation": "`price > 6` is `[False, False, True]` because a missing value never satisfies a comparison. Negating gives `[True, True, False]`, so two rows. The missing row is included, which is why `~` is not the same as `<= 6`."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\nimport pandas as pd\ndf = pd.DataFrame({\"x\": [1, 2, 3, 4]})\nprint(df[df[\"x\"] > 2].index.tolist())\n```",
+      "options": [
+        "[0, 1]",
+        "[2, 3]",
+        "[3, 4]",
+        "[1, 2]"
+      ],
+      "answer": 1,
+      "explanation": "The rows with x equal to 3 and 4 are kept with their original labels 2 and 3. Filtering does not renumber the index."
+    },
+    {
+      "id": "c5",
+      "question": "In `df.query(\"qty > @limit\")` what does `@limit` mean?",
+      "options": [
+        "A column named limit",
+        "The Python variable `limit`",
+        "A string with the text limit",
+        "A comment"
+      ],
+      "answer": 1,
+      "explanation": "An at sign inside a query string refers to a variable from the surrounding Python code. Without it, `limit` would be looked up among the column names."
+    },
+    {
+      "id": "c6",
+      "question": "What does `df[\"city\"] = \"Oslo\"` do?",
+      "options": [
+        "Keeps the rows where the city is Oslo",
+        "Overwrites the whole column with Oslo",
+        "Raises an error",
+        "Counts the Oslo rows"
+      ],
+      "answer": 1,
+      "explanation": "A single equals sign assigns. It sets every value in the column to `Oslo`. The test for equality is `==`, which gives a mask."
+    }
+  ]
+}

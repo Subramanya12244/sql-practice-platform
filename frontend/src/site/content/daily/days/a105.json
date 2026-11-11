@@ -1,0 +1,187 @@
+{
+  "id": "a105",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "group-and-aggregate"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Sample size for a 5% to 6% lift",
+      "kind": "python",
+      "prompt": "Compute the required users per group for a conversion test with baseline 0.05, target 0.06, alpha 0.05 (two-sided) and power 0.80, using the normal-approximation formula from the lesson. Print `users per group: <n>` where n is rounded up with `np.ceil` and shown as an integer.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\np1, p2 = 0.05, 0.06\n# Your code here\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\np1, p2 = 0.05, 0.06\npbar = (p1 + p2) / 2\nz_a = stats.norm.ppf(1 - 0.05 / 2)\nz_b = stats.norm.ppf(0.80)\ntop = z_a * np.sqrt(2 * pbar * (1 - pbar)) + z_b * np.sqrt(p1 * (1 - p1) + p2 * (1 - p2))\nn = int(np.ceil(top ** 2 / (p2 - p1) ** 2))\nprint(\"users per group:\", n)\n",
+      "hints": [
+        "You need two normal quantiles: one for `1 - alpha / 2` and one for the power.",
+        "`stats.norm.ppf(probability)` returns the z value; the numerator is z_a times sqrt(2 x pbar x (1 - pbar)) plus z_b times sqrt of the two variances summed.",
+        "Square the numerator, divide by `(p2 - p1) ** 2`, then wrap in `int(np.ceil(...))`."
+      ],
+      "expected": "users per group: 8158"
+    },
+    {
+      "id": "g2",
+      "title": "Absolute and relative lift",
+      "kind": "python",
+      "prompt": "Group A converted 240 of 3,000 users and group B converted 285 of 3,000. Print three lines: `A: <rate>`, `B: <rate>` (both as percentages with one decimal, like `8.0%`), and `lift: <absolute> points, <relative> relative` where the absolute lift is in percentage points with 2 decimals and the relative lift is a percentage with 1 decimal, for example `lift: 1.00 points, 12.5% relative`.",
+      "starter": "conv_a, n_a = 240, 3000\nconv_b, n_b = 285, 3000\n# Your code here\n",
+      "solution": "conv_a, n_a = 240, 3000\nconv_b, n_b = 285, 3000\np_a, p_b = conv_a / n_a, conv_b / n_b\nprint(f\"A: {p_a:.1%}\")\nprint(f\"B: {p_b:.1%}\")\nprint(f\"lift: {(p_b - p_a) * 100:.2f} points, {(p_b - p_a) / p_a:.1%} relative\")\n",
+      "hints": [
+        "Divide conversions by users to get each rate.",
+        "The absolute lift is `p_b - p_a`; multiply by 100 to express it in points. The relative lift divides by `p_a`.",
+        "Use f-strings: `{p_a:.1%}` formats a fraction as a percentage."
+      ],
+      "expected": "A: 8.0%\nB: 9.5%\nlift: 1.50 points, 18.8% relative"
+    },
+    {
+      "id": "g3",
+      "title": "SRM check",
+      "kind": "python",
+      "prompt": "An experiment was meant to split users 50/50 and recorded 5,210 users in A and 4,790 in B. Run a goodness-of-fit test against the intended split and print `p = <p-value formatted with .2e>` and then `SRM` if p is below 0.001, otherwise `ok`.",
+      "starter": "from scipy import stats\n\nobserved = [5210, 4790]\n# Your code here\n",
+      "solution": "from scipy import stats\n\nobserved = [5210, 4790]\nexpected = [sum(observed) / 2] * 2\nchi2, p = stats.chisquare(observed, f_exp=expected)\nprint(f\"p = {p:.2e}\")\nprint(\"SRM\" if p < 0.001 else \"ok\")\n",
+      "hints": [
+        "The intended split gives an expected count of half the total in each group.",
+        "`stats.chisquare(observed, f_exp=expected)` returns the statistic and the p-value.",
+        "Print `f\"p = {p:.2e}\"` and then choose the word with a conditional expression."
+      ],
+      "expected": "p = 2.67e-05\nSRM"
+    },
+    {
+      "id": "g4",
+      "title": "Two-proportion z-test",
+      "kind": "python",
+      "prompt": "Test whether 150 conversions out of 2,000 (group A) differ from 190 out of 2,000 (group B). Use `proportions_ztest` with group B first and print `z = <z rounded to 3>` and `p = <p rounded to 4>`.",
+      "starter": "from statsmodels.stats.proportion import proportions_ztest\n\n# Your code here\n",
+      "solution": "from statsmodels.stats.proportion import proportions_ztest\n\nz, p = proportions_ztest([190, 150], [2000, 2000])\nprint(\"z =\", round(z, 3))\nprint(\"p =\", round(p, 4))\n",
+      "hints": [
+        "The function takes a list of conversion counts and a list of group sizes in the same order.",
+        "Put B first so a higher B rate gives a positive z.",
+        "`z, p = proportions_ztest([190, 150], [2000, 2000])`, then print both with `round()`."
+      ],
+      "expected": "z = 2.268\np = 0.0233"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Experiment readout function",
+      "kind": "python",
+      "prompt": "Write a function `readout(conv_a, n_a, conv_b, n_b)` that returns the tuple (absolute lift, p-value, CI low, CI high) using the pooled z-test for the p-value and the unpooled standard error with 1.96 for the interval. Call it with 410 of 5,000 versus 470 of 5,000 and print one line: `lift=<abs lift rounded to 4> p=<rounded to 4> ci=[<low rounded to 4>, <high rounded to 4>]`.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\ndef readout(conv_a, n_a, conv_b, n_b):\n    pass\n\nprint(readout(410, 5000, 470, 5000))\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\ndef readout(conv_a, n_a, conv_b, n_b):\n    p_a, p_b = conv_a / n_a, conv_b / n_b\n    pooled = (conv_a + conv_b) / (n_a + n_b)\n    se = np.sqrt(pooled * (1 - pooled) * (1 / n_a + 1 / n_b))\n    p = 2 * (1 - stats.norm.cdf(abs((p_b - p_a) / se)))\n    se_d = np.sqrt(p_a * (1 - p_a) / n_a + p_b * (1 - p_b) / n_b)\n    diff = p_b - p_a\n    return diff, p, diff - 1.96 * se_d, diff + 1.96 * se_d\n\nlift, p, low, high = readout(410, 5000, 470, 5000)\nprint(f\"lift={lift:.4f} p={p:.4f} ci=[{low:.4f}, {high:.4f}]\")\n",
+      "expected": "lift=0.0120 p=0.0342 ci=[0.0009, 0.0231]"
+    },
+    {
+      "id": "i2",
+      "title": "Sample size table for several baselines",
+      "kind": "python",
+      "prompt": "Write `sample_size(p1, mde)` (alpha 0.05 two-sided, power 0.80, normal-approximation formula from the lesson, rounded up to an integer). For baselines 0.05, 0.10 and 0.20 with an absolute MDE of 0.01, print one line each in the form `<baseline>: <n>` where the baseline is shown with 2 decimals, for example `0.05: 1234`.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\ndef sample_size(p1, mde):\n    pass\n\nfor p1 in (0.05, 0.10, 0.20):\n    print(p1)\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\ndef sample_size(p1, mde):\n    p2 = p1 + mde\n    pbar = (p1 + p2) / 2\n    z_a = stats.norm.ppf(0.975)\n    z_b = stats.norm.ppf(0.80)\n    top = z_a * np.sqrt(2 * pbar * (1 - pbar)) + z_b * np.sqrt(p1 * (1 - p1) + p2 * (1 - p2))\n    return int(np.ceil(top ** 2 / mde ** 2))\n\nfor p1 in (0.05, 0.10, 0.20):\n    print(f\"{p1:.2f}: {sample_size(p1, 0.01)}\")\n",
+      "expected": "0.05: 8158\n0.10: 14751\n0.20: 25583"
+    },
+    {
+      "id": "i3",
+      "title": "Peeking simulation (stretch)",
+      "kind": "python",
+      "prompt": "Simulate 1,000 A/A tests with `rng = np.random.default_rng(3)`. Each test has 4 batches of 500 users per group, true rate 0.2 for both groups; draw `a` and then `b` as `(rng.random((1000, 4, 500)) < 0.2).sum(axis=2).cumsum(axis=1)`. At each look compute the pooled two-proportion z-test p-value. Print `final look only: <share with p<0.05 rounded to 3>` and `any of 4 looks: <share rounded to 3>`.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\nrng = np.random.default_rng(3)\n# Your code here\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\nrng = np.random.default_rng(3)\na = (rng.random((1000, 4, 500)) < 0.2).sum(axis=2).cumsum(axis=1)\nb = (rng.random((1000, 4, 500)) < 0.2).sum(axis=2).cumsum(axis=1)\nn = 500 * np.arange(1, 5)\npa, pb = a / n, b / n\npooled = (a + b) / (2 * n)\nse = np.sqrt(pooled * (1 - pooled) * 2 / n)\np = 2 * (1 - stats.norm.cdf(np.abs((pb - pa) / se)))\nprint(\"final look only:\", round((p[:, -1] < 0.05).mean(), 3))\nprint(\"any of 4 looks:\", round((p < 0.05).any(axis=1).mean(), 3))\n",
+      "expected": "final look only: 0.053\nany of 4 looks: 0.118",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "You want to detect an effect half as large as the one you planned for. Roughly how does the required sample size per group change?",
+      "options": [
+        "It halves",
+        "It stays the same",
+        "It about quadruples",
+        "It about doubles"
+      ],
+      "answer": 2,
+      "explanation": "The sample size depends on 1 / effect squared. Halving the effect makes the denominator four times smaller, so the requirement rises about four times. Doubling would be right only if n were proportional to 1 / effect."
+    },
+    {
+      "id": "c2",
+      "question": "Conversion goes from 8% to 9%. Which description is correct?",
+      "options": [
+        "+1% lift",
+        "+1 percentage point absolute, +12.5% relative",
+        "+12.5 percentage points",
+        "+9% relative"
+      ],
+      "answer": 1,
+      "explanation": "The absolute difference is 0.01, one percentage point. Relative lift divides it by the baseline 0.08, giving 12.5%. Writing '+1%' hides which kind of lift is meant."
+    },
+    {
+      "id": "c3",
+      "question": "A 50/50 test records 10,300 users in A and 9,700 in B, and an SRM test gives p far below 0.001. What should you do?",
+      "options": [
+        "Report the conversion result anyway, the groups are close enough",
+        "Investigate the cause of the split before trusting any metric",
+        "Drop users from A until the groups are equal",
+        "Rerun the z-test with the pooled rate"
+      ],
+      "answer": 1,
+      "explanation": "A sample ratio mismatch means assignment or logging is broken, so the groups may differ in more than the change. Trimming users or changing the test does not repair a biased assignment."
+    },
+    {
+      "id": "c4",
+      "question": "An analyst checks the p-value every day and ships the first day it is below 0.05. What is the problem?",
+      "options": [
+        "There is no problem if alpha is 0.05",
+        "The real false-positive rate is higher than 5%",
+        "The test has lost power",
+        "The p-value becomes negative"
+      ],
+      "answer": 1,
+      "explanation": "Each look is another chance for noise to cross 0.05, so stopping at the first crossing produces more false winners than alpha promises. Peeking does not reduce power; it inflates Type I errors."
+    },
+    {
+      "id": "c5",
+      "question": "The control converts at 0.10 and the variant at 0.12. What does `print(round((0.12 - 0.10) / 0.10, 2))` print?",
+      "options": [
+        "0.02",
+        "0.2",
+        "2.0",
+        "0.12"
+      ],
+      "answer": 1,
+      "explanation": "That expression is the relative lift: the absolute gap 0.02 divided by the baseline 0.10 is 0.2, a 20% improvement. 0.02 is the absolute lift, and mixing the two is the common reporting error."
+    },
+    {
+      "id": "c6",
+      "question": "A test with p = 0.20 and a 95% CI for the lift of -0.4 to +2.4 points is best described as:",
+      "options": [
+        "Proof the variant has no effect",
+        "Inconclusive: the data are compatible with a small loss and a sizeable gain",
+        "Proof that the variant is worse",
+        "A significant win"
+      ],
+      "answer": 1,
+      "explanation": "The interval contains 0 and runs from a small negative to a clear positive effect, so the test could not separate them. It does not show no effect, and it is not a win."
+    }
+  ]
+}

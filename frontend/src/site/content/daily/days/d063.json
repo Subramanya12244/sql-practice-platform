@@ -1,0 +1,186 @@
+{
+  "id": "d063",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Build and describe an array",
+      "prompt": "Create an array `a` from the list `[4, 8, 15, 16, 23, 42]` with `dtype=np.int64`. Print three lines: `a.shape`, `a.ndim` and `a.dtype`, each from its own `print()` call. The output shows a tuple, a number and a dtype name.",
+      "starter": "import numpy as np\n\nvalues = [4, 8, 15, 16, 23, 42]\n",
+      "solution": "import numpy as np\n\nvalues = [4, 8, 15, 16, 23, 42]\na = np.array(values, dtype=np.int64)\nprint(a.shape)\nprint(a.ndim)\nprint(a.dtype)\n",
+      "hints": [
+        "Convert the list with `np.array(values, dtype=np.int64)` and keep the result in a variable.",
+        "`shape`, `ndim` and `dtype` are attributes, so they have no parentheses.",
+        "Write `a = np.array(values, dtype=np.int64)` and then `print(a.shape)`, `print(a.ndim)`, `print(a.dtype)`."
+      ],
+      "kind": "python",
+      "expected": "(6,)\n1\nint64"
+    },
+    {
+      "id": "g2",
+      "title": "Even grids with arange and linspace",
+      "prompt": "Print two lines using `tolist()`. Line 1: the whole numbers from 5 up to and including 25 in steps of 5, made with `np.arange`. Line 2: five evenly spaced numbers from 0 to 2 including both ends, made with `np.linspace`.",
+      "starter": "import numpy as np\n\n",
+      "solution": "import numpy as np\n\nprint(np.arange(5, 30, 5).tolist())\nprint(np.linspace(0, 2, 5).tolist())\n",
+      "hints": [
+        "`np.arange(start, stop, step)` excludes `stop`.",
+        "To include 25 the stop value must be larger than 25, for example 26 or 30.",
+        "Use `np.arange(5, 30, 5)` and `np.linspace(0, 2, 5)`, each followed by `.tolist()`."
+      ],
+      "kind": "python",
+      "expected": "[5, 10, 15, 20, 25]\n[0.0, 0.5, 1.0, 1.5, 2.0]"
+    },
+    {
+      "id": "g3",
+      "title": "Reshape into a table",
+      "prompt": "Make the whole numbers 1 to 12 with `np.arange`, reshape them into 4 rows and 3 columns, and print the table as a list (`tolist()`) on the first line and its `shape` on the second line.",
+      "starter": "import numpy as np\n\nnums = np.arange(12)\n",
+      "solution": "import numpy as np\n\nnums = np.arange(1, 13)\ntable = nums.reshape(4, 3)\nprint(table.tolist())\nprint(table.shape)\n",
+      "hints": [
+        "The numbers must start at 1, so `np.arange(12)` is not enough.",
+        "`np.arange(1, 13)` gives 1 to 12. Then call `reshape(4, 3)`.",
+        "`table = np.arange(1, 13).reshape(4, 3)`, then print `table.tolist()` and `table.shape`."
+      ],
+      "kind": "python",
+      "expected": "[[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]\n(4, 3)"
+    },
+    {
+      "id": "g4",
+      "title": "Convert types",
+      "prompt": "The list `prices = [19.99, 5.5, 3.2]` is turned into an array. Print the array converted to integers with `astype(int)` as a list on line 1, and the array rounded with `np.round` and then converted to integers as a list on line 2.",
+      "starter": "import numpy as np\n\nprices = np.array([19.99, 5.5, 3.2])\n",
+      "solution": "import numpy as np\n\nprices = np.array([19.99, 5.5, 3.2])\nprint(prices.astype(int).tolist())\nprint(np.round(prices).astype(int).tolist())\n",
+      "hints": [
+        "`astype(int)` returns a new array and does not change `prices`.",
+        "`astype(int)` drops the decimals. For rounding, call `np.round(prices)` first.",
+        "Print `prices.astype(int).tolist()` and `np.round(prices).astype(int).tolist()`."
+      ],
+      "kind": "python",
+      "expected": "[19, 5, 3]\n[20, 6, 3]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Upcasting report",
+      "prompt": "For each of the three lists `[1, 2, 3]`, `[1, 2.5, 3]` and `[True, False, 2]` build an array and print one line per list in the form `<values as list> <kind>`, where `<kind>` is `arr.dtype.kind`, for example `[1, 2, 3] i`. Then print a final line with the sum of the sizes of the three arrays. Use only `tolist()` and `dtype.kind` to show the values and types.",
+      "starter": "import numpy as np\n\nlists = [[1, 2, 3], [1, 2.5, 3], [True, False, 2]]\n",
+      "solution": "import numpy as np\n\nlists = [[1, 2, 3], [1, 2.5, 3], [True, False, 2]]\ntotal = 0\nfor items in lists:\n    arr = np.array(items)\n    print(arr.tolist(), arr.dtype.kind)\n    total += arr.size\nprint(total)\n",
+      "kind": "python",
+      "expected": "[1, 2, 3] i\n[1.0, 2.5, 3.0] f\n[1, 0, 2] i\n9"
+    },
+    {
+      "id": "i2",
+      "title": "A day-by-hour table",
+      "prompt": "Create 72 evenly spaced values from 0 to 71 with `np.linspace`, reshape them into 3 days by 24 hours, and print four lines: the shape; the 12th value (index 11) of the second day; the first 3 values of the last day as a list; and the table's size. Use `tolist()` to get plain Python rows, index and slice them with the list rules from Day 4 and Day 8, and convert values with `int()` so that no decimals are printed.",
+      "starter": "import numpy as np\n\n",
+      "solution": "import numpy as np\n\ntable = np.linspace(0, 71, 72).reshape(3, 24)\nprint(table.shape)\nrows = table.astype(int).tolist()\nprint(rows[1][11])\nprint(rows[2][:3])\nprint(table.size)\n",
+      "kind": "python",
+      "expected": "(3, 24)\n35\n[48, 49, 50]\n72"
+    },
+    {
+      "id": "i3",
+      "title": "Memory and dtype",
+      "required": false,
+      "prompt": "Create `a = np.arange(1000, dtype=np.int64)` and the float32 copy `b = a.astype(np.float32)`. Print on separate lines: `a.nbytes`, `b.nbytes`, the ratio `a.nbytes / b.nbytes` and `b.dtype`. (`nbytes` is the number of bytes the values occupy.) Then print the result of `np.arange(0, 1, 0.25).size` and `np.linspace(0, 1, 4).size`, so you can compare the two functions.",
+      "starter": "import numpy as np\n\na = np.arange(1000, dtype=np.int64)\n",
+      "solution": "import numpy as np\n\na = np.arange(1000, dtype=np.int64)\nb = a.astype(np.float32)\nprint(a.nbytes)\nprint(b.nbytes)\nprint(a.nbytes / b.nbytes)\nprint(b.dtype)\nprint(np.arange(0, 1, 0.25).size)\nprint(np.linspace(0, 1, 4).size)\n",
+      "kind": "python",
+      "expected": "8000\n4000\n2.0\nfloat32\n4\n4"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nimport numpy as np\nprint(np.arange(2, 8, 2).tolist())\n```",
+      "options": [
+        "[2, 4, 6]",
+        "[2, 4, 6, 8]",
+        "[2, 3, 4, 5, 6, 7]",
+        "[4, 6, 8]"
+      ],
+      "answer": 0,
+      "explanation": "`arange` includes the start and excludes the stop, moving in steps of 2: 2, 4, 6. Eight is the stop value, so it is not included. `[2, 4, 6, 8]` is the common mistake of treating stop as inclusive."
+    },
+    {
+      "id": "c2",
+      "question": "What is the shape of `np.zeros((3, 4))`?",
+      "options": [
+        "(4, 3)",
+        "(3, 4)",
+        "(12,)",
+        "(3,)"
+      ],
+      "answer": 1,
+      "explanation": "The tuple gives rows first and then columns, so 3 rows and 4 columns: shape `(3, 4)`. The size is 12 but the shape keeps the two dimensions. `(4, 3)` swaps rows and columns."
+    },
+    {
+      "id": "c3",
+      "question": "What does this print?\n\n```python\nimport numpy as np\nprint(np.array([1, 2.5, 3]).tolist())\n```",
+      "options": [
+        "[1, 2.5, 3]",
+        "[1.0, 2.5, 3.0]",
+        "[1, 2, 3]",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "An array has one dtype, so the integers are upcast to floats to match the decimal value and the list shows `1.0` and `3.0`. A list would keep `1` as an int, which is the misconception behind the first option."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\nimport numpy as np\nprint(np.array([2.9, -2.9]).astype(int).tolist())\n```",
+      "options": [
+        "[3, -3]",
+        "[2, -2]",
+        "[3, -2]",
+        "[2, -3]"
+      ],
+      "answer": 1,
+      "explanation": "Converting float to int drops the decimals towards zero, so 2.9 becomes 2 and -2.9 becomes -2. It does not round (that would give 3 and -3) and it does not floor (that would give -3 for the negative value)."
+    },
+    {
+      "id": "c5",
+      "question": "Which call raises an error?",
+      "options": [
+        "np.arange(6).reshape(2, 3)",
+        "np.arange(6).reshape(3, -1)",
+        "np.arange(6).reshape(4, 2)",
+        "np.arange(6).reshape(6, 1)"
+      ],
+      "answer": 2,
+      "explanation": "A reshape must keep the number of values. 4 times 2 is 8, not 6, so it raises a ValueError. The `-1` in the second option lets NumPy work out the missing length (2), so that call is valid."
+    },
+    {
+      "id": "c6",
+      "question": "A learner writes `a.shape()` on an array and gets `TypeError: 'tuple' object is not callable`. What is the fix?",
+      "options": [
+        "Write `a.shape` without parentheses",
+        "Write `a.shape[]`",
+        "Convert the array with `astype` first",
+        "Use `len(a.shape())`"
+      ],
+      "answer": 0,
+      "explanation": "`shape` is an attribute holding a tuple, not a method. Adding parentheses tries to call the tuple. The other options keep an invalid form or do not address the cause."
+    }
+  ]
+}

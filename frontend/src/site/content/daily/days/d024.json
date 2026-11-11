@@ -1,0 +1,187 @@
+{
+  "id": "d024",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-oop"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "employee-raise-class",
+      "order-line-class"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Your first class",
+      "prompt": "Define a class `Book` whose `__init__` takes `title` and `pages` and stores them as attributes. Create `b = Book(\"Dune\", 412)` and print `b.title` and `b.pages` on two lines. Expected output: `Dune` then `412`.",
+      "starter": "# Define Book and print its attributes\n",
+      "solution": "class Book:\n    def __init__(self, title, pages):\n        self.title = title\n        self.pages = pages\n\nb = Book(\"Dune\", 412)\nprint(b.title)\nprint(b.pages)\n",
+      "kind": "python",
+      "expected": "Dune\n412",
+      "hints": [
+        "The class needs a method named `__init__` with `self` as the first parameter.",
+        "Inside `__init__`, store each argument with `self.title = title`.",
+        "After the class, call `Book(\"Dune\", 412)` and print the two attributes."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "A counter with methods",
+      "prompt": "Define a class `Counter` with an attribute `value` starting at 0, a method `add(n=1)` that increases it, and a method `reset()` that sets it back to 0. Create one, call `add()`, `add(5)` and print `value`, then call `reset()` and print `value` again. Expected output: `6` then `0`.",
+      "starter": "# Define Counter and use it\n",
+      "solution": "class Counter:\n    def __init__(self):\n        self.value = 0\n\n    def add(self, n=1):\n        self.value += n\n\n    def reset(self):\n        self.value = 0\n\nc = Counter()\nc.add()\nc.add(5)\nprint(c.value)\nc.reset()\nprint(c.value)\n",
+      "kind": "python",
+      "expected": "6\n0",
+      "hints": [
+        "Set `self.value = 0` in `__init__`.",
+        "Methods use `self.value` to read and change the state; give `add` a default parameter `n=1`.",
+        "`add` does `self.value += n`; `reset` does `self.value = 0`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Readable objects",
+      "prompt": "The class `Item` in the starter has a name and a price. Add a `__repr__` so that `print(Item(\"pen\", 2.5))` shows `Item('pen', 2.5)`, and print a list of two items. Expected output: `Item('pen', 2.5)` then `[Item('pen', 2.5), Item('book', 12)]`.",
+      "starter": "class Item:\n    def __init__(self, name, price):\n        self.name = name\n        self.price = price\n\nprint(Item(\"pen\", 2.5))\nprint([Item(\"pen\", 2.5), Item(\"book\", 12)])\n",
+      "solution": "class Item:\n    def __init__(self, name, price):\n        self.name = name\n        self.price = price\n\n    def __repr__(self):\n        return f\"Item({self.name!r}, {self.price!r})\"\n\nprint(Item(\"pen\", 2.5))\nprint([Item(\"pen\", 2.5), Item(\"book\", 12)])\n",
+      "kind": "python",
+      "expected": "Item('pen', 2.5)\n[Item('pen', 2.5), Item('book', 12)]",
+      "hints": [
+        "`__repr__` is a method that returns a string.",
+        "Use an f-string with `self.name` and `self.price`.",
+        "`return f\"Item({self.name!r}, {self.price!r})\"`; `!r` keeps the quotes around text."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Shared and separate",
+      "prompt": "In the starter, `Dog` has a class attribute `species`. Create `d1` and `d2`, change `species` on `d1` only (to `wolf`), then print `d1.species`, `d2.species` and `Dog.species` on three lines. Expected output: `wolf`, `dog`, `dog`.",
+      "starter": "class Dog:\n    species = \"dog\"\n\n    def __init__(self, name):\n        self.name = name\n\nd1 = Dog(\"Rex\")\nd2 = Dog(\"Fido\")\n# Change d1.species and print the three values\n",
+      "solution": "class Dog:\n    species = \"dog\"\n\n    def __init__(self, name):\n        self.name = name\n\nd1 = Dog(\"Rex\")\nd2 = Dog(\"Fido\")\nd1.species = \"wolf\"\nprint(d1.species)\nprint(d2.species)\nprint(Dog.species)\n",
+      "kind": "python",
+      "expected": "wolf\ndog\ndog",
+      "hints": [
+        "Assigning through an object sets an attribute on that object.",
+        "The class attribute stays as it was, and `d2` still finds it there.",
+        "`d1.species = \"wolf\"`, then print `d1.species`, `d2.species`, `Dog.species`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Shopping cart",
+      "prompt": "Write a class `Cart` with a list `items` (created in `__init__`), a method `add(name, price, qty=1)` that appends a dict with those keys, a read-only property `total` that sums price times quantity, and a method `most_expensive()` that returns the name of the item with the highest price times quantity (the first one in case of a tie). Add `(\"pen\", 1.5, 4)`, `(\"book\", 12.0)` and `(\"bag\", 6.0, 2)`, then print the total, formatted to two decimals, and the most expensive item.",
+      "starter": "# Write Cart and use it\n",
+      "solution": "class Cart:\n    def __init__(self):\n        self.items = []\n\n    def add(self, name, price, qty=1):\n        self.items.append({\"name\": name, \"price\": price, \"qty\": qty})\n\n    @property\n    def total(self):\n        return sum(i[\"price\"] * i[\"qty\"] for i in self.items)\n\n    def most_expensive(self):\n        best = max(self.items, key=lambda i: i[\"price\"] * i[\"qty\"])\n        return best[\"name\"]\n\ncart = Cart()\ncart.add(\"pen\", 1.5, 4)\ncart.add(\"book\", 12.0)\ncart.add(\"bag\", 6.0, 2)\nprint(f\"{cart.total:.2f}\")\nprint(cart.most_expensive())\n",
+      "kind": "python",
+      "expected": "30.00\nbook"
+    },
+    {
+      "id": "i2",
+      "title": "A validated temperature",
+      "prompt": "Write a class `Thermometer` with a property `celsius` whose setter raises `ValueError(\"below absolute zero\")` for values under -273.15, and a read-only property `fahrenheit` computed as `celsius * 9 / 5 + 32`. Create `t = Thermometer(25)`, print `t.fahrenheit`, set `t.celsius = 100` and print `t.fahrenheit`, then try to set `-300` inside `try` and print the error message, and finally print `t.celsius` to show the old value was kept. Expected output has four lines.",
+      "starter": "# Write Thermometer and use it\n",
+      "solution": "class Thermometer:\n    def __init__(self, celsius):\n        self.celsius = celsius\n\n    @property\n    def celsius(self):\n        return self._celsius\n\n    @celsius.setter\n    def celsius(self, value):\n        if value < -273.15:\n            raise ValueError(\"below absolute zero\")\n        self._celsius = value\n\n    @property\n    def fahrenheit(self):\n        return self._celsius * 9 / 5 + 32\n\nt = Thermometer(25)\nprint(t.fahrenheit)\nt.celsius = 100\nprint(t.fahrenheit)\ntry:\n    t.celsius = -300\nexcept ValueError as error:\n    print(error)\nprint(t.celsius)\n",
+      "kind": "python",
+      "expected": "77.0\n212.0\nbelow absolute zero\n100"
+    },
+    {
+      "id": "i3",
+      "title": "Inventory with a class counter",
+      "prompt": "Write a class `Warehouse` with a class attribute `count` (the number of warehouses created) and an instance dict `stock`. Its methods: `receive(sku, n)` adds to the stock, `ship(sku, n)` removes from it and raises `ValueError(\"insufficient stock\")` when there is not enough (and leaves stock unchanged), and `__repr__` returning `Warehouse(<name>, <units> units)` where units is the total number of items. Create two warehouses `north` and `south`, receive `(\"A\", 10)` and `(\"B\", 5)` into north and `(\"A\", 3)` into south, ship 4 of `A` from north, try to ship 9 of `B` from north (print the error message), then print both warehouses and `Warehouse.count`.",
+      "starter": "# Write Warehouse and use it\n",
+      "solution": "class Warehouse:\n    count = 0\n\n    def __init__(self, name):\n        self.name = name\n        self.stock = {}\n        Warehouse.count += 1\n\n    def receive(self, sku, n):\n        self.stock[sku] = self.stock.get(sku, 0) + n\n\n    def ship(self, sku, n):\n        if self.stock.get(sku, 0) < n:\n            raise ValueError(\"insufficient stock\")\n        self.stock[sku] -= n\n\n    def __repr__(self):\n        return f\"Warehouse({self.name}, {sum(self.stock.values())} units)\"\n\nnorth = Warehouse(\"north\")\nsouth = Warehouse(\"south\")\nnorth.receive(\"A\", 10)\nnorth.receive(\"B\", 5)\nsouth.receive(\"A\", 3)\nnorth.ship(\"A\", 4)\ntry:\n    north.ship(\"B\", 9)\nexcept ValueError as error:\n    print(error)\nprint(north)\nprint(south)\nprint(Warehouse.count)\n",
+      "kind": "python",
+      "expected": "insufficient stock\nWarehouse(north, 11 units)\nWarehouse(south, 3 units)\n2",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nclass A:\n    items = []\n    def add(self, x):\n        self.items.append(x)\na, b = A(), A()\na.add(1)\nprint(b.items)\n```",
+      "options": [
+        "[]",
+        "[1]",
+        "None",
+        "It raises AttributeError"
+      ],
+      "answer": 1,
+      "explanation": "`items` is a class attribute, so both objects share one list and the append through `a` is visible through `b`. Create per-object lists in `__init__` with `self.items = []`."
+    },
+    {
+      "id": "c2",
+      "question": "A method is defined as `def pay(self, amount):`. How is it called on an object `ana`?",
+      "options": [
+        "ana.pay(ana, 30)",
+        "ana.pay(30)",
+        "pay(30)",
+        "ana.pay(self, 30)"
+      ],
+      "answer": 1,
+      "explanation": "Python passes the object as `self` automatically, so only the other arguments are written. Passing `ana` again would make three arguments and raise `TypeError`."
+    },
+    {
+      "id": "c3",
+      "question": "What does this print?\n\n```python\nclass P:\n    def __init__(self):\n        x = 5\np = P()\nprint(hasattr(p, \"x\"))\n```",
+      "options": [
+        "True",
+        "False",
+        "5",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "`x = 5` creates a local variable that disappears when `__init__` ends. An attribute needs `self.x = 5`. `hasattr` simply returns `False`."
+    },
+    {
+      "id": "c4",
+      "question": "What is the benefit of defining `__repr__`?",
+      "options": [
+        "Objects print readably, which helps debugging",
+        "It makes methods run faster",
+        "It copies the object",
+        "It makes attributes private"
+      ],
+      "answer": 0,
+      "explanation": "`__repr__` supplies the text shown by `print` and in lists. It does not change speed or privacy; that is done with naming conventions and properties."
+    },
+    {
+      "id": "c5",
+      "question": "What does this print?\n\n```python\nclass C:\n    n = 0\nc = C()\nc.n = 5\nprint(C.n, c.n)\n```",
+      "options": [
+        "5 5",
+        "0 5",
+        "0 0",
+        "5 0"
+      ],
+      "answer": 1,
+      "explanation": "Assigning through the object creates an instance attribute on `c` only. The class attribute stays 0, so `C.n` is 0 and `c.n` is 5."
+    },
+    {
+      "id": "c6",
+      "question": "Why use a property setter that raises `ValueError` for invalid values?",
+      "options": [
+        "Bad values are rejected at assignment, so the object never holds invalid state",
+        "It makes the attribute faster to read",
+        "It lets other classes inherit the value",
+        "It converts the value to a string"
+      ],
+      "answer": 0,
+      "explanation": "Encapsulation keeps the object consistent: the check runs on every assignment, while callers still write `obj.value = x`."
+    }
+  ]
+}

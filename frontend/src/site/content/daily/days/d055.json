@@ -1,0 +1,183 @@
+{
+  "id": "d055",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "row-number",
+      "lag"
+    ],
+    "questions": [
+      147,
+      149
+    ],
+    "pyExercises": [
+      "dedupe-latest-records"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "window-functions"
+    ],
+    "patterns": [
+      "find-duplicates",
+      "remove-duplicates",
+      "gaps-and-islands",
+      "latest-record-per-group"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Cities shared by several customers",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Find the cities that appear for more than one customer. Return `city` and `customers` (number of customers in the city), ordered by `customers` descending, then `city`.",
+      "starter": "SELECT city, COUNT(*) AS customers\nFROM customers\nGROUP BY city\nORDER BY customers DESC, city;\n",
+      "solution": "SELECT city, COUNT(*) AS customers\nFROM customers\nGROUP BY city\nHAVING COUNT(*) > 1\nORDER BY customers DESC, city;\n",
+      "hints": [
+        "The starter already counts customers per city, but it keeps every city.",
+        "HAVING filters groups after counting, WHERE cannot see COUNT(*).",
+        "Add HAVING COUNT(*) > 1 between GROUP BY and ORDER BY."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Latest subscription per email",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "The inline table `subscriptions(sub_id, email, plan, started_on)` is given in the starter. Keep one row per email, ignoring capitalisation: the one with the latest `started_on`, ties broken by the higher `sub_id`. Return `sub_id`, `email`, `plan`, ordered by `sub_id`.",
+      "starter": "WITH subscriptions (sub_id, email, plan, started_on) AS (\n  VALUES (1, 'kim@x.com', 'basic', DATE '2024-01-10'),\n         (2, 'KIM@x.com', 'pro', DATE '2024-05-02'),\n         (3, 'lee@x.com', 'basic', DATE '2024-02-14'),\n         (4, 'moe@x.com', 'basic', DATE '2024-03-01'),\n         (5, 'moe@x.com', 'pro', DATE '2024-03-01'),\n         (6, 'ned@x.com', 'pro', DATE '2024-06-20')\n)\nSELECT sub_id, email, plan\nFROM subscriptions\nORDER BY sub_id;\n",
+      "solution": "WITH subscriptions (sub_id, email, plan, started_on) AS (\n  VALUES (1, 'kim@x.com', 'basic', DATE '2024-01-10'),\n         (2, 'KIM@x.com', 'pro', DATE '2024-05-02'),\n         (3, 'lee@x.com', 'basic', DATE '2024-02-14'),\n         (4, 'moe@x.com', 'basic', DATE '2024-03-01'),\n         (5, 'moe@x.com', 'pro', DATE '2024-03-01'),\n         (6, 'ned@x.com', 'pro', DATE '2024-06-20')\n)\nSELECT sub_id, email, plan\nFROM (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY lower(email) ORDER BY started_on DESC, sub_id DESC) AS rn\n  FROM subscriptions\n) AS t\nWHERE rn = 1\nORDER BY sub_id;\n",
+      "hints": [
+        "Rank the rows inside each lower-cased email, newest first.",
+        "ROW_NUMBER() OVER (PARTITION BY lower(email) ORDER BY started_on DESC, sub_id DESC) in a subquery.",
+        "Filter WHERE rn = 1 in the outer query."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Missing invoice numbers",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "The inline table `invoices(invoice_no)` is given in the starter. Return the gaps: `gap_after` (the invoice number before the gap), `next_present` (the next existing number) and `missing_count` (how many numbers are missing between them), ordered by `gap_after`.",
+      "starter": "WITH invoices (invoice_no) AS (\n  VALUES (1), (2), (3), (7), (8), (12), (13), (14)\n)\nSELECT invoice_no AS gap_after, invoice_no AS next_present, 0 AS missing_count\nFROM invoices\nORDER BY invoice_no;\n",
+      "solution": "WITH invoices (invoice_no) AS (\n  VALUES (1), (2), (3), (7), (8), (12), (13), (14)\n)\nSELECT invoice_no AS gap_after, next_no AS next_present, next_no - invoice_no - 1 AS missing_count\nFROM (\n  SELECT invoice_no, LEAD(invoice_no) OVER (ORDER BY invoice_no) AS next_no\n  FROM invoices\n) AS t\nWHERE next_no - invoice_no > 1\nORDER BY gap_after;\n",
+      "hints": [
+        "Use LEAD to read the next invoice number on every row.",
+        "A gap exists when the next number minus the current number is more than 1.",
+        "missing_count is next_no - invoice_no - 1; filter on next_no - invoice_no > 1 in the outer query."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Runs of consecutive order ids",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Look only at orders of employees 6 and 7. Return the islands of consecutive `order_id` values as `first_id`, `last_id` and `island_size`, ordered by `first_id`. Use the row-number difference technique.",
+      "starter": "SELECT MIN(order_id) AS first_id, MAX(order_id) AS last_id, COUNT(*) AS island_size\nFROM orders\nWHERE employee_id IN (6, 7)\nORDER BY first_id;\n",
+      "solution": "SELECT MIN(order_id) AS first_id, MAX(order_id) AS last_id, COUNT(*) AS island_size\nFROM (\n  SELECT order_id, order_id - ROW_NUMBER() OVER (ORDER BY order_id) AS grp\n  FROM orders\n  WHERE employee_id IN (6, 7)\n) AS t\nGROUP BY grp\nORDER BY first_id;\n",
+      "hints": [
+        "Number the rows by order_id and subtract the number from the order_id. The difference is constant inside a run.",
+        "order_id - ROW_NUMBER() OVER (ORDER BY order_id) AS grp, computed in a subquery.",
+        "Group the subquery by grp and select MIN(order_id), MAX(order_id), COUNT(*)."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Cheapest offer per product",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "The inline table `offers(offer_id, product, supplier, price)` is in the starter. Treat product names that differ only in capitalisation as the same product. Keep the cheapest offer for each product (ties: the smaller `offer_id`). Return `offer_id`, `product` (as stored), `supplier`, `price`, ordered by `offer_id`.",
+      "starter": "WITH offers (offer_id, product, supplier, price) AS (\n  VALUES (1, 'Widget', 'Acme', 9.50), (2, 'widget', 'Bolt Co', 8.75), (3, 'Gadget', 'Acme', 20.00),\n         (4, 'Gadget', 'Zed', 20.00), (5, 'Sprocket', 'Bolt Co', 3.10)\n)\nSELECT offer_id, product, supplier, price\nFROM offers\nORDER BY offer_id;\n",
+      "solution": "WITH offers (offer_id, product, supplier, price) AS (\n  VALUES (1, 'Widget', 'Acme', 9.50), (2, 'widget', 'Bolt Co', 8.75), (3, 'Gadget', 'Acme', 20.00),\n         (4, 'Gadget', 'Zed', 20.00), (5, 'Sprocket', 'Bolt Co', 3.10)\n)\nSELECT offer_id, product, supplier, price\nFROM (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY lower(product) ORDER BY price, offer_id) AS rn\n  FROM offers\n) AS t\nWHERE rn = 1\nORDER BY offer_id;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Longest login streak per user",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "The inline table `logins(user_id, login_date)` is in the starter. Find each user's longest streak of consecutive login days. Return `user_id`, `streak_days` and `streak_start`, one row per user (if two streaks are equally long take the earlier), ordered by `user_id`.",
+      "starter": "WITH logins (user_id, login_date) AS (\n  VALUES ('u1', DATE '2024-01-01'), ('u1', DATE '2024-01-02'), ('u1', DATE '2024-01-04'), ('u1', DATE '2024-01-05'), ('u1', DATE '2024-01-06'),\n         ('u2', DATE '2024-01-01'), ('u2', DATE '2024-01-02'), ('u2', DATE '2024-01-03'), ('u2', DATE '2024-01-10'),\n         ('u3', DATE '2024-01-07')\n)\nSELECT user_id, COUNT(*) AS streak_days, MIN(login_date) AS streak_start\nFROM logins\nGROUP BY user_id\nORDER BY user_id;\n",
+      "solution": "WITH logins (user_id, login_date) AS (\n  VALUES ('u1', DATE '2024-01-01'), ('u1', DATE '2024-01-02'), ('u1', DATE '2024-01-04'), ('u1', DATE '2024-01-05'), ('u1', DATE '2024-01-06'),\n         ('u2', DATE '2024-01-01'), ('u2', DATE '2024-01-02'), ('u2', DATE '2024-01-03'), ('u2', DATE '2024-01-10'),\n         ('u3', DATE '2024-01-07')\n)\n, labelled AS (\n  SELECT user_id, login_date,\n         login_date - (ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY login_date))::int AS grp\n  FROM logins\n), streaks AS (\n  SELECT user_id, COUNT(*) AS streak_days, MIN(login_date) AS streak_start\n  FROM labelled\n  GROUP BY user_id, grp\n), ranked AS (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY streak_days DESC, streak_start) AS rn\n  FROM streaks\n)\nSELECT user_id, streak_days, streak_start\nFROM ranked\nWHERE rn = 1\nORDER BY user_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Missing load days (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "The inline table `loads(load_date)` lists the days on which a nightly load ran. Return each period of missing days as `gap_start` (the first missing day), `gap_end` (the last missing day) and `days_missing`, ordered by `gap_start`. Hint for the types: date plus or minus an integer gives a date.",
+      "starter": "WITH loads (load_date) AS (\n  VALUES (DATE '2024-03-01'), (DATE '2024-03-02'), (DATE '2024-03-03'), (DATE '2024-03-06'), (DATE '2024-03-07'), (DATE '2024-03-12')\n)\nSELECT load_date AS gap_start, load_date AS gap_end, 0 AS days_missing\nFROM loads\nORDER BY load_date;\n",
+      "solution": "WITH loads (load_date) AS (\n  VALUES (DATE '2024-03-01'), (DATE '2024-03-02'), (DATE '2024-03-03'), (DATE '2024-03-06'), (DATE '2024-03-07'), (DATE '2024-03-12')\n)\nSELECT load_date + 1 AS gap_start, next_date - 1 AS gap_end, next_date - load_date - 1 AS days_missing\nFROM (\n  SELECT load_date, LEAD(load_date) OVER (ORDER BY load_date) AS next_date\n  FROM loads\n) AS t\nWHERE next_date - load_date > 1\nORDER BY gap_start;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which query lists the emails that occur more than once?",
+      "options": [
+        "SELECT DISTINCT email FROM t",
+        "SELECT email FROM t GROUP BY email HAVING COUNT(*) > 1",
+        "SELECT email FROM t WHERE COUNT(*) > 1",
+        "SELECT email, MAX(email) FROM t"
+      ],
+      "answer": 1,
+      "explanation": "HAVING filters groups after the count. WHERE cannot use an aggregate, DISTINCT removes duplicates instead of finding them, and MAX does not count."
+    },
+    {
+      "id": "c2",
+      "question": "Why is `SELECT DISTINCT` a poor way to keep the latest row per customer?",
+      "options": [
+        "DISTINCT is not valid in PostgreSQL",
+        "It compares complete rows, so rows that differ in any column all stay, and it cannot choose which row survives",
+        "It always keeps the oldest row",
+        "It needs a window function"
+      ],
+      "answer": 1,
+      "explanation": "Two rows for one customer with different update dates are not identical, so DISTINCT keeps both. Use ROW_NUMBER with PARTITION BY and ORDER BY, or DISTINCT ON (a PostgreSQL feature with an ORDER BY)."
+    },
+    {
+      "id": "c3",
+      "question": "Ids present are 1, 2, 3, 7, 8. What does `LEAD(id) OVER (ORDER BY id) - id` give on the row with id 3?",
+      "options": [
+        "1",
+        "4",
+        "3",
+        "NULL"
+      ],
+      "answer": 1,
+      "explanation": "The next id after 3 is 7, and 7 - 3 = 4. Because the difference is greater than 1, three ids (4, 5 and 6) are missing: 4 - 1."
+    },
+    {
+      "id": "c4",
+      "question": "Ids 5, 6, 7, 10, 11 are numbered 1 to 5 with ROW_NUMBER. What is id minus row number for each, in order?",
+      "options": [
+        "4, 4, 4, 5, 5",
+        "4, 4, 4, 6, 6",
+        "5, 6, 7, 10, 11",
+        "0, 0, 0, 3, 3"
+      ],
+      "answer": 1,
+      "explanation": "5-1=4, 6-2=4, 7-3=4, 10-4=6, 11-5=6. The value inside a run is constant, and it changes when the gap appears, so it labels the islands."
+    },
+    {
+      "id": "c5",
+      "question": "Why must you cast the row number with `::int` when computing `login_date - ROW_NUMBER() OVER (...)`?",
+      "options": [
+        "ROW_NUMBER returns bigint and PostgreSQL has no operator date minus bigint",
+        "Dates cannot be subtracted in PostgreSQL",
+        "ROW_NUMBER returns text",
+        "Casting makes the result unique"
+      ],
+      "answer": 0,
+      "explanation": "ROW_NUMBER returns bigint, and the operator date - bigint does not exist, while date - integer does. Dates can be subtracted, and the cast does not change uniqueness."
+    }
+  ]
+}

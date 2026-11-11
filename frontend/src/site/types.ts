@@ -140,4 +140,7 @@ export interface PageData {
   planSets?: Pick<InterviewSet, "slug" | "questions">[];
   /** Mind maps that link to the current note/pattern. */
   relatedMaps?: import("./lib/learning").MindMapMeta[];
+  /** Daily Learning: the authored lesson for this day (null when not written yet) and its resolved resource links. */
+  dailyContent?: import("./lib/daily").DayContent | null;
+  dailyLinks?: import("./lib/dailyLinks").ResolvedLink[];
 }

@@ -1,0 +1,173 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track",
+      "window-functions"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Three-day rolling mean",
+      "prompt": "Print the 3-row rolling mean of `s`, rounded to 2 places, using `print(r.round(2).tolist())`. The first two entries will be `nan`.",
+      "starter": "import pandas as pd\ns = pd.Series([2, 4, 6, 8, 5])\nprint(s.tolist())\n",
+      "solution": "import pandas as pd\ns = pd.Series([2, 4, 6, 8, 5])\nr = s.rolling(3).mean()\nprint(r.round(2).tolist())\n",
+      "hints": [
+        "`rolling(3)` makes a window of the current and two previous values.",
+        "Follow it with the summary you want.",
+        "`s.rolling(3).mean()`."
+      ],
+      "kind": "python",
+      "expected": "[nan, nan, 4.0, 6.0, 6.33]"
+    },
+    {
+      "id": "g2",
+      "title": "Running maximum",
+      "prompt": "Print two lines for the series `scores`: the running total as a list of whole numbers using `cumsum`, and the best score so far using `expanding().max()`, converted with `astype(int)`, both with `.tolist()`.",
+      "starter": "import pandas as pd\nscores = pd.Series([3, 1, 7, 2, 9])\nprint(scores.tolist())\n",
+      "solution": "import pandas as pd\nscores = pd.Series([3, 1, 7, 2, 9])\nprint(scores.cumsum().tolist())\nprint(scores.expanding().max().astype(int).tolist())\n",
+      "hints": [
+        "`cumsum` gives a running total.",
+        "`expanding()` is a window that grows from the first row.",
+        "`scores.expanding().max().astype(int).tolist()`."
+      ],
+      "kind": "python",
+      "expected": "[3, 4, 11, 13, 22]\n[3, 3, 7, 7, 9]"
+    },
+    {
+      "id": "g3",
+      "title": "Month-on-month change",
+      "prompt": "For the series `rev` print the absolute change from the previous month and the percentage change, rounded to 3 places, as two lists with `.tolist()`; the first element of each is `nan`.",
+      "starter": "import pandas as pd\nrev = pd.Series([200.0, 250.0, 225.0, 270.0])\nprint(rev.tolist())\n",
+      "solution": "import pandas as pd\nrev = pd.Series([200.0, 250.0, 225.0, 270.0])\nprint(rev.diff().tolist())\nprint(rev.pct_change(fill_method=None).round(3).tolist())\n",
+      "hints": [
+        "Two methods compare with the previous row: one in units, one as a fraction.",
+        "`diff()` gives units; `pct_change()` gives fractions.",
+        "Print `rev.diff().tolist()` and `rev.pct_change(fill_method=None).round(3).tolist()`."
+      ],
+      "kind": "python",
+      "expected": "[nan, 50.0, -25.0, 45.0]\n[nan, 0.25, -0.1, 0.2]"
+    },
+    {
+      "id": "g4",
+      "title": "Previous value per customer",
+      "prompt": "Add a column `prev` holding each customer's previous `amount` (inside the customer, not across customers) and print the table with `print(o.to_string())`.",
+      "starter": "import pandas as pd\no = pd.DataFrame({\"customer\": [\"A\", \"A\", \"B\", \"B\", \"B\"], \"amount\": [5, 7, 20, 22, 19]})\nprint(o.to_string())\n",
+      "solution": "import pandas as pd\no = pd.DataFrame({\"customer\": [\"A\", \"A\", \"B\", \"B\", \"B\"], \"amount\": [5, 7, 20, 22, 19]})\no[\"prev\"] = o.groupby(\"customer\")[\"amount\"].shift(1)\nprint(o.to_string())\n",
+      "hints": [
+        "A plain `shift` would carry B's first row's previous value from A.",
+        "Group first, then shift inside each group.",
+        "`o.groupby(\"customer\")[\"amount\"].shift(1)`."
+      ],
+      "kind": "python",
+      "expected": "  customer  amount  prev\n0        A       5   NaN\n1        A       7   5.0\n2        B      20   NaN\n3        B      22  20.0\n4        B      19  22.0"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Moving average and drops",
+      "prompt": "`sales` is a daily series (dates as index, sorted). Compute the 3-day rolling mean (full windows only), then print the dates, as `YYYY-MM-DD` strings in a list, on which the sale was below its rolling mean. Then print the largest day-over-day drop as a positive number (the largest value of `-diff()`).",
+      "starter": "import pandas as pd\nsales = pd.Series([50, 60, 40, 70, 30, 35, 80], index=pd.date_range(\"2024-03-01\", periods=7, freq=\"D\"))\nprint(sales.sum())\n",
+      "solution": "import pandas as pd\nsales = pd.Series([50, 60, 40, 70, 30, 35, 80], index=pd.date_range(\"2024-03-01\", periods=7, freq=\"D\"))\nroll = sales.rolling(3).mean()\nbelow = sales[sales < roll]\nprint([d.strftime(\"%Y-%m-%d\") for d in below.index])\nprint((-sales.diff()).max())\n",
+      "kind": "python",
+      "expected": "['2024-03-03', '2024-03-05', '2024-03-06']\n40.0"
+    },
+    {
+      "id": "i2",
+      "title": "Growth by store",
+      "prompt": "`t` has `store`, `month` (sorted) and `rev`. Within each store add `growth` = percentage change of `rev` rounded to 2 places. Print the rows of `growth` that are not missing as `store month growth` lines (use `to_string(index=False)` on those three columns), then on the last line the store with the highest average growth.",
+      "starter": "import pandas as pd\nt = pd.DataFrame({\"store\": [\"A\", \"A\", \"A\", \"B\", \"B\", \"B\"], \"month\": [1, 2, 3, 1, 2, 3], \"rev\": [100.0, 110.0, 99.0, 50.0, 60.0, 90.0]})\nprint(t.to_string())\n",
+      "solution": "import pandas as pd\nt = pd.DataFrame({\"store\": [\"A\", \"A\", \"A\", \"B\", \"B\", \"B\"], \"month\": [1, 2, 3, 1, 2, 3], \"rev\": [100.0, 110.0, 99.0, 50.0, 60.0, 90.0]})\nt[\"growth\"] = t.groupby(\"store\")[\"rev\"].pct_change(fill_method=None).round(2)\nprint(t[t[\"growth\"].notna()][[\"store\", \"month\", \"growth\"]].to_string(index=False))\nprint(t.groupby(\"store\")[\"growth\"].mean().idxmax())\n",
+      "kind": "python",
+      "expected": "store  month  growth\n    A      2     0.1\n    A      3    -0.1\n    B      2     0.2\n    B      3     0.5\nB"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: days since last order",
+      "required": false,
+      "prompt": "`o` has `customer` and `date` (ISO text). Convert the dates, sort by customer and date, then add `gap` = days since the same customer's previous order (use `groupby(...).shift` and `.dt.days`). Print the average gap over all orders that have a previous order, rounded to 2 places, then the customer with the largest single gap.",
+      "starter": "import pandas as pd\no = pd.DataFrame({\"customer\": [\"A\", \"B\", \"A\", \"A\", \"B\"], \"date\": [\"2024-01-01\", \"2024-01-03\", \"2024-01-11\", \"2024-02-10\", \"2024-01-05\"]})\nprint(o.to_string())\n",
+      "solution": "import pandas as pd\no = pd.DataFrame({\"customer\": [\"A\", \"B\", \"A\", \"A\", \"B\"], \"date\": [\"2024-01-01\", \"2024-01-03\", \"2024-01-11\", \"2024-02-10\", \"2024-01-05\"]})\no[\"date\"] = pd.to_datetime(o[\"date\"])\no = o.sort_values([\"customer\", \"date\"])\no[\"gap\"] = (o[\"date\"] - o.groupby(\"customer\")[\"date\"].shift(1)).dt.days\nprint(round(o[\"gap\"].mean(), 2))\nprint(o.loc[o[\"gap\"].idxmax(), \"customer\"])\n",
+      "kind": "python",
+      "expected": "14.0\nA"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`pd.Series([1, 2, 3, 4]).rolling(2).sum().tolist()` returns what?",
+      "options": [
+        "[nan, 3.0, 5.0, 7.0]",
+        "[3.0, 5.0, 7.0]",
+        "[1.0, 3.0, 5.0, 7.0]",
+        "[3.0, 5.0, 7.0, nan]"
+      ],
+      "answer": 0,
+      "explanation": "A window of 2 needs two values, so the first result is NaN; then 1+2, 2+3, 3+4. `min_periods=1` would give 1.0 first. A rolling window never looks ahead, so no NaN at the end."
+    },
+    {
+      "id": "c2",
+      "question": "Revenue goes from 80 to 100. What does `pct_change()` give for the second value?",
+      "options": [
+        "20",
+        "0.2",
+        "0.25",
+        "1.25"
+      ],
+      "answer": 2,
+      "explanation": "The change is 20 divided by the previous value 80, which is 0.25. Dividing by the new value would give 0.2, and 20 is the absolute difference from `diff()`."
+    },
+    {
+      "id": "c3",
+      "question": "Why is `df['amount'].shift(1)` wrong for each customer's previous order in a table with many customers?",
+      "options": [
+        "shift only works on one column",
+        "It crosses customer boundaries",
+        "shift needs a datetime index",
+        "It produces strings"
+      ],
+      "answer": 1,
+      "explanation": "The first row of customer B would receive the last value of customer A. `groupby(\"customer\")[\"amount\"].shift(1)` restarts at each group and leaves NaN for each customer's first row."
+    },
+    {
+      "id": "c4",
+      "question": "Daily data has rows for 1, 2, 5 and 6 January. Which window sums the last 3 calendar days at 5 January?",
+      "options": [
+        "rolling(3)",
+        "rolling(\"3D\") on a sorted datetime index",
+        "expanding()",
+        "shift(3)"
+      ],
+      "answer": 1,
+      "explanation": "A time window `\"3D\"` goes by dates, so it covers 3 to 5 January and includes only the 5th. `rolling(3)` counts rows and would reach back to 1 January."
+    },
+    {
+      "id": "c5",
+      "question": "What does `pd.Series([4, 6, 5]).expanding().max().tolist()` print?",
+      "options": [
+        "[4.0, 6.0, 6.0]",
+        "[4.0, 6.0, 5.0]",
+        "[6.0, 6.0, 6.0]",
+        "[nan, 6.0, 6.0]"
+      ],
+      "answer": 0,
+      "explanation": "Expanding takes the maximum from the first row to each row: 4, then max(4, 6) = 6, then max(4, 6, 5) = 6. `expanding` has no leading NaN with the default minimum of one value."
+    }
+  ],
+  "id": "d083"
+}

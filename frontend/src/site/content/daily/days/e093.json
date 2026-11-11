@@ -1,0 +1,178 @@
+{
+  "id": "e093",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-csv-json",
+      "python-file-handling",
+      "etl-data-validation",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl",
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Count rows per chunk",
+      "kind": "python",
+      "prompt": "The CSV text below has 7 data rows. Read it with `chunksize=3`, and for each chunk print its number (starting at 1) and its row count on one line, then after the loop print `total` and the total row count. Expected output: `1 3`, `2 3`, `3 1`, `total 7`.",
+      "starter": "import io\nimport pandas as pd\n\ntext = \"id,v\\n\" + \"\\n\".join(f\"{i},{i}\" for i in range(7)) + \"\\n\"\n# read in chunks of 3 and print the counts\n",
+      "solution": "import io\nimport pandas as pd\n\ntext = \"id,v\\n\" + \"\\n\".join(f\"{i},{i}\" for i in range(7)) + \"\\n\"\ntotal = 0\nfor number, chunk in enumerate(pd.read_csv(io.StringIO(text), chunksize=3), start=1):\n    total += len(chunk)\n    print(number, len(chunk))\nprint(\"total\", total)\n",
+      "hints": [
+        "`pd.read_csv(..., chunksize=3)` returns an iterator, so use a `for` loop.",
+        "`enumerate(reader, start=1)` gives the chunk number, and `len(chunk)` is its row count.",
+        "Add `len(chunk)` to a variable `total` that you create before the loop, and print it after the loop."
+      ],
+      "expected": "1 3\n2 3\n3 1\ntotal 7"
+    },
+    {
+      "id": "g2",
+      "title": "Keep the raw text",
+      "kind": "python",
+      "prompt": "Read the CSV text with `dtype=str` and `keep_default_na=False`. Print the list of values of the `code` column, then print how many rows have an empty `email`. Expected output: `['007', 'NA', '042']` then `2`.",
+      "starter": "import io\nimport pandas as pd\n\ntext = \"code,email\\n007,a@x.com\\nNA,\\n042,\\n\"\ndf = pd.read_csv(io.StringIO(text))\nprint(df[\"code\"].tolist())\nprint(df[\"email\"].isna().sum())\n",
+      "solution": "import io\nimport pandas as pd\n\ntext = \"code,email\\n007,a@x.com\\nNA,\\n042,\\n\"\ndf = pd.read_csv(io.StringIO(text), dtype=str, keep_default_na=False)\nprint(df[\"code\"].tolist())\nprint(int((df[\"email\"] == \"\").sum()))\n",
+      "hints": [
+        "The starter lets pandas guess types and missing values; add two arguments to `read_csv`.",
+        "Use `dtype=str` and `keep_default_na=False`, then an empty email is the empty string `\"\"`.",
+        "Count with `(df[\"email\"] == \"\").sum()`, and wrap it in `int(...)` so the print shows `2`."
+      ],
+      "expected": "['007', 'NA', '042']\n2"
+    },
+    {
+      "id": "g3",
+      "title": "Header problems in words",
+      "kind": "python",
+      "prompt": "Complete `check_header(columns, expected)` so it returns a list of strings: `missing: ` followed by the missing names in the order of `expected`, joined by `, `, when any are missing, and `unexpected: ` followed by the extra names in the order of `columns` when any are extra. It returns an empty list when the names match. Print the result for the two calls shown. Expected output: `['missing: amount', 'unexpected: total']` then `[]`.",
+      "starter": "def check_header(columns, expected):\n    return []\n\nprint(check_header([\"id\", \"total\"], [\"id\", \"amount\"]))\nprint(check_header([\"id\", \"amount\"], [\"id\", \"amount\"]))\n",
+      "solution": "def check_header(columns, expected):\n    problems = []\n    missing = [c for c in expected if c not in columns]\n    extra = [c for c in columns if c not in expected]\n    if missing:\n        problems.append(\"missing: \" + \", \".join(missing))\n    if extra:\n        problems.append(\"unexpected: \" + \", \".join(extra))\n    return problems\n\nprint(check_header([\"id\", \"total\"], [\"id\", \"amount\"]))\nprint(check_header([\"id\", \"amount\"], [\"id\", \"amount\"]))\n",
+      "hints": [
+        "Build two lists with comprehensions: names in `expected` not in `columns`, and names in `columns` not in `expected`.",
+        "Add a string to `problems` only when the corresponding list is not empty.",
+        "`\"missing: \" + \", \".join(missing)` builds the text; return `problems` at the end."
+      ],
+      "expected": "['missing: amount', 'unexpected: total']\n[]"
+    },
+    {
+      "id": "g4",
+      "title": "File lines of bad quantities",
+      "kind": "python",
+      "prompt": "Read the CSV text as raw text in chunks of 2. For each chunk convert `qty` with `pd.to_numeric(..., errors=\"coerce\")` and print `line <n>` for each row whose quantity is missing or not numeric, where the line number is the row's index plus 2. Expected output: `line 3` then `line 6`.",
+      "starter": "import io\nimport pandas as pd\n\ntext = \"id,qty\\na,5\\nb,x\\nc,2\\nd,7\\ne,\\nf,1\\n\"\nfor chunk in pd.read_csv(io.StringIO(text), chunksize=2, dtype=str, keep_default_na=False):\n    print(chunk.shape)\n",
+      "solution": "import io\nimport pandas as pd\n\ntext = \"id,qty\\na,5\\nb,x\\nc,2\\nd,7\\ne,\\nf,1\\n\"\nfor chunk in pd.read_csv(io.StringIO(text), chunksize=2, dtype=str, keep_default_na=False):\n    qty = pd.to_numeric(chunk[\"qty\"], errors=\"coerce\")\n    for index in chunk.index[qty.isna()]:\n        print(f\"line {index + 2}\")\n",
+      "hints": [
+        "`pd.to_numeric(..., errors=\"coerce\")` gives `NaN` where the text is not a number.",
+        "`qty.isna()` is a mask of bad rows, and `chunk.index[mask]` lists their index labels.",
+        "Loop over `chunk.index[qty.isna()]` and print `f\"line {index + 2}\"`."
+      ],
+      "expected": "line 3\nline 6"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A chunked loader with a reject list",
+      "kind": "python",
+      "prompt": "Write `load(text, chunksize)` for a CSV with the columns `id`, `date` and `amount`. Read raw text in chunks. A row is rejected with the first matching reason in this order: `bad date` (date is not a real `%Y-%m-%d` day, use `pd.to_datetime(..., errors=\"coerce\")`), `bad amount` (not numeric or negative), `duplicate id` (the `id` was already accepted earlier in the file, possibly in an earlier chunk). The function returns `(good_count, rejects)` where `rejects` is a list of `(line, reason)` with `line` equal to the row's index plus 2. Print `good=<n>` and then one `line <n>: <reason>` for every reject. The result must not depend on the chunk size.",
+      "starter": "import io\nimport pandas as pd\n\ntext = \"\"\"id,date,amount\n1,2026-01-01,10\n2,2026-01-02,x\n3,2026-13-01,5\n1,2026-01-03,7\n4,2026-01-04,-2\n5,2026-01-05,8.5\n2,2026-01-06,9\n6,2026-02-29,4\n\"\"\"\n\ndef load(text, chunksize):\n    return 0, []\n\ngood, rejects = load(text, 3)\nprint(f\"good={good}\")\nfor line, reason in rejects:\n    print(f\"line {line}: {reason}\")\n",
+      "solution": "import io\nimport pandas as pd\n\ntext = \"\"\"id,date,amount\n1,2026-01-01,10\n2,2026-01-02,x\n3,2026-13-01,5\n1,2026-01-03,7\n4,2026-01-04,-2\n5,2026-01-05,8.5\n2,2026-01-06,9\n6,2026-02-29,4\n\"\"\"\n\ndef load(text, chunksize):\n    seen, good, rejects = set(), 0, []\n    for chunk in pd.read_csv(io.StringIO(text), chunksize=chunksize, dtype=str, keep_default_na=False):\n        amount = pd.to_numeric(chunk[\"amount\"], errors=\"coerce\")\n        day = pd.to_datetime(chunk[\"date\"], format=\"%Y-%m-%d\", errors=\"coerce\")\n        rules = [\n            (\"bad date\", day.isna()),\n            (\"bad amount\", amount.isna() | (amount < 0)),\n            (\"duplicate id\", chunk[\"id\"].isin(seen) | chunk[\"id\"].duplicated()),\n        ]\n        reason = pd.Series(\"\", index=chunk.index)\n        for label, failed in rules:\n            reason = reason.mask((reason == \"\") & failed, label)\n        ok = reason == \"\"\n        seen.update(chunk.loc[ok, \"id\"])\n        good += int(ok.sum())\n        rejects += [(int(i) + 2, why) for i, why in reason[~ok].items()]\n    return good, rejects\n\ngood, rejects = load(text, 3)\nprint(f\"good={good}\")\nfor line, reason in rejects:\n    print(f\"line {line}: {reason}\")\n",
+      "expected": "good=3\nline 3: bad amount\nline 4: bad date\nline 5: duplicate id\nline 6: bad amount\nline 9: bad date"
+    },
+    {
+      "id": "i2",
+      "title": "Broken lines and short lines",
+      "kind": "python",
+      "prompt": "The CSV text has structurally broken lines. Read it with `engine=\"python\"`, `dtype=str`, `keep_default_na=False` and an `on_bad_lines` function that appends the bad line's fields (joined with `|`) to a list `broken` and returns `None`. Then flag rows whose `city` is empty (the short line is padded) as `missing city`. Print `read=<rows kept>`, then each broken line as `broken: <fields joined with |>`, then each row with an empty city as `missing city: <id>` in file order.",
+      "starter": "import io\nimport pandas as pd\n\ntext = \"id,name,city\\n1,Ana,Oslo\\n2,Ben,Lyon,extra,more\\n3,Cy\\n4,Dee,Turin\\n5,Eli,\\n6,Fay,Rome,x\\n\"\nbroken = []\n# read with an on_bad_lines function, then print the report\n",
+      "solution": "import io\nimport pandas as pd\n\ntext = \"id,name,city\\n1,Ana,Oslo\\n2,Ben,Lyon,extra,more\\n3,Cy\\n4,Dee,Turin\\n5,Eli,\\n6,Fay,Rome,x\\n\"\nbroken = []\n\ndef record(fields):\n    broken.append(\"|\".join(fields))\n    return None\n\ndf = pd.read_csv(io.StringIO(text), engine=\"python\", on_bad_lines=record, dtype=str, keep_default_na=False)\nprint(f\"read={len(df)}\")\nfor line in broken:\n    print(f\"broken: {line}\")\nfor row_id in df.loc[df[\"city\"] == \"\", \"id\"]:\n    print(f\"missing city: {row_id}\")\n",
+      "expected": "read=4\nbroken: 2|Ben|Lyon|extra|more\nbroken: 6|Fay|Rome|x\nmissing city: 5"
+    },
+    {
+      "id": "i3",
+      "title": "Abort threshold and chunk size",
+      "kind": "python",
+      "prompt": "Write `load(text, chunksize, max_bad_share)` that reads raw text in chunks and counts a row as bad when `score` is not numeric or is outside 0 to 100 inclusive. After each chunk, if the bad rows so far divided by the rows read so far is greater than `max_bad_share`, return `(\"aborted\", rows_read_so_far)`; otherwise return `(\"done\", good_count, bad_count)` at the end. Print the results of `load(text, 2, 0.4)`, `load(text, 5, 0.4)` and `load(text, 5, 0.9)`, one per line, as the tuples. Explain in a comment why the first two differ.",
+      "starter": "import io\nimport pandas as pd\n\ntext = \"id,score\\n\" + \"\\n\".join(f\"{i},{s}\" for i, s in enumerate([50, 120, \"x\", 70, 80, 90, \"\", 60, 40, 30], start=1)) + \"\\n\"\n\ndef load(text, chunksize, max_bad_share):\n    return None\n\nprint(load(text, 2, 0.4))\nprint(load(text, 5, 0.4))\nprint(load(text, 5, 0.9))\n",
+      "solution": "import io\nimport pandas as pd\n\ntext = \"id,score\\n\" + \"\\n\".join(f\"{i},{s}\" for i, s in enumerate([50, 120, \"x\", 70, 80, 90, \"\", 60, 40, 30], start=1)) + \"\\n\"\n\ndef load(text, chunksize, max_bad_share):\n    read = bad = 0\n    for chunk in pd.read_csv(io.StringIO(text), chunksize=chunksize, dtype=str, keep_default_na=False):\n        score = pd.to_numeric(chunk[\"score\"], errors=\"coerce\")\n        failed = score.isna() | (score < 0) | (score > 100)\n        read += len(chunk)\n        bad += int(failed.sum())\n        if bad / read > max_bad_share:\n            return (\"aborted\", read)\n    return (\"done\", read - bad, bad)\n\n# The threshold is checked after each chunk, so the point where the run stops depends on the chunk size.\nprint(load(text, 2, 0.4))\nprint(load(text, 5, 0.4))\nprint(load(text, 5, 0.9))\n",
+      "expected": "('aborted', 2)\n('done', 7, 3)\n('done', 7, 3)",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `pd.read_csv(src, chunksize=100)` return?",
+      "options": [
+        "A DataFrame with the first 100 rows",
+        "A list of DataFrames, one per 100 rows, all read into memory",
+        "An iterator that yields DataFrames of up to 100 rows each",
+        "A generator of single rows"
+      ],
+      "answer": 2,
+      "explanation": "It returns a reader object you loop over; only one chunk is in memory at a time. It is not a list, so `len()` and indexing fail, and it is not limited to the first 100 rows."
+    },
+    {
+      "id": "c2",
+      "question": "A 3-column header is followed by the line `4,Dee`. With default settings, what does pandas do with it?",
+      "options": [
+        "Raises `ParserError`",
+        "Skips the line",
+        "Keeps the row and fills the missing city with a missing value",
+        "Merges it with the next line"
+      ],
+      "answer": 2,
+      "explanation": "Lines with too few fields are padded; only lines with too many fields are 'bad lines'. A required-field rule must catch the missing value."
+    },
+    {
+      "id": "c3",
+      "question": "The first data row of a CSV has `chunk.index` value 0. Which line number should a reject report show for it?",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ],
+      "answer": 2,
+      "explanation": "Line 1 is the header, so the first data row is line 2: index plus 2."
+    },
+    {
+      "id": "c4",
+      "question": "The same `order_id` appears in the first and the third chunk. A validator that only calls `chunk['order_id'].duplicated()` inside each chunk will:",
+      "options": [
+        "Reject the second occurrence, because duplicated() looks at the whole file",
+        "Accept both, because each chunk is checked alone; a set of ids seen so far must be carried across chunks",
+        "Raise an error at the third chunk",
+        "Reject both occurrences"
+      ],
+      "answer": 1,
+      "explanation": "`duplicated()` sees only the chunk in front of it. State that depends on the whole file lives outside the loop."
+    },
+    {
+      "id": "c5",
+      "question": "What does `pd.to_datetime(pd.Series([\"2026-02-30\"]), format=\"%Y-%m-%d\", errors=\"coerce\")` give for that value?",
+      "options": [
+        "The timestamp 2026-03-02",
+        "`NaT`, because it is not a real calendar date",
+        "The text unchanged",
+        "An error that stops the program"
+      ],
+      "answer": 1,
+      "explanation": "With `errors=\"coerce\"` an impossible date becomes `NaT`, which marks the row as bad. It is not rolled over to March, and no exception is raised."
+    }
+  ]
+}

@@ -28,6 +28,15 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "daily",
+    label: "Daily Learning",
+    short: "Daily",
+    items: [
+      { to: "/daily", label: "Programme dashboard", desc: "180-day plan, today's lesson, progress and calendar" },
+      { to: "/daily/day/1", label: "Start at Day 1", desc: "Python from scratch" },
+    ],
+  },
+  {
     id: "learn",
     label: "Learn",
     items: [

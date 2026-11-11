@@ -1,0 +1,190 @@
+{
+  "id": "d045",
+  "time": {
+    "theory": 20,
+    "examples": 20,
+    "guided": 25,
+    "independent": 60,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "intro-to-sql",
+      "null-handling",
+      "left-join"
+    ],
+    "questions": [
+      190,
+      191
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "sql-roadmap",
+      "postgresql-fundamentals"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Create and fill a book table",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "In one script, create a table `book` with `book_id integer PRIMARY KEY`, `title text NOT NULL` and `price numeric(6,2) NOT NULL CHECK (price > 0)`. Insert three rows: (1, 'SQL Basics', 29.90), (2, 'Data Models', 45.00), (3, 'Joins Explained', 19.50). Finish with a query that returns `title` and `price` ordered by `book_id`.",
+      "starter": "-- Create the table book, insert three rows, then query it\nSELECT 'todo' AS title, 0 AS price;\n",
+      "solution": "CREATE TABLE book (\n  book_id integer PRIMARY KEY,\n  title   text NOT NULL,\n  price   numeric(6, 2) NOT NULL CHECK (price > 0)\n);\n\nINSERT INTO book (book_id, title, price)\nVALUES (1, 'SQL Basics', 29.90),\n       (2, 'Data Models', 45.00),\n       (3, 'Joins Explained', 19.50);\n\nSELECT title, price FROM book ORDER BY book_id;\n",
+      "hints": [
+        "Start with CREATE TABLE book ( ... ); list each column with its type and constraints, separated by commas.",
+        "The price column is numeric(6, 2) with NOT NULL and CHECK (price > 0). The key is integer PRIMARY KEY.",
+        "Then INSERT INTO book (book_id, title, price) VALUES (...), (...), (...); and finish with SELECT title, price FROM book ORDER BY book_id;"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Shifts with a foreign key and a default",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Create `shift` with `shift_id integer PRIMARY KEY`, `employee_id integer NOT NULL REFERENCES employees (employee_id)`, `hours numeric(4,1) NOT NULL CHECK (hours > 0 AND hours <= 12)` and `shift_date date NOT NULL DEFAULT DATE '1998-06-01'`. Insert shifts (1, employee 1, 8), (2, employee 2, 6.5) without a date, and (3, employee 1, 4) with the date 1998-06-02. Return `shift_id`, `last_name`, `hours` and `shift_date` by joining to `employees`, ordered by `shift_id`.",
+      "starter": "-- Create shift, insert three rows, join to employees\nSELECT shift_id FROM (SELECT 1 AS shift_id) t;\n",
+      "solution": "CREATE TABLE shift (\n  shift_id    integer PRIMARY KEY,\n  employee_id integer NOT NULL REFERENCES employees (employee_id),\n  hours       numeric(4, 1) NOT NULL CHECK (hours > 0 AND hours <= 12),\n  shift_date  date NOT NULL DEFAULT DATE '1998-06-01'\n);\n\nINSERT INTO shift (shift_id, employee_id, hours)\nVALUES (1, 1, 8), (2, 2, 6.5);\nINSERT INTO shift (shift_id, employee_id, hours, shift_date)\nVALUES (3, 1, 4, '1998-06-02');\n\nSELECT s.shift_id, e.last_name, s.hours, s.shift_date\nFROM shift s\nJOIN employees e ON e.employee_id = s.employee_id\nORDER BY s.shift_id;\n",
+      "hints": [
+        "Create the table first, then the inserts, then the join. The default means the first two inserts can leave shift_date out.",
+        "Use two INSERT statements: one with three columns for shifts 1 and 2, one with four columns for shift 3.",
+        "SELECT s.shift_id, e.last_name, s.hours, s.shift_date FROM shift s JOIN employees e ON e.employee_id = s.employee_id ORDER BY s.shift_id"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Categories with many products",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Join `products` to `categories`. Return `category_name`, `products` (count) and `avg_price` (average `unit_price` rounded to 2 decimals) for the categories with at least 10 products. Order by `products` descending, then `category_name`.",
+      "starter": "-- Categories with at least 10 products\nSELECT c.category_name, COUNT(*) AS products, ROUND(AVG(p.unit_price), 2) AS avg_price\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nGROUP BY c.category_name\nORDER BY products DESC, c.category_name;\n",
+      "solution": "SELECT c.category_name, COUNT(*) AS products, ROUND(AVG(p.unit_price), 2) AS avg_price\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nGROUP BY c.category_name\nHAVING COUNT(*) >= 10\nORDER BY products DESC, c.category_name;\n",
+      "hints": [
+        "The starter lists all eight categories. The condition is about the size of each group.",
+        "Use HAVING with the aggregate, after GROUP BY.",
+        "HAVING COUNT(*) >= 10"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Customers quiet in 1996",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `customer_id` and `company_name` of every customer who placed no order dated in 1996 (from 1996-01-01 up to but not including 1997-01-01), including customers who never ordered. Use a left join with the date test in `ON`, and order by `customer_id`.",
+      "starter": "-- Customers with no order in 1996\nSELECT c.customer_id, c.company_name\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE o.order_date >= '1996-01-01' AND o.order_date < '1997-01-01'\n  AND o.order_id IS NULL\nORDER BY c.customer_id;\n",
+      "solution": "SELECT c.customer_id, c.company_name\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\n                  AND o.order_date >= '1996-01-01' AND o.order_date < '1997-01-01'\nWHERE o.order_id IS NULL\nORDER BY c.customer_id;\n",
+      "hints": [
+        "The starter returns nothing. A WHERE test on o.order_date cannot be true for rows with no matching order.",
+        "Move the date range into the ON clause, so it defines which orders count as a match.",
+        "Keep only WHERE o.order_id IS NULL after the join."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Employee delivery performance",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Join `orders` to `employees`. For each employee with at least 10 orders return `employee_id`, `last_name`, `orders`, `shipped` (orders with a `shipped_date`), `late` (orders with `shipped_date` after `required_date`), `pct_late` (late as a percentage of shipped, rounded to 1 decimal, computed with a numeric division) and `avg_days_to_ship` (average of `shipped_date - order_date`, rounded to 2 decimals). Order by `pct_late` descending, then `employee_id`.",
+      "starter": "-- Delivery performance per employee (10+ orders)\nSELECT e.employee_id, e.last_name, COUNT(*) AS orders\nFROM orders o\nJOIN employees e ON e.employee_id = o.employee_id\nGROUP BY e.employee_id, e.last_name\nHAVING COUNT(*) >= 10\nORDER BY e.employee_id;\n",
+      "solution": "SELECT e.employee_id, e.last_name,\n       COUNT(*) AS orders,\n       COUNT(o.shipped_date) AS shipped,\n       COUNT(*) FILTER (WHERE o.shipped_date > o.required_date) AS late,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE o.shipped_date > o.required_date) / COUNT(o.shipped_date), 1) AS pct_late,\n       ROUND(AVG(o.shipped_date - o.order_date), 2) AS avg_days_to_ship\nFROM orders o\nJOIN employees e ON e.employee_id = o.employee_id\nGROUP BY e.employee_id, e.last_name\nHAVING COUNT(*) >= 10\nORDER BY pct_late DESC, e.employee_id;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Customers who order more than their country's average",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Join `customers` to `orders`. For each customer return `customer_id`, `country` and `orders` (the customer's number of orders), keeping only customers whose number of orders is greater than the average number of orders per ordering customer in the same country. Compute that average with a subquery that counts orders divided by distinct ordering customers (cast to `numeric`) for the same country. Order by `country`, then `customer_id`.",
+      "starter": "-- Customers with more orders than their country's average per customer\nSELECT c.customer_id, c.country, COUNT(*) AS orders\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.customer_id, c.country\nORDER BY c.country, c.customer_id;\n",
+      "solution": "SELECT c.customer_id, c.country, COUNT(*) AS orders\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.customer_id, c.country\nHAVING COUNT(*) > (SELECT COUNT(*)::numeric / COUNT(DISTINCT c2.customer_id)\n                   FROM customers c2\n                   JOIN orders o2 ON o2.customer_id = c2.customer_id\n                   WHERE c2.country = c.country)\nORDER BY c.country, c.customer_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Price bands from a lookup table",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. Create `price_band (band text PRIMARY KEY, low numeric(8,2) NOT NULL, high numeric(8,2) NOT NULL, CHECK (high > low))` and insert the bands ('budget', 0, 10), ('standard', 10, 30) and ('premium', 30, 1000). Then join `products` to `price_band` on `p.unit_price >= b.low AND p.unit_price < b.high` and return `band`, `products` (count) and `avg_price` (rounded to 2 decimals), ordered by the band's `low` value.",
+      "starter": "-- Create price_band, fill it, and summarise products per band\nSELECT 'todo' AS band, 0 AS products, 0 AS avg_price;\n",
+      "solution": "CREATE TABLE price_band (\n  band text PRIMARY KEY,\n  low  numeric(8, 2) NOT NULL,\n  high numeric(8, 2) NOT NULL,\n  CHECK (high > low)\n);\n\nINSERT INTO price_band (band, low, high)\nVALUES ('budget', 0, 10), ('standard', 10, 30), ('premium', 30, 1000);\n\nSELECT b.band, COUNT(*) AS products, ROUND(AVG(p.unit_price), 2) AS avg_price\nFROM products p\nJOIN price_band b ON p.unit_price >= b.low AND p.unit_price < b.high\nGROUP BY b.band, b.low\nORDER BY b.low;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A table has `code text UNIQUE`. How many rows can have `code` NULL?",
+      "options": [
+        "Only one",
+        "None",
+        "Any number",
+        "Exactly two"
+      ],
+      "answer": 2,
+      "explanation": "NULL is not equal to NULL, so UNIQUE never sees two NULLs as duplicates. Any number of rows may have a NULL code. Add NOT NULL as well if the code is required."
+    },
+    {
+      "id": "c2",
+      "question": "A CHECK constraint is `CHECK (credits > 0)`. What happens when a row is inserted with credits NULL (the column allows NULL)?",
+      "options": [
+        "The insert is rejected, because NULL > 0 is false",
+        "The insert is accepted, because the condition is unknown rather than false",
+        "The insert is accepted only if there is a DEFAULT",
+        "The insert fails with a syntax error"
+      ],
+      "answer": 1,
+      "explanation": "A CHECK rejects rows where the condition is false. NULL > 0 is unknown, so the row is accepted. To forbid missing values you need NOT NULL as well."
+    },
+    {
+      "id": "c3",
+      "question": "What does `SELECT 0.1::double precision + 0.2::double precision` return?",
+      "options": [
+        "0.3",
+        "0.30000000000000004",
+        "0.31",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "Double precision stores binary approximations, so the sum carries rounding noise. With numeric the sum is exactly 0.3. This is why money is stored as numeric."
+    },
+    {
+      "id": "c4",
+      "question": "Which statement about `CREATE TABLE copy AS SELECT * FROM orders` is true?",
+      "options": [
+        "It copies the rows and the primary and foreign keys",
+        "It copies the rows and column types but not the constraints",
+        "It creates an empty table with the same columns",
+        "It links the new table to the old one, so changes are synchronised"
+      ],
+      "answer": 1,
+      "explanation": "CREATE TABLE AS creates a plain table filled with the query result. Keys and other constraints are not copied, and there is no link to the source table afterwards."
+    },
+    {
+      "id": "c5",
+      "question": "You insert a row into a child table with a `customer_id` that does not exist in the parent table, and the column has a foreign key. What happens?",
+      "options": [
+        "The row is inserted and the parent gets a new row",
+        "The row is inserted with NULL in that column",
+        "The statement fails with a foreign key violation and nothing is stored",
+        "The row is inserted, and the join with the parent will drop it"
+      ],
+      "answer": 2,
+      "explanation": "A foreign key requires every non-NULL value to exist in the parent key. The statement fails and stores nothing. The parent must be inserted first."
+    },
+    {
+      "id": "c6",
+      "question": "What does `SELECT CAST('abc' AS integer)` do?",
+      "options": [
+        "Returns 0",
+        "Returns NULL",
+        "Fails with invalid input syntax for type integer",
+        "Returns the character codes of abc"
+      ],
+      "answer": 2,
+      "explanation": "The text cannot be converted to a number, so PostgreSQL raises 'invalid input syntax for type integer: \"abc\"'. It never silently converts to 0 or NULL."
+    }
+  ]
+}

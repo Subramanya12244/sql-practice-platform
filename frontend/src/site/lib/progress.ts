@@ -70,6 +70,8 @@ export interface Progress {
   sessions?: import("./solveSessions").SolveSession[];
   /** Mistake notebook, one record per challenge (categories and counts only). See lib/mistakes.ts. */
   mistakes?: Record<string, import("./mistakes").Mistake>;
+  /** Daily Learning: chosen path and one record per day id. See lib/dailyProgress.ts. */
+  daily?: import("./dailyProgress").DailyState;
 }
 
 /** Receives every change so a signed-in account can mirror it; null when anonymous. */
@@ -431,6 +433,40 @@ export function schedulePython(slug: string, ok: boolean, failedBefore: number) 
     fast: ok && t ? t.sec <= t.targetSec * RULES.fastShare : false,
   };
   write({ ...p, revision: { ...p.revision, [key]: nextRevision(p.revision?.[key], outcome) } });
+  sink?.state(current);
+}
+
+// ── Daily Learning ───────────────────────────────────────────────────────
+/**
+ * Change one day's record. Sets startedAt, lastVisit and the programme start date. `counts` is true for real work
+ * (a passed exercise, a check, a completion), which also counts toward the daily goal and the site-wide streak.
+ */
+export function updateDay(id: string, fn: (r: import("./dailyProgress").DayRecord) => import("./dailyProgress").DayRecord, counts = false) {
+  const p = read();
+  const now = new Date().toISOString();
+  const daily = p.daily ?? { days: {} };
+  const prev = daily.days[id] ?? {};
+  const next = { ...fn(prev), startedAt: prev.startedAt ?? now, lastVisit: now };
+  write({
+    ...p,
+    daily: { ...daily, startedOn: daily.startedOn ?? today(), days: { ...daily.days, [id]: next } },
+    ...(counts ? bump(p) : {}),
+  });
+  sink?.state(current);
+}
+
+export function setDailyPath(path: import("./daily").BranchId | undefined) {
+  const p = read();
+  const daily = p.daily ?? { days: {} };
+  write({ ...p, daily: { ...daily, path, startedOn: daily.startedOn ?? today() } });
+  sink?.state(current);
+}
+
+/** Schedule the next review of a day (key "day:<id>" in the shared revision map; the SQL/Python queue ignores it). */
+export function scheduleDayReview(id: string, score: number) {
+  const p = read();
+  const key = `day:${id}`;
+  write({ ...p, revision: { ...p.revision, [key]: nextRevision(p.revision?.[key], { correct: score >= 0.8 }, new Date()) } });
   sink?.state(current);
 }
 

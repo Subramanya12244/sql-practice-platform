@@ -1,0 +1,173 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Recode with a dictionary",
+      "prompt": "The series `size` holds `\"S\"`, `\"M\"`, `\"L\"`, `\"XL\"` and `\"S\"`. Map it with the dictionary `{\"S\": \"small\", \"M\": \"medium\", \"L\": \"large\"}`, replace the value left missing by `\"other\"`, and print the resulting list with `print(result.tolist())`.",
+      "starter": "import pandas as pd\nsize = pd.Series([\"S\", \"M\", \"L\", \"XL\", \"S\"])\nprint(size.tolist())\n",
+      "solution": "import pandas as pd\nsize = pd.Series([\"S\", \"M\", \"L\", \"XL\", \"S\"])\nnames = {\"S\": \"small\", \"M\": \"medium\", \"L\": \"large\"}\nresult = size.map(names).fillna(\"other\")\nprint(result.tolist())\n",
+      "hints": [
+        "`map` with a dictionary looks each value up as a key.",
+        "A value that is not a key becomes `NaN`, which `fillna` can replace.",
+        "`size.map(names).fillna(\"other\")`."
+      ],
+      "kind": "python",
+      "expected": "['small', 'medium', 'large', 'other', 'small']"
+    },
+    {
+      "id": "g2",
+      "title": "Apply a tax function",
+      "prompt": "Define `def with_tax(price)` returning the price plus 20% rounded to 2 places (`round(price * 1.2, 2)`). Apply it to the series `prices` and print the result with `print(gross.tolist())`.",
+      "starter": "import pandas as pd\nprices = pd.Series([10.0, 24.5, 99.99])\nprint(prices.tolist())\n",
+      "solution": "import pandas as pd\nprices = pd.Series([10.0, 24.5, 99.99])\n\ndef with_tax(price):\n    return round(price * 1.2, 2)\n\ngross = prices.apply(with_tax)\nprint(gross.tolist())\n",
+      "hints": [
+        "Write the function for one price first; it takes a single number and returns a number.",
+        "`prices.apply(with_tax)` passes each price to the function.",
+        "The function body is `return round(price * 1.2, 2)`."
+      ],
+      "kind": "python",
+      "expected": "[12.0, 29.4, 119.99]"
+    },
+    {
+      "id": "g3",
+      "title": "Replace a row-wise apply",
+      "prompt": "The code below computes the revenue per row with `apply(axis=1)`. Replace it with a vectorised expression for `revenue`, then print the revenue list and the total with `print(revenue.tolist())` and `print(revenue.sum())`.",
+      "starter": "import pandas as pd\ndf = pd.DataFrame({\"qty\": [3, 1, 4], \"price\": [2.5, 10.0, 1.25]})\nrevenue = df.apply(lambda r: r[\"qty\"] + r[\"price\"], axis=1)\nprint(revenue.tolist())\nprint(revenue.sum())\n",
+      "solution": "import pandas as pd\ndf = pd.DataFrame({\"qty\": [3, 1, 4], \"price\": [2.5, 10.0, 1.25]})\nrevenue = df[\"qty\"] * df[\"price\"]\nprint(revenue.tolist())\nprint(revenue.sum())\n",
+      "hints": [
+        "Revenue is quantity times price, not plus.",
+        "Columns can be multiplied directly: no function and no `axis=1` is needed.",
+        "`revenue = df[\"qty\"] * df[\"price\"]`."
+      ],
+      "kind": "python",
+      "expected": "[7.5, 10.0, 5.0]\n22.5"
+    },
+    {
+      "id": "g4",
+      "title": "Flag big orders",
+      "prompt": "Use `np.where` to create a series `flag` that is `\"big\"` where `amount` is at least 100 and `\"ok\"` otherwise. Print `flag.tolist()` for the series `amount` given in the starter.",
+      "starter": "import numpy as np\nimport pandas as pd\namount = pd.Series([20, 150, 100, 99])\nprint(amount.tolist())\n",
+      "solution": "import numpy as np\nimport pandas as pd\namount = pd.Series([20, 150, 100, 99])\nflag = np.where(amount >= 100, \"big\", \"ok\")\nprint(flag.tolist())\n",
+      "hints": [
+        "`np.where(condition, if_true, if_false)` works on a whole column.",
+        "The condition is `amount >= 100`; 100 itself counts as big.",
+        "`flag = np.where(amount >= 100, \"big\", \"ok\")`."
+      ],
+      "kind": "python",
+      "expected": "['ok', 'big', 'big', 'ok']"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Parse and total messy prices",
+      "prompt": "The series `raw` has price text such as `\"$1,200\"`, `\"850\"`, `\"free\"` and `\"$99.5\"`. Write a function that removes `$` and commas and returns a float, or `0.0` for `\"free\"` (any value that cannot be converted). Apply it, then print two lines: the list of prices and the number of values that were not numeric (the ones that fell back to `0.0` because of the error).",
+      "starter": "import pandas as pd\nraw = pd.Series([\"$1,200\", \"850\", \"free\", \"$99.5\", \"n/a\"])\nprint(raw.tolist())\n",
+      "solution": "import pandas as pd\nraw = pd.Series([\"$1,200\", \"850\", \"free\", \"$99.5\", \"n/a\"])\nfailed = []\n\ndef to_price(text):\n    try:\n        return float(text.replace(\"$\", \"\").replace(\",\", \"\"))\n    except ValueError:\n        failed.append(text)\n        return 0.0\n\nprices = raw.apply(to_price)\nprint(prices.tolist())\nprint(len(failed))\n",
+      "kind": "python",
+      "expected": "[1200.0, 850.0, 0.0, 99.5, 0.0]\n2"
+    },
+    {
+      "id": "i2",
+      "title": "Segment customers with map and np.where",
+      "prompt": "A table has `country` codes and `spend`. Create `region` by mapping `{\"DE\": \"EU\", \"FR\": \"EU\", \"US\": \"NA\"}` (unmapped codes become `\"ROW\"`), and `tier` as `\"gold\"` when spend is at least 500, `\"silver\"` when at least 200, else `\"basic\"` (nested `np.where`). Print `df[[\"region\", \"tier\"]].to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\ndf = pd.DataFrame({\"country\": [\"DE\", \"US\", \"JP\", \"FR\"], \"spend\": [650, 210, 480, 90]})\nprint(df.to_string())\n",
+      "solution": "import numpy as np\nimport pandas as pd\ndf = pd.DataFrame({\"country\": [\"DE\", \"US\", \"JP\", \"FR\"], \"spend\": [650, 210, 480, 90]})\ndf[\"region\"] = df[\"country\"].map({\"DE\": \"EU\", \"FR\": \"EU\", \"US\": \"NA\"}).fillna(\"ROW\")\ndf[\"tier\"] = np.where(df[\"spend\"] >= 500, \"gold\", np.where(df[\"spend\"] >= 200, \"silver\", \"basic\"))\nprint(df[[\"region\", \"tier\"]].to_string())\n",
+      "kind": "python",
+      "expected": "  region    tier\n0     EU    gold\n1     NA  silver\n2    ROW  silver\n3     EU   basic"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: fewer calls by mapping unique values",
+      "required": false,
+      "prompt": "A slow function is called by `apply` once per row. Reduce the calls: compute the function once per distinct value (`s.unique()`), build a dictionary, and `map` the series with it. Print three lines: the result list, the number of calls with plain `apply`, and the number of calls with the unique-value approach. Use the call counter in the starter.",
+      "starter": "import pandas as pd\ns = pd.Series([\"b\", \"a\", \"b\", \"c\", \"a\", \"b\"])\ncalls = []\n\ndef slow(v):\n    calls.append(v)\n    return v.upper() * 2\n\nprint(s.apply(slow).tolist())\nprint(len(calls))\n",
+      "solution": "import pandas as pd\ns = pd.Series([\"b\", \"a\", \"b\", \"c\", \"a\", \"b\"])\ncalls = []\n\ndef slow(v):\n    calls.append(v)\n    return v.upper() * 2\n\nplain = s.apply(slow)\nplain_calls = len(calls)\ncalls.clear()\nlookup = {v: slow(v) for v in s.unique()}\nfast = s.map(lookup)\nprint(fast.tolist())\nprint(plain_calls)\nprint(len(calls))\n",
+      "kind": "python",
+      "expected": "['BB', 'AA', 'BB', 'CC', 'AA', 'BB']\n6\n3"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`pd.Series([\"a\", \"b\", \"z\"]).map({\"a\": 1, \"b\": 2}).tolist()` returns what?",
+      "options": [
+        "[1, 2, 'z']",
+        "[1.0, 2.0, nan]",
+        "[1, 2, 0]",
+        "KeyError: 'z'"
+      ],
+      "answer": 1,
+      "explanation": "`map` with a dictionary turns values that are not keys into NaN, and the presence of NaN makes the numbers floats. It does not keep the original value, does not use 0, and does not raise."
+    },
+    {
+      "id": "c2",
+      "question": "Which line computes revenue per row in the fastest and clearest way?",
+      "options": [
+        "df.apply(lambda r: r['qty'] * r['price'], axis=1)",
+        "df['qty'] * df['price']",
+        "[q * p for q, p in zip(df['qty'], df['price'])]",
+        "df.apply(lambda c: c['qty'] * c['price'])"
+      ],
+      "answer": 1,
+      "explanation": "The column product is one vectorised operation. The `axis=1` apply and the list comprehension both run Python once per row, and the last option lacks `axis=1` so the function would receive columns and fail."
+    },
+    {
+      "id": "c3",
+      "question": "`amount = pd.Series([50, 100, 200])`. What does `np.where(amount >= 100, 'hi', 'lo').tolist()` print?",
+      "options": [
+        "['lo', 'hi', 'hi']",
+        "['lo', 'lo', 'hi']",
+        "['hi', 'hi', 'hi']",
+        "['lo', 'hi', 'lo']"
+      ],
+      "answer": 0,
+      "explanation": "`>= 100` is true for 100 and 200, so the middle and last items are 'hi' and 50 is 'lo'. Choosing `['lo', 'lo', 'hi']` treats 100 as below the cut-off, which `>=` does not."
+    },
+    {
+      "id": "c4",
+      "question": "What does `df.apply(func)` do when `axis` is not given?",
+      "options": [
+        "Calls func once per row",
+        "Calls func once per column",
+        "Calls func once per cell",
+        "Calls func once for the whole frame"
+      ],
+      "answer": 1,
+      "explanation": "The default `axis=0` passes each column to the function. `axis=1` is needed for rows. Neither default applies per cell; that would be `map` on each column."
+    },
+    {
+      "id": "c5",
+      "question": "A 5-row series has 2 distinct values. `s.apply(f)` makes how many calls to `f`?",
+      "options": [
+        "2",
+        "5",
+        "7",
+        "1"
+      ],
+      "answer": 1,
+      "explanation": "`apply` calls the function once per element and does not remember values it saw before, so 5 calls. Only a lookup built from `s.unique()` needs 2 calls."
+    }
+  ],
+  "id": "d078"
+}

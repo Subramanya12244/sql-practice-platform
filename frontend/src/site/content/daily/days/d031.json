@@ -1,0 +1,169 @@
+{
+  "id": "d031",
+  "time": { "theory": 40, "examples": 25, "guided": 20, "independent": 25, "review": 20 },
+  "links": {
+    "notes": ["intro-to-sql", "primary-foreign-keys"],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": ["postgresql-fundamentals", "sql-roadmap"],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Read the whole categories table",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "The `categories` table is small, so it is safe to read completely. Return **every column** of `categories` (use `*`), ordered by `category_id` ascending. The result must have the columns `category_id`, `category_name` and `description`, in that order, and 8 rows in `category_id` order.",
+      "starter": "-- Return every column of categories, ordered by category_id\nSELECT category_name\nFROM categories;\n",
+      "solution": "SELECT *\nFROM categories\nORDER BY category_id;\n",
+      "hints": [
+        "You need all columns, so you do not have to list them by name. There is a one-character shorthand for 'all columns'.",
+        "The query shape is SELECT <columns> FROM <table> ORDER BY <column>. The table is categories and the sort column is its primary key.",
+        "SELECT * FROM categories ORDER BY category_id; is the whole answer."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Sample five products",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Look at the first five products. Return exactly the columns `product_id`, `product_name` and `unit_price` (in that order) from `products`, ordered by `product_id` ascending, keeping only the first 5 rows.",
+      "starter": "-- First five products: product_id, product_name, unit_price\nSELECT product_id, product_name\nFROM products\nLIMIT 5;\n",
+      "solution": "SELECT product_id, product_name, unit_price\nFROM products\nORDER BY product_id\nLIMIT 5;\n",
+      "hints": [
+        "The starter is missing one column and does not say which five rows count as 'first'.",
+        "Add unit_price to the column list, and put ORDER BY product_id before LIMIT so the first five rows are well defined.",
+        "SELECT product_id, product_name, unit_price FROM products ORDER BY product_id LIMIT 5;"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Describe the employees table",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Use `information_schema.columns` to describe the `employees` table. Return the columns `column_name` and `data_type` (in that order) for the table named `employees` in the schema `public`, ordered by `ordinal_position` so that the columns appear in the order the table defines them. The result has 14 rows.",
+      "starter": "-- Describe the employees table in the order its columns are defined\nSELECT column_name, data_type\nFROM information_schema.columns\nORDER BY column_name;\n",
+      "solution": "SELECT column_name, data_type\nFROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'employees'\nORDER BY ordinal_position;\n",
+      "hints": [
+        "Without a filter, this view lists the columns of every table in the database. You need a WHERE clause that keeps only one table.",
+        "Text values go in single quotes. Combine the two conditions on table_schema and table_name with AND.",
+        "Use WHERE table_schema = 'public' AND table_name = 'employees', then ORDER BY ordinal_position."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Find the keys of orders",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Which columns of `orders` take part in a key? Query `information_schema.key_column_usage` for the table `orders` and return `column_name` and `constraint_name` (in that order). Order by `constraint_name` ascending, then by `column_name` ascending. You should see the primary key and three foreign keys.",
+      "starter": "-- Key columns of the orders table\nSELECT column_name, constraint_name\nFROM information_schema.key_column_usage\nLIMIT 4;\n",
+      "solution": "SELECT column_name, constraint_name\nFROM information_schema.key_column_usage\nWHERE table_name = 'orders'\nORDER BY constraint_name, column_name;\n",
+      "hints": [
+        "LIMIT 4 just cuts the list of all key columns in the database after four rows. What you need is a filter on the table name.",
+        "Add WHERE table_name = 'orders' and then sort by constraint_name followed by column_name.",
+        "SELECT column_name, constraint_name FROM information_schema.key_column_usage WHERE table_name = 'orders' ORDER BY constraint_name, column_name;"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "All date columns in the database",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Find every column in the `public` schema whose `data_type` is `date`. Return `table_name` and `column_name` (in that order), ordered by `table_name` ascending and then `column_name` ascending. Use `information_schema.columns`.",
+      "starter": "-- Every date column in the public schema\nSELECT table_name\nFROM information_schema.columns\nORDER BY table_name;\n",
+      "solution": "SELECT table_name, column_name\nFROM information_schema.columns\nWHERE table_schema = 'public' AND data_type = 'date'\nORDER BY table_name, column_name;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Optional columns of customers",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "A data engineer wants to know which `customers` columns may be left empty. Return `column_name`, `data_type` and `character_maximum_length` (in that order) for the columns of the table `customers` (schema `public`) where `is_nullable` is the text `YES`. Order the rows by `ordinal_position` ascending.",
+      "starter": "-- Nullable columns of customers\nSELECT column_name, data_type\nFROM information_schema.columns\nWHERE table_name = 'customers'\nORDER BY ordinal_position;\n",
+      "solution": "SELECT column_name, data_type, character_maximum_length\nFROM information_schema.columns\nWHERE table_schema = 'public' AND table_name = 'customers' AND is_nullable = 'YES'\nORDER BY ordinal_position;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Primary key columns of every table",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. In this database every constraint in `information_schema.key_column_usage` is either a primary key or a foreign key. The column `position_in_unique_constraint` is NULL for primary key columns and filled in for foreign key columns. List the primary key columns of all tables in the `public` schema: return `table_name` and `column_name` (in that order), ordered by `table_name` and then `column_name`. Use `IS NULL` to test for NULL. The composite key of `order_details` gives two rows.",
+      "starter": "-- Primary key columns of every table in public\nSELECT table_name, column_name\nFROM information_schema.key_column_usage\nWHERE table_schema = 'public' AND position_in_unique_constraint IS NOT NULL\nORDER BY table_name, column_name;\n",
+      "solution": "SELECT table_name, column_name\nFROM information_schema.key_column_usage\nWHERE table_schema = 'public' AND position_in_unique_constraint IS NULL\nORDER BY table_name, column_name;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which column links each row of `orders` to the customer who placed it?",
+      "options": [
+        "`customers.customer_id`, because it is the primary key",
+        "`orders.customer_id`, a foreign key that stores a customer's primary key value",
+        "`orders.order_id`, because it identifies the order",
+        "`customers.company_name`, because it is unique per customer"
+      ],
+      "answer": 1,
+      "explanation": "The foreign key lives in the 'many' side of the relationship: each order row stores the customer_id of its customer. customers.customer_id is the primary key being pointed at, not the link itself. order_id identifies the order, and company_name is not what the database uses to enforce the relationship."
+    },
+    {
+      "id": "c2",
+      "question": "The `shippers` table holds 3 rows. How many rows does `SELECT * FROM shippers LIMIT 10;` return?",
+      "options": ["10, because LIMIT pads the result", "3, because LIMIT is only a maximum", "0, because the table has fewer than 10 rows", "It raises an error"],
+      "answer": 1,
+      "explanation": "LIMIT is an upper bound, not a target. With only 3 rows available the query returns all 3. It never pads, never errors and never returns nothing just because fewer rows exist."
+    },
+    {
+      "id": "c3",
+      "question": "Why does `order_details` use the pair `(order_id, product_id)` as its primary key instead of a single column?",
+      "options": [
+        "Because an order can contain many products and a product can appear on many orders; only the pair identifies one line",
+        "Because PostgreSQL does not allow a table to have a single-column primary key when it has foreign keys",
+        "Because order_id alone would be NULL for some rows",
+        "Because composite keys are faster than single-column keys"
+      ],
+      "answer": 0,
+      "explanation": "order_details resolves a many-to-many relationship, so neither column alone is unique: order 10249 appears on two lines and product 29 appears on several orders. The pair is unique. Single-column primary keys are allowed alongside foreign keys (orders has one), a primary key is never NULL, and speed is not the reason."
+    },
+    {
+      "id": "c4",
+      "question": "`is_nullable` is `YES` for `products.supplier_id`. What does that tell you?",
+      "options": [
+        "Every product must have a supplier",
+        "A product row may exist with no supplier value (NULL), even though non-NULL values must match a real supplier",
+        "The column stores the text YES",
+        "Two products may not share a supplier"
+      ],
+      "answer": 1,
+      "explanation": "Nullable means a row may leave the column empty. A foreign key only checks values that are present. It does not force a value, so a product without a supplier is allowed. The text 'YES' is just how information_schema reports the flag, and sharing a supplier between products is normal (one-to-many)."
+    },
+    {
+      "id": "c5",
+      "question": "What happens when you run `SELECT table_name FROM information_schema.tables WHERE table_schema = \"public\";` (with double quotes around public)?",
+      "options": [
+        "It works and returns the eight Northwind tables",
+        "It returns no rows",
+        "It fails with an error saying the column \"public\" does not exist",
+        "It returns all tables of all schemas"
+      ],
+      "answer": 2,
+      "explanation": "In PostgreSQL double quotes mark identifiers such as column and table names, so \"public\" is read as a column called public, which does not exist. Text values need single quotes: 'public'. The query does not run far enough to return rows."
+    },
+    {
+      "id": "c6",
+      "question": "You run `SELECT * FROM products LIMIT 3;` twice and a colleague gets different rows after a data load. Which statement is correct?",
+      "options": [
+        "This is a PostgreSQL bug, because tables are stored in a fixed order",
+        "The query is correct as long as the table has a primary key",
+        "Without ORDER BY the database may return any rows, so the first three rows are not guaranteed",
+        "LIMIT always returns the three rows with the lowest primary key values"
+      ],
+      "answer": 2,
+      "explanation": "A table is an unordered set of rows. Without ORDER BY, which three rows come first is unspecified and can change after updates or data loads. Having a primary key does not create a sort order, and LIMIT only cuts the result after any ordering has been applied."
+    }
+  ]
+}

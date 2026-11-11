@@ -1,0 +1,176 @@
+{
+  "id": "d058",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "indexes",
+      "query-optimization"
+    ],
+    "questions": [
+      147,
+      167
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "indexing-optimization"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Plan of a sorted query",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return the plan text, without cost numbers, of `SELECT * FROM products ORDER BY unit_price DESC` using `EXPLAIN (COSTS OFF)`.",
+      "starter": "EXPLAIN (COSTS OFF)\nSELECT * FROM products;\n",
+      "solution": "EXPLAIN (COSTS OFF)\nSELECT * FROM products ORDER BY unit_price DESC;\n",
+      "hints": [
+        "The starter explains the query without the ORDER BY, so there is no Sort node.",
+        "Add the ORDER BY clause to the explained query.",
+        "EXPLAIN (COSTS OFF) SELECT * FROM products ORDER BY unit_price DESC;"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Plan of a join with a selective filter",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return the `EXPLAIN (COSTS OFF)` plan for: `SELECT o.order_id, e.last_name FROM orders AS o JOIN employees AS e ON e.employee_id = o.employee_id WHERE o.ship_country = 'Germany'`.",
+      "starter": "EXPLAIN (COSTS OFF)\nSELECT o.order_id, e.last_name\nFROM orders AS o\nJOIN employees AS e ON e.employee_id = o.employee_id;\n",
+      "solution": "EXPLAIN (COSTS OFF)\nSELECT o.order_id, e.last_name\nFROM orders AS o\nJOIN employees AS e ON e.employee_id = o.employee_id\nWHERE o.ship_country = 'Germany';\n",
+      "hints": [
+        "The starter has no filter, so the planner joins whole tables.",
+        "Add WHERE o.ship_country = 'Germany' after the join.",
+        "The final query ends with ... ON e.employee_id = o.employee_id WHERE o.ship_country = 'Germany';"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Actual rows of a filter",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return the plan of `SELECT * FROM products WHERE unit_price > 50` using `EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF, SUMMARY OFF, BUFFERS OFF)`, so the output contains the real number of rows.",
+      "starter": "EXPLAIN (COSTS OFF)\nSELECT * FROM products WHERE unit_price > 50;\n",
+      "solution": "EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF, SUMMARY OFF, BUFFERS OFF)\nSELECT * FROM products WHERE unit_price > 50;\n",
+      "hints": [
+        "EXPLAIN takes a list of options in parentheses.",
+        "Add ANALYZE to the option list, and switch off TIMING, SUMMARY and BUFFERS so the output has no variable parts.",
+        "EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF, SUMMARY OFF, BUFFERS OFF) SELECT * FROM products WHERE unit_price > 50;"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Plan of a grouped query",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return the `EXPLAIN (COSTS OFF)` plan of `SELECT category_id, COUNT(*) FROM products GROUP BY category_id`.",
+      "starter": "EXPLAIN (COSTS OFF)\nSELECT category_id FROM products;\n",
+      "solution": "EXPLAIN (COSTS OFF)\nSELECT category_id, COUNT(*) FROM products GROUP BY category_id;\n",
+      "hints": [
+        "The starter explains a query without aggregation, so there is no aggregate node.",
+        "Add COUNT(*) and GROUP BY category_id to the explained query.",
+        "EXPLAIN (COSTS OFF) SELECT category_id, COUNT(*) FROM products GROUP BY category_id;"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Which join algorithm for two whole tables?",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return the `EXPLAIN (COSTS OFF)` plan of a join between `order_details` (alias `od`) and `products` (alias `p`) on `p.product_id = od.product_id`, selecting `od.order_id` and `p.product_name`, with no filter.",
+      "starter": "EXPLAIN (COSTS OFF)\nSELECT od.order_id\nFROM order_details AS od;\n",
+      "solution": "EXPLAIN (COSTS OFF)\nSELECT od.order_id, p.product_name\nFROM order_details AS od\nJOIN products AS p ON p.product_id = od.product_id;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Plan of a grouped, filtered, sorted query",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return the `EXPLAIN (COSTS OFF)` plan of `SELECT customer_id, COUNT(*) FROM orders WHERE order_date >= '1998-01-01' GROUP BY customer_id ORDER BY COUNT(*) DESC`.",
+      "starter": "EXPLAIN (COSTS OFF)\nSELECT customer_id, COUNT(*)\nFROM orders\nGROUP BY customer_id;\n",
+      "solution": "EXPLAIN (COSTS OFF)\nSELECT customer_id, COUNT(*)\nFROM orders\nWHERE order_date >= '1998-01-01'\nGROUP BY customer_id\nORDER BY COUNT(*) DESC;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Forced index plan on an indexed filter (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "In one block: create an index `idx_products_price` on `products (unit_price)`, run `SET LOCAL enable_seqscan = off`, and return the `EXPLAIN (COSTS OFF)` plan of `SELECT product_id FROM products WHERE unit_price = 18`.",
+      "starter": "EXPLAIN (COSTS OFF)\nSELECT product_id FROM products WHERE unit_price = 18;\n",
+      "solution": "CREATE INDEX idx_products_price ON products (unit_price);\nSET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT product_id FROM products WHERE unit_price = 18;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A plan prints a `Hash Join` with a `Seq Scan` on each side. In which order does PostgreSQL run it?",
+      "options": [
+        "The Hash Join first, then the scans",
+        "The deepest nodes (the scans, with the hash build) first, then the join above them",
+        "The top line first and the rest never run",
+        "Alphabetical order of node names"
+      ],
+      "answer": 1,
+      "explanation": "A plan is a tree: children produce rows for their parent. The scans (and the Hash node that builds the table) run first and the join combines them. Reading from the most indented node upward follows the execution."
+    },
+    {
+      "id": "c2",
+      "question": "What is the difference between `ANALYZE orders;` and `EXPLAIN ANALYZE SELECT ...`?",
+      "options": [
+        "They are the same",
+        "ANALYZE collects statistics for the planner; EXPLAIN ANALYZE runs the query and reports actual rows and times",
+        "ANALYZE deletes rows; EXPLAIN ANALYZE shows them",
+        "EXPLAIN ANALYZE collects statistics"
+      ],
+      "answer": 1,
+      "explanation": "The statement ANALYZE refreshes table statistics. The ANALYZE option of EXPLAIN executes the query and adds measured values to the plan. The two are unrelated except for the name."
+    },
+    {
+      "id": "c3",
+      "question": "The plan says `rows=1` for a node, but the node actually returns 13 rows. What does this indicate?",
+      "options": [
+        "The plan is invalid",
+        "The planner's estimate is off, often because statistics are missing or stale; try ANALYZE",
+        "The query has a syntax error",
+        "The table has no rows"
+      ],
+      "answer": 1,
+      "explanation": "Estimated and actual rows come from different sources: statistics versus the real run. A big gap usually means missing or outdated statistics and can lead to a poor plan. ANALYZE refreshes them."
+    },
+    {
+      "id": "c4",
+      "question": "Which statement about `Seq Scan` is true?",
+      "options": [
+        "It always signals a performance bug",
+        "It is often the best plan on small tables or when most rows are needed",
+        "It can only appear for SELECT *",
+        "It means the table has no primary key"
+      ],
+      "answer": 1,
+      "explanation": "Reading the whole table is cheapest when the table is small or the filter keeps most rows. It is only a problem when a selective filter scans a very large table."
+    },
+    {
+      "id": "c5",
+      "question": "Why is `EXPLAIN ANALYZE DELETE FROM orders WHERE ...` dangerous?",
+      "options": [
+        "It only shows a plan, so it is harmless",
+        "It actually executes the DELETE and changes the data unless the transaction is rolled back",
+        "It deletes the plan",
+        "It always locks the whole database"
+      ],
+      "answer": 1,
+      "explanation": "The ANALYZE option runs the statement for real so it can measure it. Plain EXPLAIN does not run it. Wrap a data-changing statement in a transaction and roll it back if you need to measure it."
+    }
+  ]
+}

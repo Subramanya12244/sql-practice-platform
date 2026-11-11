@@ -1,0 +1,173 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-csv-json"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Pick the smallest integer type",
+      "prompt": "The series `ages` has values between 18 and 90. Convert it with `pd.to_numeric(..., downcast=\"integer\")` and print the dtype name with `print(small.dtype)`, then print `True` or `False` for whether the converted values equal the original (`(small == ages).all()`).",
+      "starter": "import pandas as pd\nages = pd.Series([18, 45, 90, 33, 61])\nprint(ages.dtype)\n",
+      "solution": "import pandas as pd\nages = pd.Series([18, 45, 90, 33, 61])\nsmall = pd.to_numeric(ages, downcast=\"integer\")\nprint(small.dtype)\nprint((small == ages).all())\n",
+      "hints": [
+        "`to_numeric` has an argument that picks a smaller type.",
+        "Use `downcast=\"integer\"`.",
+        "`small = pd.to_numeric(ages, downcast=\"integer\")`."
+      ],
+      "kind": "python",
+      "expected": "int8\nTrue"
+    },
+    {
+      "id": "g2",
+      "title": "Category versus text",
+      "prompt": "Convert `city` to the category dtype, print the sorted list of its categories, and print whether the category version uses less memory than the text version when measured with `memory_usage(deep=True)` (prints `True`).",
+      "starter": "import pandas as pd\ncity = pd.Series([\"Oslo\", \"Rome\", \"Oslo\", \"Paris\"] * 2000)\nprint(city.nunique())\n",
+      "solution": "import pandas as pd\ncity = pd.Series([\"Oslo\", \"Rome\", \"Oslo\", \"Paris\"] * 2000)\ncat = city.astype(\"category\")\nprint(sorted(cat.cat.categories.tolist()))\nprint(cat.memory_usage(deep=True) < city.memory_usage(deep=True))\n",
+      "hints": [
+        "`astype(\"category\")` converts a column.",
+        "The distinct values are in `.cat.categories`.",
+        "Compare `cat.memory_usage(deep=True)` with `city.memory_usage(deep=True)`."
+      ],
+      "kind": "python",
+      "expected": "['Oslo', 'Paris', 'Rome']\nTrue"
+    },
+    {
+      "id": "g3",
+      "title": "Total from chunks",
+      "prompt": "Read the CSV text in chunks of 3 rows and add up the `amount` column across chunks. Print the number of chunks and the total on one line, separated by a space.",
+      "starter": "import io\nimport pandas as pd\ntext = \"id,amount\\n\" + \"\\n\".join(f\"{i},{i * 2}\" for i in range(1, 9))\nprint(len(text))\n",
+      "solution": "import io\nimport pandas as pd\ntext = \"id,amount\\n\" + \"\\n\".join(f\"{i},{i * 2}\" for i in range(1, 9))\nchunks = 0\ntotal = 0\nfor chunk in pd.read_csv(io.StringIO(text), chunksize=3):\n    chunks += 1\n    total += chunk[\"amount\"].sum()\nprint(chunks, total)\n",
+      "hints": [
+        "`chunksize` makes `read_csv` return an iterator of tables.",
+        "Loop over it and keep a running total and a chunk counter.",
+        "`for chunk in pd.read_csv(io.StringIO(text), chunksize=3):` then `total += chunk[\"amount\"].sum()`."
+      ],
+      "kind": "python",
+      "expected": "3 72"
+    },
+    {
+      "id": "g4",
+      "title": "Load only what you need",
+      "prompt": "Read the CSV text loading only the columns `country` and `amount`, with `amount` stored as `int16`. Print two lines: `list(df.columns)` and `df[\"amount\"].dtype`.",
+      "starter": "import io\nimport pandas as pd\ntext = \"id,country,amount,note\\n1,UK,10,a\\n2,US,20,b\\n3,UK,30,c\"\ndf = pd.read_csv(io.StringIO(text))\nprint(list(df.columns))\nprint(df[\"amount\"].dtype)\n",
+      "solution": "import io\nimport pandas as pd\ntext = \"id,country,amount,note\\n1,UK,10,a\\n2,US,20,b\\n3,UK,30,c\"\ndf = pd.read_csv(io.StringIO(text), usecols=[\"country\", \"amount\"], dtype={\"amount\": \"int16\"})\nprint(list(df.columns))\nprint(df[\"amount\"].dtype)\n",
+      "hints": [
+        "`read_csv` can restrict the columns it loads.",
+        "`usecols` takes a list of names; `dtype` takes a dictionary.",
+        "`usecols=[\"country\", \"amount\"], dtype={\"amount\": \"int16\"}`."
+      ],
+      "kind": "python",
+      "expected": "['country', 'amount']\nint16"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Shrink a table and verify",
+      "prompt": "Build `df` as in the starter. Convert `qty` with `downcast=\"integer\"`, `status` to category, keep `price` as float. Print three lines: the dtype of `qty`, whether the new table uses less memory than the old one (`memory_usage(deep=True).sum()` comparison, prints `True`), and whether the grouped sums of `price` by `status` (with `observed=True` on the new table) equal the old ones (`.equals` after `sort_index()` on both; prints `True`).",
+      "starter": "import pandas as pd\ndf = pd.DataFrame({\"qty\": [1, 2, 3, 4, 5] * 800, \"status\": [\"new\", \"paid\", \"sent\", \"paid\", \"new\"] * 800, \"price\": [1.5, 2.5, 3.5, 4.5, 5.5] * 800})\nprint(df.shape)\n",
+      "solution": "import pandas as pd\ndf = pd.DataFrame({\"qty\": [1, 2, 3, 4, 5] * 800, \"status\": [\"new\", \"paid\", \"sent\", \"paid\", \"new\"] * 800, \"price\": [1.5, 2.5, 3.5, 4.5, 5.5] * 800})\nnew = df.assign(qty=pd.to_numeric(df[\"qty\"], downcast=\"integer\"), status=df[\"status\"].astype(\"category\"))\nprint(new[\"qty\"].dtype)\nprint(new.memory_usage(deep=True).sum() < df.memory_usage(deep=True).sum())\nold = df.groupby(\"status\")[\"price\"].sum().sort_index()\nnew_sum = new.groupby(\"status\", observed=True)[\"price\"].sum().sort_index()\nprint(old.tolist() == new_sum.tolist())\n",
+      "kind": "python",
+      "expected": "int8\nTrue\nTrue"
+    },
+    {
+      "id": "i2",
+      "title": "Chunked revenue per country",
+      "prompt": "The CSV text has `country`, `qty` and `price` for 14 rows. Read it in chunks of 5 rows. Per chunk compute revenue (`qty * price`) per country; combine the chunk results into a single series of total revenue per country, and print it with `print(result.to_string())`. Then print whether it equals the result of reading the whole text at once (`True`).",
+      "starter": "import io\nimport pandas as pd\nrows = [(\"UK\", 2, 5), (\"US\", 1, 10), (\"DE\", 3, 4), (\"UK\", 1, 5), (\"US\", 2, 10), (\"UK\", 4, 5), (\"DE\", 1, 4), (\"US\", 3, 10), (\"UK\", 2, 5), (\"DE\", 2, 4), (\"US\", 1, 10), (\"UK\", 3, 5), (\"DE\", 5, 4), (\"US\", 2, 10)]\ntext = \"country,qty,price\\n\" + \"\\n\".join(f\"{c},{q},{p}\" for c, q, p in rows)\nprint(len(rows))\n",
+      "solution": "import io\nimport pandas as pd\nrows = [(\"UK\", 2, 5), (\"US\", 1, 10), (\"DE\", 3, 4), (\"UK\", 1, 5), (\"US\", 2, 10), (\"UK\", 4, 5), (\"DE\", 1, 4), (\"US\", 3, 10), (\"UK\", 2, 5), (\"DE\", 2, 4), (\"US\", 1, 10), (\"UK\", 3, 5), (\"DE\", 5, 4), (\"US\", 2, 10)]\ntext = \"country,qty,price\\n\" + \"\\n\".join(f\"{c},{q},{p}\" for c, q, p in rows)\nparts = []\nfor chunk in pd.read_csv(io.StringIO(text), chunksize=5):\n    rev = chunk[\"qty\"] * chunk[\"price\"]\n    parts.append(rev.groupby(chunk[\"country\"]).sum())\nresult = pd.concat(parts).groupby(level=0).sum()\nprint(result.to_string())\nfull = pd.read_csv(io.StringIO(text))\nprint(result.equals((full[\"qty\"] * full[\"price\"]).groupby(full[\"country\"]).sum()))\n",
+      "kind": "python",
+      "expected": "country\nDE    44\nUK    60\nUS    90\nTrue"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: correct mean from chunks",
+      "required": false,
+      "prompt": "Reading `text` in chunks of 4 rows, compute the mean `amount` in two ways: the mean of the chunk means (wrong when chunk sizes differ) and total divided by count (right). Print both rounded to 3 places on two lines, then the mean from a full read on a third line.",
+      "starter": "import io\nimport pandas as pd\ntext = \"amount\\n\" + \"\\n\".join(str(v) for v in [10, 20, 30, 40, 50, 60, 70, 80, 90, 1000])\nprint(len(text))\n",
+      "solution": "import io\nimport pandas as pd\ntext = \"amount\\n\" + \"\\n\".join(str(v) for v in [10, 20, 30, 40, 50, 60, 70, 80, 90, 1000])\nmeans = []\ntotal = 0\ncount = 0\nfor chunk in pd.read_csv(io.StringIO(text), chunksize=4):\n    means.append(chunk[\"amount\"].mean())\n    total += chunk[\"amount\"].sum()\n    count += len(chunk)\nprint(round(sum(means) / len(means), 3))\nprint(round(total / count, 3))\nprint(round(pd.read_csv(io.StringIO(text))[\"amount\"].mean(), 3))\n",
+      "kind": "python",
+      "expected": "211.667\n145.0\n145.0"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A column of long text strings. `df.memory_usage()` shows a small number. What is wrong with trusting it?",
+      "options": [
+        "Nothing, it is exact",
+        "Without deep=True only pointer sizes are counted",
+        "It only counts numeric columns",
+        "It reports bits not bytes"
+      ],
+      "answer": 1,
+      "explanation": "For object columns the default counts the pointers, not the text. `memory_usage(deep=True)` includes the strings themselves. The other options are not how the function behaves."
+    },
+    {
+      "id": "c2",
+      "question": "A column has 1 million rows and every value is a distinct id string. What does converting it to `category` do?",
+      "options": [
+        "Saves a lot of memory",
+        "Saves nothing and may cost more",
+        "Raises an error",
+        "Sorts the values"
+      ],
+      "answer": 1,
+      "explanation": "A category stores each distinct value once plus a code per row. With all values distinct, you store every string and in addition a code for every row. It pays off when distinct values are few."
+    },
+    {
+      "id": "c3",
+      "question": "A table has 10 rows and `chunksize=4`. How many chunks does `read_csv` yield?",
+      "options": [
+        "2",
+        "3",
+        "4",
+        "10"
+      ],
+      "answer": 1,
+      "explanation": "Rows are split 4, 4 and 2, so three chunks. The last chunk is smaller; it is not dropped."
+    },
+    {
+      "id": "c4",
+      "question": "Chunk means are 10 (4 rows), 20 (4 rows) and 100 (2 rows). What is the correct overall mean?",
+      "options": [
+        "43.33",
+        "(40+80+200)/10 = 32",
+        "10",
+        "50"
+      ],
+      "answer": 1,
+      "explanation": "Add each chunk's total (mean times rows) and divide by the total number of rows: 320 / 10 = 32. The plain mean of the chunk means (43.33) ignores that chunks have different sizes."
+    },
+    {
+      "id": "c5",
+      "question": "What is stored in `s.cat.codes` for a categorical column?",
+      "options": [
+        "The distinct values",
+        "One small integer per row pointing into the categories",
+        "The row numbers",
+        "The count of each value"
+      ],
+      "answer": 1,
+      "explanation": "The codes are integers, one per row, that refer to positions in `s.cat.categories`. The distinct values are in the categories, and counts come from `value_counts`."
+    }
+  ],
+  "id": "d084"
+}

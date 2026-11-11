@@ -1,0 +1,179 @@
+{
+  "id": "d015",
+  "time": {
+    "theory": 15,
+    "examples": 30,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-functions",
+      "python-loops",
+      "python-collections"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "count-event-types",
+      "top-k-largest",
+      "running-totals",
+      "common-elements"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Step 1: total_spent",
+      "prompt": "Using the data given, define `total_spent(expenses)` that returns the sum of all the amounts, and print its result for the whole list, then for the empty list `[]`.",
+      "starter": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\n# define total_spent and print the two results\n",
+      "solution": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\ndef total_spent(expenses):\n    total = 0\n    for e in expenses:\n        total += e[\"amount\"]\n    return total\n\nprint(total_spent(expenses))\nprint(total_spent([]))\n",
+      "hints": [
+        "Use an accumulator that starts at 0 before the loop.",
+        "Add `e[\"amount\"]` for each expense and return the total after the loop.",
+        "Print `total_spent(expenses)` and `total_spent([])`; the second is `0`."
+      ],
+      "kind": "python",
+      "expected": "988.5\n0"
+    },
+    {
+      "id": "g2",
+      "title": "Step 2: totals_by_category",
+      "prompt": "Define `totals_by_category(expenses)` returning a dictionary of category totals. Store the result, then print two lines: the total of the `\"food\"` category, and the total of a category called `\"travel\"` read with `get` and a default of 0 (it has no expenses).",
+      "starter": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\n# define totals_by_category\n",
+      "solution": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\ndef totals_by_category(expenses):\n    totals = {}\n    for e in expenses:\n        totals[e[\"category\"]] = totals.get(e[\"category\"], 0) + e[\"amount\"]\n    return totals\n\nresult = totals_by_category(expenses)\nprint(result[\"food\"])\nprint(result.get(\"travel\", 0))\n",
+      "hints": [
+        "Start with an empty dictionary, filled inside the loop.",
+        "The update line is `totals[name] = totals.get(name, 0) + amount`.",
+        "Store the returned dictionary in `result`, then print `result[\"food\"]` and `result.get(\"travel\", 0)`."
+      ],
+      "kind": "python",
+      "expected": "121.5\n0"
+    },
+    {
+      "id": "g3",
+      "title": "Step 3: biggest purchase",
+      "prompt": "Define `biggest(expenses)` that returns the expense (the whole dictionary) with the largest amount, or `None` for an empty list. Print the `category` and `amount` of the biggest expense on one line separated by a space, then print `biggest([])`.",
+      "starter": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\n# define biggest\n",
+      "solution": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\ndef biggest(expenses):\n    best = None\n    for e in expenses:\n        if best is None or e[\"amount\"] > best[\"amount\"]:\n            best = e\n    return best\n\ntop = biggest(expenses)\nprint(top[\"category\"], top[\"amount\"])\nprint(biggest([]))\n",
+      "hints": [
+        "Use the maximum pattern from Day 13 starting with `best = None`.",
+        "Compare amounts: `e[\"amount\"] > best[\"amount\"]`, but only when `best` is not `None`.",
+        "Return `best` after the loop, then print `top[\"category\"]` and `top[\"amount\"]`."
+      ],
+      "kind": "python",
+      "expected": "rent 800.0\nNone"
+    },
+    {
+      "id": "g4",
+      "title": "Step 4: report lines",
+      "prompt": "Define `report_lines(totals)` that takes a dictionary of totals and returns a list of strings, one per category in alphabetical order, in the format `food: 121.50` (two decimals). Call it with `{\"fun\": 37.0, \"food\": 121.5}` and print each line on its own line.",
+      "starter": "# define report_lines and print the lines\n",
+      "solution": "def report_lines(totals):\n    lines = []\n    for name in sorted(totals):\n        lines.append(f\"{name}: {totals[name]:.2f}\")\n    return lines\n\nfor line in report_lines({\"fun\": 37.0, \"food\": 121.5}):\n    print(line)\n",
+      "hints": [
+        "Loop over `sorted(totals)` to get the categories in alphabetical order.",
+        "Build each line with an f-string and the format spec `:.2f`.",
+        "Append to a list and return it; print the lines with a loop outside the function."
+      ],
+      "kind": "python",
+      "expected": "food: 121.50\nfun: 37.00"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Monthly summary program",
+      "prompt": "Using the data given, write a complete program with three functions: `total_spent(expenses)`, `totals_by_category(expenses)` and `top_category(totals)` that returns the name of the category with the largest total. Then print a first line `Total: 988.50`, then one line per category in alphabetical order in the form `food 121.50`, then a last line `Top category: rent`. Format all money with two decimals.",
+      "starter": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\n# write the three functions, then the report\n",
+      "solution": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\ndef total_spent(expenses):\n    total = 0\n    for e in expenses:\n        total += e[\"amount\"]\n    return total\n\ndef totals_by_category(expenses):\n    totals = {}\n    for e in expenses:\n        totals[e[\"category\"]] = totals.get(e[\"category\"], 0) + e[\"amount\"]\n    return totals\n\ndef top_category(totals):\n    best = None\n    for name, amount in totals.items():\n        if best is None or amount > totals[best]:\n            best = name\n    return best\n\ntotals = totals_by_category(expenses)\nprint(f\"Total: {total_spent(expenses):.2f}\")\nfor name in sorted(totals):\n    print(f\"{name} {totals[name]:.2f}\")\nprint(\"Top category:\", top_category(totals))\n",
+      "kind": "python",
+      "expected": "Total: 988.50\nfood 121.50\nfun 37.00\nrent 800.00\ntransport 30.00\nTop category: rent"
+    },
+    {
+      "id": "i2",
+      "title": "Budget check",
+      "prompt": "Using the data given and the budget dictionary `budget = {\"rent\": 800, \"food\": 100, \"fun\": 50, \"transport\": 25}`, write `over_budget(totals, budget)` that returns a list of `(category, overspend)` tuples (overspend rounded to 2 decimals) for every category whose total is above its budget, in alphabetical order of category. A category missing from the budget has a budget of 0. Print one line per tuple in the form `food over by 21.50`, then print `No overspend` instead if the list is empty. Compute the category totals with a function too.",
+      "starter": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\nbudget = {\"rent\": 800, \"food\": 100, \"fun\": 50, \"transport\": 25}\n# write your functions and print the result\n",
+      "solution": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\nbudget = {\"rent\": 800, \"food\": 100, \"fun\": 50, \"transport\": 25}\n\ndef totals_by_category(expenses):\n    totals = {}\n    for e in expenses:\n        totals[e[\"category\"]] = totals.get(e[\"category\"], 0) + e[\"amount\"]\n    return totals\n\ndef over_budget(totals, budget):\n    result = []\n    for name in sorted(totals):\n        limit = budget.get(name, 0)\n        if totals[name] > limit:\n            result.append((name, round(totals[name] - limit, 2)))\n    return result\n\nflags = over_budget(totals_by_category(expenses), budget)\nif not flags:\n    print(\"No overspend\")\nfor name, extra in flags:\n    print(f\"{name} over by {extra:.2f}\")\n",
+      "kind": "python",
+      "expected": "food over by 21.50\ntransport over by 5.00"
+    },
+    {
+      "id": "i3",
+      "title": "Daily running balance (stretch)",
+      "prompt": "Using the data given and `income = 1200.0`, write `daily_balance(expenses, income)` that returns a dictionary mapping each date to the balance remaining at the end of that day (income minus all expenses up to and including that date; the expenses are in date order). Print one line per date in date order, in the form `2025-04-03: 314.50`, then the line `Lowest: ` followed by the lowest balance with two decimals. Several expenses can share a date, so the last one of the day decides the value.",
+      "starter": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\nincome = 1200.0\n# write daily_balance and print the lines\n",
+      "solution": "expenses = [\n    {\"date\": \"2025-04-01\", \"category\": \"rent\", \"amount\": 800.0},\n    {\"date\": \"2025-04-02\", \"category\": \"food\", \"amount\": 42.5},\n    {\"date\": \"2025-04-03\", \"category\": \"food\", \"amount\": 18.0},\n    {\"date\": \"2025-04-03\", \"category\": \"fun\", \"amount\": 25.0},\n    {\"date\": \"2025-04-05\", \"category\": \"transport\", \"amount\": 30.0},\n    {\"date\": \"2025-04-09\", \"category\": \"food\", \"amount\": 61.0},\n    {\"date\": \"2025-04-11\", \"category\": \"fun\", \"amount\": 12.0},\n]\n\nincome = 1200.0\n\ndef daily_balance(expenses, income):\n    balance = income\n    result = {}\n    for e in expenses:\n        balance -= e[\"amount\"]\n        result[e[\"date\"]] = balance\n    return result\n\nbalances = daily_balance(expenses, income)\nlowest = None\nfor date in sorted(balances):\n    print(f\"{date}: {balances[date]:.2f}\")\n    if lowest is None or balances[date] < lowest:\n        lowest = balances[date]\nprint(f\"Lowest: {lowest:.2f}\")\n",
+      "kind": "python",
+      "expected": "2025-04-01: 400.00\n2025-04-02: 357.50\n2025-04-03: 314.50\n2025-04-05: 284.50\n2025-04-09: 223.50\n2025-04-11: 211.50\nLowest: 211.50",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why should `total_spent` return its result instead of printing it?",
+      "options": [
+        "Because `print` cannot show numbers",
+        "So the result can be tested, reused and printed by the part of the program that presents it",
+        "Because functions are not allowed to print",
+        "To make the program faster"
+      ],
+      "answer": 1,
+      "explanation": "A returned value can be checked with a known input and used by other code. Printing inside the function ties the calculation to one way of showing it."
+    },
+    {
+      "id": "c2",
+      "question": "What goes wrong if `total = 0` is written inside the `for` loop of `total_spent`?",
+      "options": [
+        "Nothing, the result is the same",
+        "The function returns only the last amount",
+        "The function raises an error",
+        "The function returns 0 always"
+      ],
+      "answer": 1,
+      "explanation": "The accumulator restarts on every pass, so after the last pass it holds only the last amount added. It must be initialised before the loop."
+    },
+    {
+      "id": "c3",
+      "question": "What does `largest([])` return in the project, and why?",
+      "options": [
+        "`0`, because there is nothing",
+        "`None`, because `best` never changes from its starting value",
+        "An error, because the list is empty",
+        "An empty dictionary"
+      ],
+      "answer": 1,
+      "explanation": "The loop body never runs, so `best` keeps its starting value `None`, which signals that there is no largest expense."
+    },
+    {
+      "id": "c4",
+      "question": "What does this code print?\n\n```python\ntotals = {}\nfor c in [\"a\", \"b\", \"a\"]:\n    totals[c] = totals.get(c, 0) + 10\nprint(totals)\n```",
+      "options": [
+        "`{'a': 20, 'b': 10}`",
+        "`{'a': 10, 'b': 10}`",
+        "`{'a': 30}`",
+        "A `KeyError`"
+      ],
+      "answer": 0,
+      "explanation": "The first `a` gives 10, `b` gives 10, and the second `a` finds 10 and adds 10, so `a` is 20. `get` with a default avoids the `KeyError`."
+    },
+    {
+      "id": "c5",
+      "question": "A report line uses `{name:<10}{amount:>8.2f}`. What does it do?",
+      "options": [
+        "Left-aligns the name in 10 characters and right-aligns the amount in 8 characters with 2 decimals",
+        "Rounds the name to 10 characters",
+        "Multiplies the amount by 8",
+        "Prints the name 10 times"
+      ],
+      "answer": 0,
+      "explanation": "`<10` pads the text on the right to a width of 10 and `>8.2f` right-aligns a float of width 8 with two decimals, so columns line up."
+    }
+  ]
+}

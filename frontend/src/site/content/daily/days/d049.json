@@ -1,0 +1,176 @@
+{
+  "id": "d049",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "over",
+      "partition-by"
+    ],
+    "questions": [
+      154,
+      13
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "window-functions"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Average price on every row",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `product_id`, `product_name`, `unit_price` and `avg_price` for every product, where `avg_price` is the average `unit_price` of all products rounded to 2 decimals, repeated on each row. Order by `product_id`.",
+      "starter": "SELECT product_id, product_name, unit_price\nFROM products\nORDER BY product_id;\n",
+      "solution": "SELECT product_id, product_name, unit_price,\n       ROUND(AVG(unit_price) OVER (), 2) AS avg_price\nFROM products\nORDER BY product_id;\n",
+      "hints": [
+        "The starter has no average column yet. A windowed aggregate adds one without removing rows.",
+        "Use AVG(unit_price) followed by OVER () to get the average over all rows, and wrap it in ROUND(..., 2).",
+        "ROUND(AVG(unit_price) OVER (), 2) AS avg_price goes in the select list after unit_price."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Size of the category",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `product_id`, `category_id` and `products_in_category` (the number of products in the row's category) for every product, ordered by `product_id`.",
+      "starter": "SELECT product_id, category_id\nFROM products\nORDER BY product_id;\n",
+      "solution": "SELECT product_id, category_id,\n       COUNT(*) OVER (PARTITION BY category_id) AS products_in_category\nFROM products\nORDER BY product_id;\n",
+      "hints": [
+        "You need one count per category on each product row, so GROUP BY would lose the product rows.",
+        "COUNT(*) OVER (PARTITION BY ...) counts the rows in each partition.",
+        "COUNT(*) OVER (PARTITION BY category_id) AS products_in_category."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Gap to the most expensive in the category",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `product_id`, `category_id`, `unit_price`, `max_in_category` (highest `unit_price` in the row's category) and `gap` (`max_in_category - unit_price`) for products in categories 1, 2 and 3, ordered by `product_id`. Filter with `WHERE` and compute both new columns with windows or expressions over a window.",
+      "starter": "SELECT product_id, category_id, unit_price\nFROM products\nWHERE category_id IN (1, 2, 3)\nORDER BY product_id;\n",
+      "solution": "SELECT product_id, category_id, unit_price,\n       MAX(unit_price) OVER (PARTITION BY category_id) AS max_in_category,\n       MAX(unit_price) OVER (PARTITION BY category_id) - unit_price AS gap\nFROM products\nWHERE category_id IN (1, 2, 3)\nORDER BY product_id;\n",
+      "hints": [
+        "MAX also works as a window function. The partition is the category.",
+        "You can repeat the MAX(...) OVER (...) expression to compute the gap in the same select list; an alias cannot be reused there.",
+        "MAX(unit_price) OVER (PARTITION BY category_id) AS max_in_category, and the same expression minus unit_price AS gap."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Share of the order quantity",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `order_details` return `order_id`, `product_id`, `quantity` and `pct_of_order_qty`: the line's `quantity` as a percentage of the total quantity of its order, rounded to 1 decimal. Only orders with `order_id` up to 10252. Order by `order_id`, `product_id`.",
+      "starter": "SELECT order_id, product_id, quantity\nFROM order_details\nWHERE order_id <= 10252\nORDER BY order_id, product_id;\n",
+      "solution": "SELECT order_id, product_id, quantity,\n       ROUND(100.0 * quantity / SUM(quantity) OVER (PARTITION BY order_id), 1) AS pct_of_order_qty\nFROM order_details\nWHERE order_id <= 10252\nORDER BY order_id, product_id;\n",
+      "hints": [
+        "The denominator is the sum of quantity within each order, repeated on every row of that order.",
+        "SUM(quantity) OVER (PARTITION BY order_id) gives that total. Multiply by 100.0 to avoid integer division.",
+        "ROUND(100.0 * quantity / SUM(quantity) OVER (PARTITION BY order_id), 1) AS pct_of_order_qty."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Orders with above-average freight for the employee",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For orders that have an `employee_id` (ignore the order with a NULL one), return `order_id`, `employee_id`, `freight` and `avg_freight` (the employee's average freight over all their orders, rounded to 2 decimals), keeping only orders whose `freight` is greater than that average. Compare with the unrounded average, not the rounded one. Order by `order_id`.",
+      "starter": "SELECT order_id, employee_id, freight\nFROM orders\nWHERE employee_id IS NOT NULL\nORDER BY order_id;\n",
+      "solution": "SELECT order_id, employee_id, freight, ROUND(avg_raw, 2) AS avg_freight\nFROM (\n  SELECT order_id, employee_id, freight,\n         AVG(freight) OVER (PARTITION BY employee_id) AS avg_raw\n  FROM orders\n  WHERE employee_id IS NOT NULL\n) AS t\nWHERE freight > avg_raw\nORDER BY order_id;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Customers per country with share",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `customers` return `country`, `customers` (number of customers in the country) and `pct_of_all` (that count as a percentage of all customers, rounded to 1 decimal), one row per country. Order by `customers` descending, then `country`.",
+      "starter": "SELECT country, COUNT(*) AS customers\nFROM customers\nGROUP BY country\nORDER BY customers DESC, country;\n",
+      "solution": "SELECT country, COUNT(*) AS customers,\n       ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct_of_all\nFROM customers\nGROUP BY country\nORDER BY customers DESC, country;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Most expensive product of each supplier (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `supplier_id`, `product_id`, `product_name` and `unit_price` for every product whose `unit_price` equals the highest price among the products of the same supplier. If a supplier has a tie, return all tied products. Order by `supplier_id`, `product_id`.",
+      "starter": "SELECT supplier_id, product_id, product_name, unit_price\nFROM products\nORDER BY supplier_id, product_id;\n",
+      "solution": "SELECT supplier_id, product_id, product_name, unit_price\nFROM (\n  SELECT supplier_id, product_id, product_name, unit_price,\n         MAX(unit_price) OVER (PARTITION BY supplier_id) AS top_price\n  FROM products\n) AS t\nWHERE unit_price = top_price\nORDER BY supplier_id, product_id;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A table has 20 rows in 4 groups. How many rows does `SELECT g, SUM(x) OVER (PARTITION BY g) FROM t` return?",
+      "options": [
+        "4, one per group",
+        "20, one per input row",
+        "1",
+        "It is an error because there is no GROUP BY"
+      ],
+      "answer": 1,
+      "explanation": "A window function never collapses rows, so the result has the same 20 rows, with each group's sum repeated on its rows. Only GROUP BY would give 4 rows. No GROUP BY is needed because the aggregate has OVER."
+    },
+    {
+      "id": "c2",
+      "question": "What is the meaning of `AVG(unit_price) OVER ()`?",
+      "options": [
+        "The average of the current row only",
+        "A syntax error because the parentheses are empty",
+        "The average over all rows that reach the window, shown on every row",
+        "The average per product, which is the same as unit_price"
+      ],
+      "answer": 2,
+      "explanation": "Empty parentheses mean a single window containing every row left after WHERE (and GROUP BY if present). The syntax is valid. The average is not per row."
+    },
+    {
+      "id": "c3",
+      "question": "You write `SELECT product_id FROM products WHERE unit_price > AVG(unit_price) OVER ()`. What happens?",
+      "options": [
+        "It returns the products above the average price",
+        "It returns no rows",
+        "PostgreSQL raises an error because window functions are not allowed in WHERE",
+        "It works only when you add PARTITION BY"
+      ],
+      "answer": 2,
+      "explanation": "WHERE is evaluated before windows are computed, so the window result does not exist yet. Compute it in a subquery or CTE and filter in the outer query. Adding PARTITION BY does not change the order of evaluation."
+    },
+    {
+      "id": "c4",
+      "question": "`SELECT SUM(unit_price) OVER () FROM products WHERE category_id = 1` returns which value?",
+      "options": [
+        "The sum of prices of all 77 products",
+        "The sum of prices of the category 1 products only",
+        "NULL",
+        "One value per category"
+      ],
+      "answer": 1,
+      "explanation": "WHERE filters first, so the window contains only category 1 rows. Believing the window sees the whole table is the common misconception."
+    },
+    {
+      "id": "c5",
+      "question": "In `SELECT 100 * quantity / SUM(quantity) OVER (PARTITION BY order_id) FROM order_details`, quantity is an integer. Why do the percentages come out as whole numbers, truncated?",
+      "options": [
+        "PARTITION BY rounds results",
+        "Integer division truncates the fraction; use 100.0 to get decimals",
+        "SUM returns text",
+        "OVER removes decimals"
+      ],
+      "answer": 1,
+      "explanation": "Both operands are integers (SUM of integers is a bigint), so division discards the fraction. Multiplying by 100.0 makes the calculation numeric. PARTITION BY and OVER do not round anything."
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+{
+  "id": "a097",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "group-by",
+      "sum"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "sales-by-month",
+      "csv-sales-report-writer"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "month-over-month-growth",
+      "pivot-report"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Data behind a line chart",
+      "kind": "python",
+      "prompt": "A line chart needs one total per month. Compute the total `Amount` per `Month` and print it as a list of the values in month order, then on the next line the month-on-month change as a percentage rounded to 1 decimal for each month after the first (a list, for example `[6.2, ...]`).",
+      "starter": "import pandas as pd\n\nd = pd.DataFrame({\n    \"Month\": [\"2025-01\", \"2025-01\", \"2025-02\", \"2025-02\", \"2025-03\", \"2025-03\", \"2025-04\", \"2025-04\"],\n    \"Region\": [\"North\", \"South\", \"North\", \"South\", \"North\", \"South\", \"North\", \"South\"],\n    \"Amount\": [100, 60, 120, 50, 150, 90, 130, 110],\n    \"Cost\": [75, 45, 84, 40, 108, 63, 91, 88],\n})\n\n# monthly totals, then % change list\n",
+      "solution": "import pandas as pd\n\nd = pd.DataFrame({\n    \"Month\": [\"2025-01\", \"2025-01\", \"2025-02\", \"2025-02\", \"2025-03\", \"2025-03\", \"2025-04\", \"2025-04\"],\n    \"Region\": [\"North\", \"South\", \"North\", \"South\", \"North\", \"South\", \"North\", \"South\"],\n    \"Amount\": [100, 60, 120, 50, 150, 90, 130, 110],\n    \"Cost\": [75, 45, 84, 40, 108, 63, 91, 88],\n})\n\nm = d.groupby(\"Month\")[\"Amount\"].sum()\nprint(m.tolist())\nprint((m.pct_change().dropna() * 100).round(1).tolist())\n",
+      "hints": [
+        "Group by Month and sum Amount; groupby sorts the month labels.",
+        "pct_change gives the change from the previous row and NaN for the first.",
+        "Drop the NaN, multiply by 100 and round to 1 decimal."
+      ],
+      "expected": "[160, 170, 240, 240]\n[6.2, 41.2, 0.0]"
+    },
+    {
+      "id": "g2",
+      "title": "Top 2 and Other for a pie",
+      "kind": "python",
+      "prompt": "Total `Amount` per `Region` is too few categories, so use `Month` instead: compute the total per month, keep the two largest months, add all remaining months as `Other`, and print the shares as a dictionary of percentages rounded to 1 decimal, in the order: the two largest (largest first), then `Other`.",
+      "starter": "import pandas as pd\n\nd = pd.DataFrame({\n    \"Month\": [\"2025-01\", \"2025-01\", \"2025-02\", \"2025-02\", \"2025-03\", \"2025-03\", \"2025-04\", \"2025-04\"],\n    \"Region\": [\"North\", \"South\", \"North\", \"South\", \"North\", \"South\", \"North\", \"South\"],\n    \"Amount\": [100, 60, 120, 50, 150, 90, 130, 110],\n    \"Cost\": [75, 45, 84, 40, 108, 63, 91, 88],\n})\n\n# top 2 months plus Other, as % shares\n",
+      "solution": "import pandas as pd\n\nd = pd.DataFrame({\n    \"Month\": [\"2025-01\", \"2025-01\", \"2025-02\", \"2025-02\", \"2025-03\", \"2025-03\", \"2025-04\", \"2025-04\"],\n    \"Region\": [\"North\", \"South\", \"North\", \"South\", \"North\", \"South\", \"North\", \"South\"],\n    \"Amount\": [100, 60, 120, 50, 150, 90, 130, 110],\n    \"Cost\": [75, 45, 84, 40, 108, 63, 91, 88],\n})\n\nm = d.groupby(\"Month\")[\"Amount\"].sum().sort_values(ascending=False)\nparts = pd.concat([m.iloc[:2], pd.Series({\"Other\": m.iloc[2:].sum()})])\nprint((parts / parts.sum() * 100).round(1).to_dict())\n",
+      "hints": [
+        "Sort the monthly totals from largest to smallest first.",
+        "The first two are m.iloc[:2]; the rest are m.iloc[2:].sum().",
+        "Join them with pd.concat and divide by the total."
+      ],
+      "expected": "{'2025-03': 29.6, '2025-04': 29.6, 'Other': 40.7}"
+    },
+    {
+      "id": "g3",
+      "title": "Margin for the secondary axis",
+      "kind": "python",
+      "prompt": "For a combo chart of revenue (columns) and margin (line), compute per month `Revenue = sum of Amount` and `Margin = (Amount - Cost) / Amount` using the monthly sums. Print the revenue list, then the margin list rounded to 3 decimals.",
+      "starter": "import pandas as pd\n\nd = pd.DataFrame({\n    \"Month\": [\"2025-01\", \"2025-01\", \"2025-02\", \"2025-02\", \"2025-03\", \"2025-03\", \"2025-04\", \"2025-04\"],\n    \"Region\": [\"North\", \"South\", \"North\", \"South\", \"North\", \"South\", \"North\", \"South\"],\n    \"Amount\": [100, 60, 120, 50, 150, 90, 130, 110],\n    \"Cost\": [75, 45, 84, 40, 108, 63, 91, 88],\n})\n\n# revenue and margin per month\n",
+      "solution": "import pandas as pd\n\nd = pd.DataFrame({\n    \"Month\": [\"2025-01\", \"2025-01\", \"2025-02\", \"2025-02\", \"2025-03\", \"2025-03\", \"2025-04\", \"2025-04\"],\n    \"Region\": [\"North\", \"South\", \"North\", \"South\", \"North\", \"South\", \"North\", \"South\"],\n    \"Amount\": [100, 60, 120, 50, 150, 90, 130, 110],\n    \"Cost\": [75, 45, 84, 40, 108, 63, 91, 88],\n})\n\nm = d.groupby(\"Month\")[[\"Amount\", \"Cost\"]].sum()\nprint(m[\"Amount\"].tolist())\nprint(((m[\"Amount\"] - m[\"Cost\"]) / m[\"Amount\"]).round(3).tolist())\n",
+      "hints": [
+        "Margin is a ratio, so sum first and divide afterwards.",
+        "Sum Amount and Cost per month with groupby.",
+        "(Amount - Cost) / Amount on the summed columns, rounded to 3 decimals."
+      ],
+      "expected": "[160, 170, 240, 240]\n[0.25, 0.271, 0.288, 0.254]"
+    },
+    {
+      "id": "g4",
+      "title": "Choose and format the chart (written)",
+      "kind": "written",
+      "prompt": "A manager wants to see (a) monthly revenue for 12 months, (b) revenue by 9 regions, (c) the margin trend next to revenue. For each, name the chart type and say how you would format it (title, axes, sorting, baseline). Explain one reason not to use a pie for (b).",
+      "starter": "(a) ...\n(b) ...\n(c) ...\nPie: ...",
+      "solution": "(a) A line chart (or columns) with months in time order on the horizontal axis, a title such as 'Revenue by month', an axis title with the unit, and the data labels only for the last point. (b) A sorted horizontal bar chart, largest first, one colour, axis starting at 0, a title stating the leader, with no legend. A pie of nine slices is hard to read because angles are compared less accurately than lengths and small slices are almost invisible. (c) A combo chart: revenue as columns on the primary axis and margin as a line on the secondary axis, both axes titled, the margin axis formatted as percentage, and a title that states the message, for example 'Revenue grew while margin fell'. Check that the column axis starts at 0.",
+      "hints": [
+        "Time uses a line; ranking uses sorted bars.",
+        "Two measures with different scales need a secondary axis.",
+        "Angles are harder to compare than lengths."
+      ],
+      "rubric": [
+        "(a) line or column in time order with a titled axis.",
+        "(b) a sorted bar chart with a zero baseline.",
+        "(c) a combo chart with a labelled secondary axis.",
+        "Gives a valid reason against a nine-slice pie."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Chart data pack",
+      "kind": "python",
+      "prompt": "Build the data for a dashboard: per `Month` print one line each in the form `Month Revenue Margin%` where Revenue is the sum of Amount and Margin% is `(Amount-Cost)/Amount*100` of the monthly sums rounded to 1 decimal, for example `2025-01 160 25.0`. Then print `Best` followed by the month with the highest margin.",
+      "starter": "import pandas as pd\n\nd = pd.DataFrame({\n    \"Month\": [\"2025-01\", \"2025-01\", \"2025-02\", \"2025-02\", \"2025-03\", \"2025-03\", \"2025-04\", \"2025-04\"],\n    \"Region\": [\"North\", \"South\", \"North\", \"South\", \"North\", \"South\", \"North\", \"South\"],\n    \"Amount\": [100, 60, 120, 50, 150, 90, 130, 110],\n    \"Cost\": [75, 45, 84, 40, 108, 63, 91, 88],\n})\n\n# one line per month, then the best month\n",
+      "solution": "import pandas as pd\n\nd = pd.DataFrame({\n    \"Month\": [\"2025-01\", \"2025-01\", \"2025-02\", \"2025-02\", \"2025-03\", \"2025-03\", \"2025-04\", \"2025-04\"],\n    \"Region\": [\"North\", \"South\", \"North\", \"South\", \"North\", \"South\", \"North\", \"South\"],\n    \"Amount\": [100, 60, 120, 50, 150, 90, 130, 110],\n    \"Cost\": [75, 45, 84, 40, 108, 63, 91, 88],\n})\n\nm = d.groupby(\"Month\")[[\"Amount\", \"Cost\"]].sum()\nm[\"Margin\"] = ((m[\"Amount\"] - m[\"Cost\"]) / m[\"Amount\"] * 100).round(1)\nfor month, row in m.iterrows():\n    print(month, int(row[\"Amount\"]), row[\"Margin\"])\nprint(\"Best\", m[\"Margin\"].idxmax())\n",
+      "expected": "2025-01 160 25.0\n2025-02 170 27.1\n2025-03 240 28.7\n2025-04 240 25.4\nBest 2025-03"
+    },
+    {
+      "id": "i2",
+      "title": "KPIs that follow a filter",
+      "kind": "python",
+      "prompt": "Write `kpis(df)` returning `(revenue, orders, average)` where revenue is the sum of Amount as an int, orders is the row count, and average is revenue/orders rounded to 2 decimals as a float (0.0 when there are no rows). Print the KPIs for all rows, for Region `South`, and for Region `West`, one tuple per line, as `print(kpis(...))`.",
+      "starter": "import pandas as pd\n\nd = pd.DataFrame({\n    \"Month\": [\"2025-01\", \"2025-01\", \"2025-02\", \"2025-02\", \"2025-03\", \"2025-03\", \"2025-04\", \"2025-04\"],\n    \"Region\": [\"North\", \"South\", \"North\", \"South\", \"North\", \"South\", \"North\", \"South\"],\n    \"Amount\": [100, 60, 120, 50, 150, 90, 130, 110],\n    \"Cost\": [75, 45, 84, 40, 108, 63, 91, 88],\n})\n\ndef kpis(df):\n    pass\n\n# print the three results\n",
+      "solution": "import pandas as pd\n\nd = pd.DataFrame({\n    \"Month\": [\"2025-01\", \"2025-01\", \"2025-02\", \"2025-02\", \"2025-03\", \"2025-03\", \"2025-04\", \"2025-04\"],\n    \"Region\": [\"North\", \"South\", \"North\", \"South\", \"North\", \"South\", \"North\", \"South\"],\n    \"Amount\": [100, 60, 120, 50, 150, 90, 130, 110],\n    \"Cost\": [75, 45, 84, 40, 108, 63, 91, 88],\n})\n\ndef kpis(df):\n    revenue = int(df[\"Amount\"].sum())\n    orders = len(df)\n    return revenue, orders, round(revenue / orders, 2) if orders else 0.0\n\nprint(kpis(d))\nprint(kpis(d[d[\"Region\"] == \"South\"]))\nprint(kpis(d[d[\"Region\"] == \"West\"]))\n",
+      "expected": "(810, 8, 101.25)\n(310, 4, 77.5)\n(0, 0, 0.0)"
+    },
+    {
+      "id": "i3",
+      "title": "Dashboard layout (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Design a one-sheet sales dashboard in Excel: list the sheets, the KPI cells and their formulas, the charts, the slicers and how they are connected, and two checks that prove the dashboard numbers are correct.",
+      "starter": "Sheets, KPIs, charts, slicers, checks: ...",
+      "solution": "Sheets: `Data` (Table Sales), `Pivots` (two PivotTables: month and region), `Dashboard` (what the viewer sees). KPIs on Dashboard: revenue from `=GETPIVOTDATA(\"Amount\", Pivots!$A$3)`, orders from a pivot Count field, average `=IFERROR(B2/B3, 0)`. Charts: a PivotChart line of revenue by month, a sorted PivotChart bar by region. Slicers: Region and Year slicers placed on the Dashboard and connected to both pivots through Report Connections, so one click filters both charts and the KPI source. Checks: with all slicers cleared, the pivot grand total equals `=SUM(Sales[Amount])`; and the sum of the monthly points equals the sum of the regional bars. After new data is added, use Refresh All and repeat the checks.",
+      "rubric": [
+        "Separates data, pivots and dashboard sheets.",
+        "KPIs follow the pivot or the filter (GETPIVOTDATA or SUBTOTAL).",
+        "Slicers are connected to both pivots.",
+        "Gives two reconciliation checks against the source."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "matplotlib"
+    ],
+    "note": "Charts, PivotCharts, slicers and sparklines need desktop Excel 2016 or later (Windows or Mac); LibreOffice Calc has charts but not slicers. Example 3 uses matplotlib on your computer to print the properties of a combo chart; the browser cannot run matplotlib. The graded exercises compute the data behind the charts with pandas, which runs in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which chart best shows revenue for 24 consecutive months?",
+      "options": [
+        "Pie chart",
+        "Line chart",
+        "Scatter of month number against revenue with no labels",
+        "Bar chart sorted by revenue"
+      ],
+      "answer": 1,
+      "explanation": "Time order matters, so a line chart keeps the months in sequence. A pie is for parts of a whole and a sorted bar chart destroys the time order."
+    },
+    {
+      "id": "c2",
+      "question": "A column chart axis starts at 90. Values are 95 and 100. What does the chart suggest?",
+      "options": [
+        "The second bar is about 5% longer",
+        "The second bar is about twice as long",
+        "Nothing, the axis does not matter",
+        "The first bar is hidden"
+      ],
+      "answer": 1,
+      "explanation": "With the baseline at 90 the bars are 5 and 10 units long, so the picture suggests a 100% difference. The true difference is 5.3%, which is why bars start at zero."
+    },
+    {
+      "id": "c3",
+      "question": "Why does a combo chart of revenue and margin (0 to 1) use a secondary axis?",
+      "options": [
+        "To make it look professional",
+        "The two measures have very different scales",
+        "Excel requires it for lines",
+        "To hide the legend"
+      ],
+      "answer": 1,
+      "explanation": "On one axis a margin of 0.3 is invisible next to revenue of 200. A secondary axis gives each measure a readable scale, and both axes must be labelled."
+    },
+    {
+      "id": "c4",
+      "question": "A slicer on the Table filters to North, but the KPI cell =SUM(Sales[Amount]) still shows the all-region total. What should it use?",
+      "options": [
+        "SUBTOTAL(109, Sales[Amount])",
+        "SUM with a bigger range",
+        "COUNT(Sales[Amount])",
+        "ROUND(SUM(...), 0)"
+      ],
+      "answer": 0,
+      "explanation": "SUM ignores filters, while SUBTOTAL with 109 leaves out the rows hidden by the filter."
+    },
+    {
+      "id": "c5",
+      "question": "What does this print: pct_change of totals [160, 170, 240] with the first value dropped, as percentages rounded to 1 decimal?",
+      "options": [
+        "[6.2, 41.2]",
+        "[10.0, 70.0]",
+        "[6.3, 41.2]",
+        "[0.1, 0.4]"
+      ],
+      "answer": 0,
+      "explanation": "170/160 is 1.0625 (6.2% after rounding the stored float) and 240/170 is 1.412 (41.2%). The changes are relative to the previous month, not to the first month."
+    }
+  ]
+}

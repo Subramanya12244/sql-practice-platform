@@ -1,0 +1,181 @@
+{
+  "id": "d050",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "row-number",
+      "rank",
+      "dense-rank",
+      "ranking-within-groups"
+    ],
+    "questions": [
+      14,
+      148,
+      149
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "window-functions"
+    ],
+    "patterns": [
+      "top-n-per-group"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Number each customer's orders",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For customers ALFKI, ANATR and ANTON return `customer_id`, `order_id`, `order_date` and `order_seq`, where `order_seq` numbers each customer's orders 1, 2, ... from the oldest to the newest (ties on `order_date` broken by `order_id`). Order by `customer_id`, `order_seq`.",
+      "starter": "SELECT customer_id, order_id, order_date\nFROM orders\nWHERE customer_id IN ('ALFKI', 'ANATR', 'ANTON')\nORDER BY customer_id, order_date, order_id;\n",
+      "solution": "SELECT customer_id, order_id, order_date,\n       ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date, order_id) AS order_seq\nFROM orders\nWHERE customer_id IN ('ALFKI', 'ANATR', 'ANTON')\nORDER BY customer_id, order_seq;\n",
+      "hints": [
+        "Each customer needs its own numbering, so the window needs a PARTITION BY.",
+        "ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date, order_id) numbers rows from the oldest order.",
+        "Add ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date, order_id) AS order_seq to the select list and order by customer_id, order_seq."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "RANK or DENSE_RANK",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For products in category 2 return `product_id`, `unit_price`, `rnk` (RANK) and `dense_rnk` (DENSE_RANK), both ranking by `unit_price` from highest to lowest. Order by `unit_price` descending, then `product_id`.",
+      "starter": "SELECT product_id, unit_price\nFROM products\nWHERE category_id = 2\nORDER BY unit_price DESC, product_id;\n",
+      "solution": "SELECT product_id, unit_price,\n       RANK() OVER (ORDER BY unit_price DESC) AS rnk,\n       DENSE_RANK() OVER (ORDER BY unit_price DESC) AS dense_rnk\nFROM products\nWHERE category_id = 2\nORDER BY unit_price DESC, product_id;\n",
+      "hints": [
+        "Both functions need ORDER BY unit_price DESC inside OVER. No PARTITION BY is needed since WHERE already restricts to one category.",
+        "Write two window expressions in the same select list, one with RANK() and one with DENSE_RANK().",
+        "RANK() OVER (ORDER BY unit_price DESC) AS rnk, DENSE_RANK() OVER (ORDER BY unit_price DESC) AS dense_rnk."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Best-stocked product per category",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return one product per category: the one with the largest `units_in_stock`, using the smaller `product_id` when two tie. Return `category_id`, `product_id` and `units_in_stock`, ordered by `category_id`.",
+      "starter": "SELECT category_id, product_id, units_in_stock\nFROM products\nORDER BY category_id, units_in_stock DESC, product_id;\n",
+      "solution": "SELECT category_id, product_id, units_in_stock\nFROM (\n  SELECT category_id, product_id, units_in_stock,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY units_in_stock DESC, product_id) AS rn\n  FROM products\n) AS ranked\nWHERE rn = 1\nORDER BY category_id;\n",
+      "hints": [
+        "Rank the products inside each category first, then keep only the first of each.",
+        "Window functions cannot be filtered in WHERE, so put the ROW_NUMBER in a subquery with an alias and filter in the outer query.",
+        "Inner query: ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY units_in_stock DESC, product_id) AS rn. Outer: WHERE rn = 1."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Three heaviest freight bills per country",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For orders shipped to Germany or France return `order_id`, `ship_country`, `freight` and `rn`: the order's position within its country by `freight` descending (ties by `order_id`), keeping only positions 1 to 3. Order by `ship_country`, `rn`.",
+      "starter": "SELECT order_id, ship_country, freight\nFROM orders\nWHERE ship_country IN ('Germany', 'France')\nORDER BY ship_country, freight DESC, order_id;\n",
+      "solution": "SELECT order_id, ship_country, freight, rn\nFROM (\n  SELECT order_id, ship_country, freight,\n         ROW_NUMBER() OVER (PARTITION BY ship_country ORDER BY freight DESC, order_id) AS rn\n  FROM orders\n  WHERE ship_country IN ('Germany', 'France')\n) AS ranked\nWHERE rn <= 3\nORDER BY ship_country, rn;\n",
+      "hints": [
+        "This is the top N per group pattern with N = 3 and the country as the group.",
+        "Rank in a subquery with PARTITION BY ship_country, then filter rn <= 3 outside.",
+        "ROW_NUMBER() OVER (PARTITION BY ship_country ORDER BY freight DESC, order_id) AS rn inside, WHERE rn <= 3 outside."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Each customer's largest order",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For every customer who has orders, return the one order with the highest total value, where the order total is the sum of `unit_price * quantity` over its `order_details` lines (ignore discount). If two orders tie, take the smaller `order_id`. Return `customer_id`, `order_id` and `order_total` (as computed), ordered by `customer_id`.",
+      "starter": "SELECT o.customer_id, o.order_id, SUM(od.unit_price * od.quantity) AS order_total\nFROM orders AS o\nJOIN order_details AS od ON od.order_id = o.order_id\nGROUP BY o.customer_id, o.order_id\nORDER BY o.customer_id, o.order_id;\n",
+      "solution": "WITH totals AS (\n  SELECT o.customer_id, o.order_id, SUM(od.unit_price * od.quantity) AS order_total\n  FROM orders AS o\n  JOIN order_details AS od ON od.order_id = o.order_id\n  GROUP BY o.customer_id, o.order_id\n), ranked AS (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_total DESC, order_id) AS rn\n  FROM totals\n)\nSELECT customer_id, order_id, order_total\nFROM ranked\nWHERE rn = 1\nORDER BY customer_id;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Second-highest price in each category",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `category_id`, `product_id` and `unit_price` for every product whose price is the second-highest distinct price in its category. All products tied at that price must appear. Categories where there is only one distinct price have no result. Order by `category_id`, `product_id`.",
+      "starter": "SELECT category_id, product_id, unit_price\nFROM products\nORDER BY category_id, product_id;\n",
+      "solution": "SELECT category_id, product_id, unit_price\nFROM (\n  SELECT category_id, product_id, unit_price,\n         DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_price DESC) AS dr\n  FROM products\n) AS ranked\nWHERE dr = 2\nORDER BY category_id, product_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Top two customers by revenue in each country (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Compute each customer's revenue as the sum of `unit_price * quantity * (1 - discount)` over all their order lines, rounded to 2 decimals as `revenue`. Return `country`, `customer_id`, `revenue` and `revenue_rank` (`RANK` within the customer's country by revenue descending) for customers whose rank is 1 or 2. Customers without orders are not included. Order by `country`, `revenue_rank`, `customer_id`.",
+      "starter": "SELECT c.country, c.customer_id,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS revenue\nFROM customers AS c\nJOIN orders AS o ON o.customer_id = c.customer_id\nJOIN order_details AS od ON od.order_id = o.order_id\nGROUP BY c.country, c.customer_id\nORDER BY c.country, c.customer_id;\n",
+      "solution": "WITH rev AS (\n  SELECT c.country, c.customer_id,\n         ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS revenue\n  FROM customers AS c\n  JOIN orders AS o ON o.customer_id = c.customer_id\n  JOIN order_details AS od ON od.order_id = o.order_id\n  GROUP BY c.country, c.customer_id\n), ranked AS (\n  SELECT *, RANK() OVER (PARTITION BY country ORDER BY revenue DESC) AS revenue_rank\n  FROM rev\n)\nSELECT country, customer_id, revenue, revenue_rank\nFROM ranked\nWHERE revenue_rank <= 2\nORDER BY country, revenue_rank, customer_id;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Prices sorted descending are 50, 40, 40, 30. What does `DENSE_RANK() OVER (ORDER BY price DESC)` return for the last row?",
+      "options": [
+        "4",
+        "3",
+        "2",
+        "1"
+      ],
+      "answer": 1,
+      "explanation": "DENSE_RANK gives the tied 40s the same rank 2 and then continues with 3. RANK would return 4 (it skips a number after a tie) and ROW_NUMBER would also return 4."
+    },
+    {
+      "id": "c2",
+      "question": "You need exactly 3 rows per category, even when prices tie. Which filter gives that?",
+      "options": [
+        "RANK() <= 3",
+        "DENSE_RANK() <= 3",
+        "ROW_NUMBER() <= 3 with a unique tie-breaker in the window",
+        "LIMIT 3"
+      ],
+      "answer": 2,
+      "explanation": "ROW_NUMBER is unique, so rn <= 3 keeps exactly three rows per partition. RANK and DENSE_RANK keep all tied rows and can return more than three. LIMIT 3 cuts the whole result, not each category."
+    },
+    {
+      "id": "c3",
+      "question": "What does the `ORDER BY` inside `OVER (PARTITION BY g ORDER BY x)` do to the final result?",
+      "options": [
+        "Sorts the final result by x",
+        "Nothing to the final order; it only defines the order for the window calculation",
+        "Removes duplicate x values",
+        "Sorts by g"
+      ],
+      "answer": 1,
+      "explanation": "The ORDER BY in OVER controls how rows are numbered or ranked. The row order of the output is not guaranteed unless the query has its own ORDER BY at the end."
+    },
+    {
+      "id": "c4",
+      "question": "`SELECT * FROM products WHERE ROW_NUMBER() OVER (ORDER BY unit_price) <= 3` fails. Why?",
+      "options": [
+        "ROW_NUMBER needs PARTITION BY",
+        "Window functions are not allowed in WHERE; rank in a subquery and filter outside",
+        "ROW_NUMBER cannot sort by price",
+        "SELECT * is not allowed with windows"
+      ],
+      "answer": 1,
+      "explanation": "WHERE is evaluated before window functions. Compute the number in a subquery or CTE and filter in the outer query. PARTITION BY is optional."
+    },
+    {
+      "id": "c5",
+      "question": "Why add `product_id` as a last sort column in `ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_price DESC, product_id)`?",
+      "options": [
+        "It makes the query faster",
+        "It is required by the syntax",
+        "It breaks ties so the same row gets the same number on every run",
+        "It converts ROW_NUMBER into RANK"
+      ],
+      "answer": 2,
+      "explanation": "Without a unique final sort column, tied rows can be numbered in any order, so the chosen row can change between runs. It is not required by syntax, does not speed up the query and does not change the function."
+    }
+  ]
+}

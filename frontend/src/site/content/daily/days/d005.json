@@ -1,0 +1,188 @@
+{
+  "id": "d005",
+  "time": {
+    "theory": 25,
+    "examples": 25,
+    "guided": 30,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "python-fundamentals",
+      "python-variables-data-types"
+    ],
+    "questions": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A sentence from variables",
+      "prompt": "The variables `name` (`\"Ada\"`), `language` (`\"Python\"`) and `years` (`3`) are given. Use one f-string to print the single line `Ada has used Python for 3 years`. The values must come from the variables, not be typed into the string.",
+      "starter": "name = \"Ada\"\nlanguage = \"Python\"\nyears = 3\nprint(name, language, years)\n",
+      "solution": "name = \"Ada\"\nlanguage = \"Python\"\nyears = 3\nprint(f\"{name} has used {language} for {years} years\")\n",
+      "hints": [
+        "An f-string is a string with the letter `f` right before the opening quote.",
+        "Inside an f-string, a variable name in curly braces is replaced by its value.",
+        "The line is `print(f\"{name} has used {language} for {years} years\")`."
+      ],
+      "kind": "python",
+      "expected": "Ada has used Python for 3 years"
+    },
+    {
+      "id": "g2",
+      "title": "Format a price",
+      "prompt": "The variable `price` holds `1234.5`. Print one line `Price: 1,234.50`, using a format specification inside an f-string so that the number has thousands separators and exactly two decimals.",
+      "starter": "price = 1234.5\nprint(f\"Price: {price}\")\n",
+      "solution": "price = 1234.5\nprint(f\"Price: {price:,.2f}\")\n",
+      "hints": [
+        "A format specification goes inside the braces after a colon: `{value:spec}`.",
+        "`.2f` gives two decimals, and a comma in the specification adds thousands separators.",
+        "Write the placeholder as `{price:,.2f}`: the comma comes before the `.2f`."
+      ],
+      "kind": "python",
+      "expected": "Price: 1,234.50"
+    },
+    {
+      "id": "g3",
+      "title": "Read a name and an age",
+      "prompt": "Read two lines of input: a name and then an age (a whole number). Print one line in the form `Ada will be 37 next year.` for the input `Ada` and `36`. Use plain `input()` without a prompt text, and convert the age before adding one to it.",
+      "stdin": "Ada\n36",
+      "starter": "name = input()\nprint(name)\n",
+      "solution": "name = input()\nage = int(input())\nprint(f\"{name} will be {age + 1} next year.\")\n",
+      "hints": [
+        "Each call to `input()` reads the next line, and always returns text.",
+        "Call `input()` twice, and wrap the second call in `int()` so you can add 1.",
+        "After reading, print `f\"{name} will be {age + 1} next year.\"`. An expression is allowed inside the braces."
+      ],
+      "kind": "python",
+      "expected": "Ada will be 37 next year."
+    },
+    {
+      "id": "g4",
+      "title": "Control sep and end",
+      "prompt": "Print exactly two lines. The first is the date `2024-06-15`, produced by passing the three numbers 2024, 6 and 15 to one `print()` call with the right `sep` option (the expected line is `2024-6-15`; the month and day are not zero padded). The second line is `Loading...done`, produced by two `print()` calls where the first uses the `end` option.",
+      "starter": "print(2024, 6, 15)\nprint(\"Loading\")\nprint(\"done\")\n",
+      "solution": "print(2024, 6, 15, sep=\"-\")\nprint(\"Loading\", end=\"...\")\nprint(\"done\")\n",
+      "hints": [
+        "`print()` accepts options written with their names: `sep` and `end`.",
+        "`sep` is placed between the values, `end` is placed after the last value instead of the newline.",
+        "Use `print(2024, 6, 15, sep=\"-\")` and then `print(\"Loading\", end=\"...\")` followed by `print(\"done\")`."
+      ],
+      "kind": "python",
+      "expected": "2024-6-15\nLoading...done"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A one-row receipt table",
+      "prompt": "Read three lines from input: an item name, a unit price (decimals) and a quantity (whole number). Print a header, a separator of 33 hyphens and one data row. Each field has a fixed width: the item is left-aligned in 12 characters, the quantity right-aligned in 4, the unit price right-aligned in 8 with 2 decimals, and the total (price times quantity) right-aligned in 9 with 2 decimals. The header uses the same widths with the words `Item`, `Qty`, `Price` and `Total`. For the input `Notebook`, `2.75` and `12` the output is:\n\n```text\nItem         Qty   Price    Total\n---------------------------------\nNotebook      12    2.75    33.00\n```\n\nUse plain `input()` without prompts.",
+      "stdin": "Notebook\n2.75\n12",
+      "starter": "item = input()\nprice = float(input())\nquantity = int(input())\n",
+      "solution": "item = input()\nprice = float(input())\nquantity = int(input())\ntotal = price * quantity\n\nprint(f\"{'Item':<12}{'Qty':>4}{'Price':>8}{'Total':>9}\")\nprint(\"-\" * 33)\nprint(f\"{item:<12}{quantity:>4}{price:>8.2f}{total:>9.2f}\")\n",
+      "kind": "python",
+      "expected": "Item         Qty   Price    Total\n---------------------------------\nNotebook      12    2.75    33.00"
+    },
+    {
+      "id": "i2",
+      "title": "Seconds as a clock",
+      "prompt": "Read one line containing a number of seconds (a whole number). Print two lines. The first shows the time as `HH:MM:SS` with every part padded with zeros to two digits, using `//` and `%` to split the seconds. The second shows the number of minutes with 2 decimals, calculated with `/`. For the input `5025` the output is:\n\n```text\n01:23:45\nMinutes: 83.75\n```\n\nUse plain `input()` without a prompt.",
+      "stdin": "5025",
+      "starter": "seconds = int(input())\n",
+      "solution": "total_seconds = int(input())\nhours = total_seconds // 3600\nminutes = total_seconds % 3600 // 60\nseconds = total_seconds % 60\nprint(f\"{hours:02d}:{minutes:02d}:{seconds:02d}\")\nprint(f\"Minutes: {total_seconds / 60:.2f}\")\n",
+      "kind": "python",
+      "expected": "01:23:45\nMinutes: 83.75"
+    },
+    {
+      "id": "i3",
+      "title": "Progress line with a bar",
+      "required": false,
+      "prompt": "Read two whole numbers from two input lines: the tasks done and the total tasks. Print two lines. Line 1 has the form `Done: 37 of 120 (30.8%)`, with the share shown as a percentage with one decimal. Line 2 is a bar of exactly 20 characters inside square brackets: the number of `#` characters is the share times 20, rounded to the nearest whole number, and the rest are `.` characters. For the input `37` and `120` the output is:\n\n```text\nDone: 37 of 120 (30.8%)\n[######..............]\n```\n\nUse plain `input()` without prompts.",
+      "stdin": "37\n120",
+      "starter": "done = int(input())\ntotal = int(input())\n",
+      "solution": "done = int(input())\ntotal = int(input())\nshare = done / total\nprint(f\"Done: {done} of {total} ({share:.1%})\")\nfilled = round(share * 20)\nbar = \"#\" * filled + \".\" * (20 - filled)\nprint(f\"[{bar}]\")\n",
+      "kind": "python",
+      "expected": "Done: 37 of 120 (30.8%)\n[######..............]"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this program print?\n\n```python\nname = \"Ada\"\nprint(\"Hello, {name}!\")\n```",
+      "options": [
+        "Hello, Ada!",
+        "Hello, {name}!",
+        "Hello, name!",
+        "It raises a NameError"
+      ],
+      "answer": 1,
+      "explanation": "Without the `f` before the opening quote the string is ordinary text, so the braces are printed exactly as typed. Python does not report this as an error, which is why a missing `f` is easy to overlook."
+    },
+    {
+      "id": "c2",
+      "question": "A program runs `x = input()` and `print(x + x)`. The user types `5`. What is printed?",
+      "options": [
+        "10",
+        "55",
+        "5 5",
+        "It raises a TypeError"
+      ],
+      "answer": 1,
+      "explanation": "`input()` always returns a string, so `x` is `\"5\"` and `+` joins the two strings into `55`. The answer 10 needs `int(x)` first. A TypeError happens only when a string and a number are combined, which is not the case here."
+    },
+    {
+      "id": "c3",
+      "question": "What does this program print?\n\n```python\nprint(f\"{3.14159:.2f}\")\n```",
+      "options": [
+        "3.1",
+        "3.14",
+        "3.14159",
+        "3.15"
+      ],
+      "answer": 1,
+      "explanation": "`.2f` means a float with two digits after the decimal point, so 3.14159 is rounded to 3.14. The next digit is 1, so the value is not rounded up to 3.15. `.1f` would give 3.1."
+    },
+    {
+      "id": "c4",
+      "question": "What does this program print?\n\n```python\nprint(\"a\", end=\"-\")\nprint(\"b\")\n```",
+      "options": [
+        "a-b",
+        "a- on one line and b on the next line",
+        "a b",
+        "a and b on separate lines"
+      ],
+      "answer": 0,
+      "explanation": "`end` replaces the newline that `print()` normally adds after its output. The first call therefore ends with a hyphen instead of a line break, and the second call continues on the same line. No separate lines are produced."
+    },
+    {
+      "id": "c5",
+      "question": "What does this program print?\n\n```python\nprint(f\"{7:03d}\")\n```",
+      "options": [
+        "7",
+        "007",
+        "0007",
+        "7.00"
+      ],
+      "answer": 1,
+      "explanation": "The `0` asks for zero padding, `3` is the total width and `d` marks a whole number, so 7 becomes `007`. The width counts the whole field, so `0007` is wrong. `7.00` would need `.2f` and a float format."
+    },
+    {
+      "id": "c6",
+      "question": "What does this program print?\n\n```python\nprint(f\"[{5:>4}]\")\n```",
+      "options": [
+        "[5   ]",
+        "[   5]",
+        "[5]",
+        "[  5 ]"
+      ],
+      "answer": 1,
+      "explanation": "`>` aligns the value to the right inside a field that is 4 characters wide, so three spaces come first and the 5 comes last. `<` would put the 5 on the left, which is the answer `[5   ]`, and `^` would centre it."
+    }
+  ]
+}

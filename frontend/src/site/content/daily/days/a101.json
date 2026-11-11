@@ -1,0 +1,180 @@
+{
+  "id": "a101",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "customer-transaction-stats"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Covariance and correlation by hand",
+      "kind": "python",
+      "prompt": "Compute the sample covariance (divisor n-1) of `visits` and `orders` from its definition, and the Pearson correlation as covariance divided by the product of the sample standard deviations. Print the covariance rounded to 2 decimals on the first line and the correlation rounded to 4 decimals on the second line.",
+      "starter": "import numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame({\n    \"visits\": [120, 150, 170, 200, 230, 260, 300, 340],\n    \"orders\": [10, 14, 13, 18, 22, 21, 30, 31],\n    \"returns\": [5, 4, 6, 3, 4, 2, 3, 2],\n})\n\n# covariance and correlation from the definitions\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame({\n    \"visits\": [120, 150, 170, 200, 230, 260, 300, 340],\n    \"orders\": [10, 14, 13, 18, 22, 21, 30, 31],\n    \"returns\": [5, 4, 6, 3, 4, 2, 3, 2],\n})\n\nx, y = df[\"visits\"], df[\"orders\"]\ncov = ((x - x.mean()) * (y - y.mean())).sum() / (len(x) - 1)\nprint(round(cov, 2))\nprint(round(cov / (x.std(ddof=1) * y.std(ddof=1)), 4))\n",
+      "hints": [
+        "Covariance multiplies the distances from each mean and divides by n - 1.",
+        "pandas std() already uses n - 1 as the divisor.",
+        "cov = ((x - x.mean()) * (y - y.mean())).sum() / (len(x) - 1); r = cov / (x.std() * y.std())."
+      ],
+      "expected": "570.18\n0.9763"
+    },
+    {
+      "id": "g2",
+      "title": "Pearson versus Spearman",
+      "kind": "python",
+      "prompt": "Print the Pearson and Spearman correlation of `visits` with `returns`, rounded to 3 decimals, as one line separated by a space (Pearson first). Use the `method` argument of `Series.corr`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame({\n    \"visits\": [120, 150, 170, 200, 230, 260, 300, 340],\n    \"orders\": [10, 14, 13, 18, 22, 21, 30, 31],\n    \"returns\": [5, 4, 6, 3, 4, 2, 3, 2],\n})\n\n# Pearson and Spearman of visits with returns\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame({\n    \"visits\": [120, 150, 170, 200, 230, 260, 300, 340],\n    \"orders\": [10, 14, 13, 18, 22, 21, 30, 31],\n    \"returns\": [5, 4, 6, 3, 4, 2, 3, 2],\n})\n\nprint(round(df[\"visits\"].corr(df[\"returns\"]), 3), round(df[\"visits\"].corr(df[\"returns\"], method=\"spearman\"), 3))\n",
+      "hints": [
+        "Series.corr compares two columns.",
+        "The default method is Pearson; pass method=\"spearman\" for ranks.",
+        "Round each call and print both with a comma."
+      ],
+      "expected": "-0.771 -0.8"
+    },
+    {
+      "id": "g3",
+      "title": "Units change covariance, not correlation",
+      "kind": "python",
+      "prompt": "Convert `visits` to thousands (divide by 1000). Print the covariance of the original `visits` with `orders` and of the rescaled `visits` with `orders` (using `np.cov(...)[0, 1]`, rounded to 4 decimals), then the Pearson correlation of each pair rounded to 4 decimals, as four lines in that order.",
+      "starter": "import numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame({\n    \"visits\": [120, 150, 170, 200, 230, 260, 300, 340],\n    \"orders\": [10, 14, 13, 18, 22, 21, 30, 31],\n    \"returns\": [5, 4, 6, 3, 4, 2, 3, 2],\n})\n\n# covariance and correlation before and after rescaling\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame({\n    \"visits\": [120, 150, 170, 200, 230, 260, 300, 340],\n    \"orders\": [10, 14, 13, 18, 22, 21, 30, 31],\n    \"returns\": [5, 4, 6, 3, 4, 2, 3, 2],\n})\n\nk = df[\"visits\"] / 1000\nprint(round(np.cov(df[\"visits\"], df[\"orders\"])[0, 1], 4))\nprint(round(np.cov(k, df[\"orders\"])[0, 1], 4))\nprint(round(np.corrcoef(df[\"visits\"], df[\"orders\"])[0, 1], 4))\nprint(round(np.corrcoef(k, df[\"orders\"])[0, 1], 4))\n",
+      "hints": [
+        "np.cov returns a 2 x 2 matrix; the covariance is the off-diagonal entry.",
+        "Dividing x by 1000 divides the covariance by 1000.",
+        "The two correlations must come out identical."
+      ],
+      "expected": "570.1786\n0.5702\n0.9763\n0.9763"
+    },
+    {
+      "id": "g4",
+      "title": "Interpret a correlation (written)",
+      "kind": "written",
+      "prompt": "A report says: 'Cities with more ice cream shops have more sunburn cases (r = 0.82), so ice cream causes sunburn.' Explain in plain language what r = 0.82 means, what it does not show, one possible confounder, and two checks you would run before believing any story.",
+      "starter": "Meaning: ...\nNot shown: ...\nConfounder: ...\nChecks: ...",
+      "solution": "An r of 0.82 means that the two measures rise together in a strong, roughly straight-line pattern across the cities; r squared is about 0.67, so about two thirds of the variation in one can be accounted for by a straight line of the other. It does not show that one causes the other, nor which way any effect runs. Sunny weather is a plausible confounder: cities with more sun have more ice cream shops and more sunburn. Checks: draw the scatter plot to look for an outlier or a cluster that creates the pattern, and compare cities with similar sunshine (or remove the effect of sunshine from both variables) to see whether the correlation falls towards zero. Reporting Spearman as well shows whether the pattern depends on a few extreme cities.",
+      "hints": [
+        "r squared tells the share of variation a line accounts for.",
+        "Think of a third variable that drives both measures.",
+        "Compare rows with similar values of that third variable."
+      ],
+      "rubric": [
+        "Explains the strength and direction and that r squared is about 0.67.",
+        "States that correlation does not show causation or its direction.",
+        "Names a plausible confounder.",
+        "Proposes a scatter plot and a control for the confounder."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Correlation matrix and the strongest pair",
+      "kind": "python",
+      "prompt": "Print the Pearson correlation matrix of the three columns rounded to 2 decimals with `to_string()`. Then print `Strongest` followed by the two column names of the pair with the largest absolute correlation (excluding the diagonal), sorted alphabetically and separated by a dash, for example `a-b`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame({\n    \"visits\": [120, 150, 170, 200, 230, 260, 300, 340],\n    \"orders\": [10, 14, 13, 18, 22, 21, 30, 31],\n    \"returns\": [5, 4, 6, 3, 4, 2, 3, 2],\n})\n\n# matrix, then the strongest pair\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame({\n    \"visits\": [120, 150, 170, 200, 230, 260, 300, 340],\n    \"orders\": [10, 14, 13, 18, 22, 21, 30, 31],\n    \"returns\": [5, 4, 6, 3, 4, 2, 3, 2],\n})\n\nc = df.corr()\nprint(c.round(2).to_string())\npairs = [(abs(c.loc[a, b]), \"-\".join(sorted([a, b]))) for i, a in enumerate(c.columns) for b in c.columns[i + 1:]]\nprint(\"Strongest\", max(pairs)[1])\n",
+      "expected": "         visits  orders  returns\nvisits     1.00    0.98    -0.77\norders     0.98    1.00    -0.74\nreturns   -0.77   -0.74     1.00\nStrongest orders-visits"
+    },
+    {
+      "id": "i2",
+      "title": "Outlier test",
+      "kind": "python",
+      "prompt": "Add one extra row `visits=1000, orders=5` to the data. Print the Pearson and Spearman correlation of `visits` with `orders` before and after adding it, as two lines `before p s` and `after p s` where p and s are rounded to 3 decimals. Then print `Pearson changed more` or `Spearman changed more` according to which coefficient moved more in absolute terms.",
+      "starter": "import numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame({\n    \"visits\": [120, 150, 170, 200, 230, 260, 300, 340],\n    \"orders\": [10, 14, 13, 18, 22, 21, 30, 31],\n    \"returns\": [5, 4, 6, 3, 4, 2, 3, 2],\n})\n\n# before and after the outlier\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame({\n    \"visits\": [120, 150, 170, 200, 230, 260, 300, 340],\n    \"orders\": [10, 14, 13, 18, 22, 21, 30, 31],\n    \"returns\": [5, 4, 6, 3, 4, 2, 3, 2],\n})\n\ndef both(d):\n    return round(d[\"visits\"].corr(d[\"orders\"]), 3), round(d[\"visits\"].corr(d[\"orders\"], method=\"spearman\"), 3)\n\nb = both(df)\nafter_df = pd.concat([df, pd.DataFrame({\"visits\": [1000], \"orders\": [5], \"returns\": [1]})], ignore_index=True)\na = both(after_df)\nprint(\"before\", *b)\nprint(\"after\", *a)\nprint(\"Pearson changed more\" if abs(a[0] - b[0]) > abs(a[1] - b[1]) else \"Spearman changed more\")\n",
+      "expected": "before 0.976 0.952\nafter -0.335 0.367\nPearson changed more"
+    },
+    {
+      "id": "i3",
+      "title": "Simulated confounder (stretch)",
+      "kind": "python",
+      "required": false,
+      "prompt": "Using `rng = np.random.default_rng(7)`, make 300 values `z = rng.normal(0, 1, 300)`, then `a = z + rng.normal(0, 1, 300)` and `b = z + rng.normal(0, 1, 300)` (in that order). Print the correlation of `a` and `b` rounded to 2 decimals, then the correlation of the residuals of `a` and `b` after removing the straight-line effect of `z` (fit with `np.polyfit(z, v, 1)`), rounded to 2 decimals.",
+      "starter": "import numpy as np\n\nrng = np.random.default_rng(7)\n# simulate z, a, b; print both correlations\n",
+      "solution": "import numpy as np\n\nrng = np.random.default_rng(7)\nz = rng.normal(0, 1, 300)\na = z + rng.normal(0, 1, 300)\nb = z + rng.normal(0, 1, 300)\n\ndef resid(v):\n    slope, intercept = np.polyfit(z, v, 1)\n    return v - (slope * z + intercept)\n\nprint(round(float(np.corrcoef(a, b)[0, 1]), 2))\nprint(round(float(np.corrcoef(resid(a), resid(b))[0, 1]), 2))\n",
+      "expected": "0.46\n0.02"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "The covariance of x (in metres) and y is 12. x is converted to centimetres. What happens to the covariance and to Pearson r?",
+      "options": [
+        "Both unchanged",
+        "Covariance becomes 1200, r unchanged",
+        "Both multiply by 100",
+        "Covariance unchanged, r multiplies by 100"
+      ],
+      "answer": 1,
+      "explanation": "Covariance carries the units of x times y, so it scales by 100. Pearson divides by both standard deviations, so the units cancel and r does not change."
+    },
+    {
+      "id": "c2",
+      "question": "y = x squared for x from -5 to 5. What is the Pearson correlation of x and y?",
+      "options": [
+        "1",
+        "0",
+        "-1",
+        "0.5"
+      ],
+      "answer": 1,
+      "explanation": "The curve is symmetric, so negative and positive x give the same y and the straight-line association cancels to exactly 0, although y is a perfect function of x."
+    },
+    {
+      "id": "c3",
+      "question": "Which coefficient is more resistant to a single extreme point?",
+      "options": [
+        "Pearson",
+        "Spearman",
+        "Covariance",
+        "They are equally affected"
+      ],
+      "answer": 1,
+      "explanation": "Spearman works on ranks, so an extreme value is only the largest rank. Pearson and covariance use the actual distances from the mean, so one outlier can change them strongly."
+    },
+    {
+      "id": "c4",
+      "question": "r = 0.5 between hours studied and score. What share of the variation does a straight line account for?",
+      "options": [
+        "50%",
+        "25%",
+        "5%",
+        "75%"
+      ],
+      "answer": 1,
+      "explanation": "The share is r squared = 0.25. Reading r as a percentage overstates the strength."
+    },
+    {
+      "id": "c5",
+      "question": "Ice cream sales and drownings correlate at 0.44 over all days but about 0 within days of similar temperature. What is the best explanation?",
+      "options": [
+        "Ice cream causes drownings",
+        "Temperature drives both",
+        "The data are wrong",
+        "Drownings cause ice cream sales"
+      ],
+      "answer": 1,
+      "explanation": "The association disappears when temperature is held roughly constant, which points to temperature as a confounder rather than a causal link between the two."
+    }
+  ]
+}

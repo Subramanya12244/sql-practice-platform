@@ -1,0 +1,198 @@
+{
+  "id": "d069",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-csv-json"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Read a CSV text",
+      "prompt": "Read the CSV text in `text` into a DataFrame `df`. Print `df.shape` on line 1 and the table with `print(df)` after it.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ntext = \"\"\"name,age\\nAna,31\\nBen,25\\nCy,47\\n\"\"\"\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ntext = \"\"\"name,age\\nAna,31\\nBen,25\\nCy,47\\n\"\"\"\ndf = pd.read_csv(io.StringIO(text))\nprint(df.shape)\nprint(df)\n",
+      "hints": [
+        "`pd.read_csv` needs a file-like object; `io.StringIO(text)` makes one from a string.",
+        "`df = pd.read_csv(io.StringIO(text))`.",
+        "Then print `df.shape` and `df`."
+      ],
+      "kind": "python",
+      "expected": "(3, 2)\n  name  age\n0  Ana   31\n1  Ben   25\n2   Cy   47"
+    },
+    {
+      "id": "g2",
+      "title": "Semicolons, no header, missing marker",
+      "prompt": "The text uses semicolons, has no header line, and writes `?` for a missing price. Read it with the column names `item` and `price`, declaring `?` as missing. Print the `price` column as a list and then the number of missing prices.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nraw = \"pen;1.5\\nink;?\\npad;3.25\\n\"\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nraw = \"pen;1.5\\nink;?\\npad;3.25\\n\"\ndf = pd.read_csv(io.StringIO(raw), sep=\";\", header=None, names=[\"item\", \"price\"], na_values=[\"?\"])\nprint(df[\"price\"].tolist())\nprint(df[\"price\"].isna().sum())\n",
+      "hints": [
+        "Three options matter: `sep`, `header` and `names`, plus `na_values` for the marker.",
+        "`header=None` stops pandas using the first line as names; `names=[...]` gives your own.",
+        "`pd.read_csv(io.StringIO(raw), sep=\";\", header=None, names=[\"item\", \"price\"], na_values=[\"?\"])`."
+      ],
+      "kind": "python",
+      "expected": "[1.5, nan, 3.25]\n1"
+    },
+    {
+      "id": "g3",
+      "title": "Keep the zeros, parse the dates",
+      "prompt": "Read the text so that the `code` column stays as text and the `day` column is parsed as dates. Print the `code` list on line 1 and the earliest date with `df[\"day\"].min()` on line 2.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ntext = \"code,day\\n007,2024-05-03\\n042,2024-04-21\\n\"\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ntext = \"code,day\\n007,2024-05-03\\n042,2024-04-21\\n\"\ndf = pd.read_csv(io.StringIO(text), dtype={\"code\": str}, parse_dates=[\"day\"])\nprint(df[\"code\"].tolist())\nprint(df[\"day\"].min())\n",
+      "hints": [
+        "Two options: one for the types, one for the dates.",
+        "`dtype={\"code\": str}` and `parse_dates=[\"day\"]`.",
+        "`pd.read_csv(io.StringIO(text), dtype={\"code\": str}, parse_dates=[\"day\"])`."
+      ],
+      "kind": "python",
+      "expected": "['007', '042']\n2024-04-21 00:00:00"
+    },
+    {
+      "id": "g4",
+      "title": "Write CSV text",
+      "prompt": "From the DataFrame `df`, print the CSV text without the index and with only the columns `item` and `qty`, in that order. Use `end=\"\"` in `print` so that no extra blank line appears.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\"qty\": [3, 1], \"item\": [\"pen\", \"ink\"], \"price\": [1.5, 4.0]})\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\"qty\": [3, 1], \"item\": [\"pen\", \"ink\"], \"price\": [1.5, 4.0]})\nprint(df.to_csv(index=False, columns=[\"item\", \"qty\"]), end=\"\")\n",
+      "hints": [
+        "`to_csv()` without a path returns the text.",
+        "Use `index=False` and `columns=[...]`.",
+        "`print(df.to_csv(index=False, columns=[\"item\", \"qty\"]), end=\"\")`."
+      ],
+      "kind": "python",
+      "expected": "item,qty\npen,3\nink,1"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Round trip with JSON and CSV",
+      "prompt": "The JSON text holds three records. Read it into a DataFrame, write it to CSV text with `index=False` and read that text back into a second DataFrame. Print on separate lines: whether the two tables are equal (`equals`), the JSON text produced by `to_json(orient=\"records\")`, and the first line of the CSV text (the header line, from `csv_text.splitlines()[0]`).",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\njs = '[{\"id\": 1, \"city\": \"Oslo\", \"temp\": 4.5}, {\"id\": 2, \"city\": \"Rome\", \"temp\": 18.0}, {\"id\": 3, \"city\": \"Lima\", \"temp\": 22.5}]'\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\njs = '[{\"id\": 1, \"city\": \"Oslo\", \"temp\": 4.5}, {\"id\": 2, \"city\": \"Rome\", \"temp\": 18.0}, {\"id\": 3, \"city\": \"Lima\", \"temp\": 22.5}]'\ndf = pd.read_json(io.StringIO(js))\ncsv_text = df.to_csv(index=False)\nback = pd.read_csv(io.StringIO(csv_text))\nprint(df.equals(back))\nprint(df.to_json(orient=\"records\"))\nprint(csv_text.splitlines()[0])\n",
+      "kind": "python",
+      "expected": "True\n[{\"id\":1,\"city\":\"Oslo\",\"temp\":4.5},{\"id\":2,\"city\":\"Rome\",\"temp\":18.0},{\"id\":3,\"city\":\"Lima\",\"temp\":22.5}]\nid,city,temp"
+    },
+    {
+      "id": "i2",
+      "title": "Clean read of an export",
+      "prompt": "The export below has a title line, semicolon separators, the missing marker `n/a`, an order code that must stay text, and a date column. Read it so that the title is skipped, the code stays text, the dates are parsed and `n/a` is missing. Print four lines: the shape; the list of codes; the sum of the amounts (missing values are skipped by `sum`) rounded to 2 decimals; and the number of days between the earliest and latest date as an integer (`.days`).",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nraw = \"Orders export\\ncode;date;amount\\n0012;2024-02-01;10.5\\n0345;2024-02-20;n/a\\n0007;2024-03-02;4.25\\n\"\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nraw = \"Orders export\\ncode;date;amount\\n0012;2024-02-01;10.5\\n0345;2024-02-20;n/a\\n0007;2024-03-02;4.25\\n\"\ndf = pd.read_csv(io.StringIO(raw), skiprows=1, sep=\";\", dtype={\"code\": str}, parse_dates=[\"date\"], na_values=[\"n/a\"])\nprint(df.shape)\nprint(df[\"code\"].tolist())\nprint(round(df[\"amount\"].sum(), 2))\nprint((df[\"date\"].max() - df[\"date\"].min()).days)\n",
+      "kind": "python",
+      "expected": "(3, 3)\n['0012', '0345', '0007']\n14.75\n30"
+    },
+    {
+      "id": "i3",
+      "title": "Excel in your own words",
+      "kind": "written",
+      "required": false,
+      "prompt": "Explain in a short paragraph how you would read the sheet named `Q3` of a workbook `sales.xlsx` into a DataFrame, what extra package you would need to install, and how you would write the result to CSV without the index. Also say what `sheet_name=None` does. Write the code you would use.",
+      "starter": "Describe the steps and give the code.",
+      "solution": "Install `openpyxl` (for example with `pip install openpyxl`), because pandas needs it to read and write `.xlsx` files. Then `df = pd.read_excel(\"sales.xlsx\", sheet_name=\"Q3\")` reads that sheet into a DataFrame, and `df.to_csv(\"sales_q3.csv\", index=False)` writes it as CSV without the index column. With `sheet_name=None`, `read_excel` reads every sheet and returns a dictionary that maps each sheet name to its DataFrame.",
+      "rubric": [
+        "Names openpyxl as the extra package.",
+        "Uses read_excel with sheet_name=\"Q3\".",
+        "Writes CSV with index=False.",
+        "Explains that sheet_name=None returns a dictionary of all sheets."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A CSV file contains the ZIP code `01234`. What does `pd.read_csv` give by default?",
+      "options": [
+        "The text '01234'",
+        "The number 1234",
+        "The number 01234",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "pandas guesses that a column of digits is numeric, so the leading zero is lost and the value is 1234. `dtype={\"zip\": str}` keeps the text."
+    },
+    {
+      "id": "c2",
+      "question": "What does `df.to_csv()` (no path, default options) put at the start of each line?",
+      "options": [
+        "The index, in an unnamed first column",
+        "The column names",
+        "Nothing extra",
+        "A line number as text"
+      ],
+      "answer": 0,
+      "explanation": "By default `to_csv` writes the row index as a first column. Reading it back creates `Unnamed: 0`. Use `index=False` to avoid it."
+    },
+    {
+      "id": "c3",
+      "question": "A semicolon-separated file is read with `pd.read_csv(path)`. What do you most likely get?",
+      "options": [
+        "A correct table",
+        "One column whose values contain the semicolons",
+        "An empty table",
+        "A KeyError"
+      ],
+      "answer": 1,
+      "explanation": "The default separator is a comma, so a line such as `a;b;c` is one value. Use `sep=\";\"`."
+    },
+    {
+      "id": "c4",
+      "question": "What does `header=None` do in `read_csv`?",
+      "options": [
+        "Drops the first line",
+        "Treats the first line as data and numbers the columns 0, 1, 2",
+        "Removes all column names from the output permanently",
+        "Reads only the header"
+      ],
+      "answer": 1,
+      "explanation": "`header=None` says the file has no header line, so every line is data and pandas numbers the columns. Combine with `names=[...]` to name them."
+    },
+    {
+      "id": "c5",
+      "question": "Which extra package does `pd.read_excel` need for `.xlsx` files?",
+      "options": [
+        "json",
+        "openpyxl",
+        "csv",
+        "sqlite3"
+      ],
+      "answer": 1,
+      "explanation": "pandas delegates reading and writing of `.xlsx` workbooks to `openpyxl`, which must be installed separately. It is not available in the browser Python used in these lessons."
+    },
+    {
+      "id": "c6",
+      "question": "Which call gives a JSON list of row objects such as `[{\"a\":1},{\"a\":2}]`?",
+      "options": [
+        "df.to_json()",
+        "df.to_json(orient=\"records\")",
+        "df.to_csv(index=False)",
+        "df.to_json(orient=\"split\")"
+      ],
+      "answer": 1,
+      "explanation": "`orient=\"records\"` writes one object per row. The default for a DataFrame is `columns`, an object keyed by column, and `split` separates columns, index and data."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "openpyxl"
+    ],
+    "note": "Example 6 uses openpyxl, which pandas needs to read and write .xlsx files and which is not available in the browser Python. Run it on your own computer after pip install pandas openpyxl; it only writes into a temporary folder. The graded exercises use CSV and JSON, which run in the browser; the Excel task is a written exercise."
+  }
+}

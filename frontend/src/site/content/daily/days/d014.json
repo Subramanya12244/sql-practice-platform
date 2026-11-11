@@ -1,0 +1,177 @@
+{
+  "id": "d014",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-functions",
+      "python-fundamentals"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "percent-change",
+      "cart-line-total",
+      "order-size-tier"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Write a greeting function",
+      "prompt": "Define `shout(word)` that returns the word in upper case followed by an exclamation mark, for example `HELLO!`. Then print `shout(\"data\")` and `shout(\"sql\")` on two lines.",
+      "starter": "# define shout here\n",
+      "solution": "def shout(word):\n    return word.upper() + \"!\"\n\nprint(shout(\"data\"))\nprint(shout(\"sql\"))\n",
+      "hints": [
+        "Start with `def shout(word):` and indent the block.",
+        "Use a string method from Day 4 and join the exclamation mark with `+`.",
+        "The body is a single line: `return word.upper() + \"!\"`."
+      ],
+      "kind": "python",
+      "expected": "DATA!\nSQL!"
+    },
+    {
+      "id": "g2",
+      "title": "Area function",
+      "prompt": "Define `rectangle_area(width, height)` that returns the area. Print the area of a 4 by 5 rectangle, then print the area of a 2.5 by 4 rectangle.",
+      "starter": "# define rectangle_area here\n",
+      "solution": "def rectangle_area(width, height):\n    return width * height\n\nprint(rectangle_area(4, 5))\nprint(rectangle_area(2.5, 4))\n",
+      "hints": [
+        "Two parameters mean two names in the brackets, separated by a comma.",
+        "The function should return the product, not print it.",
+        "`return width * height`."
+      ],
+      "kind": "python",
+      "expected": "20\n10.0"
+    },
+    {
+      "id": "g3",
+      "title": "Min and max together",
+      "prompt": "Define `spread(values)` that returns the smallest and largest value as a tuple. Call it with `[12, 5, 30, 18]`, unpack the result into `low` and `high`, and print `low`, `high` and their difference on one line separated by spaces.",
+      "starter": "# define spread here\n",
+      "solution": "def spread(values):\n    return min(values), max(values)\n\nlow, high = spread([12, 5, 30, 18])\nprint(low, high, high - low)\n",
+      "hints": [
+        "A function can return two values separated by a comma.",
+        "Use `min()` and `max()` in the return line.",
+        "Call it as `low, high = spread([12, 5, 30, 18])` and print the three numbers."
+      ],
+      "kind": "python",
+      "expected": "5 30 25"
+    },
+    {
+      "id": "g4",
+      "title": "Return None for empty",
+      "prompt": "Define `first_or_none(items)` that returns the first item of a list, or `None` when the list is empty (use an early return). Print `first_or_none([\"a\", \"b\"])` and `first_or_none([])`.",
+      "starter": "# define first_or_none here\n",
+      "solution": "def first_or_none(items):\n    if not items:\n        return None\n    return items[0]\n\nprint(first_or_none([\"a\", \"b\"]))\nprint(first_or_none([]))\n",
+      "hints": [
+        "An empty list is falsy, so `if not items:` detects it.",
+        "Inside that `if`, return `None`; after it, return `items[0]`.",
+        "Two returns: the early one and the normal one."
+      ],
+      "kind": "python",
+      "expected": "a\nNone"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Discount helper",
+      "prompt": "Define `discounted(price, percent)` returning the price after taking off `percent` per cent, rounded to 2 decimal places. Define `final_total(prices, percent)` that uses `discounted` for every price and returns the rounded sum of the discounted prices. Print `final_total([19.99, 5.5, 100], 10)` and `final_total([], 25)`. Both functions need a docstring.",
+      "starter": "# define the two functions, then print the two results\n",
+      "solution": "def discounted(price, percent):\n    \"\"\"Return price after a percentage discount, rounded to 2 places.\"\"\"\n    return round(price * (1 - percent / 100), 2)\n\ndef final_total(prices, percent):\n    \"\"\"Return the sum of the discounted prices, rounded to 2 places.\"\"\"\n    total = 0\n    for price in prices:\n        total += discounted(price, percent)\n    return round(total, 2)\n\nprint(final_total([19.99, 5.5, 100], 10))\nprint(final_total([], 25))\n",
+      "kind": "python",
+      "expected": "112.94\n0"
+    },
+    {
+      "id": "i2",
+      "title": "Clean and count words",
+      "prompt": "Define `clean_words(text)` that lowercases the text, splits it on spaces, and returns only the words made of letters (use `isalpha()`) in order. Define `count_words(words)` that returns a dictionary of word counts. For the text `\"The cat and the dog and THE bird 42\"` print the cleaned list, then the dictionary of counts, then the most frequent word and its count as a tuple (use a loop and the maximum pattern).",
+      "starter": "# define clean_words and count_words, then print the three results\n",
+      "solution": "def clean_words(text):\n    result = []\n    for word in text.lower().split():\n        if word.isalpha():\n            result.append(word)\n    return result\n\ndef count_words(words):\n    counts = {}\n    for word in words:\n        counts[word] = counts.get(word, 0) + 1\n    return counts\n\nwords = clean_words(\"The cat and the dog and THE bird 42\")\ncounts = count_words(words)\nprint(words)\nprint(counts)\nbest = None\nfor word, n in counts.items():\n    if best is None or n > best[1]:\n        best = (word, n)\nprint(best)\n",
+      "kind": "python",
+      "expected": "['the', 'cat', 'and', 'the', 'dog', 'and', 'the', 'bird']\n{'the': 3, 'cat': 1, 'and': 2, 'dog': 1, 'bird': 1}\n('the', 3)"
+    },
+    {
+      "id": "i3",
+      "title": "Statistics function (stretch)",
+      "prompt": "Define `describe(values)` that returns a tuple `(count, total, mean, largest)` for a list of numbers, with the mean rounded to 2 decimals, and returns `(0, 0, None, None)` for an empty list. For `[3, 8, 5, 10]` print the four values on separate lines in the order count, total, mean, largest after unpacking; then print the unpacked results for an empty list on one line using `print(count, total, mean, largest)`.",
+      "starter": "# define describe and print the results\n",
+      "solution": "def describe(values):\n    if not values:\n        return 0, 0, None, None\n    total = sum(values)\n    return len(values), total, round(total / len(values), 2), max(values)\n\ncount, total, mean, largest = describe([3, 8, 5, 10])\nprint(count)\nprint(total)\nprint(mean)\nprint(largest)\ncount, total, mean, largest = describe([])\nprint(count, total, mean, largest)\n",
+      "kind": "python",
+      "expected": "4\n26\n6.5\n10\n0 0 None None",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\ndef f(x):\n    x * 2\n\nprint(f(4))\n```",
+      "options": [
+        "`8`",
+        "`None`",
+        "`4`",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "The function computes `x * 2` but never returns it, so it returns `None`, which is what `print` shows. Add `return`."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\ndef f():\n    return 1\n    print(\"after\")\n\nprint(f())\n```",
+      "options": [
+        "`1` then `after`",
+        "`after` then `1`",
+        "`1`",
+        "`None`"
+      ],
+      "answer": 2,
+      "explanation": "`return` ends the function at once, so the `print(\"after\")` line never runs. Only the value 1 is printed by the call."
+    },
+    {
+      "id": "c3",
+      "question": "In `def add(a, b): ...` and the call `add(3, 4)`, what are `3` and `4`?",
+      "options": [
+        "Parameters",
+        "Arguments",
+        "Docstrings",
+        "Return values"
+      ],
+      "answer": 1,
+      "explanation": "The values in the call are arguments; the names in the definition are parameters. Arguments are matched to parameters by position."
+    },
+    {
+      "id": "c4",
+      "question": "What does `len(min_max([4, 1, 7]))` return, if `min_max` returns `min(v), max(v)`?",
+      "options": [
+        "`1`",
+        "`2`",
+        "`3`",
+        "`7`"
+      ],
+      "answer": 1,
+      "explanation": "The function returns one tuple holding two values, `(1, 7)`, so its length is 2."
+    },
+    {
+      "id": "c5",
+      "question": "A function has no `return` statement. What does calling it give?",
+      "options": [
+        "An error when it runs",
+        "`0`",
+        "`None`",
+        "An empty string"
+      ],
+      "answer": 2,
+      "explanation": "A function that ends without `return` gives back `None`. It does not raise an error or return 0 or an empty string."
+    }
+  ]
+}

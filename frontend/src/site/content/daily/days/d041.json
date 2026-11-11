@@ -1,0 +1,190 @@
+{
+  "id": "d041",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "left-join",
+      "right-join",
+      "full-outer-join"
+    ],
+    "questions": [
+      25,
+      28,
+      29
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "joins"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Products nobody ordered",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `product_id` and `product_name` of the products that never appear in `order_details`. Use `products p LEFT JOIN order_details od` and keep the rows with no match. Order by `product_id`.",
+      "starter": "-- Products that never appear in order_details\nSELECT p.product_id, p.product_name\nFROM products p\nJOIN order_details od ON od.product_id = p.product_id\nORDER BY p.product_id;\n",
+      "solution": "SELECT p.product_id, p.product_name\nFROM products p\nLEFT JOIN order_details od ON od.product_id = p.product_id\nWHERE od.order_id IS NULL\nORDER BY p.product_id;\n",
+      "hints": [
+        "The starter uses an inner join, which keeps only products that have order lines: the opposite of what you want.",
+        "Use LEFT JOIN so unmatched products survive with NULL in the order_details columns, then keep only those rows.",
+        "LEFT JOIN order_details od ON od.product_id = p.product_id WHERE od.order_id IS NULL"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Employees with freight totals",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return every employee with `employee_id`, `last_name`, `orders` (number of orders handled) and `total_freight` (sum of `freight`, 0 when the employee has no orders), in that order, ordered by `employee_id`. Start from `employees e` and `LEFT JOIN orders o`.",
+      "starter": "-- Orders and total freight for every employee, including those with none\nSELECT e.employee_id, e.last_name, COUNT(*) AS orders, SUM(o.freight) AS total_freight\nFROM employees e\nLEFT JOIN orders o ON o.employee_id = e.employee_id\nGROUP BY e.employee_id, e.last_name\nORDER BY e.employee_id;\n",
+      "solution": "SELECT e.employee_id, e.last_name,\n       COUNT(o.order_id) AS orders,\n       COALESCE(SUM(o.freight), 0) AS total_freight\nFROM employees e\nLEFT JOIN orders o ON o.employee_id = e.employee_id\nGROUP BY e.employee_id, e.last_name\nORDER BY e.employee_id;\n",
+      "hints": [
+        "Run the starter and look at employee 5: COUNT(*) reports 1 order and SUM is NULL.",
+        "Count a column of the right table, not the rows, and turn the NULL sum into 0.",
+        "COUNT(o.order_id) AS orders, COALESCE(SUM(o.freight), 0) AS total_freight"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Order counts in Germany and Spain",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For customers in Germany or Spain return `customer_id` and `orders` (number of orders, 0 if none). Include customers without orders. Order by `orders`, then `customer_id`, and keep only the first 5 rows.",
+      "starter": "-- Order counts for German and Spanish customers (first 5 by orders, then id)\nSELECT c.customer_id, COUNT(*) AS orders\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE c.country IN ('Germany', 'Spain')\nGROUP BY c.customer_id\nORDER BY orders, c.customer_id\nLIMIT 5;\n",
+      "solution": "SELECT c.customer_id, COUNT(o.order_id) AS orders\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE c.country IN ('Germany', 'Spain')\nGROUP BY c.customer_id\nORDER BY orders, c.customer_id\nLIMIT 5;\n",
+      "hints": [
+        "The join is right. Look at what COUNT(*) reports for a customer who has no orders.",
+        "An unmatched customer is still one row, so COUNT(*) gives 1. Count a right-table column instead.",
+        "COUNT(o.order_id) AS orders"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "French customers with no order in 1997",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `customer_id` and `company_name` of the customers in France who placed no order in 1997 (from 1997-01-01 up to but not including 1998-01-01). That includes customers who never ordered. Use a left join with the date test in `ON` and keep the unmatched rows. Order by `customer_id`.",
+      "starter": "-- French customers without a 1997 order\nSELECT c.customer_id, c.company_name\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE c.country = 'France'\n  AND o.order_date >= '1997-01-01' AND o.order_date < '1998-01-01'\n  AND o.order_id IS NULL\nORDER BY c.customer_id;\n",
+      "solution": "SELECT c.customer_id, c.company_name\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\n                  AND o.order_date >= '1997-01-01' AND o.order_date < '1998-01-01'\nWHERE c.country = 'France'\n  AND o.order_id IS NULL\nORDER BY c.customer_id;\n",
+      "hints": [
+        "Run the starter: it returns nothing. A WHERE test on o.order_date can never be true for a row where o is all NULL.",
+        "The date test describes which orders count as a match, so it belongs in the ON clause. The country test is about the left table and stays in WHERE.",
+        "LEFT JOIN orders o ON o.customer_id = c.customer_id AND o.order_date >= '1997-01-01' AND o.order_date < '1998-01-01' ... WHERE c.country = 'France' AND o.order_id IS NULL"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Customer activity for three countries",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For every customer in Germany, France or Spain (including those without orders) return `country`, `customer_id`, `orders` (count of orders), `total_freight` (sum of freight, 0 when none) and `last_order` (latest `order_date`, NULL when none). Order by `country`, then `customer_id`.",
+      "starter": "-- Activity of customers in Germany, France and Spain\nSELECT c.country, c.customer_id, COUNT(o.order_id) AS orders\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nWHERE c.country IN ('Germany', 'France', 'Spain')\nGROUP BY c.country, c.customer_id\nORDER BY c.country, c.customer_id;\n",
+      "solution": "SELECT c.country, c.customer_id,\n       COUNT(o.order_id) AS orders,\n       COALESCE(SUM(o.freight), 0) AS total_freight,\n       MAX(o.order_date) AS last_order\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE c.country IN ('Germany', 'France', 'Spain')\nGROUP BY c.country, c.customer_id\nORDER BY c.country, c.customer_id;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Slow-moving products",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `product_id`, `product_name` and `units_sold` (sum of `order_details.quantity`, 0 when the product was never ordered) for every product with fewer than 10 units sold, including products never ordered. Order by `units_sold`, then `product_id`.",
+      "starter": "-- Products with fewer than 10 units sold (including 0)\nSELECT p.product_id, p.product_name, SUM(od.quantity) AS units_sold\nFROM products p\nJOIN order_details od ON od.product_id = p.product_id\nGROUP BY p.product_id, p.product_name\nHAVING SUM(od.quantity) < 10\nORDER BY units_sold, p.product_id;\n",
+      "solution": "SELECT p.product_id, p.product_name, COALESCE(SUM(od.quantity), 0) AS units_sold\nFROM products p\nLEFT JOIN order_details od ON od.product_id = p.product_id\nGROUP BY p.product_id, p.product_name\nHAVING COALESCE(SUM(od.quantity), 0) < 10\nORDER BY units_sold, p.product_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Orders in 1996 and 1998 side by side",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. For customers in Spain or Portugal (all of them, including customers with no orders) return `customer_id`, `orders_1996` (count of their orders dated in 1996) and `orders_1998` (count dated in 1998), in that order. Use one left join and conditional counts with `FILTER`. Order by `customer_id`.",
+      "starter": "-- Orders in 1996 and in 1998 per Spanish or Portuguese customer\nSELECT c.customer_id, COUNT(o.order_id) AS orders_1996, COUNT(o.order_id) AS orders_1998\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE c.country IN ('Spain', 'Portugal')\nGROUP BY c.customer_id\nORDER BY c.customer_id;\n",
+      "solution": "SELECT c.customer_id,\n       COUNT(o.order_id) FILTER (WHERE o.order_date >= '1996-01-01' AND o.order_date < '1997-01-01') AS orders_1996,\n       COUNT(o.order_id) FILTER (WHERE o.order_date >= '1998-01-01' AND o.order_date < '1999-01-01') AS orders_1998\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE c.country IN ('Spain', 'Portugal')\nGROUP BY c.customer_id\nORDER BY c.customer_id;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "There are 91 customers and 100 orders, and every order belongs to a customer. Two customers have no orders. How many rows does `customers c LEFT JOIN orders o ON o.customer_id = c.customer_id` return?",
+      "options": [
+        "91",
+        "100",
+        "102",
+        "98"
+      ],
+      "answer": 2,
+      "explanation": "The 100 orders each give a matched row, and the 2 customers without orders each appear once with NULL order columns: 100 + 2 = 102. A left join keeps every left row at least once, and a customer with several orders appears several times, so the answer is not 91."
+    },
+    {
+      "id": "c2",
+      "question": "After a left join, a customer has no orders. What do `COUNT(*)` and `COUNT(o.order_id)` return for that customer's group?",
+      "options": [
+        "0 and 0",
+        "1 and 0",
+        "1 and 1",
+        "0 and 1"
+      ],
+      "answer": 1,
+      "explanation": "The unmatched customer is still one row, so COUNT(*) is 1. o.order_id is NULL for that row and COUNT(column) skips NULLs, so it is 0, the true number of orders. This is why you count the right table's key."
+    },
+    {
+      "id": "c3",
+      "question": "Which query lists customers who never placed an order?",
+      "options": [
+        "SELECT c.customer_id FROM customers c JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_id IS NULL",
+        "SELECT c.customer_id FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_id IS NULL",
+        "SELECT c.customer_id FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_id = NULL",
+        "SELECT c.customer_id FROM customers c RIGHT JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_id IS NULL"
+      ],
+      "answer": 1,
+      "explanation": "The left join keeps customers with no match and fills o.order_id with NULL, which IS NULL then selects. The inner join cannot produce NULL order ids. `= NULL` is never true. The right join keeps every order, so its o.order_id is never NULL."
+    },
+    {
+      "id": "c4",
+      "question": "`SELECT ... FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_date >= '1998-01-01'` is run. What does it behave like?",
+      "options": [
+        "A left join that keeps all customers",
+        "An inner join, because unmatched customers have NULL order_date and fail the WHERE test",
+        "A full join",
+        "A cross join"
+      ],
+      "answer": 1,
+      "explanation": "For an unmatched customer o.order_date is NULL, the comparison is unknown and WHERE drops the row. Only customers with at least one matching 1998 order remain, which is what an inner join would give. Move the date test into ON to keep every customer."
+    },
+    {
+      "id": "c5",
+      "question": "Employees E1 to E9 exist and order 10347 has no employee. Employee 5 has no orders. How many rows have a NULL on at least one side in `employees e FULL JOIN orders o ON o.employee_id = e.employee_id`?",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "100"
+      ],
+      "answer": 2,
+      "explanation": "The full join keeps both unmatched rows: order 10347 (employee columns NULL) and employee 5 (order columns NULL). Every other row is a matched pair."
+    },
+    {
+      "id": "c6",
+      "question": "What is the relationship between `A LEFT JOIN B ON ...` and `B RIGHT JOIN A ON ...`?",
+      "options": [
+        "They return different rows, because the left table is always bigger",
+        "They return the same rows, only the written order of the tables changes",
+        "The RIGHT JOIN version returns fewer rows",
+        "The RIGHT JOIN version needs the condition reversed"
+      ],
+      "answer": 1,
+      "explanation": "Both keep every row of A and add matching rows of B. A RIGHT JOIN is a LEFT JOIN with the tables written in the other order, which is why many people only ever write LEFT JOIN. The ON condition is symmetric and need not be reversed."
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "id": "d029",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-file-handling"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "count-nonempty-lines",
+      "access-log-endpoint-stats",
+      "log-level-counts"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "grep in Python",
+      "prompt": "Write `grep(lines, pattern, invert=False, ignore_case=False)` that returns the lines that contain the text `pattern` (a plain substring, not a regular expression); with `invert=True` it returns the lines that do not contain it, and with `ignore_case=True` it compares in lower case. Use it on the `lines` in the starter to print the lines containing `error`, then the number of lines that do not contain `INFO`, then the lines containing `ERROR` ignoring case. Expected output: the three results, with lists printed as Python lists.",
+      "starter": "lines = [\"INFO start\", \"ERROR disk full\", \"INFO loaded\", \"error: retry\", \"WARN slow\"]\n\ndef grep(lines, pattern, invert=False, ignore_case=False):\n    return []\n\nprint(grep(lines, \"error\"))\nprint(len(grep(lines, \"INFO\", invert=True)))\nprint(grep(lines, \"ERROR\", ignore_case=True))\n",
+      "solution": "lines = [\"INFO start\", \"ERROR disk full\", \"INFO loaded\", \"error: retry\", \"WARN slow\"]\n\ndef grep(lines, pattern, invert=False, ignore_case=False):\n    result = []\n    for line in lines:\n        haystack, needle = (line.lower(), pattern.lower()) if ignore_case else (line, pattern)\n        if (needle in haystack) != invert:\n            result.append(line)\n    return result\n\nprint(grep(lines, \"error\"))\nprint(len(grep(lines, \"INFO\", invert=True)))\nprint(grep(lines, \"ERROR\", ignore_case=True))\n",
+      "kind": "python",
+      "expected": "['error: retry']\n3\n['ERROR disk full', 'error: retry']",
+      "hints": [
+        "Loop over the lines and test `pattern in line`.",
+        "`invert` flips the test: keep the line when the test result differs from `invert`.",
+        "For `ignore_case`, lower both the line and the pattern before testing."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Decode permissions",
+      "prompt": "Write `symbolic(mode)` that turns an octal permission such as `\"754\"` into the nine-character string `rwxr-xr--`. Each digit is the sum of read 4, write 2 and execute 1. Print `symbolic(\"754\")`, `symbolic(\"644\")` and `symbolic(\"700\")` on separate lines. Expected output: `rwxr-xr--`, `rw-r--r--`, `rwx------`.",
+      "starter": "def symbolic(mode):\n    pass\n\nprint(symbolic(\"754\"))\nprint(symbolic(\"644\"))\nprint(symbolic(\"700\"))\n",
+      "solution": "def symbolic(mode):\n    out = \"\"\n    for digit in mode:\n        n = int(digit)\n        out += (\"r\" if n & 4 else \"-\") + (\"w\" if n & 2 else \"-\") + (\"x\" if n & 1 else \"-\")\n    return out\n\nprint(symbolic(\"754\"))\nprint(symbolic(\"644\"))\nprint(symbolic(\"700\"))\n",
+      "kind": "python",
+      "expected": "rwxr-xr--\nrw-r--r--\nrwx------",
+      "hints": [
+        "Handle one digit at a time: owner, group, others.",
+        "A digit has read if it is at least 4 after taking apart 4, 2, 1; `n & 4` tests the read bit.",
+        "Build `r`, `w`, `x` or `-` for the bits 4, 2, 1 and join the three groups."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "cut and sort in Python",
+      "prompt": "The `rows` list has CSV lines `name,dept,salary`. Without the header, print the two fields `name,salary` (like `cut -d, -f1,3`) of the rows sorted by salary numerically from highest to lowest (like `sort -t, -k3 -rn`), one per line. Expected output: four lines.",
+      "starter": "rows = [\"name,dept,salary\", \"ana,ops,3200\", \"bo,dev,4100\", \"cy,ops,2900\", \"dee,dev,3800\"]\n# Print name,salary sorted by salary\n",
+      "solution": "rows = [\"name,dept,salary\", \"ana,ops,3200\", \"bo,dev,4100\", \"cy,ops,2900\", \"dee,dev,3800\"]\ndata = [r.split(\",\") for r in rows[1:]]\nfor name, dept, salary in sorted(data, key=lambda f: int(f[2]), reverse=True):\n    print(f\"{name},{salary}\")\n",
+      "kind": "python",
+      "expected": "bo,4100\ndee,3800\nana,3200\ncy,2900",
+      "hints": [
+        "Skip the first line (the header) with a slice.",
+        "Split each line on commas; sort by the third field converted to `int`.",
+        "`sorted(data, key=lambda f: int(f[2]), reverse=True)` then print fields 0 and 2."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Plan a shell session",
+      "prompt": "Write the shell commands (one per line, with a short comment) that would: create a folder `lab` with a subfolder `data`; create `data/users.csv` with the header `user,country` and the rows `ana,NO`, `bo,IT`, `cy,NO`; print how many rows (excluding the header) have the country `NO`; and finally make a script `report.sh` executable for its owner only to run. You do not need to run them here.",
+      "starter": "Write your commands here, one per line with a comment.",
+      "solution": "```text\nmkdir -p lab/data                      # create both folders\ncd lab\nprintf 'user,country\\nana,NO\\nbo,IT\\ncy,NO\\n' > data/users.csv   # create the file\ntail -n +2 data/users.csv | grep -c ',NO$'   # prints 2\ntouch report.sh                        # create the script\nchmod u+x report.sh                    # owner may run it\n```\n\n`tail -n +2` skips the header, `grep -c` counts matching lines, and the pattern `,NO$` anchors the country at the end of the line so a user whose name contains `NO` would not match.",
+      "kind": "written",
+      "rubric": [
+        "Creates lab/data and the CSV with header and three rows using redirection.",
+        "Counts the NO rows with a pipe that excludes the header (answer 2).",
+        "Uses chmod u+x on report.sh.",
+        "Each command is separated and explained with a short comment."
+      ],
+      "hints": [
+        "`mkdir -p lab/data` creates both folders; `printf` or `echo` with `>` and `>>` writes the file.",
+        "Skip the header with `tail -n +2` and count matches with `grep -c`.",
+        "Use `chmod u+x report.sh` for owner-only execute permission."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Top pages pipeline",
+      "prompt": "Write the functions `grep(lines, text)`, `cut(lines, sep, field)`, `sort_lines(lines)`, `uniq_c(lines)` (returns a list of `(line, count)` pairs for adjacent duplicates) and `head(items, n)`. Using them, replicate the pipeline `grep GET | cut -d' ' -f3 | sort | uniq -c | sort -rn | head -3` on the access lines in the starter (fields are separated by one space: time, method, path, status). Sort the counts from highest to lowest; for equal counts keep alphabetical order. Print each result as `path count`.",
+      "starter": "log = [\n    \"10:00 GET /home 200\", \"10:01 POST /cart 201\", \"10:02 GET /home 200\",\n    \"10:03 GET /docs 200\", \"10:04 GET /cart 404\", \"10:05 GET /docs 200\",\n    \"10:06 GET /home 304\", \"10:07 DELETE /cart 204\", \"10:08 GET /about 200\",\n]\n# Build the pipeline and print the top 3 paths\n",
+      "solution": "log = [\n    \"10:00 GET /home 200\", \"10:01 POST /cart 201\", \"10:02 GET /home 200\",\n    \"10:03 GET /docs 200\", \"10:04 GET /cart 404\", \"10:05 GET /docs 200\",\n    \"10:06 GET /home 304\", \"10:07 DELETE /cart 204\", \"10:08 GET /about 200\",\n]\n\ndef grep(lines, text):\n    return [l for l in lines if text in l]\n\ndef cut(lines, sep, field):\n    return [l.split(sep)[field - 1] for l in lines]\n\ndef sort_lines(lines):\n    return sorted(lines)\n\ndef uniq_c(lines):\n    pairs = []\n    for line in lines:\n        if pairs and pairs[-1][0] == line:\n            pairs[-1][1] += 1\n        else:\n            pairs.append([line, 1])\n    return [tuple(p) for p in pairs]\n\ndef head(items, n):\n    return items[:n]\n\ncounted = uniq_c(sort_lines(cut(grep(log, \"GET\"), \" \", 3)))\nfor path, count in head(sorted(counted, key=lambda p: -p[1]), 3):\n    print(path, count)\n",
+      "kind": "python",
+      "expected": "/home 3\n/docs 2\n/about 1"
+    },
+    {
+      "id": "i2",
+      "title": "Parse ls -l output",
+      "prompt": "The text in the starter is the output of `ls -l` (permissions, links, owner, group, size, month, day, time, name). Parse each line (skip the first `total` line). Print, in the order shown, the names of the regular files (type `-`) that the owner can execute (the 4th character is `x`), then print the names of directories (type `d`) sorted alphabetically, then the total size in bytes of the regular files as `Bytes: N`.",
+      "starter": "listing = \"\"\"total 24\n-rwxr-xr-x 1 ana staff  120 Mar  1 10:00 build.sh\ndrwxr-xr-x 3 ana staff   96 Mar  1 10:01 data\n-rw-r--r-- 1 ana staff 4096 Mar  2 09:12 notes.txt\n-rwx------ 1 ana staff   64 Mar  3 18:30 run.sh\ndrwx------ 2 ana staff   64 Mar  3 18:31 archive\n-rw-r----- 1 ana staff  300 Mar  4 08:00 data.csv\"\"\"\n# Parse and print\n",
+      "solution": "listing = \"\"\"total 24\n-rwxr-xr-x 1 ana staff  120 Mar  1 10:00 build.sh\ndrwxr-xr-x 3 ana staff   96 Mar  1 10:01 data\n-rw-r--r-- 1 ana staff 4096 Mar  2 09:12 notes.txt\n-rwx------ 1 ana staff   64 Mar  3 18:30 run.sh\ndrwx------ 2 ana staff   64 Mar  3 18:31 archive\n-rw-r----- 1 ana staff  300 Mar  4 08:00 data.csv\"\"\"\nexecutables, folders, total = [], [], 0\nfor line in listing.splitlines()[1:]:\n    parts = line.split()\n    mode, size, name = parts[0], int(parts[4]), parts[8]\n    if mode[0] == \"-\":\n        total += size\n        if mode[3] == \"x\":\n            executables.append(name)\n    elif mode[0] == \"d\":\n        folders.append(name)\nfor name in executables:\n    print(name)\nprint(sorted(folders))\nprint(f\"Bytes: {total}\")\n",
+      "kind": "python",
+      "expected": "build.sh\nrun.sh\n['archive', 'data']\nBytes: 4580"
+    },
+    {
+      "id": "i3",
+      "title": "Document a data-inspection workflow",
+      "prompt": "A teammate gives you a large `events.csv` (columns `ts,user,event`) and asks: how many rows are there, which events occur and how often, and which five users appear most? Write the shell commands you would use, in order, and explain each stage of every pipeline in one sentence. Say what you would do before running `rm` on any file.",
+      "starter": "Write your commands and explanations here.",
+      "solution": "```text\nwc -l < events.csv                                  # rows including the header\nhead -n 3 events.csv                                # look at the first lines\ntail -n +2 events.csv | cut -d, -f3 | sort | uniq -c | sort -rn   # events by frequency\ntail -n +2 events.csv | cut -d, -f2 | sort | uniq -c | sort -rn | head -5   # top 5 users\n```\n\n`tail -n +2` removes the header, `cut -d, -f3` selects the event column, `sort` groups equal values next to each other, `uniq -c` counts each group, and `sort -rn` orders by count from highest to lowest. For the users, `head -5` keeps the first five lines. Before `rm`, run `ls` with the same path or wildcard to see exactly what would be deleted, because there is no recycle bin.",
+      "kind": "written",
+      "rubric": [
+        "Uses wc -l for the row count and mentions the header.",
+        "Builds the cut, sort, uniq -c, sort -rn pipeline for events and for users, with head for the top five.",
+        "Explains each stage in one sentence.",
+        "Mentions checking with ls before rm, since deletion cannot be undone."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "The bash examples need a Linux or macOS terminal (on Windows use WSL or Git Bash) and are shown read-only in the browser with output captured from a real run in a throwaway folder; the browser cannot run a shell. They use only portable options and avoid dates, users and absolute paths so the output is stable. The graded exercises are pure-Python simulations of grep, cut, sort, uniq, permission strings and ls -l parsing, which run in the browser. The written exercises cover real shell sessions that you check against the model answers."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "After `echo a > f; echo b > f; echo c >> f`, what does `cat f` show?",
+      "options": [
+        "a b c on three lines",
+        "b then c",
+        "c",
+        "a then c"
+      ],
+      "answer": 1,
+      "explanation": "The second `>` replaces the content written by the first, leaving `b`. `>>` then appends `c`. A file therefore holds `b` and `c`."
+    },
+    {
+      "id": "c2",
+      "question": "What is the effect of `chmod 640 file`?",
+      "options": [
+        "Owner read and write, group read, others nothing",
+        "Owner read, write and execute, group read",
+        "Everyone can read and write",
+        "Owner execute only"
+      ],
+      "answer": 0,
+      "explanation": "6 is 4+2 (read and write) for the owner, 4 is read for the group and 0 means no permissions for others, giving `rw-r-----`."
+    },
+    {
+      "id": "c3",
+      "question": "Why is `sort` needed before `uniq -c` in `cut -d, -f2 f | sort | uniq -c`?",
+      "options": [
+        "uniq only merges adjacent duplicate lines",
+        "uniq cannot read piped input",
+        "sort makes the counts faster",
+        "uniq sorts by length"
+      ],
+      "answer": 0,
+      "explanation": "`uniq` compares each line only with the previous one. Without sorting, equal values that are not next to each other are counted as separate groups."
+    },
+    {
+      "id": "c4",
+      "question": "What does `grep -v '^#' file` print?",
+      "options": [
+        "Lines that start with #",
+        "Lines that do not start with #",
+        "Only the line numbers",
+        "Lines containing a hash anywhere"
+      ],
+      "answer": 1,
+      "explanation": "`-v` inverts the match and `^#` matches lines starting with `#`, so everything except comment lines is printed."
+    },
+    {
+      "id": "c5",
+      "question": "What does `cmd1 && cmd2 || cmd3` do when `cmd1` fails?",
+      "options": [
+        "Runs cmd2 then cmd3",
+        "Skips cmd2 and runs cmd3",
+        "Runs nothing",
+        "Runs only cmd1"
+      ],
+      "answer": 1,
+      "explanation": "`&&` runs `cmd2` only after success, so it is skipped, and `||` runs `cmd3` because the chain so far failed."
+    },
+    {
+      "id": "c6",
+      "question": "The current folder is `/home/ana/data`. What does `cd ../reports` do?",
+      "options": [
+        "Moves to /home/ana/reports",
+        "Moves to /home/ana/data/reports",
+        "Moves to /reports",
+        "Fails because .. is not allowed"
+      ],
+      "answer": 0,
+      "explanation": "`..` is the parent folder, `/home/ana`, so the relative path leads to `/home/ana/reports`. Without `..` it would be inside `data`."
+    }
+  ]
+}

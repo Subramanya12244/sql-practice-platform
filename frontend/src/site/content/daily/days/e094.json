@@ -1,0 +1,177 @@
+{
+  "id": "e094",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-idempotency",
+      "etl-loading",
+      "python-database-connectivity",
+      "transactions"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Cut rows into batches",
+      "kind": "python",
+      "prompt": "Write the generator `batches(rows, size)` that yields lists of at most `size` items from any iterable, in order. Then print the length of each batch for `range(7)` with size 3 as a list. Expected output: `[3, 3, 1]`.",
+      "starter": "def batches(rows, size):\n    pass\n\nprint([len(b) for b in batches(range(7), 3)])\n",
+      "solution": "from itertools import islice\n\ndef batches(rows, size):\n    it = iter(rows)\n    while True:\n        batch = list(islice(it, size))\n        if not batch:\n            return\n        yield batch\n\nprint([len(b) for b in batches(range(7), 3)])\n",
+      "hints": [
+        "`iter(rows)` gives an iterator that remembers its position, so repeated slices continue where the last one stopped.",
+        "`list(islice(it, size))` takes the next `size` items; an empty list means the input is exhausted.",
+        "Loop with `while True`, `yield` each non-empty batch, and `return` when the batch is empty."
+      ],
+      "expected": "[3, 3, 1]"
+    },
+    {
+      "id": "g2",
+      "title": "Replace the day, twice",
+      "kind": "python",
+      "prompt": "Complete `load_day(conn, day, rows)` so that it deletes the existing rows whose `load_date` equals `day` and inserts `rows` (tuples `(id, amount)`, stored with the day as a third value), all inside one `with conn:` block and using `?` placeholders. The two calls below load the same day twice, so the final count must be the same as after one load. Expected output: `3`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sale (id INTEGER, amount REAL, load_date TEXT)\")\n\ndef load_day(conn, day, rows):\n    with conn:\n        conn.executemany(\"INSERT INTO sale VALUES (?, ?, ?)\", [(i, a, day) for i, a in rows])\n\nrows = [(1, 5.0), (2, 6.0), (3, 7.0)]\nload_day(conn, \"2026-01-05\", rows)\nload_day(conn, \"2026-01-05\", rows)\nprint(conn.execute(\"SELECT COUNT(*) FROM sale\").fetchone()[0])\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sale (id INTEGER, amount REAL, load_date TEXT)\")\n\ndef load_day(conn, day, rows):\n    with conn:\n        conn.execute(\"DELETE FROM sale WHERE load_date = ?\", (day,))\n        conn.executemany(\"INSERT INTO sale VALUES (?, ?, ?)\", [(i, a, day) for i, a in rows])\n\nrows = [(1, 5.0), (2, 6.0), (3, 7.0)]\nload_day(conn, \"2026-01-05\", rows)\nload_day(conn, \"2026-01-05\", rows)\nprint(conn.execute(\"SELECT COUNT(*) FROM sale\").fetchone()[0])\n",
+      "hints": [
+        "Right now the second call adds the same rows again, so the count is 6.",
+        "Before inserting, remove what an earlier run of the same day loaded: a `DELETE` filtered on `load_date`.",
+        "Add `conn.execute(\"DELETE FROM sale WHERE load_date = ?\", (day,))` as the first line inside the `with conn:` block."
+      ],
+      "expected": "3"
+    },
+    {
+      "id": "g3",
+      "title": "Upsert in PostgreSQL",
+      "kind": "sql",
+      "prompt": "On PGlite the table `acct` holds Ana 100 and Ben 50. Write one `INSERT ... ON CONFLICT (id) DO UPDATE` that loads `(2, 'Ben', 75)` and `(3, 'Cy', 20)`, updating `name` and `balance` from `EXCLUDED` on a conflict. Then select `id, name, balance` ordered by `id`.",
+      "starter": "CREATE TABLE acct (id int PRIMARY KEY, name text, balance int);\nINSERT INTO acct VALUES (1, 'Ana', 100), (2, 'Ben', 50);\n-- upsert (2, 'Ben', 75) and (3, 'Cy', 20) here\nSELECT id, name, balance FROM acct ORDER BY id;\n",
+      "solution": "CREATE TABLE acct (id int PRIMARY KEY, name text, balance int);\nINSERT INTO acct VALUES (1, 'Ana', 100), (2, 'Ben', 50);\nINSERT INTO acct VALUES (2, 'Ben', 75), (3, 'Cy', 20)\nON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, balance = EXCLUDED.balance;\nSELECT id, name, balance FROM acct ORDER BY id;\n",
+      "hints": [
+        "A plain second INSERT of id 2 would fail with a duplicate-key error; `ON CONFLICT` tells PostgreSQL what to do instead.",
+        "Name the conflict column in `ON CONFLICT (id)` and finish with `DO UPDATE SET ...`.",
+        "`DO UPDATE SET name = EXCLUDED.name, balance = EXCLUDED.balance`: `EXCLUDED` is the row you tried to insert."
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g4",
+      "title": "`if_exists` in practice",
+      "kind": "python",
+      "prompt": "Write the DataFrame `df` to the table `t` of an in-memory `sqlite3` database twice with `index=False` and `if_exists=\"append\"`, and print the row count. Then write it once more with `if_exists=\"replace\"` and print the row count again. Expected output: `6` then `3`.",
+      "starter": "import sqlite3\nimport pandas as pd\n\ndf = pd.DataFrame({\"id\": [1, 2, 3], \"v\": [\"a\", \"b\", \"c\"]})\nconn = sqlite3.connect(\":memory:\")\nprint(0)\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\ndf = pd.DataFrame({\"id\": [1, 2, 3], \"v\": [\"a\", \"b\", \"c\"]})\nconn = sqlite3.connect(\":memory:\")\ndf.to_sql(\"t\", conn, index=False, if_exists=\"append\")\ndf.to_sql(\"t\", conn, index=False, if_exists=\"append\")\nprint(conn.execute(\"SELECT COUNT(*) FROM t\").fetchone()[0])\ndf.to_sql(\"t\", conn, index=False, if_exists=\"replace\")\nprint(conn.execute(\"SELECT COUNT(*) FROM t\").fetchone()[0])\n",
+      "hints": [
+        "`df.to_sql(name, connection, ...)` creates the table if it does not exist.",
+        "Pass `index=False` so the DataFrame index is not written as a column, and set `if_exists`.",
+        "Two appends give 6 rows; `if_exists=\"replace\"` drops the table and writes only the 3 rows of `df`."
+      ],
+      "expected": "6\n3"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Count the rows each run wrote",
+      "kind": "python",
+      "prompt": "Write `load(conn, rows)` for the table `item(sku TEXT PRIMARY KEY, price REAL)` that upserts `rows` (tuples `(sku, price)`) with `executemany` in one transaction and `ON CONFLICT (sku) DO UPDATE SET price = excluded.price WHERE price IS NOT excluded.price`, and returns how many rows the call really wrote, measured as the change in `conn.total_changes`. Run it for the three row lists below and print each result on its own line. Expected output: `2`, `2`, `0`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE item (sku TEXT PRIMARY KEY, price REAL)\")\n\ndef load(conn, rows):\n    return 0\n\nday1 = [(\"A1\", 1.5), (\"B2\", 4.0)]\nday2 = [(\"A1\", 1.75), (\"B2\", 4.0), (\"C3\", 2.2)]\nprint(load(conn, day1))\nprint(load(conn, day2))\nprint(load(conn, day2))\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE item (sku TEXT PRIMARY KEY, price REAL)\")\n\ndef load(conn, rows):\n    before = conn.total_changes\n    with conn:\n        conn.executemany(\n            \"INSERT INTO item VALUES (?, ?) ON CONFLICT (sku) DO UPDATE SET price = excluded.price WHERE price IS NOT excluded.price\",\n            rows,\n        )\n    return conn.total_changes - before\n\nday1 = [(\"A1\", 1.5), (\"B2\", 4.0)]\nday2 = [(\"A1\", 1.75), (\"B2\", 4.0), (\"C3\", 2.2)]\nprint(load(conn, day1))\nprint(load(conn, day2))\nprint(load(conn, day2))\n",
+      "expected": "2\n2\n0"
+    },
+    {
+      "id": "i2",
+      "title": "All-or-nothing with validation",
+      "kind": "python",
+      "prompt": "Write `load_all(conn, rows)` that inserts `rows` (tuples `(id, price)`) into `item(id INTEGER PRIMARY KEY, price REAL)` in batches of 2 inside one `with conn:` block. Before each insert it checks every price in the batch, and raises `ValueError(f\"negative price for id {id}\")` for the first negative one. Call it with the bad list (catch the error and print its message and then the row count), then with the clean list (print the row count). Expected output: `negative price for id 5`, `0`, `5`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE item (id INTEGER PRIMARY KEY, price REAL)\")\n\ndef load_all(conn, rows):\n    pass\n\ncount = lambda: conn.execute(\"SELECT COUNT(*) FROM item\").fetchone()[0]\nbad = [(1, 2.0), (2, 3.0), (3, 1.0), (4, 5.0), (5, -1.0)]\nclean = [(1, 2.0), (2, 3.0), (3, 1.0), (4, 5.0), (5, 1.0)]\ntry:\n    load_all(conn, bad)\nexcept ValueError as err:\n    print(err)\nprint(count())\nload_all(conn, clean)\nprint(count())\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE item (id INTEGER PRIMARY KEY, price REAL)\")\n\ndef load_all(conn, rows):\n    with conn:\n        for start in range(0, len(rows), 2):\n            batch = rows[start:start + 2]\n            for row_id, price in batch:\n                if price < 0:\n                    raise ValueError(f\"negative price for id {row_id}\")\n            conn.executemany(\"INSERT INTO item VALUES (?, ?)\", batch)\n\ncount = lambda: conn.execute(\"SELECT COUNT(*) FROM item\").fetchone()[0]\nbad = [(1, 2.0), (2, 3.0), (3, 1.0), (4, 5.0), (5, -1.0)]\nclean = [(1, 2.0), (2, 3.0), (3, 1.0), (4, 5.0), (5, 1.0)]\ntry:\n    load_all(conn, bad)\nexcept ValueError as err:\n    print(err)\nprint(count())\nload_all(conn, clean)\nprint(count())\n",
+      "expected": "negative price for id 5\n0\n5"
+    },
+    {
+      "id": "i3",
+      "title": "Deduplicate, then upsert",
+      "kind": "sql",
+      "prompt": "On PGlite the table `product(sku, price)` already holds A1 at 1.50 and B2 at 4.00. The table `incoming(seq, sku, price)` holds a batch in which the same `sku` appears more than once. Load the batch with one `INSERT ... SELECT ... ON CONFLICT (sku) DO UPDATE`, keeping for each `sku` only the row with the highest `seq` (use `SELECT DISTINCT ON (sku) ... ORDER BY sku, seq DESC`). Then select `sku, price` from `product` ordered by `sku`.",
+      "starter": "CREATE TABLE product (sku text PRIMARY KEY, price numeric(8,2));\nINSERT INTO product VALUES ('A1', 1.50), ('B2', 4.00);\nCREATE TABLE incoming (seq int, sku text, price numeric(8,2));\nINSERT INTO incoming VALUES (1, 'A1', 1.60), (2, 'A1', 1.75), (3, 'C3', 2.20), (4, 'C3', 2.10), (5, 'B2', 4.00);\n-- load the deduplicated batch here\nSELECT sku, price FROM product ORDER BY sku;\n",
+      "solution": "CREATE TABLE product (sku text PRIMARY KEY, price numeric(8,2));\nINSERT INTO product VALUES ('A1', 1.50), ('B2', 4.00);\nCREATE TABLE incoming (seq int, sku text, price numeric(8,2));\nINSERT INTO incoming VALUES (1, 'A1', 1.60), (2, 'A1', 1.75), (3, 'C3', 2.20), (4, 'C3', 2.10), (5, 'B2', 4.00);\nINSERT INTO product (sku, price)\nSELECT DISTINCT ON (sku) sku, price FROM incoming ORDER BY sku, seq DESC\nON CONFLICT (sku) DO UPDATE SET price = EXCLUDED.price;\nSELECT sku, price FROM product ORDER BY sku;\n",
+      "ordered": true,
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A nightly job loads a file with a plain `INSERT` per row and no key. It fails at 3 a.m. after a timeout, and the scheduler retries it. What is the likely result?",
+      "options": [
+        "The table is unchanged, because failed jobs are rolled back by the scheduler",
+        "Rows inserted before the failure (if committed) are inserted again, so duplicates appear",
+        "PostgreSQL detects the repeat and skips it",
+        "The retry loads only the missing rows"
+      ],
+      "answer": 1,
+      "explanation": "Nothing in a plain insert recognises a repeat. Retrying a non-idempotent load creates duplicates; the load must be made repeatable by design."
+    },
+    {
+      "id": "c2",
+      "question": "What does `df.to_sql('sale', conn, index=False, if_exists='replace')` do to a `sale` table that has a primary key?",
+      "options": [
+        "Empties the table and keeps its design",
+        "Adds the rows and keeps the key",
+        "Drops the table and creates it again from the DataFrame's dtypes, so the key is gone",
+        "Raises an error because the table exists"
+      ],
+      "answer": 2,
+      "explanation": "`replace` drops and recreates the table. The new table has the DataFrame's column types and none of your constraints. `fail` is the option that raises an error."
+    },
+    {
+      "id": "c3",
+      "question": "A load commits after each batch of 1,000 rows. It fails on batch 3. What state is the table in?",
+      "options": [
+        "Unchanged",
+        "Batches 1 and 2 are stored, batch 3 is not: a partial load",
+        "Empty, because the failing batch rolls back everything",
+        "Batch 3 is partly stored"
+      ],
+      "answer": 1,
+      "explanation": "Each earlier commit made its batch permanent. Only the failing batch rolls back. One transaction around the whole load would have left the table unchanged."
+    },
+    {
+      "id": "c4",
+      "question": "What does a single `INSERT ... VALUES (1, 'a'), (1, 'b') ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v` do when key 1 is not yet in the table?",
+      "options": [
+        "Inserts the second row over the first",
+        "Raises `ON CONFLICT DO UPDATE command cannot affect row a second time`",
+        "Keeps the first row only",
+        "Inserts both rows"
+      ],
+      "answer": 1,
+      "explanation": "Both proposed rows target the same key within one command, so PostgreSQL refuses rather than guess. Deduplicate the batch first, for example with `DISTINCT ON`."
+    },
+    {
+      "id": "c5",
+      "question": "A `COPY` of 1,000 rows has a bad value in row 600. What is in the table afterwards?",
+      "options": [
+        "The first 599 rows",
+        "Rows 1 to 1000 except row 600",
+        "No rows from this COPY: the command is all-or-nothing",
+        "Only row 600"
+      ],
+      "answer": 2,
+      "explanation": "A COPY is one statement and fails as a whole. To keep the good rows, load into an all-text staging table first, as on Days 92 and 93."
+    }
+  ]
+}

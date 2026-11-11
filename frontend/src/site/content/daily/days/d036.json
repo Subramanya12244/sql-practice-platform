@@ -1,0 +1,187 @@
+{
+  "id": "d036",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "count",
+      "sum",
+      "avg",
+      "min-max"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Orders shipped to Germany",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `orders`, return in one row the number of orders shipped to Germany and the number of different customers who placed them. Use the aliases `orders` and `customers`, in that order. Filter with `ship_country = 'Germany'`.",
+      "starter": "-- Orders to Germany and distinct customers\nSELECT COUNT(*) AS orders\nFROM orders;\n",
+      "solution": "SELECT COUNT(*) AS orders, COUNT(DISTINCT customer_id) AS customers\nFROM orders\nWHERE ship_country = 'Germany';\n",
+      "hints": [
+        "The starter counts every order. Add a WHERE clause for the country, and a second column for the customers.",
+        "A count of different values is COUNT(DISTINCT column). Repeat customers must be counted once.",
+        "SELECT COUNT(*) AS orders, COUNT(DISTINCT customer_id) AS customers FROM orders WHERE ship_country = 'Germany'"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Freight for one shipper",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For orders carried by shipper 2 (`ship_via = 2`), return one row with `orders` (the number of orders), `total_freight` (the sum of `freight`), `avg_freight` (the average freight rounded to 2 decimals) and `max_freight` (the largest freight), in that order.",
+      "starter": "-- Freight summary for shipper 2\nSELECT COUNT(*) AS orders\nFROM orders\nWHERE ship_via = 2;\n",
+      "solution": "SELECT COUNT(*) AS orders,\n       SUM(freight) AS total_freight,\n       ROUND(AVG(freight), 2) AS avg_freight,\n       MAX(freight) AS max_freight\nFROM orders\nWHERE ship_via = 2;\n",
+      "hints": [
+        "The WHERE is already right. Add three more aggregates to the select list, separated by commas.",
+        "SUM adds up a column, AVG takes the mean and MAX finds the largest. Wrap AVG in ROUND(..., 2).",
+        "SUM(freight) AS total_freight, ROUND(AVG(freight), 2) AS avg_freight, MAX(freight) AS max_freight"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Revenue of one product",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `order_details`, summarise product 38 in one row: `lines` (number of order lines), `units` (sum of `quantity`) and `revenue` (sum of `unit_price * quantity * (1 - discount)` rounded to 2 decimals), in that order. The `discount` column is `real`, so cast it to `numeric` before rounding.",
+      "starter": "-- Lines, units and revenue of product 38\nSELECT COUNT(*) AS lines\nFROM order_details\nWHERE product_id = 38;\n",
+      "solution": "SELECT COUNT(*) AS lines,\n       SUM(quantity) AS units,\n       ROUND(SUM(unit_price * quantity * (1 - discount::numeric)), 2) AS revenue\nFROM order_details\nWHERE product_id = 38;\n",
+      "hints": [
+        "Keep the WHERE clause and add two more columns after COUNT(*).",
+        "Units is a SUM of quantity. Revenue is a SUM of the line value, where the line value is price times quantity times one minus the discount.",
+        "ROUND(SUM(unit_price * quantity * (1 - discount::numeric)), 2) AS revenue"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "The unshipped backlog",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Among orders that have not shipped (`shipped_date IS NULL`), return one row with `unshipped` (how many), `oldest` (the earliest `order_date`) and `total_freight` (the sum of `freight`), in that order.",
+      "starter": "-- Unshipped orders: count, oldest order date, total freight\nSELECT COUNT(shipped_date) AS unshipped\nFROM orders\nWHERE shipped_date IS NULL;\n",
+      "solution": "SELECT COUNT(*) AS unshipped,\n       MIN(order_date) AS oldest,\n       SUM(freight) AS total_freight\nFROM orders\nWHERE shipped_date IS NULL;\n",
+      "hints": [
+        "Run the starter: it returns 0, because COUNT(column) skips NULLs and every selected row has a NULL shipped_date.",
+        "Count rows with COUNT(*) instead. Then add MIN on the date column and SUM on freight.",
+        "SELECT COUNT(*) AS unshipped, MIN(order_date) AS oldest, SUM(freight) AS total_freight FROM orders WHERE shipped_date IS NULL"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A year of orders",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Summarise the orders placed in 1997 (from 1997-01-01 to 1997-12-31, both included) in one row with these columns, in order: `orders`, `customers` (distinct customers), `employees` (distinct non-NULL employees), `total_freight`, `avg_freight` (rounded to 2 decimals) and `last_order` (latest `order_date`).",
+      "starter": "-- 1997 order summary\nSELECT COUNT(*) AS orders\nFROM orders;\n",
+      "solution": "SELECT COUNT(*) AS orders,\n       COUNT(DISTINCT customer_id) AS customers,\n       COUNT(DISTINCT employee_id) AS employees,\n       SUM(freight) AS total_freight,\n       ROUND(AVG(freight), 2) AS avg_freight,\n       MAX(order_date) AS last_order\nFROM orders\nWHERE order_date BETWEEN '1997-01-01' AND '1997-12-31';\n"
+    },
+    {
+      "id": "i2",
+      "title": "How long does shipping take?",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For orders that have shipped, the days to ship are `shipped_date - order_date` (subtracting two dates gives a number of days). Return one row with `shipped_orders`, `fastest_days`, `slowest_days` and `avg_days` (average rounded to 2 decimals), in that order. Count and average only orders whose `shipped_date` is not NULL.",
+      "starter": "-- Shipping time summary for shipped orders\nSELECT COUNT(*) AS shipped_orders\nFROM orders;\n",
+      "solution": "SELECT COUNT(shipped_date) AS shipped_orders,\n       MIN(shipped_date - order_date) AS fastest_days,\n       MAX(shipped_date - order_date) AS slowest_days,\n       ROUND(AVG(shipped_date - order_date), 2) AS avg_days\nFROM orders\nWHERE shipped_date IS NOT NULL;\n"
+    },
+    {
+      "id": "i3",
+      "title": "What discounts cost",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. Looking only at order lines with a discount above 0, return one row with `discounted_lines`, `orders` (distinct `order_id`), `products` (distinct `product_id`), `avg_discount_pct` (average discount times 100, rounded to 1 decimal) and `discount_value` (the sum of `unit_price * quantity * discount`, rounded to 2 decimals). Cast `discount` to `numeric` before any rounding.",
+      "starter": "-- Summary of discounted order lines\nSELECT COUNT(*) AS discounted_lines\nFROM order_details;\n",
+      "solution": "SELECT COUNT(*) AS discounted_lines,\n       COUNT(DISTINCT order_id) AS orders,\n       COUNT(DISTINCT product_id) AS products,\n       ROUND(AVG(discount::numeric) * 100, 1) AS avg_discount_pct,\n       ROUND(SUM(unit_price * quantity * discount::numeric), 2) AS discount_value\nFROM order_details\nWHERE discount > 0;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A column `x` holds the values 10, 20, NULL and 30. What does `SELECT AVG(x) FROM t` return?",
+      "options": [
+        "15, because NULL counts as 0 and 60 / 4 = 15",
+        "20, because NULL is skipped and 60 / 3 = 20",
+        "NULL, because one value is NULL",
+        "30, the largest value"
+      ],
+      "answer": 1,
+      "explanation": "AVG ignores NULL, so it is the sum of the non-NULL values (60) divided by how many there are (3), which is 20. Dividing by 4 would treat NULL as a zero, which only happens if you write AVG(COALESCE(x, 0)). The result is not NULL, because aggregates skip NULL inputs."
+    },
+    {
+      "id": "c2",
+      "question": "All 91 customers have a NULL `region`. What does `SELECT COUNT(*), COUNT(region) FROM customers` return?",
+      "options": [
+        "91 and 91",
+        "91 and 0",
+        "0 and 0",
+        "91 and 1"
+      ],
+      "answer": 1,
+      "explanation": "COUNT(*) counts rows, so it is 91. COUNT(region) counts only non-NULL values and every region is NULL, so it is 0. Many learners expect both to be 91 because they think COUNT(column) counts rows."
+    },
+    {
+      "id": "c3",
+      "question": "What does `SELECT SUM(freight) FROM orders WHERE order_date > '2000-01-01'` return, given that no order is that late?",
+      "options": [
+        "0",
+        "NULL",
+        "An error, because no rows match",
+        "1"
+      ],
+      "answer": 1,
+      "explanation": "With no rows to add, SUM returns NULL, not 0. Only COUNT returns 0 for an empty set. Wrap it in COALESCE(SUM(freight), 0) when a report must show 0. The query is valid, so there is no error."
+    },
+    {
+      "id": "c4",
+      "question": "The 100 orders belong to 89 different customers. Which query returns 89?",
+      "options": [
+        "SELECT COUNT(*) FROM orders",
+        "SELECT COUNT(customer_id) FROM orders",
+        "SELECT COUNT(DISTINCT customer_id) FROM orders",
+        "SELECT DISTINCT COUNT(customer_id) FROM orders"
+      ],
+      "answer": 2,
+      "explanation": "COUNT(DISTINCT customer_id) counts each customer once. COUNT(*) and COUNT(customer_id) both return 100, one per order (no order has a NULL customer). SELECT DISTINCT COUNT(customer_id) removes duplicate output rows after counting, and still returns 100."
+    },
+    {
+      "id": "c5",
+      "question": "Why does `SELECT product_name, MAX(unit_price) FROM products` fail?",
+      "options": [
+        "MAX cannot be used on a numeric column",
+        "An aggregate returns one row but product_name has one value per product, and there is no GROUP BY",
+        "product_name must be written in capital letters",
+        "MAX needs DISTINCT"
+      ],
+      "answer": 1,
+      "explanation": "Without GROUP BY the aggregate collapses all rows into one, so a plain column in the select list has no single value to show. PostgreSQL reports that the column must appear in the GROUP BY clause or be used in an aggregate function. Day 37 shows GROUP BY, the usual fix."
+    },
+    {
+      "id": "c6",
+      "question": "A learner wants the number of orders with a missing ship date and writes `SELECT COUNT(shipped_date) FROM orders WHERE shipped_date IS NULL`. What does it return?",
+      "options": [
+        "15",
+        "85",
+        "0",
+        "NULL"
+      ],
+      "answer": 2,
+      "explanation": "WHERE keeps only the 15 rows with a NULL shipped_date, and COUNT(shipped_date) then skips every one of them because it counts non-NULL values. The answer is 0. Use COUNT(*) to get 15."
+    }
+  ]
+}

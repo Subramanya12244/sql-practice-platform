@@ -1,0 +1,172 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Stack two tables",
+      "prompt": "Stack `a` and `b` into one table with a fresh index 0 to 3 and print it with `print(both.to_string())`.",
+      "starter": "import pandas as pd\na = pd.DataFrame({\"id\": [1, 2], \"v\": [5, 6]})\nb = pd.DataFrame({\"id\": [3, 4], \"v\": [7, 8]})\nprint(a.to_string())\n",
+      "solution": "import pandas as pd\na = pd.DataFrame({\"id\": [1, 2], \"v\": [5, 6]})\nb = pd.DataFrame({\"id\": [3, 4], \"v\": [7, 8]})\nboth = pd.concat([a, b], ignore_index=True)\nprint(both.to_string())\n",
+      "hints": [
+        "`pd.concat` takes a list of tables.",
+        "Without extra options the row labels repeat; one option renumbers them.",
+        "`pd.concat([a, b], ignore_index=True)`."
+      ],
+      "kind": "python",
+      "expected": "   id  v\n0   1  5\n1   2  6\n2   3  7\n3   4  8"
+    },
+    {
+      "id": "g2",
+      "title": "Sum pivot",
+      "prompt": "Build a pivot table of the total `amount` with `region` as rows and `product` as columns, empty cells as 0. Print it with `print(grid.to_string())`.",
+      "starter": "import pandas as pd\ns = pd.DataFrame({\"region\": [\"N\", \"S\", \"N\", \"S\"], \"product\": [\"pen\", \"pen\", \"ink\", \"pen\"], \"amount\": [1, 2, 3, 4]})\nprint(s.to_string())\n",
+      "solution": "import pandas as pd\ns = pd.DataFrame({\"region\": [\"N\", \"S\", \"N\", \"S\"], \"product\": [\"pen\", \"pen\", \"ink\", \"pen\"], \"amount\": [1, 2, 3, 4]})\ngrid = s.pivot_table(index=\"region\", columns=\"product\", values=\"amount\", aggfunc=\"sum\", fill_value=0)\nprint(grid.to_string())\n",
+      "hints": [
+        "`pivot_table` needs `index`, `columns` and `values`.",
+        "The default aggregation is the mean, so name the one you want.",
+        "Add `aggfunc=\"sum\", fill_value=0`."
+      ],
+      "kind": "python",
+      "expected": "product  ink  pen\nregion           \nN          3    1\nS          0    6"
+    },
+    {
+      "id": "g3",
+      "title": "Shares with crosstab",
+      "prompt": "Print a crosstab of `plan` (rows) against `churned` (columns) where each row holds shares that add up to 1, rounded to 2 places, with `print(ct.to_string())`.",
+      "starter": "import pandas as pd\nc = pd.DataFrame({\"plan\": [\"free\", \"free\", \"free\", \"pro\", \"pro\"], \"churned\": [\"yes\", \"yes\", \"no\", \"no\", \"no\"]})\nprint(pd.crosstab(c[\"plan\"], c[\"churned\"]).to_string())\n",
+      "solution": "import pandas as pd\nc = pd.DataFrame({\"plan\": [\"free\", \"free\", \"free\", \"pro\", \"pro\"], \"churned\": [\"yes\", \"yes\", \"no\", \"no\", \"no\"]})\nct = pd.crosstab(c[\"plan\"], c[\"churned\"], normalize=\"index\").round(2)\nprint(ct.to_string())\n",
+      "hints": [
+        "A plain crosstab shows counts.",
+        "`normalize` turns counts into proportions; one value makes each row sum to 1.",
+        "`normalize=\"index\"`, then `.round(2)`."
+      ],
+      "kind": "python",
+      "expected": "churned    no   yes\nplan               \nfree     0.33  0.67\npro      1.00  0.00"
+    },
+    {
+      "id": "g4",
+      "title": "Melt months",
+      "prompt": "Melt `wide` into a long table with columns `store`, `month` and `sales`. Print `print(long.to_string(index=False))`.",
+      "starter": "import pandas as pd\nwide = pd.DataFrame({\"store\": [\"A\", \"B\"], \"jan\": [5, 7], \"feb\": [6, 8]})\nprint(wide.to_string(index=False))\n",
+      "solution": "import pandas as pd\nwide = pd.DataFrame({\"store\": [\"A\", \"B\"], \"jan\": [5, 7], \"feb\": [6, 8]})\nlong = pd.melt(wide, id_vars=\"store\", var_name=\"month\", value_name=\"sales\")\nprint(long.to_string(index=False))\n",
+      "hints": [
+        "`id_vars` names the columns that stay as they are.",
+        "`var_name` and `value_name` name the two new columns.",
+        "`pd.melt(wide, id_vars=\"store\", var_name=\"month\", value_name=\"sales\")`."
+      ],
+      "kind": "python",
+      "expected": "store month  sales\n    A   jan      5\n    B   jan      7\n    A   feb      6\n    B   feb      8"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Combine files and total by region",
+      "prompt": "Three regional tables `n`, `s`, `w` each have `product` and `amount`. Stack them with a `region` column that records the source (add the column yourself with `assign` before stacking). Print the pivot table of total amount with `product` as rows and `region` as columns (0 for missing), then the number of rows of the stacked table on the last line.",
+      "starter": "import pandas as pd\nn = pd.DataFrame({\"product\": [\"pen\", \"ink\"], \"amount\": [10, 20]})\ns = pd.DataFrame({\"product\": [\"pen\"], \"amount\": [5]})\nw = pd.DataFrame({\"product\": [\"ink\", \"pad\"], \"amount\": [7, 9]})\nprint(len(n))\n",
+      "solution": "import pandas as pd\nn = pd.DataFrame({\"product\": [\"pen\", \"ink\"], \"amount\": [10, 20]})\ns = pd.DataFrame({\"product\": [\"pen\"], \"amount\": [5]})\nw = pd.DataFrame({\"product\": [\"ink\", \"pad\"], \"amount\": [7, 9]})\nall_ = pd.concat([n.assign(region=\"N\"), s.assign(region=\"S\"), w.assign(region=\"W\")], ignore_index=True)\nprint(all_.pivot_table(index=\"product\", columns=\"region\", values=\"amount\", aggfunc=\"sum\", fill_value=0).to_string())\nprint(len(all_))\n",
+      "kind": "python",
+      "expected": "region    N  S  W\nproduct          \nink      20  0  7\npad       0  0  9\npen      10  5  0\n5"
+    },
+    {
+      "id": "i2",
+      "title": "Wide to long and back",
+      "prompt": "Melt `wide` (columns `item`, `q1`, `q2`, `q3`) into `item`, `quarter`, `units`. Print the quarter with the highest total units and its total as `q2 66` style (quarter name, space, total). Then pivot the long table back with `pivot_table` (sum) and print `grid.loc[\"pen\", \"q3\"]`.",
+      "starter": "import pandas as pd\nwide = pd.DataFrame({\"item\": [\"pen\", \"ink\", \"pad\"], \"q1\": [10, 20, 5], \"q2\": [30, 25, 11], \"q3\": [12, 22, 9]})\nprint(wide.shape)\n",
+      "solution": "import pandas as pd\nwide = pd.DataFrame({\"item\": [\"pen\", \"ink\", \"pad\"], \"q1\": [10, 20, 5], \"q2\": [30, 25, 11], \"q3\": [12, 22, 9]})\nlong = pd.melt(wide, id_vars=\"item\", var_name=\"quarter\", value_name=\"units\")\ntotals = long.groupby(\"quarter\")[\"units\"].sum()\nprint(totals.idxmax(), totals.max())\ngrid = long.pivot_table(index=\"item\", columns=\"quarter\", values=\"units\", aggfunc=\"sum\")\nprint(grid.loc[\"pen\", \"q3\"])\n",
+      "kind": "python",
+      "expected": "q2 66\n12"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: row shares and a check",
+      "required": false,
+      "prompt": "From `o` (columns `country`, `status`), print a crosstab of counts with an `All` margin row and column (`margins=True`), then print for each country the share of orders with status `returned`, rounded to 2 places, as `country share` lines in alphabetical order of country.",
+      "starter": "import pandas as pd\no = pd.DataFrame({\"country\": [\"UK\", \"UK\", \"UK\", \"US\", \"US\", \"DE\"], \"status\": [\"shipped\", \"returned\", \"shipped\", \"returned\", \"returned\", \"shipped\"]})\nprint(len(o))\n",
+      "solution": "import pandas as pd\no = pd.DataFrame({\"country\": [\"UK\", \"UK\", \"UK\", \"US\", \"US\", \"DE\"], \"status\": [\"shipped\", \"returned\", \"shipped\", \"returned\", \"returned\", \"shipped\"]})\nprint(pd.crosstab(o[\"country\"], o[\"status\"], margins=True).to_string())\nshare = pd.crosstab(o[\"country\"], o[\"status\"], normalize=\"index\")[\"returned\"].round(2)\nfor country, v in share.items():\n    print(country, v)\n",
+      "kind": "python",
+      "expected": "status   returned  shipped  All\ncountry                        \nDE              0        1    1\nUK              1        2    3\nUS              2        0    2\nAll             3        3    6\nDE 0.0\nUK 0.33\nUS 1.0"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`jan` and `feb` each have 2 rows with labels 0 and 1. What are the labels of `pd.concat([jan, feb])`?",
+      "options": [
+        "[0, 1, 2, 3]",
+        "[0, 1, 0, 1]",
+        "[0, 1]",
+        "[0, 0, 1, 1]"
+      ],
+      "answer": 1,
+      "explanation": "Without `ignore_index=True` each table keeps its own labels, so they repeat: 0, 1, 0, 1. Renumbering to 0 to 3 needs `ignore_index=True`."
+    },
+    {
+      "id": "c2",
+      "question": "A pivot table of amounts shows values that look too small. No `aggfunc` was given. What is the likely cause?",
+      "options": [
+        "The default aggregation is the mean, not the sum",
+        "pivot_table drops half the rows",
+        "margins must be set",
+        "fill_value must be set"
+      ],
+      "answer": 0,
+      "explanation": "The default `aggfunc` is `mean`, so each cell is an average of the rows for that pair. Pass `aggfunc=\"sum\"` for totals. The other options do not change how cells are computed."
+    },
+    {
+      "id": "c3",
+      "question": "`wide` has 4 products and 3 month columns. How many rows does `pd.melt(wide, id_vars='product')` have?",
+      "options": [
+        "3",
+        "4",
+        "7",
+        "12"
+      ],
+      "answer": 3,
+      "explanation": "Each product is repeated once for every melted column: 4 times 3 gives 12 rows. Four would be the row count of the wide table, and 7 adds instead of multiplies."
+    },
+    {
+      "id": "c4",
+      "question": "What does `pd.crosstab(a, b, normalize='index')` return in each row?",
+      "options": [
+        "Counts",
+        "Shares that add up to 1",
+        "Shares of the grand total",
+        "Means"
+      ],
+      "answer": 1,
+      "explanation": "`normalize=\"index\"` divides each cell by its row total, so each row sums to 1. Dividing by the grand total is `normalize=\"all\"`."
+    },
+    {
+      "id": "c5",
+      "question": "You stack the same monthly file twice with `concat`. What happens to duplicates?",
+      "options": [
+        "They are dropped automatically",
+        "Every row appears twice",
+        "Pandas raises an error",
+        "Only the index repeats"
+      ],
+      "answer": 1,
+      "explanation": "`concat` never removes duplicates; it only stacks. Use `duplicated` or `drop_duplicates` (Day 75) to detect and remove them."
+    }
+  ],
+  "id": "d082"
+}

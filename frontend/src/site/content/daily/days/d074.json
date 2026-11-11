@@ -1,0 +1,186 @@
+{
+  "id": "d074",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Count the gaps",
+      "prompt": "Print the number of missing values per column as a dictionary on line 1, the total number of missing values on line 2, and the list of row labels that have at least one missing value on line 3 (`df[df.isna().any(axis=1)].index.tolist()`).",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", None, \"Di\", \"Ed\"], \"score\": [80.0, None, 65.0, None, 90.0], \"bonus\": [5.0, 0.0, None, 2.0, 1.0]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", None, \"Di\", \"Ed\"], \"score\": [80.0, None, 65.0, None, 90.0], \"bonus\": [5.0, 0.0, None, 2.0, 1.0]})\nprint(df.isna().sum().to_dict())\nprint(int(df.isna().sum().sum()))\nprint(df[df.isna().any(axis=1)].index.tolist())\n",
+      "hints": [
+        "`df.isna()` is a table of booleans; summing counts the `True` values.",
+        "Sum twice for the total; `any(axis=1)` gives one boolean per row.",
+        "`df.isna().sum().to_dict()`, `int(df.isna().sum().sum())` and `df[df.isna().any(axis=1)].index.tolist()`."
+      ],
+      "kind": "python",
+      "expected": "{'name': 1, 'score': 2, 'bonus': 1}\n4\n[1, 2, 3]"
+    },
+    {
+      "id": "g2",
+      "title": "Drop with control",
+      "prompt": "Print the shape of `df.dropna()` on line 1, the shape when only the `score` column is considered (`subset`) on line 2 and the shape when rows must have at least 3 values (`thresh=3`) on line 3.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", None, \"Di\", \"Ed\"], \"score\": [80.0, None, 65.0, None, 90.0], \"bonus\": [5.0, 0.0, None, 2.0, 1.0]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", None, \"Di\", \"Ed\"], \"score\": [80.0, None, 65.0, None, 90.0], \"bonus\": [5.0, 0.0, None, 2.0, 1.0]})\nprint(df.dropna().shape)\nprint(df.dropna(subset=[\"score\"]).shape)\nprint(df.dropna(thresh=3).shape)\n",
+      "hints": [
+        "`dropna()` with no arguments removes every row with any gap.",
+        "`subset=[...]` limits the check to some columns; `thresh=n` keeps rows with at least n non-missing values.",
+        "`df.dropna().shape`, `df.dropna(subset=[\"score\"]).shape`, `df.dropna(thresh=3).shape`."
+      ],
+      "kind": "python",
+      "expected": "(2, 3)\n(3, 3)\n(2, 3)"
+    },
+    {
+      "id": "g3",
+      "title": "Fill with a rule",
+      "prompt": "Create `filled` by filling the missing `score` values with the median of `score` and the missing `bonus` values with 0, and the missing `name` values with `unknown` (one `fillna` call with a dictionary). Print `filled` with `print(filled)` and then the number of missing values left as an integer.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", None, \"Di\", \"Ed\"], \"score\": [80.0, None, 65.0, None, 90.0], \"bonus\": [5.0, 0.0, None, 2.0, 1.0]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", None, \"Di\", \"Ed\"], \"score\": [80.0, None, 65.0, None, 90.0], \"bonus\": [5.0, 0.0, None, 2.0, 1.0]})\nmedian = df[\"score\"].median()\nfilled = df.fillna({\"score\": median, \"bonus\": 0.0, \"name\": \"unknown\"})\nprint(filled)\nprint(int(filled.isna().sum().sum()))\n",
+      "hints": [
+        "Compute the median first; `median()` skips gaps.",
+        "`fillna` accepts a dictionary of column to value.",
+        "`df.fillna({\"score\": median, \"bonus\": 0.0, \"name\": \"unknown\"})`."
+      ],
+      "kind": "python",
+      "expected": "      name  score  bonus\n0      Ana   80.0    5.0\n1      Ben   80.0    0.0\n2  unknown   65.0    0.0\n3       Di   80.0    2.0\n4       Ed   90.0    1.0\n0"
+    },
+    {
+      "id": "g4",
+      "title": "Neighbours",
+      "prompt": "The Series `s = pd.Series([2.0, None, None, 8.0, None, 12.0])` holds readings. Print on three lines the forward-filled list, the interpolated list rounded to 2 decimals and the number of values that remain missing after `bfill`.",
+      "starter": "import pandas as pd\n\ns = pd.Series([2.0, None, None, 8.0, None, 12.0])\n",
+      "solution": "import pandas as pd\n\ns = pd.Series([2.0, None, None, 8.0, None, 12.0])\nprint(s.ffill().tolist())\nprint(s.interpolate().round(2).tolist())\nprint(int(s.bfill().isna().sum()))\n",
+      "hints": [
+        "`ffill` copies the last known value forward.",
+        "`interpolate()` draws straight lines between known values.",
+        "Print `s.ffill().tolist()`, `s.interpolate().round(2).tolist()` and `int(s.bfill().isna().sum())`."
+      ],
+      "kind": "python",
+      "expected": "[2.0, 2.0, 2.0, 8.0, 8.0, 12.0]\n[2.0, 4.0, 6.0, 8.0, 10.0, 12.0]\n0"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Missing-value audit",
+      "prompt": "For the sales table below, print four lines: the share of missing values per column rounded to 2 decimals as a dictionary; the mean of `amount` ignoring gaps rounded to 2 decimals; the mean of `amount` after filling the gaps with 0 rounded to 2 decimals; and the number of rows that remain after dropping only the rows whose `region` is missing.",
+      "starter": "import pandas as pd\n\nsales = pd.DataFrame({\"region\": [\"N\", None, \"S\", \"N\", \"S\", None], \"amount\": [100.0, 80.0, None, 120.0, None, 60.0]})\n",
+      "solution": "import pandas as pd\n\nsales = pd.DataFrame({\"region\": [\"N\", None, \"S\", \"N\", \"S\", None], \"amount\": [100.0, 80.0, None, 120.0, None, 60.0]})\nprint(sales.isna().mean().round(2).to_dict())\nprint(round(sales[\"amount\"].mean(), 2))\nprint(round(sales[\"amount\"].fillna(0).mean(), 2))\nprint(len(sales.dropna(subset=[\"region\"])))\n",
+      "kind": "python",
+      "expected": "{'region': 0.33, 'amount': 0.33}\n90.0\n60.0\n4"
+    },
+    {
+      "id": "i2",
+      "title": "Per-column cleaning pipeline",
+      "prompt": "Clean the table below in one chain without changing `raw`: drop rows whose `id` is missing; fill missing `temp` by interpolation; fill missing `note` with `none`; fill missing `count` with the median of the `count` values that remain after dropping. Print the cleaned table with `print(clean)`, then the number of remaining gaps as an integer, then `len(raw)` and `len(clean)` separated by a space.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nraw = pd.DataFrame({\"id\": [1.0, 2.0, None, 4.0, 5.0, 6.0], \"temp\": [10.0, None, 14.0, 16.0, None, 22.0],\n                    \"note\": [\"ok\", None, \"hot\", None, \"ok\", \"ok\"], \"count\": [5.0, 7.0, None, None, 9.0, 3.0]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nraw = pd.DataFrame({\"id\": [1.0, 2.0, None, 4.0, 5.0, 6.0], \"temp\": [10.0, None, 14.0, 16.0, None, 22.0],\n                    \"note\": [\"ok\", None, \"hot\", None, \"ok\", \"ok\"], \"count\": [5.0, 7.0, None, None, 9.0, 3.0]})\nbase = raw.dropna(subset=[\"id\"])\nclean = base.assign(temp=base[\"temp\"].interpolate(),\n                    note=base[\"note\"].fillna(\"none\"),\n                    count=base[\"count\"].fillna(base[\"count\"].median()))\nprint(clean)\nprint(int(clean.isna().sum().sum()))\nprint(len(raw), len(clean))\n",
+      "kind": "python",
+      "expected": "    id  temp  note  count\n0  1.0  10.0    ok    5.0\n1  2.0  13.0  none    7.0\n3  4.0  16.0  none    6.0\n4  5.0  19.0    ok    9.0\n5  6.0  22.0    ok    3.0\n0\n6 5"
+    },
+    {
+      "id": "i3",
+      "title": "Effect of filling on the spread",
+      "required": false,
+      "prompt": "For `x = pd.Series([4.0, None, 8.0, None, 12.0, 20.0])` print, rounded to 2 decimals and on separate lines: the standard deviation of `x` with gaps skipped; the standard deviation after filling with the mean; the standard deviation after filling with the median; and the mean after filling with 0. Then print `True` or `False` for whether the mean after mean-filling equals the original mean (compare with `round(..., 6)`).",
+      "starter": "import pandas as pd\n\nx = pd.Series([4.0, None, 8.0, None, 12.0, 20.0])\n",
+      "solution": "import pandas as pd\n\nx = pd.Series([4.0, None, 8.0, None, 12.0, 20.0])\nprint(round(x.std(), 2))\nprint(round(x.fillna(x.mean()).std(), 2))\nprint(round(x.fillna(x.median()).std(), 2))\nprint(round(x.fillna(0).mean(), 2))\nprint(round(x.fillna(x.mean()).mean(), 6) == round(x.mean(), 6))\n",
+      "kind": "python",
+      "expected": "6.83\n5.29\n5.32\n7.33\nTrue"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why does `df[\"a\"] == np.nan` not find missing values?",
+      "options": [
+        "`==` is not allowed on floats",
+        "A missing value is not equal to anything, not even itself, so the result is always False",
+        "It finds them but returns the wrong index",
+        "It only works on text columns"
+      ],
+      "answer": 1,
+      "explanation": "By definition a missing value never compares equal. Use `isna()` (or `notna()`) to find gaps."
+    },
+    {
+      "id": "c2",
+      "question": "What does `pd.Series([1.0, None, 3.0]).mean()` return?",
+      "options": [
+        "nan",
+        "2.0",
+        "1.33",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "pandas skips missing values in `mean`, so it averages 1.0 and 3.0, giving 2.0. NumPy's plain `mean` would give `nan`, which is the contrast with Day 66. 1.33 would be the mean if the gap counted as 0."
+    },
+    {
+      "id": "c3",
+      "question": "Which call removes rows only when `price` is missing?",
+      "options": [
+        "df.dropna()",
+        "df.dropna(subset=[\"price\"])",
+        "df.dropna(how=\"all\")",
+        "df.dropna(axis=1)"
+      ],
+      "answer": 1,
+      "explanation": "`subset` restricts the check to the listed columns. Plain `dropna` removes rows with a gap in any column, `how=\"all\"` only rows that are empty everywhere, and `axis=1` drops columns."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\nimport pandas as pd\ns = pd.Series([1.0, None, None, 7.0])\nprint(s.interpolate().tolist())\n```",
+      "options": [
+        "[1.0, 1.0, 1.0, 7.0]",
+        "[1.0, 3.0, 5.0, 7.0]",
+        "[1.0, 4.0, 4.0, 7.0]",
+        "[1.0, 0.0, 0.0, 7.0]"
+      ],
+      "answer": 1,
+      "explanation": "Linear interpolation puts the gaps on the straight line from 1 to 7, in steps of 2: 3 and 5. The first option is forward fill and the last fills with zero."
+    },
+    {
+      "id": "c5",
+      "question": "A column of sales has gaps that mean no sale was recorded. Which treatment is most sensible?",
+      "options": [
+        "Fill with the mean of the other days",
+        "Fill with 0",
+        "Drop the column",
+        "Interpolate"
+      ],
+      "answer": 1,
+      "explanation": "When missing really means nothing happened, 0 is correct and keeps the total unchanged. Filling with the mean would invent sales, and interpolation suits smooth measurements, not events."
+    },
+    {
+      "id": "c6",
+      "question": "After `df[\"a\"].fillna(df[\"a\"].mean())`, what happens to the mean and the standard deviation of the column?",
+      "options": [
+        "Both stay the same",
+        "The mean stays the same and the standard deviation shrinks",
+        "The mean shrinks and the standard deviation stays the same",
+        "Both grow"
+      ],
+      "answer": 1,
+      "explanation": "Filling with the mean adds values equal to the mean, which does not change the mean but adds no variation, so the spread is smaller than that of the real data."
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Standard error by hand",
+      "prompt": "For the sample `x`, print the sample mean, the sample standard deviation (`ddof=1`) and the standard error, each rounded to 3 places, on one line separated by spaces.",
+      "starter": "import numpy as np\nx = np.array([12.0, 15.0, 11.0, 14.0, 18.0, 13.0, 16.0, 12.0])\nprint(len(x))\n",
+      "solution": "import numpy as np\nx = np.array([12.0, 15.0, 11.0, 14.0, 18.0, 13.0, 16.0, 12.0])\ns = x.std(ddof=1)\nse = s / np.sqrt(len(x))\nprint(round(float(x.mean()), 3), round(float(s), 3), round(float(se), 3))\n",
+      "hints": [
+        "The standard error needs the sample standard deviation and the sample size.",
+        "Use `x.std(ddof=1)` for the sample standard deviation.",
+        "`se = s / np.sqrt(len(x))`."
+      ],
+      "kind": "python",
+      "expected": "13.875 2.357 0.833"
+    },
+    {
+      "id": "g2",
+      "title": "Sample size and error",
+      "prompt": "A sample has standard deviation 20. Print the standard error for n = 25, n = 100 and n = 400, each rounded to 2 places, on three lines.",
+      "starter": "import math\ns = 20\nprint(s)\n",
+      "solution": "import math\ns = 20\nfor n in (25, 100, 400):\n    print(round(s / math.sqrt(n), 2))\n",
+      "hints": [
+        "The formula is `s / sqrt(n)`.",
+        "Loop over the three sample sizes.",
+        "Print `round(s / math.sqrt(n), 2)` in the loop."
+      ],
+      "kind": "python",
+      "expected": "4.0\n2.0\n1.0"
+    },
+    {
+      "id": "g3",
+      "title": "A 95% interval",
+      "prompt": "For the sample `x`, compute the 95% confidence interval for the mean using `stats.t.ppf(0.975, n - 1)`. Print the lower and upper limits rounded to 2 places on one line separated by a space.",
+      "starter": "import numpy as np\nfrom scipy import stats\nx = np.array([52.0, 48.0, 55.0, 50.0, 47.0, 53.0, 51.0, 49.0, 54.0, 50.0])\nprint(x.mean())\n",
+      "solution": "import numpy as np\nfrom scipy import stats\nx = np.array([52.0, 48.0, 55.0, 50.0, 47.0, 53.0, 51.0, 49.0, 54.0, 50.0])\nn = len(x)\nse = x.std(ddof=1) / np.sqrt(n)\nt = stats.t.ppf(0.975, n - 1)\nprint(round(float(x.mean() - t * se), 2), round(float(x.mean() + t * se), 2))\n",
+      "hints": [
+        "The interval is mean plus or minus a critical value times the standard error.",
+        "The critical value is `stats.t.ppf(0.975, n - 1)`.",
+        "Compute `se = x.std(ddof=1) / np.sqrt(n)` first."
+      ],
+      "kind": "python",
+      "expected": "49.04 52.76"
+    },
+    {
+      "id": "g4",
+      "title": "A proportion interval",
+      "prompt": "In a survey, 180 of 300 customers say they would recommend the product. Print the share, then the lower and upper limits of the 95% interval (normal approximation with 1.96), each rounded to 3 places, on three lines.",
+      "starter": "import math\nk, n = 180, 300\nprint(k)\n",
+      "solution": "import math\nk, n = 180, 300\np = k / n\nse = math.sqrt(p * (1 - p) / n)\nprint(round(p, 3))\nprint(round(p - 1.96 * se, 3))\nprint(round(p + 1.96 * se, 3))\n",
+      "hints": [
+        "The share is `k / n`.",
+        "The standard error is `sqrt(p * (1 - p) / n)`.",
+        "The limits are `p - 1.96 * se` and `p + 1.96 * se`."
+      ],
+      "kind": "python",
+      "expected": "0.6\n0.545\n0.655"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Biased against random",
+      "prompt": "`pop` is the sorted population in the starter (1 to 1000). Compute the population mean, the mean of the first 50 values, and the mean of a random sample of 50 drawn with `rng.integers(0, len(pop), size=50)` (generator seeded 7 as in the starter). Print the three means rounded to 1 place, then `biased` if the first-50 mean is further from the population mean than the random-sample mean, otherwise `fine`.",
+      "starter": "import numpy as np\npop = np.arange(1, 1001)\nrng = np.random.default_rng(7)\nprint(len(pop))\n",
+      "solution": "import numpy as np\npop = np.arange(1, 1001)\nrng = np.random.default_rng(7)\nfirst = pop[:50].mean()\nrand = pop[rng.integers(0, len(pop), size=50)].mean()\nprint(round(float(pop.mean()), 1), round(float(first), 1), round(float(rand), 1))\nprint(\"biased\" if abs(first - pop.mean()) > abs(rand - pop.mean()) else \"fine\")\n",
+      "kind": "python",
+      "expected": "500.5 25.5 533.7\nbiased"
+    },
+    {
+      "id": "i2",
+      "title": "How many observations?",
+      "prompt": "A pilot sample of 30 delivery times has standard deviation 8 hours. Print the standard error for n = 30 (rounded to 3 places). Then find the smallest sample size for which the approximate 95% margin of error `1.96 * 8 / sqrt(n)` is at most 1 hour (use a loop or `math.ceil`), and print that n. Finally print the margin of error for that n rounded to 3 places.",
+      "starter": "import math\ns = 8\nprint(s)\n",
+      "solution": "import math\ns = 8\nprint(round(s / math.sqrt(30), 3))\nn = math.ceil((1.96 * s / 1) ** 2)\nprint(n)\nprint(round(1.96 * s / math.sqrt(n), 3))\n",
+      "kind": "python",
+      "expected": "1.461\n246\n1.0"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: coverage of intervals",
+      "required": false,
+      "prompt": "Using `pop = ((np.arange(10000) % 100) + 1) ** 2 / 100` and `rng = np.random.default_rng(7)`, build 500 intervals from samples of size 40 (`rng.integers(0, len(pop), size=40)`) with the 95% t interval and count how many contain the population mean. Do the same with a 99% interval (`stats.t.ppf(0.995, 39)`) on the same 500 samples. Print the two coverage fractions rounded to 3 places on two lines; the second must not be smaller than the first.",
+      "starter": "import numpy as np\nfrom scipy import stats\npop = ((np.arange(10000) % 100) + 1) ** 2 / 100\nrng = np.random.default_rng(7)\nprint(pop.mean())\n",
+      "solution": "import numpy as np\nfrom scipy import stats\npop = ((np.arange(10000) % 100) + 1) ** 2 / 100\nrng = np.random.default_rng(7)\nmu = pop.mean()\nhit95 = hit99 = 0\nt95, t99 = stats.t.ppf(0.975, 39), stats.t.ppf(0.995, 39)\nfor _ in range(500):\n    s = pop[rng.integers(0, len(pop), size=40)]\n    m, se = s.mean(), s.std(ddof=1) / np.sqrt(40)\n    hit95 += abs(m - mu) <= t95 * se\n    hit99 += abs(m - mu) <= t99 * se\nprint(round(hit95 / 500, 3))\nprint(round(hit99 / 500, 3))\n",
+      "kind": "python",
+      "expected": "0.95\n0.99"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A sample of 100 has standard deviation 30. What is the standard error of its mean?",
+      "options": [
+        "3",
+        "30",
+        "0.3",
+        "300"
+      ],
+      "answer": 0,
+      "explanation": "30 divided by the square root of 100, which is 10, gives 3. The standard deviation 30 describes individual values, and the standard error is smaller because it describes the mean."
+    },
+    {
+      "id": "c2",
+      "question": "To cut the standard error in half, how must the sample size change?",
+      "options": [
+        "Double it",
+        "Quadruple it",
+        "Triple it",
+        "Halve it"
+      ],
+      "answer": 1,
+      "explanation": "The standard error is proportional to 1 over the square root of n, so n must be four times as large to halve it. Doubling gives a reduction by a factor of about 0.71."
+    },
+    {
+      "id": "c3",
+      "question": "A 95% confidence interval for the mean order value is 48 to 52. Which statement is correct?",
+      "options": [
+        "95% of orders are between 48 and 52",
+        "The method used captures the true mean in about 95% of repeated samples",
+        "There is a 95% chance the sample mean is between 48 and 52",
+        "The true mean is exactly 50"
+      ],
+      "answer": 1,
+      "explanation": "The 95% refers to the long-run success rate of the method. Individual orders vary much more widely than the mean, the sample mean is the centre of the interval by construction, and the true mean is not known exactly."
+    },
+    {
+      "id": "c4",
+      "question": "You pick the 1,000 customers who answered a survey email. Which problem can a larger sample of such volunteers NOT fix?",
+      "options": [
+        "Random error",
+        "Selection bias",
+        "Small standard error",
+        "Skewness"
+      ],
+      "answer": 1,
+      "explanation": "A larger sample reduces random error but volunteers differ systematically from the whole customer base, so the bias remains. Standard error shrinks with n, and skewness is a property of the data."
+    },
+    {
+      "id": "c5",
+      "question": "The central limit theorem says that for large enough n the distribution of the sample mean is approximately normal. What does it NOT claim?",
+      "options": [
+        "Individual values become normal",
+        "The mean of sample means equals the population mean",
+        "The spread is sigma over sqrt(n)",
+        "It works even for skewed populations"
+      ],
+      "answer": 0,
+      "explanation": "Individual values keep the population's shape. Only the distribution of the sample mean approaches the normal curve, centred on the population mean with spread equal to the standard error."
+    }
+  ],
+  "id": "d089"
+}

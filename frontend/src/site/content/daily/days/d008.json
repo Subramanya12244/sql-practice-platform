@@ -1,0 +1,172 @@
+{
+  "id": "d008",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-collections",
+      "python-fundamentals"
+    ],
+    "questions": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Edit a shopping list",
+      "prompt": "The list `cart` holds `[\"milk\", \"eggs\", \"bread\"]`. Add `\"jam\"` at the end, insert `\"tea\"` at index 1, then print the list and its length on two lines.",
+      "starter": "cart = [\"milk\", \"eggs\", \"bread\"]\n# change the list, then print it and its length\n",
+      "solution": "cart = [\"milk\", \"eggs\", \"bread\"]\ncart.append(\"jam\")\ncart.insert(1, \"tea\")\nprint(cart)\nprint(len(cart))\n",
+      "hints": [
+        "`append()` adds to the end; `insert(index, item)` adds at a position.",
+        "After the `append`, call `cart.insert(1, \"tea\")`. Call the methods on their own lines.",
+        "Finish with `print(cart)` and `print(len(cart))`."
+      ],
+      "kind": "python",
+      "expected": "['milk', 'tea', 'eggs', 'bread', 'jam']\n5"
+    },
+    {
+      "id": "g2",
+      "title": "Remove and pop",
+      "prompt": "The list `queue` holds `[\"Ann\", \"Bo\", \"Cy\", \"Bo\", \"Di\"]`. Remove the first `\"Bo\"`, then pop the last name and print it, then print the remaining list. Expected: the popped name on line 1 and the list on line 2.",
+      "starter": "queue = [\"Ann\", \"Bo\", \"Cy\", \"Bo\", \"Di\"]\n",
+      "solution": "queue = [\"Ann\", \"Bo\", \"Cy\", \"Bo\", \"Di\"]\nqueue.remove(\"Bo\")\nlast = queue.pop()\nprint(last)\nprint(queue)\n",
+      "hints": [
+        "`remove(value)` deletes the first match only.",
+        "`pop()` with no argument removes and returns the last item, so store or print its result.",
+        "`queue.remove(\"Bo\")`, then `last = queue.pop()`, then print `last` and `queue`."
+      ],
+      "kind": "python",
+      "expected": "Di\n['Ann', 'Cy', 'Bo']"
+    },
+    {
+      "id": "g3",
+      "title": "Slice a list",
+      "prompt": "`nums` is `[10, 20, 30, 40, 50, 60, 70]`. Print three lines, each a slice: the first three items, the last two items, and every second item starting at the first.",
+      "starter": "nums = [10, 20, 30, 40, 50, 60, 70]\n",
+      "solution": "nums = [10, 20, 30, 40, 50, 60, 70]\nprint(nums[:3])\nprint(nums[-2:])\nprint(nums[::2])\n",
+      "hints": [
+        "A slice is `nums[start:stop:step]`; any part can be left out.",
+        "The last two items start at index `-2` and run to the end.",
+        "`nums[:3]`, `nums[-2:]` and `nums[::2]`."
+      ],
+      "kind": "python",
+      "expected": "[10, 20, 30]\n[60, 70]\n[10, 30, 50, 70]"
+    },
+    {
+      "id": "g4",
+      "title": "Sort without changing the original",
+      "prompt": "`prices` is `[9.5, 3.0, 7.25, 3.0]`. Print the prices sorted from largest to smallest, then print the original list to show that it was not changed.",
+      "starter": "prices = [9.5, 3.0, 7.25, 3.0]\n",
+      "solution": "prices = [9.5, 3.0, 7.25, 3.0]\nprint(sorted(prices, reverse=True))\nprint(prices)\n",
+      "hints": [
+        "One of the two ways to sort leaves the original list alone.",
+        "`sorted(list)` returns a new list, and `reverse=True` gives descending order.",
+        "`print(sorted(prices, reverse=True))` then `print(prices)`."
+      ],
+      "kind": "python",
+      "expected": "[9.5, 7.25, 3.0, 3.0]\n[9.5, 3.0, 7.25, 3.0]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Trim the outliers",
+      "prompt": "The list `readings` is `[14, 9, 31, 22, 5, 18, 27, 12]`. Without changing `readings`, print on separate lines: a sorted copy; the sorted copy with its smallest and largest value removed (use a slice); and the average of that trimmed list rounded to 1 decimal place.",
+      "starter": "readings = [14, 9, 31, 22, 5, 18, 27, 12]\n",
+      "solution": "readings = [14, 9, 31, 22, 5, 18, 27, 12]\nordered = sorted(readings)\ntrimmed = ordered[1:-1]\nprint(ordered)\nprint(trimmed)\nprint(round(sum(trimmed) / len(trimmed), 1))\n",
+      "kind": "python",
+      "expected": "[5, 9, 12, 14, 18, 22, 27, 31]\n[9, 12, 14, 18, 22, 27]\n17.0"
+    },
+    {
+      "id": "i2",
+      "title": "Working copy and rotation",
+      "prompt": "`days` is `[\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\"]`. Make a separate copy called `rotated`. Move the first day of `rotated` to the end by removing it with `pop(0)` and appending it. Insert `\"Sat\"` at the end of the original `days`. Print `days`, then `rotated`, then `days[::-1]`, one per line.",
+      "starter": "days = [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\"]\n",
+      "solution": "days = [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\"]\nrotated = days.copy()\nrotated.append(rotated.pop(0))\ndays.append(\"Sat\")\nprint(days)\nprint(rotated)\nprint(days[::-1])\n",
+      "kind": "python",
+      "expected": "['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']\n['Tue', 'Wed', 'Thu', 'Fri', 'Mon']\n['Sat', 'Fri', 'Thu', 'Wed', 'Tue', 'Mon']"
+    },
+    {
+      "id": "i3",
+      "title": "Top-three leaderboard (stretch)",
+      "prompt": "`scores` is `[64, 91, 78, 91, 55, 82]`. Print `Top 3:` and a space, then the three highest scores in descending order as a list. On the next line print `Best:` and a space, the highest score, and how many times it appears (separated by a space, using `max()` and `count()`). Then remove the first occurrence of the highest score and print the remaining list on a third line.",
+      "starter": "scores = [64, 91, 78, 91, 55, 82]\n",
+      "solution": "scores = [64, 91, 78, 91, 55, 82]\nprint(\"Top 3:\", sorted(scores, reverse=True)[:3])\nbest = max(scores)\nprint(\"Best:\", best, scores.count(best))\nscores.remove(best)\nprint(scores)\n",
+      "kind": "python",
+      "expected": "Top 3: [91, 91, 82]\nBest: 91 2\n[64, 78, 91, 55, 82]",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nitems = [1, 2, 3]\nresult = items.append(4)\nprint(result)\n```",
+      "options": [
+        "`[1, 2, 3, 4]`",
+        "`None`",
+        "`4`",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "`append` changes the list in place and returns `None`, so `result` is `None`. The list `items` is the one that became `[1, 2, 3, 4]`."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\na = [1, 2]\nb = a\nb.append(3)\nprint(a)\n```",
+      "options": [
+        "`[1, 2]`",
+        "`[1, 2, 3]`",
+        "`[3]`",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "`b = a` gives the same list a second name; it is not a copy. Appending through `b` changes the one list that both names refer to."
+    },
+    {
+      "id": "c3",
+      "question": "What does `[10, 20, 30, 40][1:3]` return?",
+      "options": [
+        "`[10, 20, 30]`",
+        "`[20, 30]`",
+        "`[20, 30, 40]`",
+        "`[10, 20]`"
+      ],
+      "answer": 1,
+      "explanation": "The start index 1 is included and the stop index 3 is not, so the items at indexes 1 and 2 are returned."
+    },
+    {
+      "id": "c4",
+      "question": "Which statement gives a new sorted list and leaves `scores` unchanged?",
+      "options": [
+        "`scores.sort()`",
+        "`scores = scores.sort()`",
+        "`sorted(scores)`",
+        "`scores.reverse()`"
+      ],
+      "answer": 2,
+      "explanation": "`sorted(scores)` returns a new list. `sort()` changes the list in place and returns `None`, so assigning its result loses the data."
+    },
+    {
+      "id": "c5",
+      "question": "What does this print?\n\n```python\nnums = [5, 6, 7, 8]\nnums.pop(1)\nprint(nums[1])\n```",
+      "options": [
+        "`6`",
+        "`7`",
+        "`8`",
+        "`5`"
+      ],
+      "answer": 1,
+      "explanation": "`pop(1)` removes the 6 and the later items shift left, so index 1 now holds 7. Index 1 does not still hold the removed item."
+    }
+  ]
+}

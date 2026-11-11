@@ -1,0 +1,175 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-groupby-agg"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track",
+      "aggregation"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Total per group",
+      "prompt": "The table `orders` has `city` and `amount`. Print the total amount per city using `print(totals.to_string())`, where `totals` is a series indexed by city.",
+      "starter": "import pandas as pd\norders = pd.DataFrame({\"city\": [\"Oslo\", \"Rome\", \"Oslo\", \"Rome\", \"Oslo\"], \"amount\": [10, 5, 20, 15, 30]})\nprint(orders[\"amount\"].sum())\n",
+      "solution": "import pandas as pd\norders = pd.DataFrame({\"city\": [\"Oslo\", \"Rome\", \"Oslo\", \"Rome\", \"Oslo\"], \"amount\": [10, 5, 20, 15, 30]})\ntotals = orders.groupby(\"city\")[\"amount\"].sum()\nprint(totals.to_string())\n",
+      "hints": [
+        "Group by the column that defines the stacks: `city`.",
+        "Select the column to add up in square brackets after `groupby`.",
+        "`orders.groupby(\"city\")[\"amount\"].sum()`."
+      ],
+      "kind": "python",
+      "expected": "city\nOslo    60\nRome    20"
+    },
+    {
+      "id": "g2",
+      "title": "Rows versus known values",
+      "prompt": "In `readings`, some `temp` values are missing. Print a table with columns `rows` (rows per `station`) and `known` (non-missing `temp` per station) using `print(out.to_string())`. Build `out` with `pd.DataFrame({\"rows\": ..., \"known\": ...})`.",
+      "starter": "import numpy as np\nimport pandas as pd\nreadings = pd.DataFrame({\"station\": [\"A\", \"A\", \"B\", \"B\", \"B\"], \"temp\": [20.0, np.nan, 18.0, np.nan, np.nan]})\nprint(readings.to_string())\n",
+      "solution": "import numpy as np\nimport pandas as pd\nreadings = pd.DataFrame({\"station\": [\"A\", \"A\", \"B\", \"B\", \"B\"], \"temp\": [20.0, np.nan, 18.0, np.nan, np.nan]})\ng = readings.groupby(\"station\")\nout = pd.DataFrame({\"rows\": g.size(), \"known\": g[\"temp\"].count()})\nprint(out.to_string())\n",
+      "hints": [
+        "One of the two numbers counts rows and the other ignores `NaN`.",
+        "`size()` counts rows; `count()` on one column counts non-missing values.",
+        "`g.size()` and `g[\"temp\"].count()` both return series indexed by station."
+      ],
+      "kind": "python",
+      "expected": "         rows  known\nstation             \nA           2      1\nB           3      1"
+    },
+    {
+      "id": "g3",
+      "title": "Two keys, flat result",
+      "prompt": "Group `sales` by `region` and `product` and sum `amount`, keeping the keys as ordinary columns. Print the result with `print(flat.to_string())`; the columns must be `region`, `product`, `amount`.",
+      "starter": "import pandas as pd\nsales = pd.DataFrame({\"region\": [\"N\", \"S\", \"N\", \"S\", \"N\"], \"product\": [\"pen\", \"pen\", \"ink\", \"pen\", \"pen\"], \"amount\": [1, 2, 3, 4, 5]})\nprint(sales.to_string())\n",
+      "solution": "import pandas as pd\nsales = pd.DataFrame({\"region\": [\"N\", \"S\", \"N\", \"S\", \"N\"], \"product\": [\"pen\", \"pen\", \"ink\", \"pen\", \"pen\"], \"amount\": [1, 2, 3, 4, 5]})\nflat = sales.groupby([\"region\", \"product\"], as_index=False)[\"amount\"].sum()\nprint(flat.to_string())\n",
+      "hints": [
+        "Pass a list of two key columns to `groupby`.",
+        "To keep keys as columns, use `as_index=False` (or call `reset_index()` afterwards).",
+        "`sales.groupby([\"region\", \"product\"], as_index=False)[\"amount\"].sum()`."
+      ],
+      "kind": "python",
+      "expected": "  region product  amount\n0      N     ink       3\n1      N     pen       6\n2      S     pen       6"
+    },
+    {
+      "id": "g4",
+      "title": "Named summary",
+      "prompt": "From `lines` build `summary` with one row per `customer` and columns `orders` (distinct `order_id`) and `revenue` (sum of `amount`) using named aggregation. Print `print(summary.to_string())`.",
+      "starter": "import pandas as pd\nlines = pd.DataFrame({\"customer\": [\"Ada\", \"Ada\", \"Bo\", \"Bo\", \"Bo\"], \"order_id\": [1, 1, 2, 3, 3], \"amount\": [5, 7, 4, 6, 8]})\nprint(lines.to_string())\n",
+      "solution": "import pandas as pd\nlines = pd.DataFrame({\"customer\": [\"Ada\", \"Ada\", \"Bo\", \"Bo\", \"Bo\"], \"order_id\": [1, 1, 2, 3, 3], \"amount\": [5, 7, 4, 6, 8]})\nsummary = lines.groupby(\"customer\").agg(orders=(\"order_id\", \"nunique\"), revenue=(\"amount\", \"sum\"))\nprint(summary.to_string())\n",
+      "hints": [
+        "Named aggregation is written inside `agg`, one keyword per new column.",
+        "Each keyword takes a pair: `(source column, function name)`.",
+        "`agg(orders=(\"order_id\", \"nunique\"), revenue=(\"amount\", \"sum\"))`."
+      ],
+      "kind": "python",
+      "expected": "          orders  revenue\ncustomer                 \nAda            1       12\nBo             2       18"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Reconcile group totals",
+      "prompt": "The table `d` has `customer` (some missing) and `amount`. Print three lines: the grand total of `amount`, the sum of the grouped totals when grouping by `customer` with the default settings, and the sum of the grouped totals with `dropna=False`. Then the difference between the first two on the fourth line, to show how much money belongs to rows without a customer.",
+      "starter": "import pandas as pd\nd = pd.DataFrame({\"customer\": [\"Ada\", None, \"Bo\", None, \"Ada\"], \"amount\": [10, 25, 15, 5, 20]})\nprint(d[\"amount\"].sum())\n",
+      "solution": "import pandas as pd\nd = pd.DataFrame({\"customer\": [\"Ada\", None, \"Bo\", None, \"Ada\"], \"amount\": [10, 25, 15, 5, 20]})\ntotal = d[\"amount\"].sum()\ndefault = d.groupby(\"customer\")[\"amount\"].sum().sum()\nkeep = d.groupby(\"customer\", dropna=False)[\"amount\"].sum().sum()\nprint(total)\nprint(default)\nprint(keep)\nprint(total - default)\n",
+      "kind": "python",
+      "expected": "75\n45\n75\n30"
+    },
+    {
+      "id": "i2",
+      "title": "Monthly report per product",
+      "prompt": "The table `s` has a text `date`, `product` and `amount`. Convert `date` to datetime, add `month` as `date.dt.month`, then build a flat table grouped by `month` and `product` with columns `lines` (rows), `revenue` (sum) and `avg` (mean rounded to 1 place). Sort by `month`, then by `revenue` descending, and print `report.to_string(index=False)`.",
+      "starter": "import pandas as pd\ns = pd.DataFrame({\"date\": [\"2024-01-03\", \"2024-01-09\", \"2024-01-15\", \"2024-02-01\", \"2024-02-11\", \"2024-02-12\"],\n                  \"product\": [\"pen\", \"ink\", \"pen\", \"ink\", \"ink\", \"pen\"], \"amount\": [10, 40, 20, 25, 35, 5]})\nprint(s.to_string())\n",
+      "solution": "import pandas as pd\ns = pd.DataFrame({\"date\": [\"2024-01-03\", \"2024-01-09\", \"2024-01-15\", \"2024-02-01\", \"2024-02-11\", \"2024-02-12\"],\n                  \"product\": [\"pen\", \"ink\", \"pen\", \"ink\", \"ink\", \"pen\"], \"amount\": [10, 40, 20, 25, 35, 5]})\ns[\"date\"] = pd.to_datetime(s[\"date\"])\ns[\"month\"] = s[\"date\"].dt.month\nreport = s.groupby([\"month\", \"product\"], as_index=False).agg(lines=(\"amount\", \"size\"), revenue=(\"amount\", \"sum\"), avg=(\"amount\", \"mean\"))\nreport[\"avg\"] = report[\"avg\"].round(1)\nreport = report.sort_values([\"month\", \"revenue\"], ascending=[True, False])\nprint(report.to_string(index=False))\n",
+      "kind": "python",
+      "expected": " month product  lines  revenue  avg\n     1     ink      1       40 40.0\n     1     pen      2       30 15.0\n     2     ink      2       60 30.0\n     2     pen      1        5  5.0"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: customers with repeat orders",
+      "required": false,
+      "prompt": "From `lines` (one row per order line), find the customers that have placed more than one distinct order. Print the customer names in alphabetical order, one per line, followed by a final line with the share of all customers that are repeat customers, rounded to 2 places.",
+      "starter": "import pandas as pd\nlines = pd.DataFrame({\"customer\": [\"Ada\", \"Ada\", \"Bo\", \"Cy\", \"Cy\", \"Di\"], \"order_id\": [1, 1, 2, 3, 4, 5]})\nprint(lines.to_string())\n",
+      "solution": "import pandas as pd\nlines = pd.DataFrame({\"customer\": [\"Ada\", \"Ada\", \"Bo\", \"Cy\", \"Cy\", \"Di\"], \"order_id\": [1, 1, 2, 3, 4, 5]})\norders = lines.groupby(\"customer\")[\"order_id\"].nunique()\nrepeat = orders[orders > 1]\nfor name in repeat.index:\n    print(name)\nprint(round(len(repeat) / len(orders), 2))\n",
+      "kind": "python",
+      "expected": "Cy\n0.25"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A group of customer Ada has 3 rows; one `amount` is NaN. What do `g.size()` and `g['amount'].count()` give for Ada?",
+      "options": [
+        "3 and 2",
+        "3 and 3",
+        "2 and 2",
+        "2 and 3"
+      ],
+      "answer": 0,
+      "explanation": "`size` counts rows including those with missing values (3). `count` counts only non-missing values of the chosen column (2). They only agree when the column has no `NaN`."
+    },
+    {
+      "id": "c2",
+      "question": "After `r = sales.groupby(['region','product'])['amount'].sum()`, what does `r['region']` do?",
+      "options": [
+        "Returns the region column",
+        "Raises KeyError because region is in the index",
+        "Returns the total per region",
+        "Returns the first group"
+      ],
+      "answer": 1,
+      "explanation": "With several keys the keys move into a MultiIndex, so there is no column named region. `reset_index()` or `as_index=False` brings it back. It does not total by region either."
+    },
+    {
+      "id": "c3",
+      "question": "`df` has 10 rows; 2 have a missing `customer`. How many rows' amounts appear in `df.groupby('customer')['amount'].sum()`?",
+      "options": [
+        "10",
+        "8",
+        "2",
+        "All, with a NaN group"
+      ],
+      "answer": 1,
+      "explanation": "Rows with a missing key are dropped by default, so only 8 rows contribute. Adding `dropna=False` would keep the other 2 in a NaN group. The totals then add up to the grand total."
+    },
+    {
+      "id": "c4",
+      "question": "What does `print(df.groupby('k'))` show?",
+      "options": [
+        "The sums per group",
+        "A table of the groups",
+        "An object description such as DataFrameGroupBy",
+        "The first row of each group"
+      ],
+      "answer": 2,
+      "explanation": "`groupby` only splits. Until you call an aggregation, no summary has been computed, so printing shows the object. Sums need `.sum()` or `.agg()`."
+    },
+    {
+      "id": "c5",
+      "question": "Which expression gives each customer's number of distinct orders?",
+      "options": [
+        "g['order_id'].count()",
+        "g['order_id'].nunique()",
+        "g.size()",
+        "g['order_id'].sum()"
+      ],
+      "answer": 1,
+      "explanation": "`nunique` counts distinct values. `count` and `size` count lines, so an order with two lines is counted twice, and `sum` adds the ids as numbers."
+    }
+  ],
+  "id": "d079"
+}

@@ -1,0 +1,186 @@
+{
+  "id": "d073",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Sort and rank",
+      "prompt": "Print the item names ordered from the highest to the lowest price as a list on line 1, and the item names ordered by quantity from smallest to largest on line 2. The table `df` is unchanged.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"item\": [\"pen\", \"ink\", \"cap\", \"pad\", \"box\"], \"qty\": [3, 1, 4, 10, 2], \"price\": [9.5, 20.0, 3.25, 1.5, 12.0]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"item\": [\"pen\", \"ink\", \"cap\", \"pad\", \"box\"], \"qty\": [3, 1, 4, 10, 2], \"price\": [9.5, 20.0, 3.25, 1.5, 12.0]})\nprint(df.sort_values(\"price\", ascending=False)[\"item\"].tolist())\nprint(df.sort_values(\"qty\")[\"item\"].tolist())\n",
+      "hints": [
+        "`sort_values(column)` sorts ascending by default.",
+        "Use `ascending=False` for the largest first.",
+        "`df.sort_values(\"price\", ascending=False)[\"item\"].tolist()` and `df.sort_values(\"qty\")[\"item\"].tolist()`."
+      ],
+      "kind": "python",
+      "expected": "['ink', 'box', 'pen', 'cap', 'pad']\n['ink', 'box', 'pen', 'cap', 'pad']"
+    },
+    {
+      "id": "g2",
+      "title": "A derived column",
+      "prompt": "Add a column `total` equal to `qty * price` to a copy of `df` named `work` (assign to the column of the copy). Print the `total` column as a list on line 1 and the list of columns of `df` (the original) on line 2 to show that it has not changed.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"item\": [\"pen\", \"ink\", \"cap\", \"pad\", \"box\"], \"qty\": [3, 1, 4, 10, 2], \"price\": [9.5, 20.0, 3.25, 1.5, 12.0]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"item\": [\"pen\", \"ink\", \"cap\", \"pad\", \"box\"], \"qty\": [3, 1, 4, 10, 2], \"price\": [9.5, 20.0, 3.25, 1.5, 12.0]})\nwork = df.copy()\nwork[\"total\"] = work[\"qty\"] * work[\"price\"]\nprint(work[\"total\"].tolist())\nprint(df.columns.tolist())\n",
+      "hints": [
+        "Copy first so the original stays unchanged.",
+        "Assigning to a new column name creates it from a vectorised calculation.",
+        "`work = df.copy()` then `work[\"total\"] = work[\"qty\"] * work[\"price\"]`."
+      ],
+      "kind": "python",
+      "expected": "[28.5, 20.0, 13.0, 15.0, 24.0]\n['item', 'qty', 'price']"
+    },
+    {
+      "id": "g3",
+      "title": "assign and sort in one chain",
+      "prompt": "With one chain, create a new table `ranked` that has an extra column `total` (`qty * price`), is sorted by `total` from the largest to the smallest, and has a fresh index. Print the `item` and `total` columns with `print(ranked[[\"item\", \"total\"]])`.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"item\": [\"pen\", \"ink\", \"cap\", \"pad\", \"box\"], \"qty\": [3, 1, 4, 10, 2], \"price\": [9.5, 20.0, 3.25, 1.5, 12.0]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"item\": [\"pen\", \"ink\", \"cap\", \"pad\", \"box\"], \"qty\": [3, 1, 4, 10, 2], \"price\": [9.5, 20.0, 3.25, 1.5, 12.0]})\nranked = (df.assign(total=df[\"qty\"] * df[\"price\"])\n          .sort_values(\"total\", ascending=False)\n          .reset_index(drop=True))\nprint(ranked[[\"item\", \"total\"]])\n",
+      "hints": [
+        "`assign` returns a new table, so you can keep chaining.",
+        "After `sort_values` use `reset_index(drop=True)`.",
+        "`df.assign(total=df[\"qty\"] * df[\"price\"]).sort_values(\"total\", ascending=False).reset_index(drop=True)`."
+      ],
+      "kind": "python",
+      "expected": "  item  total\n0  pen   28.5\n1  box   24.0\n2  ink   20.0\n3  pad   15.0\n4  cap   13.0"
+    },
+    {
+      "id": "g4",
+      "title": "rename and drop",
+      "prompt": "Create `slim` from `df` by dropping the `qty` column and renaming `item` to `product` and `price` to `unit_price`. Print `slim.columns.tolist()` on line 1 and `slim.shape` on line 2, and `df.shape` on line 3.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"item\": [\"pen\", \"ink\", \"cap\", \"pad\", \"box\"], \"qty\": [3, 1, 4, 10, 2], \"price\": [9.5, 20.0, 3.25, 1.5, 12.0]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"item\": [\"pen\", \"ink\", \"cap\", \"pad\", \"box\"], \"qty\": [3, 1, 4, 10, 2], \"price\": [9.5, 20.0, 3.25, 1.5, 12.0]})\nslim = df.drop(columns=[\"qty\"]).rename(columns={\"item\": \"product\", \"price\": \"unit_price\"})\nprint(slim.columns.tolist())\nprint(slim.shape)\nprint(df.shape)\n",
+      "hints": [
+        "Both `drop` and `rename` return new tables.",
+        "`drop(columns=[...])` and `rename(columns={old: new})`.",
+        "`df.drop(columns=[\"qty\"]).rename(columns={\"item\": \"product\", \"price\": \"unit_price\"})`."
+      ],
+      "kind": "python",
+      "expected": "['product', 'unit_price']\n(5, 2)\n(5, 3)"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Sort by two keys",
+      "prompt": "The table has two rows per department. Sort it by `dept` from A to Z and, inside each department, by `salary` from the highest to the lowest. Print the sorted names as a list, then the names of the highest paid person in each department (the rows at positions 0, 2 and 4 of the sorted table, taken with `iloc`) as a list. Print the index of the sorted table as a list on the last line.",
+      "starter": "import pandas as pd\n\nstaff = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"Ops\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 4100]})\n",
+      "solution": "import pandas as pd\n\nstaff = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"Ops\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 4100]})\nordered = staff.sort_values([\"dept\", \"salary\"], ascending=[True, False])\nprint(ordered[\"name\"].tolist())\nprint(ordered.iloc[[0, 2, 4]][\"name\"].tolist())\nprint(ordered.index.tolist())\n",
+      "kind": "python",
+      "expected": "['Ed', 'Ben', 'Cy', 'Ana', 'Flo', 'Di']\n['Ed', 'Cy', 'Flo']\n[4, 1, 2, 0, 5, 3]"
+    },
+    {
+      "id": "i2",
+      "title": "Price list with margin",
+      "prompt": "From `products`, build a new table `report` in one chain: add `margin` (`price - cost`) and `margin_pct` (`margin / price * 100`, rounded to 1 decimal, using a lambda so that it can use `margin`), drop the `cost` column, sort by `margin_pct` from the highest to the lowest with `kind=\"stable\"` so that equal rows keep their order, rename `price` to `list_price`, and reset the index. Print the whole `report` with `print(report)` and then the list of products whose margin percentage is below 40 (a mask on `report`).",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nproducts = pd.DataFrame({\"product\": [\"pen\", \"ink\", \"cap\", \"pad\"], \"price\": [2.0, 10.0, 5.0, 4.0], \"cost\": [1.5, 4.0, 2.0, 3.0]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nproducts = pd.DataFrame({\"product\": [\"pen\", \"ink\", \"cap\", \"pad\"], \"price\": [2.0, 10.0, 5.0, 4.0], \"cost\": [1.5, 4.0, 2.0, 3.0]})\nreport = (products.assign(margin=products[\"price\"] - products[\"cost\"],\n                          margin_pct=lambda t: (t[\"margin\"] / t[\"price\"] * 100).round(1))\n          .drop(columns=[\"cost\"])\n          .sort_values(\"margin_pct\", ascending=False, kind=\"stable\")\n          .rename(columns={\"price\": \"list_price\"})\n          .reset_index(drop=True))\nprint(report)\nprint(report[report[\"margin_pct\"] < 40][\"product\"].tolist())\n",
+      "kind": "python",
+      "expected": "  product  list_price  margin  margin_pct\n0     ink        10.0     6.0        60.0\n1     cap         5.0     3.0        60.0\n2     pen         2.0     0.5        25.0\n3     pad         4.0     1.0        25.0\n['pen', 'pad']"
+    },
+    {
+      "id": "i3",
+      "title": "Sorting traps",
+      "required": false,
+      "prompt": "For the Series-like table below print: the item list sorted by `price` with missing prices first; the item list sorted with missing prices last in descending order; the name of the first row after sorting by `price` using `iloc[0]` and the name found by `loc[0]` on the same sorted table (print them separated by a space); and the number of columns after `df.assign(x=1).drop(columns=[\"x\"])` (an `assign` then `drop` round trip).",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\"item\": [\"a\", \"b\", \"c\", \"d\"], \"price\": [7.0, None, 12.0, 4.0]})\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\"item\": [\"a\", \"b\", \"c\", \"d\"], \"price\": [7.0, None, 12.0, 4.0]})\nprint(df.sort_values(\"price\", na_position=\"first\")[\"item\"].tolist())\nprint(df.sort_values(\"price\", ascending=False)[\"item\"].tolist())\ns = df.sort_values(\"price\")\nprint(s.iloc[0][\"item\"], s.loc[0, \"item\"])\nprint(df.assign(x=1).drop(columns=[\"x\"]).shape[1])\n",
+      "kind": "python",
+      "expected": "['b', 'd', 'a', 'c']\n['c', 'a', 'd', 'b']\nd a\n2"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `df.sort_values(\"price\")` do to `df`?",
+      "options": [
+        "Sorts `df` in place",
+        "Returns a new sorted table and leaves `df` unchanged",
+        "Sorts only the price column",
+        "Raises an error unless inplace=True"
+      ],
+      "answer": 1,
+      "explanation": "`sort_values` returns a new DataFrame. Unless you store the result, `df` keeps its original order."
+    },
+    {
+      "id": "c2",
+      "question": "After `s = df.sort_values(\"price\")`, which expression is the row with the lowest price?",
+      "options": [
+        "s.loc[0]",
+        "s.iloc[0]",
+        "s[0]",
+        "s.loc[\"lowest\"]"
+      ],
+      "answer": 1,
+      "explanation": "The labels travel with the rows, so `loc[0]` is the row that was labelled 0 originally. `iloc[0]` is the first row of the sorted table. `s[0]` would look for a column named 0."
+    },
+    {
+      "id": "c3",
+      "question": "Where do missing values go by default when sorting with `sort_values`?",
+      "options": [
+        "First",
+        "Last",
+        "They are dropped",
+        "Sorted as zero"
+      ],
+      "answer": 1,
+      "explanation": "Missing values are placed last by default, in ascending and descending order alike. `na_position=\"first\"` moves them to the top."
+    },
+    {
+      "id": "c4",
+      "question": "What is the difference between `df[\"t\"] = df[\"a\"] * 2` and `df.assign(t=df[\"a\"] * 2)`?",
+      "options": [
+        "No difference",
+        "The first changes `df` in place; the second returns a new table",
+        "The second changes `df`; the first returns a copy",
+        "The first only works for new names"
+      ],
+      "answer": 1,
+      "explanation": "Assigning to a column modifies the table. `assign` returns a new DataFrame with the extra column and leaves the original as it was, which makes it suitable for chains."
+    },
+    {
+      "id": "c5",
+      "question": "What does `df.drop(\"note\")` do when `note` is a column?",
+      "options": [
+        "Removes the column",
+        "Raises a KeyError because the default is to look for a row label",
+        "Removes all rows",
+        "Renames the column"
+      ],
+      "answer": 1,
+      "explanation": "The first argument is interpreted as a row label by default. To remove a column write `df.drop(columns=[\"note\"])`."
+    },
+    {
+      "id": "c6",
+      "question": "What does `reset_index(drop=True)` do?",
+      "options": [
+        "Replaces the index by 0, 1, 2, ... and discards the old labels",
+        "Keeps the old labels as a new column",
+        "Sorts the table by index",
+        "Removes the first row"
+      ],
+      "answer": 0,
+      "explanation": "`drop=True` throws the old labels away. Without it, the old index would be kept as a new column called `index`."
+    }
+  ]
+}

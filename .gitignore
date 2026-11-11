@@ -55,3 +55,4 @@ projects/*
 # Playwright
 test-results/
 playwright-report/
+.venv-daily/

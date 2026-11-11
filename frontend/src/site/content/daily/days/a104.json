@@ -1,0 +1,187 @@
+{
+  "id": "a104",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "group-and-aggregate"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Cross-tab of plan and churn",
+      "kind": "python",
+      "prompt": "The list `rows` holds one `(plan, churned)` pair per customer. Build a contingency table with `pd.crosstab` (rows are the plan, columns are churned) and print it with `to_string()`. The output must be the table with column labels `no` and `yes` and row labels `basic` and `pro`.",
+      "starter": "import pandas as pd\n\nrows = [(\"basic\", \"yes\")] * 40 + [(\"basic\", \"no\")] * 160 + [(\"pro\", \"yes\")] * 15 + [(\"pro\", \"no\")] * 185\ndf = pd.DataFrame(rows, columns=[\"plan\", \"churned\"])\n# Your code here\n",
+      "solution": "import pandas as pd\n\nrows = [(\"basic\", \"yes\")] * 40 + [(\"basic\", \"no\")] * 160 + [(\"pro\", \"yes\")] * 15 + [(\"pro\", \"no\")] * 185\ndf = pd.DataFrame(rows, columns=[\"plan\", \"churned\"])\ntable = pd.crosstab(df[\"plan\"], df[\"churned\"])\nprint(table.to_string())\n",
+      "hints": [
+        "`pd.crosstab(first_column, second_column)` counts each pair of categories.",
+        "The first argument becomes the rows and the second the columns, so pass `df[\"plan\"]` first.",
+        "`table = pd.crosstab(df[\"plan\"], df[\"churned\"])` then `print(table.to_string())`."
+      ],
+      "expected": "churned   no  yes\nplan             \nbasic    160   40\npro      185   15"
+    },
+    {
+      "id": "g2",
+      "title": "Churn rate by plan",
+      "kind": "python",
+      "prompt": "Using the same data, print the proportion of customers who churned within each plan, rounded to 3 decimals. Use `normalize=\"index\"` and select only the `yes` column, then print it with `to_string()`. The output has two rows, `basic` and `pro`.",
+      "starter": "import pandas as pd\n\nrows = [(\"basic\", \"yes\")] * 40 + [(\"basic\", \"no\")] * 160 + [(\"pro\", \"yes\")] * 15 + [(\"pro\", \"no\")] * 185\ndf = pd.DataFrame(rows, columns=[\"plan\", \"churned\"])\nprint(df.shape)\n",
+      "solution": "import pandas as pd\n\nrows = [(\"basic\", \"yes\")] * 40 + [(\"basic\", \"no\")] * 160 + [(\"pro\", \"yes\")] * 15 + [(\"pro\", \"no\")] * 185\ndf = pd.DataFrame(rows, columns=[\"plan\", \"churned\"])\nrates = pd.crosstab(df[\"plan\"], df[\"churned\"], normalize=\"index\")\nprint(rates[\"yes\"].round(3).to_string())\n",
+      "hints": [
+        "`normalize=\"index\"` divides each row by its own total.",
+        "The result is a table; `rates[\"yes\"]` picks the column of churn proportions.",
+        "Round with `.round(3)` and print with `.to_string()`."
+      ],
+      "expected": "plan\nbasic    0.200\npro      0.075"
+    },
+    {
+      "id": "g3",
+      "title": "Expected counts",
+      "kind": "python",
+      "prompt": "The table of observed counts is given. Compute the expected counts under independence with `np.outer` (row totals, column totals, divided by the grand total) and print them rounded to 1 decimal as a DataFrame with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\ntable = pd.DataFrame({\"no\": [160, 185], \"yes\": [40, 15]}, index=[\"basic\", \"pro\"])\n# Your code here\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\ntable = pd.DataFrame({\"no\": [160, 185], \"yes\": [40, 15]}, index=[\"basic\", \"pro\"])\nrow_totals = table.sum(axis=1).to_numpy()\ncol_totals = table.sum(axis=0).to_numpy()\nexpected = pd.DataFrame(np.outer(row_totals, col_totals) / table.to_numpy().sum(),\n                        index=table.index, columns=table.columns)\nprint(expected.round(1).to_string())\n",
+      "hints": [
+        "Sum across columns for the row totals (`axis=1`) and down rows for the column totals (`axis=0`).",
+        "`np.outer(a, b)` multiplies every element of `a` by every element of `b`.",
+        "Divide `np.outer(row_totals, col_totals)` by `table.to_numpy().sum()` and wrap it in a DataFrame with the same index and columns."
+      ],
+      "expected": "          no   yes\nbasic  172.5  27.5\npro    172.5  27.5"
+    },
+    {
+      "id": "g4",
+      "title": "Run the test",
+      "kind": "python",
+      "prompt": "Run `stats.chi2_contingency(table, correction=False)` on the table and print three lines: `chi2 = <value>`, `df = <value>` and `p = <value>`, with chi2 rounded to 3 decimals and p rounded to 5 decimals.",
+      "starter": "import pandas as pd\nfrom scipy import stats\n\ntable = pd.DataFrame({\"no\": [160, 185], \"yes\": [40, 15]}, index=[\"basic\", \"pro\"])\n# Your code here\n",
+      "solution": "import pandas as pd\nfrom scipy import stats\n\ntable = pd.DataFrame({\"no\": [160, 185], \"yes\": [40, 15]}, index=[\"basic\", \"pro\"])\nchi2, p, dof, expected = stats.chi2_contingency(table, correction=False)\nprint(\"chi2 =\", round(chi2, 3))\nprint(\"df =\", dof)\nprint(\"p =\", round(p, 5))\n",
+      "hints": [
+        "The function returns four values.",
+        "Unpack them in order: statistic, p-value, degrees of freedom, expected counts.",
+        "`chi2, p, dof, expected = stats.chi2_contingency(table, correction=False)` then print with `round()`."
+      ],
+      "expected": "chi2 = 13.175\ndf = 1\np = 0.00028"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Test, effect size and sparse-cell check",
+      "kind": "python",
+      "prompt": "The table below crosses region (`north`, `south`, `west`) with satisfaction (`low`, `medium`, `high`). Run the uncorrected chi-square test of independence and print exactly four lines: `chi2 = <value rounded to 3>`, `p = <value rounded to 4>`, `V = <Cramer's V rounded to 3>` and `all expected >= 5: <True or False>`.",
+      "starter": "import numpy as np\nimport pandas as pd\nfrom scipy import stats\n\ntable = pd.DataFrame({\"low\": [30, 55, 25], \"medium\": [60, 50, 45], \"high\": [40, 15, 50]},\n                     index=[\"north\", \"south\", \"west\"])\n# Your code here\n",
+      "solution": "import numpy as np\nimport pandas as pd\nfrom scipy import stats\n\ntable = pd.DataFrame({\"low\": [30, 55, 25], \"medium\": [60, 50, 45], \"high\": [40, 15, 50]},\n                     index=[\"north\", \"south\", \"west\"])\nchi2, p, dof, expected = stats.chi2_contingency(table, correction=False)\nn = table.to_numpy().sum()\nv = np.sqrt(chi2 / (n * min(table.shape[0] - 1, table.shape[1] - 1)))\nprint(\"chi2 =\", round(chi2, 3))\nprint(\"p =\", round(p, 4))\nprint(\"V =\", round(v, 3))\nprint(\"all expected >= 5:\", bool((expected >= 5).all()))\n",
+      "expected": "chi2 = 35.105\np = 0.0\nV = 0.218\nall expected >= 5: True"
+    },
+    {
+      "id": "i2",
+      "title": "Find the biggest standardised residual",
+      "kind": "python",
+      "prompt": "For the same region by satisfaction table, compute standardised residuals (O - E) / sqrt(E). Print one line in the form `<region> / <satisfaction>: <residual rounded to 2>` for the cell with the largest absolute residual. Use `np.abs`, `argmax` on the flattened array and `divmod` or `np.unravel_index` to turn the position into a row and column.",
+      "starter": "import numpy as np\nimport pandas as pd\nfrom scipy import stats\n\ntable = pd.DataFrame({\"low\": [30, 55, 25], \"medium\": [60, 50, 45], \"high\": [40, 15, 50]},\n                     index=[\"north\", \"south\", \"west\"])\nchi2, p, dof, expected = stats.chi2_contingency(table, correction=False)\n# Your code here\n",
+      "solution": "import numpy as np\nimport pandas as pd\nfrom scipy import stats\n\ntable = pd.DataFrame({\"low\": [30, 55, 25], \"medium\": [60, 50, 45], \"high\": [40, 15, 50]},\n                     index=[\"north\", \"south\", \"west\"])\nchi2, p, dof, expected = stats.chi2_contingency(table, correction=False)\nresid = (table.to_numpy() - expected) / np.sqrt(expected)\ni, j = np.unravel_index(np.abs(resid).argmax(), resid.shape)\nprint(f\"{table.index[i]} / {table.columns[j]}: {resid[i, j]:.2f}\")\n",
+      "expected": "south / high: -3.27"
+    },
+    {
+      "id": "i3",
+      "title": "Is the die fair? (stretch)",
+      "kind": "python",
+      "prompt": "A six-sided die was rolled 300 times with counts `[41, 55, 48, 62, 44, 50]` for faces 1 to 6. Run a goodness-of-fit test against a fair die and print two lines: `chi2 = <value rounded to 3>, p = <value rounded to 4>` and then `fair` when p is at least 0.05, otherwise `not fair`.",
+      "starter": "from scipy import stats\n\nobserved = [41, 55, 48, 62, 44, 50]\n# Your code here\n",
+      "solution": "from scipy import stats\n\nobserved = [41, 55, 48, 62, 44, 50]\nexpected = [sum(observed) / 6] * 6\nchi2, p = stats.chisquare(observed, f_exp=expected)\nprint(f\"chi2 = {chi2:.3f}, p = {p:.4f}\")\nprint(\"fair\" if p >= 0.05 else \"not fair\")\n",
+      "expected": "chi2 = 5.800, p = 0.3262\nfair",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A 4 x 3 contingency table is tested for independence. How many degrees of freedom does the chi-square test have?",
+      "options": [
+        "12",
+        "6",
+        "5",
+        "7"
+      ],
+      "answer": 1,
+      "explanation": "df = (rows - 1) x (columns - 1) = 3 x 2 = 6. 12 is the number of cells, 5 would be rows + columns - 2 mistaken for the product, and 7 is rows + columns."
+    },
+    {
+      "id": "c2",
+      "question": "Which statement about expected counts is correct?",
+      "options": [
+        "They are the counts you would see if the two variables were independent, given the margins",
+        "They are the counts of the most common category",
+        "They must always be whole numbers",
+        "They are the observed counts divided by the grand total"
+      ],
+      "answer": 0,
+      "explanation": "Expected counts come from row total x column total / grand total and describe independence. They are usually fractional, and dividing observed counts by the total gives proportions instead."
+    },
+    {
+      "id": "c3",
+      "question": "A chi-square test on 200,000 rows gives p = 0.001 and Cramér's V = 0.02. What is the best reading?",
+      "options": [
+        "A strong association exists",
+        "The association is statistically detectable but very weak",
+        "There is no association",
+        "The test is invalid because the sample is large"
+      ],
+      "answer": 1,
+      "explanation": "A big sample makes tiny departures significant. V of 0.02 is far below the rough 0.1 mark for a small effect. The result is not strong, but the small p-value also means it is not reasonable to say there is no association."
+    },
+    {
+      "id": "c4",
+      "question": "You compute `chi2_contingency` on a table of conversion percentages (for example 12.5 and 87.5 in each row) instead of counts. What happens?",
+      "options": [
+        "The result is identical because percentages carry the same information",
+        "It runs but the statistic and p-value are meaningless",
+        "It raises an error because percentages are not integers",
+        "It automatically rescales to counts"
+      ],
+      "answer": 1,
+      "explanation": "The statistic scales with the number of rows, so percentages (which sum to 100) make the evidence look far weaker than it is. scipy accepts the numbers without complaint, so the mistake is silent."
+    },
+    {
+      "id": "c5",
+      "question": "A 2 x 2 table has an expected count of 2.4 in one cell. What should you do?",
+      "options": [
+        "Nothing, the rule of 5 is outdated",
+        "Treat the chi-square p-value with caution, merge categories if possible or use an exact test",
+        "Increase alpha to 0.10",
+        "Divide every count by 2.4"
+      ],
+      "answer": 1,
+      "explanation": "The chi-square distribution is a poor approximation when expected counts are small, so the p-value is unreliable. Changing alpha or rescaling counts does not fix that."
+    },
+    {
+      "id": "c6",
+      "question": "What does `stats.chisquare([30, 30, 40], f_exp=[33.3, 33.3, 33.3])` test?",
+      "options": [
+        "Whether the three categories are independent of each other",
+        "Whether the observed counts are consistent with equal proportions",
+        "Whether the mean of the three counts is 33.3",
+        "Whether the table has three rows"
+      ],
+      "answer": 1,
+      "explanation": "It is a goodness-of-fit test of one categorical column against stated proportions. Independence needs two variables in a contingency table."
+    }
+  ]
+}

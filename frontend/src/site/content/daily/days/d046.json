@@ -1,0 +1,189 @@
+{
+  "id": "d046",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "cte",
+      "multiple-ctes",
+      "cte-vs-subquery"
+    ],
+    "questions": [
+      19,
+      20
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "subqueries-ctes"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Repeat customers with a CTE",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Write a CTE `order_counts` that returns `customer_id` and the number of orders `n` per customer. In the main query return `customer_id` and `n` for customers with at least 2 orders, ordered by `n` descending, then `customer_id`.",
+      "starter": "-- Customers with at least 2 orders, using a CTE named order_counts\nSELECT customer_id, COUNT(*) AS n\nFROM orders\nGROUP BY customer_id\nORDER BY n DESC, customer_id;\n",
+      "solution": "WITH order_counts AS (\n  SELECT customer_id, COUNT(*) AS n\n  FROM orders\n  GROUP BY customer_id\n)\nSELECT customer_id, n\nFROM order_counts\nWHERE n >= 2\nORDER BY n DESC, customer_id;\n",
+      "hints": [
+        "The starter has no filter and no CTE. First wrap the grouped query in WITH order_counts AS ( ... ).",
+        "The main query then selects from order_counts and can filter on n with a plain WHERE.",
+        "WITH order_counts AS (SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY customer_id) SELECT customer_id, n FROM order_counts WHERE n >= 2 ..."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Categories pricier than the typical category",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Write a CTE `cat` with `category_id` and `avg_price` (average `unit_price` per category, rounded to 2 decimals). Return `category_name` and `avg_price` for the categories whose `avg_price` is above the average of all the categories' `avg_price` values (use `cat` a second time in a scalar subquery). Order by `avg_price` descending.",
+      "starter": "-- Categories whose average price is above the average of category averages\nWITH cat AS (\n  SELECT category_id, ROUND(AVG(unit_price), 2) AS avg_price\n  FROM products\n  GROUP BY category_id\n)\nSELECT c.category_name, cat.avg_price\nFROM cat\nJOIN categories c ON c.category_id = cat.category_id\nORDER BY cat.avg_price DESC;\n",
+      "solution": "WITH cat AS (\n  SELECT category_id, ROUND(AVG(unit_price), 2) AS avg_price\n  FROM products\n  GROUP BY category_id\n)\nSELECT c.category_name, cat.avg_price\nFROM cat\nJOIN categories c ON c.category_id = cat.category_id\nWHERE cat.avg_price > (SELECT AVG(avg_price) FROM cat)\nORDER BY cat.avg_price DESC;\n",
+      "hints": [
+        "The starter lists all eight categories. It needs a filter that compares each average with the overall one.",
+        "A scalar subquery can read from the same CTE: (SELECT AVG(avg_price) FROM cat).",
+        "WHERE cat.avg_price > (SELECT AVG(avg_price) FROM cat)"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Employees by average order value",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Write two CTEs. `order_values` returns `order_id`, `employee_id` and `value` (sum of `unit_price * quantity` of the order's lines). `emp_avg` returns for each `employee_id` the number of orders `orders` and the average value `avg_value` from `order_values`. Return `last_name`, `orders` and `avg_value` (rounded to 2 decimals) for the 3 employees with the highest `avg_value`, ordered by `avg_value` descending (orders without an employee are ignored by the join to `employees`).",
+      "starter": "-- Top 3 employees by average order value, with two CTEs\nSELECT e.last_name, 0 AS orders, 0 AS avg_value\nFROM employees e\nORDER BY e.last_name\nLIMIT 3;\n",
+      "solution": "WITH order_values AS (\n  SELECT o.order_id, o.employee_id, SUM(od.unit_price * od.quantity) AS value\n  FROM orders o\n  JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY o.order_id, o.employee_id\n),\nemp_avg AS (\n  SELECT employee_id, COUNT(*) AS orders, AVG(value) AS avg_value\n  FROM order_values\n  GROUP BY employee_id\n)\nSELECT e.last_name, ea.orders, ROUND(ea.avg_value, 2) AS avg_value\nFROM emp_avg ea\nJOIN employees e ON e.employee_id = ea.employee_id\nORDER BY ea.avg_value DESC\nLIMIT 3;\n",
+      "hints": [
+        "Build the steps in order: order values first, then the per-employee summary of those values, then the final join.",
+        "The second CTE reads FROM order_values and groups by employee_id.",
+        "FROM emp_avg ea JOIN employees e ON e.employee_id = ea.employee_id ORDER BY ea.avg_value DESC LIMIT 3"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Freight share by carrier",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Write a CTE `by_carrier` with `ship_via` and `total_freight` (sum of `freight`). Return `company_name` (from `shippers`), `total_freight` and `share_pct` (the carrier's share of all freight in percent, rounded to 1 decimal, using the CTE a second time in a scalar subquery for the grand total). Order by `total_freight` descending.",
+      "starter": "-- Freight per carrier and its share of the total\nSELECT s.company_name, 0 AS total_freight, 0 AS share_pct\nFROM shippers s\nORDER BY s.company_name;\n",
+      "solution": "WITH by_carrier AS (\n  SELECT ship_via, SUM(freight) AS total_freight\n  FROM orders\n  GROUP BY ship_via\n)\nSELECT s.company_name,\n       b.total_freight,\n       ROUND(100 * b.total_freight / (SELECT SUM(total_freight) FROM by_carrier), 1) AS share_pct\nFROM by_carrier b\nJOIN shippers s ON s.shipper_id = b.ship_via\nORDER BY b.total_freight DESC;\n",
+      "hints": [
+        "Define by_carrier first. It groups orders by ship_via and sums freight.",
+        "The grand total is (SELECT SUM(total_freight) FROM by_carrier), a scalar subquery reading the same CTE.",
+        "ROUND(100 * b.total_freight / (SELECT SUM(total_freight) FROM by_carrier), 1) AS share_pct"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Customer value segments",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Use a CTE `customer_revenue` (revenue per ordering customer: sum of `unit_price * quantity * (1 - discount)` with `discount` cast to `numeric`, rounded to 2 decimals) and a second CTE `segmented` that labels each customer `high` (revenue 5000 or more), `medium` (1000 up to but not including 5000) or `low`. Return `segment`, `customers` (count) and `total_revenue` (sum, rounded to 2 decimals) ordered from the largest total revenue to the smallest.",
+      "starter": "-- Customers and revenue per segment\nSELECT 'all' AS segment, COUNT(*) AS customers, 0 AS total_revenue\nFROM customers;\n",
+      "solution": "WITH customer_revenue AS (\n  SELECT o.customer_id,\n         ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount::numeric)), 2) AS revenue\n  FROM orders o\n  JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY o.customer_id\n),\nsegmented AS (\n  SELECT customer_id, revenue,\n         CASE\n           WHEN revenue >= 5000 THEN 'high'\n           WHEN revenue >= 1000 THEN 'medium'\n           ELSE 'low'\n         END AS segment\n  FROM customer_revenue\n)\nSELECT segment, COUNT(*) AS customers, ROUND(SUM(revenue), 2) AS total_revenue\nFROM segmented\nGROUP BY segment\nORDER BY total_revenue DESC;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Year-over-year order value",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Use a CTE `yearly` with `yr` (year of `order_date` as integer) and `revenue` (sum of `unit_price * quantity * (1 - discount)` over order lines, `discount` cast to `numeric`, rounded to 2 decimals). In the main query use `yearly` twice, joining each year `y` with the previous year `p` (`p.yr = y.yr - 1`) using a left join. Return `yr`, `revenue`, `prev_revenue` (NULL for the first year) and `change_pct` (percentage change from the previous year rounded to 1 decimal; NULL for the first year). Order by `yr`.",
+      "starter": "-- Revenue per year and change from the previous year\nWITH yearly AS (\n  SELECT EXTRACT(year FROM o.order_date)::int AS yr,\n         ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount::numeric)), 2) AS revenue\n  FROM orders o\n  JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY 1\n)\nSELECT yr, revenue FROM yearly ORDER BY yr;\n",
+      "solution": "WITH yearly AS (\n  SELECT EXTRACT(year FROM o.order_date)::int AS yr,\n         ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount::numeric)), 2) AS revenue\n  FROM orders o\n  JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY 1\n)\nSELECT y.yr, y.revenue, p.revenue AS prev_revenue,\n       ROUND(100 * (y.revenue - p.revenue) / p.revenue, 1) AS change_pct\nFROM yearly y\nLEFT JOIN yearly p ON p.yr = y.yr - 1\nORDER BY y.yr;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Dearest product of each category with its category size",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. Use a CTE `cat_stats` with `category_id`, `max_price` (largest `unit_price`) and `products` (number of products) per category. Join it to `products` and `categories` so that you return `category_name`, `product_name`, `unit_price` and `products` for the products whose price equals their category's `max_price`. Order by `category_name`.",
+      "starter": "-- Dearest product per category with the category size\nSELECT c.category_name, p.product_name, p.unit_price, 0 AS products\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nORDER BY c.category_name, p.unit_price DESC\nLIMIT 8;\n",
+      "solution": "WITH cat_stats AS (\n  SELECT category_id, MAX(unit_price) AS max_price, COUNT(*) AS products\n  FROM products\n  GROUP BY category_id\n)\nSELECT c.category_name, p.product_name, p.unit_price, cs.products\nFROM cat_stats cs\nJOIN products p ON p.category_id = cs.category_id AND p.unit_price = cs.max_price\nJOIN categories c ON c.category_id = cs.category_id\nORDER BY c.category_name;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "How many times can a CTE named `customer_revenue` be referenced in the main query?",
+      "options": [
+        "Only once",
+        "As many times as needed",
+        "Exactly twice",
+        "Only in FROM, never in a subquery"
+      ],
+      "answer": 1,
+      "explanation": "A CTE can be referenced several times, in FROM, joins and subqueries. That reuse is one of its advantages over repeating a subquery."
+    },
+    {
+      "id": "c2",
+      "question": "Which is the correct way to define two CTEs?",
+      "options": [
+        "WITH a AS (...) WITH b AS (...) SELECT ...",
+        "WITH a AS (...), b AS (...) SELECT ...",
+        "WITH a AS (...); WITH b AS (...); SELECT ...",
+        "WITH a, b AS (...) SELECT ..."
+      ],
+      "answer": 1,
+      "explanation": "WITH is written once, and the CTEs are separated by commas. A semicolon would end the statement, which would make the first CTE disappear."
+    },
+    {
+      "id": "c3",
+      "question": "A learner runs `WITH big AS (SELECT * FROM orders WHERE freight > 150) SELECT COUNT(*) FROM big;` and then, as a separate statement, `SELECT COUNT(*) FROM big;`. What happens with the second?",
+      "options": [
+        "It returns the same count",
+        "It fails, because the CTE exists only for the statement it belongs to",
+        "It returns 0",
+        "It returns the count of all orders"
+      ],
+      "answer": 1,
+      "explanation": "A CTE is temporary and exists for one statement only. In the second statement `big` is not a table or view, so PostgreSQL reports that the relation does not exist."
+    },
+    {
+      "id": "c4",
+      "question": "In `WITH a AS (SELECT 1 AS x), b AS (SELECT x + 1 AS y FROM a) SELECT x, y FROM a, b`, what is the result?",
+      "options": [
+        "x = 1, y = 2",
+        "x = 2, y = 1",
+        "An error, because b uses a",
+        "Two rows"
+      ],
+      "answer": 0,
+      "explanation": "A later CTE may use an earlier one, so b reads a and computes 1 + 1 = 2. The main query cross-joins two one-row results, so there is one row: x = 1, y = 2. The reverse order (a using b) would fail."
+    },
+    {
+      "id": "c5",
+      "question": "Which statement is the best description of a CTE in PostgreSQL 16?",
+      "options": [
+        "A stored table that other sessions can read",
+        "A named temporary result for one statement, written mainly to make queries readable",
+        "A faster kind of subquery that always runs once",
+        "A kind of index"
+      ],
+      "answer": 1,
+      "explanation": "A CTE is a named, temporary result for one statement. Since PostgreSQL 12 a CTE used once is optimised like a subquery, so it is a readability tool, not a guaranteed speed-up, and it is not stored."
+    },
+    {
+      "id": "c6",
+      "question": "Why can a correlated condition such as `WHERE p2.category_id = p.category_id` not be moved into a CTE that is defined before the main query?",
+      "options": [
+        "CTEs may not contain WHERE",
+        "A CTE is evaluated on its own and cannot see columns of the main query",
+        "CTEs may only contain aggregates",
+        "CTEs cannot use aliases"
+      ],
+      "answer": 1,
+      "explanation": "A CTE is a separate named query. It cannot refer to the alias p of the main query, so correlation must stay in a correlated subquery (or be rewritten as a join with an aggregated CTE, as in the stretch exercise)."
+    }
+  ]
+}

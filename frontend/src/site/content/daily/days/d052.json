@@ -1,0 +1,180 @@
+{
+  "id": "d052",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "running-totals",
+      "moving-averages",
+      "window-order-by"
+    ],
+    "questions": [
+      150,
+      168
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "window-functions"
+    ],
+    "patterns": [
+      "running-total",
+      "moving-average"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Running freight for employee 3",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For orders of employee 3 return `order_id`, `order_date`, `freight` and `running_freight`: the cumulative sum of `freight` in `order_date`, `order_id` order, one distinct value per row (use a ROWS frame). Order by `order_date`, `order_id`.",
+      "starter": "SELECT order_id, order_date, freight\nFROM orders\nWHERE employee_id = 3\nORDER BY order_date, order_id;\n",
+      "solution": "SELECT order_id, order_date, freight,\n       SUM(freight) OVER (ORDER BY order_date, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_freight\nFROM orders\nWHERE employee_id = 3\nORDER BY order_date, order_id;\n",
+      "hints": [
+        "A running total is SUM with an ORDER BY inside OVER.",
+        "Use ORDER BY order_date, order_id so each row has a unique position, then add ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW.",
+        "SUM(freight) OVER (ORDER BY order_date, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_freight."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Restart per country",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For orders shipped to Germany or France return `ship_country`, `order_id`, `freight` and `running_freight`, the cumulative `freight` that restarts for each `ship_country`, ordered inside the country by `order_date`, `order_id` with a ROWS frame. Order the result by `ship_country`, `order_date`, `order_id`.",
+      "starter": "SELECT ship_country, order_id, freight\nFROM orders\nWHERE ship_country IN ('Germany', 'France')\nORDER BY ship_country, order_date, order_id;\n",
+      "solution": "SELECT ship_country, order_id, freight,\n       SUM(freight) OVER (PARTITION BY ship_country ORDER BY order_date, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_freight\nFROM orders\nWHERE ship_country IN ('Germany', 'France')\nORDER BY ship_country, order_date, order_id;\n",
+      "hints": [
+        "Each country needs its own running total, so add PARTITION BY.",
+        "PARTITION BY ship_country goes before ORDER BY inside OVER.",
+        "SUM(freight) OVER (PARTITION BY ship_country ORDER BY order_date, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Moving average of the last three orders",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For orders of employee 3 return `order_id`, `order_date`, `freight`, `avg_last_3` (average `freight` of the order and the two before it in `order_date`, `order_id` order, rounded to 2 decimals) and `frame_rows` (how many rows were in that frame). Order by `order_date`, `order_id`.",
+      "starter": "SELECT order_id, order_date, freight\nFROM orders\nWHERE employee_id = 3\nORDER BY order_date, order_id;\n",
+      "solution": "SELECT order_id, order_date, freight,\n       ROUND(AVG(freight) OVER w, 2) AS avg_last_3,\n       COUNT(*) OVER w AS frame_rows\nFROM orders\nWHERE employee_id = 3\nWINDOW w AS (ORDER BY order_date, order_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)\nORDER BY order_date, order_id;\n",
+      "hints": [
+        "The frame is the current row plus the two rows before it.",
+        "ROWS BETWEEN 2 PRECEDING AND CURRENT ROW. You may repeat the OVER (...) text for both functions or name it with a WINDOW clause.",
+        "AVG(freight) OVER (ORDER BY order_date, order_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), and COUNT(*) with the same OVER."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Ties and the default frame",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For the first 8 orders in `order_date`, `order_id` order, return `order_id`, `order_date`, `count_default` (`COUNT(*) OVER (ORDER BY order_date)`, the default frame) and `count_rows` (a count with `ORDER BY order_date, order_id` and `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`). The windows must be computed over all orders; apply `LIMIT 8` at the end. Order by `order_date`, `order_id`.",
+      "starter": "SELECT order_id, order_date\nFROM orders\nORDER BY order_date, order_id\nLIMIT 8;\n",
+      "solution": "SELECT order_id, order_date,\n       COUNT(*) OVER (ORDER BY order_date) AS count_default,\n       COUNT(*) OVER (ORDER BY order_date, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS count_rows\nFROM orders\nORDER BY order_date, order_id\nLIMIT 8;\n",
+      "hints": [
+        "Write two COUNT(*) window expressions with different OVER clauses.",
+        "The first uses only ORDER BY order_date, so tied dates count as peers. The second adds order_id and an explicit ROWS frame.",
+        "LIMIT 8 is applied after the window calculation, so keep it on the final SELECT."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Cumulative order count by month",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Count orders per calendar month (`date_trunc('month', order_date)::date` as `month`). Return `month`, `orders_count`, `cumulative_orders` (running total of the monthly count) and `pct_complete` (cumulative orders as a percentage of all orders, rounded to 1 decimal). Order by `month`.",
+      "starter": "SELECT date_trunc('month', order_date)::date AS month, COUNT(*) AS orders_count\nFROM orders\nGROUP BY 1\nORDER BY 1;\n",
+      "solution": "WITH monthly AS (\n  SELECT date_trunc('month', order_date)::date AS month, COUNT(*) AS orders_count\n  FROM orders\n  GROUP BY 1\n)\nSELECT month, orders_count,\n       SUM(orders_count) OVER (ORDER BY month) AS cumulative_orders,\n       ROUND(100.0 * SUM(orders_count) OVER (ORDER BY month) / SUM(orders_count) OVER (), 1) AS pct_complete\nFROM monthly\nORDER BY month;\n"
+    },
+    {
+      "id": "i2",
+      "title": "First order that pushes a customer past 5000",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Compute each order's value as `ROUND(SUM(unit_price * quantity * (1 - discount))::numeric, 2)`. For each customer compute the cumulative order value in `order_date`, `order_id` order. Return, for every customer whose cumulative value ever exceeds 5000, only the first order where it does: `customer_id`, `order_id`, `order_date`, `cumulative_spend`. Order by `customer_id`.",
+      "starter": "SELECT o.customer_id, o.order_id, o.order_date,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS order_value\nFROM orders AS o\nJOIN order_details AS od ON od.order_id = o.order_id\nGROUP BY o.customer_id, o.order_id, o.order_date\nORDER BY o.customer_id, o.order_date, o.order_id;\n",
+      "solution": "WITH order_totals AS (\n  SELECT o.customer_id, o.order_id, o.order_date,\n         ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS order_value\n  FROM orders AS o\n  JOIN order_details AS od ON od.order_id = o.order_id\n  GROUP BY o.customer_id, o.order_id, o.order_date\n), cumulative AS (\n  SELECT customer_id, order_id, order_date,\n         SUM(order_value) OVER (PARTITION BY customer_id ORDER BY order_date, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_spend\n  FROM order_totals\n), crossed AS (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date, order_id) AS rn\n  FROM cumulative\n  WHERE cumulative_spend > 5000\n)\nSELECT customer_id, order_id, order_date, cumulative_spend\nFROM crossed\nWHERE rn = 1\nORDER BY customer_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Months above the average of the previous two (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Using monthly revenue (sum of `unit_price * quantity * (1 - discount)` per month, rounded to 2 decimals as `revenue`), compute `prev2_avg`: the average revenue of the two rows before the current row (the frame must not include the current row), rounded to 2 decimals. Return `month`, `revenue` and `prev2_avg` for months whose revenue is greater than the unrounded previous-two average. The first row has no earlier rows and cannot qualify. Order by `month`.",
+      "starter": "WITH monthly AS (\n  SELECT date_trunc('month', o.order_date)::date AS month,\n         ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS revenue\n  FROM orders AS o\n  JOIN order_details AS od ON od.order_id = o.order_id\n  GROUP BY 1\n)\nSELECT month, revenue\nFROM monthly\nORDER BY month;\n",
+      "solution": "WITH monthly AS (\n  SELECT date_trunc('month', o.order_date)::date AS month,\n         ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS revenue\n  FROM orders AS o\n  JOIN order_details AS od ON od.order_id = o.order_id\n  GROUP BY 1\n)\n, with_avg AS (\n  SELECT month, revenue,\n         AVG(revenue) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING) AS avg_raw\n  FROM monthly\n)\nSELECT month, revenue, ROUND(avg_raw, 2) AS prev2_avg\nFROM with_avg\nWHERE revenue > avg_raw\nORDER BY month;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What is the difference between `SUM(x) OVER ()` and `SUM(x) OVER (ORDER BY t)`?",
+      "options": [
+        "No difference; ORDER BY only sorts",
+        "The first gives the grand total on every row; the second gives a running total",
+        "The first gives a running total; the second the grand total",
+        "The second is invalid without PARTITION BY"
+      ],
+      "answer": 1,
+      "explanation": "Adding ORDER BY activates the default frame (start of the partition to the current row and its peers), so the sum accumulates. Without ORDER BY the frame is the whole partition. ORDER BY inside OVER is not a mere sort."
+    },
+    {
+      "id": "c2",
+      "question": "Two rows share the same `order_date`. With `SUM(freight) OVER (ORDER BY order_date)`, what do the two rows show?",
+      "options": [
+        "The same running total, which includes both rows",
+        "Different totals, depending on the row order",
+        "NULL for the second row",
+        "An error about ties"
+      ],
+      "answer": 0,
+      "explanation": "The default frame is RANGE, which treats rows with equal sort values as peers and includes all of them. To give each row its own total use ROWS with a unique ORDER BY."
+    },
+    {
+      "id": "c3",
+      "question": "What is the frame `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW` on the very first row?",
+      "options": [
+        "Empty, so the result is NULL",
+        "Only the first row itself",
+        "Three rows, including two NULL rows",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "The frame is clipped at the start of the partition, so the first row sees only itself and the second sees two rows. That is why early moving averages are based on fewer values."
+    },
+    {
+      "id": "c4",
+      "question": "A series has missing months. Is `AVG(x) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)` a three-month average?",
+      "options": [
+        "Yes, always three calendar months",
+        "No, it averages three rows, which may span more than three months",
+        "No, it averages the whole partition",
+        "Yes, because ROWS counts months"
+      ],
+      "answer": 1,
+      "explanation": "ROWS counts physical rows. If months are missing from the data, three rows cover a longer period. Fill the missing periods first if you need true calendar months."
+    },
+    {
+      "id": "c5",
+      "question": "Which clause restarts a running total for each customer?",
+      "options": [
+        "ORDER BY customer_id at the end of the query",
+        "PARTITION BY customer_id inside OVER",
+        "GROUP BY customer_id",
+        "ROWS BETWEEN CURRENT ROW AND CURRENT ROW"
+      ],
+      "answer": 1,
+      "explanation": "PARTITION BY inside OVER makes one window per customer, so the cumulative sum restarts. The final ORDER BY only sorts the output, and GROUP BY would collapse the rows."
+    }
+  ]
+}

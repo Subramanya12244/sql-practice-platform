@@ -1,0 +1,172 @@
+{
+  "id": "d001",
+  "time": {
+    "theory": 30,
+    "examples": 20,
+    "guided": 25,
+    "independent": 35,
+    "review": 20
+  },
+  "links": {
+    "notes": [
+      "python-fundamentals"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Print a greeting",
+      "prompt": "Write a program that prints exactly one line: `Hello, DataForge!` The text must match exactly, including the capital letters, the comma, the space and the exclamation mark.",
+      "starter": "# Print the greeting below\n",
+      "solution": "print(\"Hello, DataForge!\")\n",
+      "hints": [
+        "Use the `print()` function and put the text you want to show inside the parentheses.",
+        "Text must be wrapped in quotes so that Python treats it as a string: `print(\"...\")`.",
+        "The complete line is `print(\"Hello, DataForge!\")`. Check that every character inside the quotes matches the task."
+      ],
+      "kind": "python",
+      "expected": "Hello, DataForge!"
+    },
+    {
+      "id": "g2",
+      "title": "A label and a calculation",
+      "prompt": "Print one line that shows the label `Total:` followed by a space and the result of `12 * 3 + 4`, calculated by Python, not typed by you. The output must be exactly `Total: 40`.",
+      "starter": "print(\"Total: 12 * 3 + 4\")\n",
+      "solution": "print(\"Total:\", 12 * 3 + 4)\n",
+      "hints": [
+        "Text inside quotes is never calculated. The sum has to be outside the quotes.",
+        "Give `print()` two arguments separated by a comma: the text `\"Total:\"` and the expression.",
+        "`print(\"Total:\", 12 * 3 + 4)` prints the label, one space, then 40. You do not need to type the space yourself."
+      ],
+      "kind": "python",
+      "expected": "Total: 40"
+    },
+    {
+      "id": "g3",
+      "title": "Switch a line off with a comment",
+      "prompt": "The program below prints three lines, but the middle line is leftover debugging output. Without deleting the line, switch it off so that the program prints only `Start` and `Finish`, each on its own line.",
+      "starter": "print(\"Start\")\nprint(\"DEBUG: checking values\")\nprint(\"Finish\")\n",
+      "solution": "print(\"Start\")\n# print(\"DEBUG: checking values\")\nprint(\"Finish\")\n",
+      "hints": [
+        "A comment is a piece of text that Python ignores.",
+        "A comment starts with the `#` character and lasts until the end of the line.",
+        "Put `# ` at the very start of the middle line so that the whole line becomes a comment."
+      ],
+      "kind": "python",
+      "expected": "Start\nFinish"
+    },
+    {
+      "id": "g4",
+      "title": "Separate sections with a blank line",
+      "prompt": "Print a title line `Weekly report`, then an empty line, then the line `Rows processed: 120`. The expected output has exactly three lines, and the second one is empty. Let Python add the number 120 as a separate value after the label.",
+      "starter": "print(\"Weekly report\")\nprint(\"Rows processed: 120\")\n",
+      "solution": "print(\"Weekly report\")\nprint()\nprint(\"Rows processed:\", 120)\n",
+      "hints": [
+        "A `print()` call with nothing inside the parentheses prints an empty line.",
+        "The order of the three calls is: title, empty `print()`, then the rows line.",
+        "Use `print(\"Rows processed:\", 120)` for the last line. The comma adds the space between the label and the number."
+      ],
+      "kind": "python",
+      "expected": "Weekly report\n\nRows processed: 120"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Two-item receipt",
+      "prompt": "Write a script that prints this receipt. Every amount must be calculated by Python from the quantity and the price, not typed in, and the total must also be calculated from the two item calculations.\n\n```text\nReceipt\n\nCoffee: 4 x 2.5 = 10.0\nCake: 3 x 1.5 = 4.5\nTotal: 14.5\n```\n\nThe second line of the output is empty. Use `print()` with commas, as in the lesson.",
+      "starter": "# Receipt script\n",
+      "solution": "print(\"Receipt\")\nprint()\nprint(\"Coffee: 4 x 2.5 =\", 4 * 2.5)\nprint(\"Cake: 3 x 1.5 =\", 3 * 1.5)\nprint(\"Total:\", 4 * 2.5 + 3 * 1.5)\n",
+      "kind": "python",
+      "expected": "Receipt\n\nCoffee: 4 x 2.5 = 10.0\nCake: 3 x 1.5 = 4.5\nTotal: 14.5"
+    },
+    {
+      "id": "i2",
+      "title": "Repair a broken script",
+      "prompt": "The script below does not run: it contains three mistakes (a missing quote, a missing parenthesis, and a name written wrongly). Fix it so that it prints exactly the following three lines, and keep the comments.\n\n```text\nCleaning started\nRows removed: 15\nCleaning finished\n```",
+      "starter": "# Cleaning job report\npritn(\"Cleaning started\")\nprint(\"Rows removed:\", 20 - 5\nprint(\"Cleaning finished)\n",
+      "solution": "# Cleaning job report\nprint(\"Cleaning started\")\nprint(\"Rows removed:\", 20 - 5)\nprint(\"Cleaning finished\")\n",
+      "kind": "python",
+      "expected": "Cleaning started\nRows removed: 15\nCleaning finished"
+    },
+    {
+      "id": "i3",
+      "title": "Unit facts with a disabled line",
+      "required": false,
+      "prompt": "Write a script that begins with a one-line comment and then prints exactly these four lines, using calculations for every number (a day has 24 hours, an hour has 60 minutes and a minute has 60 seconds). Include one extra `print` line of your own that is switched off with `#`, so that it does not appear in the output.\n\n```text\nUnit facts\nMinutes in a week: 10080\nSeconds in a week: 604800\nHours in 30 days: 720\n```",
+      "starter": "# Add a comment, then print the unit facts\n",
+      "solution": "# Unit facts for one week and 30 days\nprint(\"Unit facts\")\nprint(\"Minutes in a week:\", 7 * 24 * 60)\nprint(\"Seconds in a week:\", 7 * 24 * 60 * 60)\n# print(\"Hours in a year:\", 365 * 24)\nprint(\"Hours in 30 days:\", 30 * 24)\n",
+      "kind": "python",
+      "expected": "Unit facts\nMinutes in a week: 10080\nSeconds in a week: 604800\nHours in 30 days: 720"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this program print?\n\n```python\nprint(\"2 + 3\")\n```",
+      "options": [
+        "5",
+        "2 + 3",
+        "2+3",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "Everything inside quotes is a string, so Python prints the characters exactly as written: 2 + 3. It would print 5 only for `print(2 + 3)` without quotes. There is no error, because a string can contain anything."
+    },
+    {
+      "id": "c2",
+      "question": "A script file contains the single line `2 + 3` and you run it with `python3 script.py`. What do you see?",
+      "options": [
+        "5",
+        "2 + 3",
+        "Nothing at all",
+        "An error because there is no print"
+      ],
+      "answer": 2,
+      "explanation": "Python calculates the sum and throws the answer away because nothing asks for it to be shown. Automatic display of a value happens only in the interactive REPL. The line is valid, so there is no error."
+    },
+    {
+      "id": "c3",
+      "question": "What does this program print?\n\n```python\nprint(\"a\")  # print(\"b\")\nprint(\"c\")\n```",
+      "options": [
+        "a, b and c on three lines",
+        "a and c on two lines",
+        "only a",
+        "only c"
+      ],
+      "answer": 1,
+      "explanation": "Everything after `#` on the same line is a comment, so the `print(\"b\")` after the first statement never runs. The first line still prints a, because the comment starts after the code. The second line is unaffected and prints c."
+    },
+    {
+      "id": "c4",
+      "question": "Your file is saved as `report.py` in the folder where your terminal is open. Which command runs it?",
+      "options": [
+        "python3 report.py",
+        "python3 > report.py",
+        "report.py python3",
+        "python3 report"
+      ],
+      "answer": 0,
+      "explanation": "The command is the interpreter's name followed by the file name. The `>` form would send output into the file and overwrite it. The other forms put the words in the wrong order or leave out the `.py` file name."
+    },
+    {
+      "id": "c5",
+      "question": "What does this program print?\n\n```python\nprint(\"Total:\", 4 * 2)\n```",
+      "options": [
+        "Total: 4 * 2",
+        "Total:8",
+        "Total: 8",
+        "Total: 8.0"
+      ],
+      "answer": 2,
+      "explanation": "The expression 4 * 2 is outside the quotes so it is calculated to the whole number 8. A comma between arguments makes `print()` put exactly one space between them, so there is a space after the colon. A whole-number product does not get a decimal point."
+    }
+  ]
+}

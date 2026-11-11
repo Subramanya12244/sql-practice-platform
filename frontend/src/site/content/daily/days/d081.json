@@ -1,0 +1,175 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-merge-anti-join"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track",
+      "joins"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Left merge keeps all orders",
+      "prompt": "Merge `orders` with `customers` on `customer_id`, keeping every order. Print the merged table with `print(m.to_string(index=False))`; the columns are `order_id`, `customer_id`, `amount`, `name`.",
+      "starter": "import pandas as pd\ncustomers = pd.DataFrame({\"customer_id\": [1, 2], \"name\": [\"Ada\", \"Bo\"]})\norders = pd.DataFrame({\"order_id\": [10, 11, 12], \"customer_id\": [1, 2, 3], \"amount\": [5, 6, 7]})\nprint(orders.to_string(index=False))\n",
+      "solution": "import pandas as pd\ncustomers = pd.DataFrame({\"customer_id\": [1, 2], \"name\": [\"Ada\", \"Bo\"]})\norders = pd.DataFrame({\"order_id\": [10, 11, 12], \"customer_id\": [1, 2, 3], \"amount\": [5, 6, 7]})\nm = orders.merge(customers, on=\"customer_id\", how=\"left\")\nprint(m.to_string(index=False))\n",
+      "hints": [
+        "The orders table is the main table, so it goes on the left.",
+        "`how=\"left\"` keeps every left row and fills `NaN` where there is no match.",
+        "`orders.merge(customers, on=\"customer_id\", how=\"left\")`."
+      ],
+      "kind": "python",
+      "expected": " order_id  customer_id  amount name\n       10            1       5  Ada\n       11            2       6   Bo\n       12            3       7  NaN"
+    },
+    {
+      "id": "g2",
+      "title": "Row counts by join type",
+      "prompt": "Merge `a` and `b` on `k` with each of `inner`, `left`, `right` and `outer`. Print four lines of the form `how rows`, for example `inner 2`, in that order.",
+      "starter": "import pandas as pd\na = pd.DataFrame({\"k\": [1, 2, 3], \"x\": [\"p\", \"q\", \"r\"]})\nb = pd.DataFrame({\"k\": [2, 3, 4, 5], \"y\": [\"s\", \"t\", \"u\", \"v\"]})\nprint(len(a), len(b))\n",
+      "solution": "import pandas as pd\na = pd.DataFrame({\"k\": [1, 2, 3], \"x\": [\"p\", \"q\", \"r\"]})\nb = pd.DataFrame({\"k\": [2, 3, 4, 5], \"y\": [\"s\", \"t\", \"u\", \"v\"]})\nfor how in [\"inner\", \"left\", \"right\", \"outer\"]:\n    print(how, len(a.merge(b, on=\"k\", how=how)))\n",
+      "hints": [
+        "Loop over the four join names and merge with `how=how` each time.",
+        "Print the join name and `len` of the merged table.",
+        "`print(how, len(a.merge(b, on=\"k\", how=how)))` inside the loop."
+      ],
+      "kind": "python",
+      "expected": "inner 2\nleft 3\nright 4\nouter 5"
+    },
+    {
+      "id": "g3",
+      "title": "Different key names",
+      "prompt": "`orders` has the key `cust` and `people` has the key `id`. Merge them (inner join) and drop the redundant `id` column. Print `print(m.to_string(index=False))`; columns `order_id`, `cust`, `name`.",
+      "starter": "import pandas as pd\norders = pd.DataFrame({\"order_id\": [1, 2, 3], \"cust\": [10, 20, 10]})\npeople = pd.DataFrame({\"id\": [10, 20], \"name\": [\"Ada\", \"Bo\"]})\nprint(orders.to_string(index=False))\n",
+      "solution": "import pandas as pd\norders = pd.DataFrame({\"order_id\": [1, 2, 3], \"cust\": [10, 20, 10]})\npeople = pd.DataFrame({\"id\": [10, 20], \"name\": [\"Ada\", \"Bo\"]})\nm = orders.merge(people, left_on=\"cust\", right_on=\"id\").drop(columns=\"id\")\nprint(m.to_string(index=False))\n",
+      "hints": [
+        "When the key names differ, `on` cannot be used.",
+        "Use `left_on` for the left table's column and `right_on` for the right table's.",
+        "After the merge, `drop(columns=\"id\")` removes the extra key column."
+      ],
+      "kind": "python",
+      "expected": " order_id  cust name\n        1    10  Ada\n        2    20   Bo\n        3    10  Ada"
+    },
+    {
+      "id": "g4",
+      "title": "Customers who never ordered",
+      "prompt": "Find the names of customers with no orders using a left merge from `customers` to `orders` with `indicator=True`. Print the names as a list with `print(names)`, in the order of the customers table.",
+      "starter": "import pandas as pd\ncustomers = pd.DataFrame({\"customer_id\": [1, 2, 3, 4], \"name\": [\"Ada\", \"Bo\", \"Cy\", \"Di\"]})\norders = pd.DataFrame({\"order_id\": [1, 2], \"customer_id\": [2, 4]})\nprint(customers[\"name\"].tolist())\n",
+      "solution": "import pandas as pd\ncustomers = pd.DataFrame({\"customer_id\": [1, 2, 3, 4], \"name\": [\"Ada\", \"Bo\", \"Cy\", \"Di\"]})\norders = pd.DataFrame({\"order_id\": [1, 2], \"customer_id\": [2, 4]})\nm = customers.merge(orders, on=\"customer_id\", how=\"left\", indicator=True)\nnames = m[m[\"_merge\"] == \"left_only\"][\"name\"].tolist()\nprint(names)\n",
+      "hints": [
+        "A left merge from customers keeps customers without orders.",
+        "`indicator=True` adds a `_merge` column; unmatched left rows are `left_only`.",
+        "Filter `m[\"_merge\"] == \"left_only\"` and take the `name` column."
+      ],
+      "kind": "python",
+      "expected": "['Ada', 'Cy']"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Revenue by city with checks",
+      "prompt": "Merge `orders` with `customers` (left join, `validate=\"many_to_one\"`), then total `amount` per `city`, treating orders with no customer as the city `\"unknown\"` (use `fillna`). Print the totals with `print(totals.to_string())` sorted by city, then print `True` or `False` for whether the total of the city totals equals the total of the original orders.",
+      "starter": "import pandas as pd\ncustomers = pd.DataFrame({\"customer_id\": [1, 2, 3], \"city\": [\"Oslo\", \"Rome\", \"Oslo\"]})\norders = pd.DataFrame({\"order_id\": [1, 2, 3, 4, 5], \"customer_id\": [1, 2, 3, 1, 9], \"amount\": [10, 20, 30, 40, 50]})\nprint(orders[\"amount\"].sum())\n",
+      "solution": "import pandas as pd\ncustomers = pd.DataFrame({\"customer_id\": [1, 2, 3], \"city\": [\"Oslo\", \"Rome\", \"Oslo\"]})\norders = pd.DataFrame({\"order_id\": [1, 2, 3, 4, 5], \"customer_id\": [1, 2, 3, 1, 9], \"amount\": [10, 20, 30, 40, 50]})\nm = orders.merge(customers, on=\"customer_id\", how=\"left\", validate=\"many_to_one\")\nm[\"city\"] = m[\"city\"].fillna(\"unknown\")\ntotals = m.groupby(\"city\")[\"amount\"].sum()\nprint(totals.to_string())\nprint(totals.sum() == orders[\"amount\"].sum())\n",
+      "kind": "python",
+      "expected": "city\nOslo       80\nRome       20\nunknown    50\nTrue"
+    },
+    {
+      "id": "i2",
+      "title": "Reconcile two systems",
+      "prompt": "Two systems list order ids: `src` (source) and `wh` (warehouse), each with an `order_id` and an `amount`. Outer-merge them on `order_id` with the indicator and `suffixes=(\"_src\", \"_wh\")`. Print three lines: ids only in the source (sorted list), ids only in the warehouse (sorted list), and the sorted list of ids present in both whose amounts differ.",
+      "starter": "import pandas as pd\nsrc = pd.DataFrame({\"order_id\": [1, 2, 3, 4], \"amount\": [10, 20, 30, 40]})\nwh = pd.DataFrame({\"order_id\": [2, 3, 4, 5], \"amount\": [20, 35, 40, 50]})\nprint(len(src), len(wh))\n",
+      "solution": "import pandas as pd\nsrc = pd.DataFrame({\"order_id\": [1, 2, 3, 4], \"amount\": [10, 20, 30, 40]})\nwh = pd.DataFrame({\"order_id\": [2, 3, 4, 5], \"amount\": [20, 35, 40, 50]})\nm = src.merge(wh, on=\"order_id\", how=\"outer\", indicator=True, suffixes=(\"_src\", \"_wh\"))\nprint(sorted(m[m[\"_merge\"] == \"left_only\"][\"order_id\"].tolist()))\nprint(sorted(m[m[\"_merge\"] == \"right_only\"][\"order_id\"].tolist()))\nboth = m[m[\"_merge\"] == \"both\"]\nprint(sorted(both[both[\"amount_src\"] != both[\"amount_wh\"]][\"order_id\"].tolist()))\n",
+      "kind": "python",
+      "expected": "[1]\n[5]\n[3]"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: find the duplicate key",
+      "required": false,
+      "prompt": "The lookup table `prices` has a duplicated `sku`. Merging it with `lines` changes the row count and the revenue. Print four lines: rows in `lines`, rows after a left merge, the list of duplicated skus (sorted), and the number of rows after merging with a de-duplicated lookup (`drop_duplicates(subset=\"sku\")`) using `validate=\"many_to_one\"`.",
+      "starter": "import pandas as pd\nlines = pd.DataFrame({\"line\": [1, 2, 3, 4], \"sku\": [\"a\", \"b\", \"a\", \"c\"]})\nprices = pd.DataFrame({\"sku\": [\"a\", \"b\", \"b\", \"c\"], \"price\": [5, 7, 7, 9]})\nprint(len(lines))\n",
+      "solution": "import pandas as pd\nlines = pd.DataFrame({\"line\": [1, 2, 3, 4], \"sku\": [\"a\", \"b\", \"a\", \"c\"]})\nprices = pd.DataFrame({\"sku\": [\"a\", \"b\", \"b\", \"c\"], \"price\": [5, 7, 7, 9]})\nprint(len(lines))\nprint(len(lines.merge(prices, on=\"sku\", how=\"left\")))\nprint(sorted(prices[prices[\"sku\"].duplicated()][\"sku\"].unique().tolist()))\nclean = prices.drop_duplicates(subset=\"sku\")\nprint(len(lines.merge(clean, on=\"sku\", how=\"left\", validate=\"many_to_one\")))\n",
+      "kind": "python",
+      "expected": "4\n5\n['b']\n4"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`orders` has 5 rows; one has a customer id missing from `customers`. How many rows does `orders.merge(customers, on='customer_id')` return, assuming unique customer ids?",
+      "options": [
+        "5",
+        "4",
+        "6",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "The default is an inner join, so the unmatched order is dropped and 4 rows remain. `how=\"left\"` would keep all 5. No error is raised for missing matches."
+    },
+    {
+      "id": "c2",
+      "question": "The customers key is duplicated for one customer with 2 orders. After `orders.merge(customers, on='customer_id', how='left')`, what happens to that customer's orders?",
+      "options": [
+        "Nothing, left joins never add rows",
+        "They appear twice each",
+        "They are dropped",
+        "They are merged into one row"
+      ],
+      "answer": 1,
+      "explanation": "Each order matches both duplicate customer rows, so it appears twice and revenue is inflated. A left join only guarantees no left row is lost; `validate=\"many_to_one\"` would raise an error."
+    },
+    {
+      "id": "c3",
+      "question": "Which `_merge` value marks a customer who exists only in the left table of an outer merge?",
+      "options": [
+        "both",
+        "left_only",
+        "right_only",
+        "unmatched"
+      ],
+      "answer": 1,
+      "explanation": "`left_only` means the key was present in the left table only. `right_only` is the reverse and `both` means both tables had the key. `unmatched` is not a value pandas uses."
+    },
+    {
+      "id": "c4",
+      "question": "`a` has keys [1, 2, 3] and `b` has keys [2, 3, 4, 5], all unique. What are the row counts for inner, left, right and outer?",
+      "options": [
+        "2, 3, 4, 5",
+        "3, 3, 4, 5",
+        "2, 3, 4, 7",
+        "3, 2, 4, 5"
+      ],
+      "answer": 0,
+      "explanation": "Inner keeps keys 2 and 3: 2 rows. Left keeps all 3 of `a`. Right keeps all 4 of `b`. Outer keeps the union {1,2,3,4,5}: 5 rows, not 7, because matching keys share one row."
+    },
+    {
+      "id": "c5",
+      "question": "Both tables have a non-key column `name`. What are the columns in the merged result when `suffixes` is not given?",
+      "options": [
+        "name only, from the left table",
+        "name_x and name_y",
+        "name and name_1",
+        "An error is raised"
+      ],
+      "answer": 1,
+      "explanation": "Pandas keeps both columns and appends `_x` to the left and `_y` to the right. It never silently drops one. Pass `suffixes` to choose meaningful names."
+    }
+  ],
+  "id": "d081"
+}

@@ -1,0 +1,193 @@
+{
+  "id": "a096",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "sum",
+      "conditional-aggregation",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pivot-records",
+      "sales-by-month"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "pivot-report"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Rows, Columns and Values",
+      "kind": "python",
+      "prompt": "Replicate a PivotTable with `Product` in Rows, `Region` in Columns and Sum of `Amount` in Values, with grand totals named `Total` and empty cells shown as 0. Print it with `to_string()`.",
+      "starter": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"Date\": pd.to_datetime([\"2025-01-05\", \"2025-01-20\", \"2025-02-03\", \"2025-02-14\", \"2025-03-02\", \"2025-03-15\", \"2025-03-28\", \"2026-01-09\"]),\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"North\", \"South\", \"East\", \"North\"],\n    \"Product\": [\"Pen\", \"Pen\", \"Book\", \"Book\", \"Pen\", \"Book\", \"Pen\", \"Book\"],\n    \"Qty\": [3, 1, 2, 5, 4, 1, 2, 6],\n    \"Amount\": [30, 10, 40, 100, 40, 20, 20, 90],\n})\n\n# build and print the pivot\n",
+      "solution": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"Date\": pd.to_datetime([\"2025-01-05\", \"2025-01-20\", \"2025-02-03\", \"2025-02-14\", \"2025-03-02\", \"2025-03-15\", \"2025-03-28\", \"2026-01-09\"]),\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"North\", \"South\", \"East\", \"North\"],\n    \"Product\": [\"Pen\", \"Pen\", \"Book\", \"Book\", \"Pen\", \"Book\", \"Pen\", \"Book\"],\n    \"Qty\": [3, 1, 2, 5, 4, 1, 2, 6],\n    \"Amount\": [30, 10, 40, 100, 40, 20, 20, 90],\n})\n\npt = sales.pivot_table(index=\"Product\", columns=\"Region\", values=\"Amount\", aggfunc=\"sum\", margins=True, margins_name=\"Total\", fill_value=0)\nprint(pt.to_string())\n",
+      "hints": [
+        "pivot_table has parameters named after the pivot areas.",
+        "index is Rows, columns is Columns, values and aggfunc are Values.",
+        "Add margins=True, margins_name=\"Total\" and fill_value=0."
+      ],
+      "expected": "Region   East  North  South  Total\nProduct                           \nBook      100    130     20    250\nPen        20     70     10    100\nTotal     120    200     30    350"
+    },
+    {
+      "id": "g2",
+      "title": "Group by year and month",
+      "kind": "python",
+      "prompt": "Replicate grouping the Date field by Years and Months. Print the total `Amount` per year-month using `groupby` on the monthly period of `Date`, as a Series with `to_string()`.",
+      "starter": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"Date\": pd.to_datetime([\"2025-01-05\", \"2025-01-20\", \"2025-02-03\", \"2025-02-14\", \"2025-03-02\", \"2025-03-15\", \"2025-03-28\", \"2026-01-09\"]),\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"North\", \"South\", \"East\", \"North\"],\n    \"Product\": [\"Pen\", \"Pen\", \"Book\", \"Book\", \"Pen\", \"Book\", \"Pen\", \"Book\"],\n    \"Qty\": [3, 1, 2, 5, 4, 1, 2, 6],\n    \"Amount\": [30, 10, 40, 100, 40, 20, 20, 90],\n})\n\n# total per year-month\n",
+      "solution": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"Date\": pd.to_datetime([\"2025-01-05\", \"2025-01-20\", \"2025-02-03\", \"2025-02-14\", \"2025-03-02\", \"2025-03-15\", \"2025-03-28\", \"2026-01-09\"]),\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"North\", \"South\", \"East\", \"North\"],\n    \"Product\": [\"Pen\", \"Pen\", \"Book\", \"Book\", \"Pen\", \"Book\", \"Pen\", \"Book\"],\n    \"Qty\": [3, 1, 2, 5, 4, 1, 2, 6],\n    \"Amount\": [30, 10, 40, 100, 40, 20, 20, 90],\n})\n\nprint(sales.groupby(sales[\"Date\"].dt.to_period(\"M\"))[\"Amount\"].sum().to_string())\n",
+      "hints": [
+        "A period such as 2025-01 keeps both year and month.",
+        "sales[\"Date\"].dt.to_period(\"M\") gives it.",
+        "Group by that and sum Amount."
+      ],
+      "expected": "Date\n2025-01     40\n2025-02    140\n2025-03     80\n2026-01     90\nFreq: M"
+    },
+    {
+      "id": "g3",
+      "title": "Calculated field",
+      "kind": "python",
+      "prompt": "Replicate the calculated field `AvgPrice = Amount/Qty` in a pivot with Region in Rows. Print `AvgPrice` per region (a ratio of the summed fields), rounded to 2 decimals, as a Series with `to_string()`.",
+      "starter": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"Date\": pd.to_datetime([\"2025-01-05\", \"2025-01-20\", \"2025-02-03\", \"2025-02-14\", \"2025-03-02\", \"2025-03-15\", \"2025-03-28\", \"2026-01-09\"]),\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"North\", \"South\", \"East\", \"North\"],\n    \"Product\": [\"Pen\", \"Pen\", \"Book\", \"Book\", \"Pen\", \"Book\", \"Pen\", \"Book\"],\n    \"Qty\": [3, 1, 2, 5, 4, 1, 2, 6],\n    \"Amount\": [30, 10, 40, 100, 40, 20, 20, 90],\n})\n\n# AvgPrice per region as a ratio of sums\n",
+      "solution": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"Date\": pd.to_datetime([\"2025-01-05\", \"2025-01-20\", \"2025-02-03\", \"2025-02-14\", \"2025-03-02\", \"2025-03-15\", \"2025-03-28\", \"2026-01-09\"]),\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"North\", \"South\", \"East\", \"North\"],\n    \"Product\": [\"Pen\", \"Pen\", \"Book\", \"Book\", \"Pen\", \"Book\", \"Pen\", \"Book\"],\n    \"Qty\": [3, 1, 2, 5, 4, 1, 2, 6],\n    \"Amount\": [30, 10, 40, 100, 40, 20, 20, 90],\n})\n\ng = sales.groupby(\"Region\")[[\"Amount\", \"Qty\"]].sum()\nprint((g[\"Amount\"] / g[\"Qty\"]).round(2).to_string())\n",
+      "hints": [
+        "A calculated field is evaluated after the totals are formed.",
+        "Sum Amount and Qty by region first.",
+        "Divide the summed Amount by the summed Qty."
+      ],
+      "expected": "Region\nEast     17.14\nNorth    13.33\nSouth    15.00"
+    },
+    {
+      "id": "g4",
+      "title": "Design the PivotTable (written)",
+      "kind": "written",
+      "prompt": "A Table `Sales` has Date, Region, Product, Qty and Amount for two years. Describe the PivotTable layout for 'Amount by month and year for each region, with the share of the grand total', the grouping, the slicer, and the steps to bring in new rows next month.",
+      "starter": "Rows: ...\nColumns: ...\nValues: ...\nGrouping: ...\nSlicer: ...\nRefresh: ...",
+      "solution": "Insert, PivotTable with the Table `Sales` as the source. Rows: Date, grouped by Years and Months (right-click, Group, select Years and Months). Columns: Region. Values: Amount (Sum) and Amount again, with Show Values As set to % of Grand Total, renamed `Share`. Slicer: Insert Slicer on Product so that the report can be limited to one product. New rows: add them directly under the Table so that it expands, then Data, Refresh All; the pivot reads the Table through its cache and picks up the new rows only after the refresh.",
+      "hints": [
+        "Years and Months must both be selected when grouping dates.",
+        "The same field can be placed in Values twice.",
+        "A Table source grows when rows are added; the pivot needs Refresh All."
+      ],
+      "rubric": [
+        "Date is in Rows, grouped by Years and Months.",
+        "Region is in Columns and Amount in Values.",
+        "A second Values field uses Show Values As % of Grand Total.",
+        "Mentions a slicer and Refresh All with a Table source."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Year-month by region with share",
+      "kind": "python",
+      "prompt": "Replicate a pivot with year-month in Rows (monthly period of `Date`), Region in Columns, Sum of Amount, no grand totals, empty cells 0. Print it with `to_string()`. Then print, on one line, `Share North` and the percentage of total Amount that comes from North, rounded to 1 decimal (for example `Share North 42.3`).",
+      "starter": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"Date\": pd.to_datetime([\"2025-01-05\", \"2025-01-20\", \"2025-02-03\", \"2025-02-14\", \"2025-03-02\", \"2025-03-15\", \"2025-03-28\", \"2026-01-09\"]),\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"North\", \"South\", \"East\", \"North\"],\n    \"Product\": [\"Pen\", \"Pen\", \"Book\", \"Book\", \"Pen\", \"Book\", \"Pen\", \"Book\"],\n    \"Qty\": [3, 1, 2, 5, 4, 1, 2, 6],\n    \"Amount\": [30, 10, 40, 100, 40, 20, 20, 90],\n})\n\n# pivot by year-month and region, then the North share\n",
+      "solution": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"Date\": pd.to_datetime([\"2025-01-05\", \"2025-01-20\", \"2025-02-03\", \"2025-02-14\", \"2025-03-02\", \"2025-03-15\", \"2025-03-28\", \"2026-01-09\"]),\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"North\", \"South\", \"East\", \"North\"],\n    \"Product\": [\"Pen\", \"Pen\", \"Book\", \"Book\", \"Pen\", \"Book\", \"Pen\", \"Book\"],\n    \"Qty\": [3, 1, 2, 5, 4, 1, 2, 6],\n    \"Amount\": [30, 10, 40, 100, 40, 20, 20, 90],\n})\n\nym = sales[\"Date\"].dt.to_period(\"M\")\npt = sales.pivot_table(index=ym, columns=\"Region\", values=\"Amount\", aggfunc=\"sum\", fill_value=0)\nprint(pt.to_string())\nshare = sales.loc[sales[\"Region\"] == \"North\", \"Amount\"].sum() / sales[\"Amount\"].sum() * 100\nprint(\"Share North\", round(share, 1))\n",
+      "expected": "Region   East  North  South\nDate                       \n2025-01     0     30     10\n2025-02   100     40      0\n2025-03    20     40     20\n2026-01     0     90      0\nShare North 57.1"
+    },
+    {
+      "id": "i2",
+      "title": "Weighted price versus mean of prices",
+      "kind": "python",
+      "prompt": "For each Product compute two figures: `Weighted` = sum of Amount divided by sum of Qty (the calculated field) and `MeanOfPrices` = the mean of the row prices `Amount/Qty`. Print the table with both columns rounded to 2 decimals using `to_string()`, then a last line `Differs` followed by `True` or `False` for whether the two columns differ for any product.",
+      "starter": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"Date\": pd.to_datetime([\"2025-01-05\", \"2025-01-20\", \"2025-02-03\", \"2025-02-14\", \"2025-03-02\", \"2025-03-15\", \"2025-03-28\", \"2026-01-09\"]),\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"North\", \"South\", \"East\", \"North\"],\n    \"Product\": [\"Pen\", \"Pen\", \"Book\", \"Book\", \"Pen\", \"Book\", \"Pen\", \"Book\"],\n    \"Qty\": [3, 1, 2, 5, 4, 1, 2, 6],\n    \"Amount\": [30, 10, 40, 100, 40, 20, 20, 90],\n})\n\n# Weighted and MeanOfPrices per product, then the Differs line\n",
+      "solution": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"Date\": pd.to_datetime([\"2025-01-05\", \"2025-01-20\", \"2025-02-03\", \"2025-02-14\", \"2025-03-02\", \"2025-03-15\", \"2025-03-28\", \"2026-01-09\"]),\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"North\", \"South\", \"East\", \"North\"],\n    \"Product\": [\"Pen\", \"Pen\", \"Book\", \"Book\", \"Pen\", \"Book\", \"Pen\", \"Book\"],\n    \"Qty\": [3, 1, 2, 5, 4, 1, 2, 6],\n    \"Amount\": [30, 10, 40, 100, 40, 20, 20, 90],\n})\n\nsales[\"Price\"] = sales[\"Amount\"] / sales[\"Qty\"]\ng = sales.groupby(\"Product\").agg(Amount=(\"Amount\", \"sum\"), Qty=(\"Qty\", \"sum\"), MeanOfPrices=(\"Price\", \"mean\"))\ng[\"Weighted\"] = g[\"Amount\"] / g[\"Qty\"]\nout = g[[\"Weighted\", \"MeanOfPrices\"]].round(2)\nprint(out.to_string())\nprint(\"Differs\", bool((out[\"Weighted\"] != out[\"MeanOfPrices\"]).any()))\n",
+      "expected": "         Weighted  MeanOfPrices\nProduct                        \nBook        17.86         18.75\nPen         10.00         10.00\nDiffers True"
+    },
+    {
+      "id": "i3",
+      "title": "Dashboard pivots and slicers (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Two PivotTables, one by Region and one by Product, are built from the same Table. Explain how to use one slicer on Year to filter both, how to check that both pivots agree on the grand total, and what to do when the totals differ after new data is pasted in.",
+      "starter": "Steps: ...",
+      "solution": "Insert a slicer on the Year field from the first pivot (PivotTable Analyze, Insert Slicer), then right-click the slicer, choose Report Connections and tick the second pivot, so one click filters both. For the check, put `=SUM(Sales[Amount])` next to the pivots and compare each pivot grand total with it (with the slicer cleared). If they differ after new data was pasted in, the likely causes are a pivot that has not been refreshed (use Data, Refresh All), a source range that does not include the new rows (convert it to a Table or change the data source), or Amount values typed as text (the pivot sums only numbers). Fix the cause and refresh again.",
+      "rubric": [
+        "Connects the slicer to both pivots with Report Connections.",
+        "Compares pivot grand totals with SUM of the source.",
+        "Names refresh, source range and text numbers as causes."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "PivotTables, slicers and calculated fields are in desktop Excel (Windows or Mac, 2016 or later) and in Excel for the web with some limits; LibreOffice Calc has pivot tables (Data, Pivot Table) but not slicers. Menu names may differ slightly between versions. The graded exercises replicate the pivots with pandas pivot_table and groupby, which run in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A Values field shows 'Count of Amount' although you wanted totals. What is the most likely cause?",
+      "options": [
+        "The pivot needs refreshing",
+        "The Amount column contains text or blanks",
+        "The slicer is on",
+        "Calculated fields are enabled"
+      ],
+      "answer": 1,
+      "explanation": "Excel defaults to Count when a field holds text or blank cells. Refreshing or slicers do not change the summary function. Repair the data or choose Sum explicitly."
+    },
+    {
+      "id": "c2",
+      "question": "Dates from 2025 and 2026 are grouped by Months only. What happens to January?",
+      "options": [
+        "Each January stays separate",
+        "Both Januarys are added into one row",
+        "Excel raises an error",
+        "Only 2025 is shown"
+      ],
+      "answer": 1,
+      "explanation": "Grouping by Months alone ignores the year, so all Januarys fall in one row. Select Years and Months together."
+    },
+    {
+      "id": "c3",
+      "question": "Region North sums to Amount 110 and Qty 9. What does a calculated field =Amount/Qty show for North?",
+      "options": [
+        "The mean of the row prices",
+        "About 12.22",
+        "110",
+        "9"
+      ],
+      "answer": 1,
+      "explanation": "A calculated field uses the summed fields, 110/9 = 12.22. The mean of row prices can differ because it ignores quantities."
+    },
+    {
+      "id": "c4",
+      "question": "New rows are added under a Table that is the pivot source. What must you do to see them in the pivot?",
+      "options": [
+        "Nothing, it updates itself",
+        "Refresh the pivot",
+        "Rebuild the pivot",
+        "Add a slicer"
+      ],
+      "answer": 1,
+      "explanation": "The pivot reads a cache, so it needs a refresh. A Table source expands with the new rows, so no rebuild is needed; with a plain range source the data source would also need changing."
+    },
+    {
+      "id": "c5",
+      "question": "What does pandas pivot_table(..., margins=True) correspond to?",
+      "options": [
+        "A slicer",
+        "Grand totals",
+        "A calculated field",
+        "Show Values As"
+      ],
+      "answer": 1,
+      "explanation": "margins=True adds the All (grand total) row and column, as the Grand Totals option does in a PivotTable."
+    }
+  ]
+}

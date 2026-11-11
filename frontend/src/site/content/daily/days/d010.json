@@ -1,0 +1,173 @@
+{
+  "id": "d010",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-collections",
+      "python-fundamentals"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Edit a product",
+      "prompt": "The dictionary `product` is `{\"name\": \"Lamp\", \"price\": 20}`. Change the price to 25, add the key `\"stock\"` with value 8, and print the dictionary.",
+      "starter": "product = {\"name\": \"Lamp\", \"price\": 20}\n",
+      "solution": "product = {\"name\": \"Lamp\", \"price\": 20}\nproduct[\"price\"] = 25\nproduct[\"stock\"] = 8\nprint(product)\n",
+      "hints": [
+        "Assigning to an existing key changes it; assigning to a new key adds it.",
+        "`product[\"price\"] = 25` changes the price.",
+        "Add `product[\"stock\"] = 8`, then `print(product)`."
+      ],
+      "kind": "python",
+      "expected": "{'name': 'Lamp', 'price': 25, 'stock': 8}"
+    },
+    {
+      "id": "g2",
+      "title": "Safe lookup",
+      "prompt": "`rates` is `{\"EUR\": 0.92, \"GBP\": 0.79}`. Print the rate for `\"GBP\"`, then the rate for `\"JPY\"` using a default of `0.0` so that no error occurs. Print the two values on two lines.",
+      "starter": "rates = {\"EUR\": 0.92, \"GBP\": 0.79}\n",
+      "solution": "rates = {\"EUR\": 0.92, \"GBP\": 0.79}\nprint(rates.get(\"GBP\"))\nprint(rates.get(\"JPY\", 0.0))\n",
+      "hints": [
+        "Square brackets raise `KeyError` for a missing key; another way to read does not.",
+        "`get` takes the key and, optionally, a default.",
+        "`rates.get(\"JPY\", 0.0)` gives `0.0`."
+      ],
+      "kind": "python",
+      "expected": "0.79\n0.0"
+    },
+    {
+      "id": "g3",
+      "title": "Totals from values",
+      "prompt": "`sales` is `{\"north\": 120, \"south\": 95, \"east\": 140}`. Print the total of all values, then the largest value, then the sorted list of keys, each on its own line.",
+      "starter": "sales = {\"north\": 120, \"south\": 95, \"east\": 140}\n",
+      "solution": "sales = {\"north\": 120, \"south\": 95, \"east\": 140}\nprint(sum(sales.values()))\nprint(max(sales.values()))\nprint(sorted(sales))\n",
+      "hints": [
+        "`values()` gives all the values and works with `sum()` and `max()`.",
+        "`sorted(sales)` sorts the keys.",
+        "Three lines: `sum(sales.values())`, `max(sales.values())`, `sorted(sales)`."
+      ],
+      "kind": "python",
+      "expected": "355\n140\n['east', 'north', 'south']"
+    },
+    {
+      "id": "g4",
+      "title": "Merge defaults and overrides",
+      "prompt": "`defaults` is `{\"color\": \"blue\", \"size\": \"M\"}` and `overrides` is `{\"size\": \"L\", \"gift\": True}`. Update `defaults` with `overrides` and print `defaults`.",
+      "starter": "defaults = {\"color\": \"blue\", \"size\": \"M\"}\noverrides = {\"size\": \"L\", \"gift\": True}\n",
+      "solution": "defaults = {\"color\": \"blue\", \"size\": \"M\"}\noverrides = {\"size\": \"L\", \"gift\": True}\ndefaults.update(overrides)\nprint(defaults)\n",
+      "hints": [
+        "One dictionary method copies entries from another.",
+        "`defaults.update(overrides)`; do not assign its result.",
+        "Then `print(defaults)`; `size` becomes `\"L\"`."
+      ],
+      "kind": "python",
+      "expected": "{'color': 'blue', 'size': 'L', 'gift': True}"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Count fruit by hand",
+      "prompt": "Start with an empty dictionary `counts`. The basket holds, in order, `\"apple\"`, `\"pear\"`, `\"apple\"`, `\"fig\"`, `\"apple\"`, `\"pear\"`. Count them with the idiom `counts[x] = counts.get(x, 0) + 1`, repeated once per fruit (loops come tomorrow). Then print `counts`, and on the next line the count of `\"kiwi\"` using `get` with a default of 0.",
+      "starter": "counts = {}\n",
+      "solution": "counts = {}\ncounts[\"apple\"] = counts.get(\"apple\", 0) + 1\ncounts[\"pear\"] = counts.get(\"pear\", 0) + 1\ncounts[\"apple\"] = counts.get(\"apple\", 0) + 1\ncounts[\"fig\"] = counts.get(\"fig\", 0) + 1\ncounts[\"apple\"] = counts.get(\"apple\", 0) + 1\ncounts[\"pear\"] = counts.get(\"pear\", 0) + 1\nprint(counts)\nprint(counts.get(\"kiwi\", 0))\n",
+      "kind": "python",
+      "expected": "{'apple': 3, 'pear': 2, 'fig': 1}\n0"
+    },
+    {
+      "id": "i2",
+      "title": "Nested profile",
+      "prompt": "`profile` is `{\"user\": \"ada\", \"address\": {\"city\": \"London\", \"zip\": \"N1\"}, \"tags\": [\"vip\", \"beta\"]}`. Print, on separate lines: the city; the number of tags; the zip of the `\"billing\"` address, which does not exist, as `\"none\"` using chained `get` with `{}` as the default for the missing level. Then change the city to `\"Leeds\"` and print the whole `address` dictionary.",
+      "starter": "profile = {\"user\": \"ada\", \"address\": {\"city\": \"London\", \"zip\": \"N1\"}, \"tags\": [\"vip\", \"beta\"]}\n",
+      "solution": "profile = {\"user\": \"ada\", \"address\": {\"city\": \"London\", \"zip\": \"N1\"}, \"tags\": [\"vip\", \"beta\"]}\nprint(profile[\"address\"][\"city\"])\nprint(len(profile[\"tags\"]))\nprint(profile.get(\"billing\", {}).get(\"zip\", \"none\"))\nprofile[\"address\"][\"city\"] = \"Leeds\"\nprint(profile[\"address\"])\n",
+      "kind": "python",
+      "expected": "London\n2\nnone\n{'city': 'Leeds', 'zip': 'N1'}"
+    },
+    {
+      "id": "i3",
+      "title": "Price list update (stretch)",
+      "prompt": "`prices` is `{\"tea\": 3.0, \"coffee\": 4.5, \"juice\": 3.5}` and `new_prices` is `{\"coffee\": 5.0, \"water\": 1.0}`. Update `prices` with `new_prices`. Then print, one per line: the number of products; the cheapest price; the list of the product names sorted by name; and the pair `(name, price)` for `\"coffee\"` as a tuple built from `list(prices.items())` order (it is the second pair).",
+      "starter": "prices = {\"tea\": 3.0, \"coffee\": 4.5, \"juice\": 3.5}\nnew_prices = {\"coffee\": 5.0, \"water\": 1.0}\n",
+      "solution": "prices = {\"tea\": 3.0, \"coffee\": 4.5, \"juice\": 3.5}\nnew_prices = {\"coffee\": 5.0, \"water\": 1.0}\nprices.update(new_prices)\nprint(len(prices))\nprint(min(prices.values()))\nprint(sorted(prices))\nprint(list(prices.items())[1])\n",
+      "kind": "python",
+      "expected": "4\n1.0\n['coffee', 'juice', 'tea', 'water']\n('coffee', 5.0)",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nd = {\"a\": 1}\nprint(d.get(\"b\", 0) + 1)\n```",
+      "options": [
+        "A `KeyError`",
+        "`1`",
+        "`None`",
+        "`2`"
+      ],
+      "answer": 1,
+      "explanation": "`get` returns the default 0 for the missing key, so the sum is 1. Brackets would raise `KeyError`, but `get` does not."
+    },
+    {
+      "id": "c2",
+      "question": "What does `\"London\" in {\"city\": \"London\"}` return?",
+      "options": [
+        "`True`",
+        "`False`",
+        "`\"city\"`",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "`in` tests the keys, and `\"London\"` is a value, not a key. Use `.values()` to search values."
+    },
+    {
+      "id": "c3",
+      "question": "What happens with `counts = {}` followed by `counts[\"x\"] += 1`?",
+      "options": [
+        "`counts` becomes `{\"x\": 1}`",
+        "A `KeyError`",
+        "`counts` becomes `{\"x\": 0}`",
+        "Nothing; Python ignores it"
+      ],
+      "answer": 1,
+      "explanation": "`+=` reads the current value first, and the key does not exist yet, so `KeyError` is raised. Use `counts.get(\"x\", 0) + 1`."
+    },
+    {
+      "id": "c4",
+      "question": "What is `d` after this code?\n\n```python\nd = {\"a\": 1, \"b\": 2}\nd.update({\"b\": 9, \"c\": 3})\n```",
+      "options": [
+        "`{\"a\": 1, \"b\": 2, \"c\": 3}`",
+        "`{\"a\": 1, \"b\": 9, \"c\": 3}`",
+        "`{\"b\": 9, \"c\": 3}`",
+        "`None`"
+      ],
+      "answer": 1,
+      "explanation": "`update` adds new keys and overwrites existing ones with the new values. It changes `d` in place; it does not return a new dictionary."
+    },
+    {
+      "id": "c5",
+      "question": "What does `list({\"x\": 10, \"y\": 20}.items())[0]` return?",
+      "options": [
+        "`\"x\"`",
+        "`10`",
+        "`(\"x\", 10)`",
+        "`[\"x\", 10]`"
+      ],
+      "answer": 2,
+      "explanation": "`items()` gives `(key, value)` tuples, so the first element is the tuple `(\"x\", 10)`, not just the key or the value."
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "id": "d020",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-csv-json"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "csv-column-totals",
+      "records-to-csv-text",
+      "flatten-json-records"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Read rows with DictReader",
+      "prompt": "The variable `text` holds CSV with the header `name,qty` and rows `pen,4` and `book,2`. Read it with `csv.DictReader` over `io.StringIO(text)` and print each row as `name: qty` where qty is shown as an integer plus one (so the printed numbers are 5 and 3). Expected output: `pen: 5` and `book: 3`.",
+      "starter": "import csv\nimport io\n\ntext = \"name,qty\\npen,4\\nbook,2\\n\"\n# Read the rows and print them\n",
+      "solution": "import csv\nimport io\n\ntext = \"name,qty\\npen,4\\nbook,2\\n\"\nfor row in csv.DictReader(io.StringIO(text)):\n    print(f\"{row['name']}: {int(row['qty']) + 1}\")\n",
+      "kind": "python",
+      "expected": "pen: 5\nbook: 3",
+      "hints": [
+        "`csv.DictReader` needs a file-like object, which `io.StringIO(text)` provides.",
+        "Each `row` is a dict; its values are strings, so `row['qty'] + 1` would fail.",
+        "Print `f\"{row['name']}: {int(row['qty']) + 1}\"` inside the loop."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Write a CSV with DictWriter",
+      "prompt": "Write the two dictionaries in `rows` to an `io.StringIO` using `csv.DictWriter` with fieldnames `id` and `name`, `lineterminator=\"\\n\"`, a header line, and then print the text with `end=\"\"`. Expected output is three lines: the header and two rows.",
+      "starter": "import csv\nimport io\n\nrows = [{\"id\": 1, \"name\": \"Ana\"}, {\"id\": 2, \"name\": \"Bo\"}]\nbuffer = io.StringIO()\n# Write the rows, then print buffer.getvalue()\n",
+      "solution": "import csv\nimport io\n\nrows = [{\"id\": 1, \"name\": \"Ana\"}, {\"id\": 2, \"name\": \"Bo\"}]\nbuffer = io.StringIO()\nwriter = csv.DictWriter(buffer, fieldnames=[\"id\", \"name\"], lineterminator=\"\\n\")\nwriter.writeheader()\nwriter.writerows(rows)\nprint(buffer.getvalue(), end=\"\")\n",
+      "kind": "python",
+      "expected": "id,name\n1,Ana\n2,Bo",
+      "hints": [
+        "Create a `csv.DictWriter` on the buffer and give it `fieldnames`.",
+        "The header is not written automatically: call `writeheader()` first.",
+        "Then call `writerows(rows)` and print `buffer.getvalue()`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Dictionary to JSON text",
+      "prompt": "Convert the dictionary `person` to JSON text with keys sorted and print it. Then parse that text back and print the type of the value stored under `\"skills\"` using `type(...).__name__`. Expected output: the JSON text on the first line, then `list`.",
+      "starter": "import json\n\nperson = {\"name\": \"Ada\", \"skills\": (\"sql\", \"python\"), \"active\": True}\n# Dump with sorted keys, print, load back, print the type of skills\n",
+      "solution": "import json\n\nperson = {\"name\": \"Ada\", \"skills\": (\"sql\", \"python\"), \"active\": True}\ntext = json.dumps(person, sort_keys=True)\nprint(text)\nback = json.loads(text)\nprint(type(back[\"skills\"]).__name__)\n",
+      "kind": "python",
+      "expected": "{\"active\": true, \"name\": \"Ada\", \"skills\": [\"sql\", \"python\"]}\nlist",
+      "hints": [
+        "`json.dumps` returns a string; `sort_keys=True` fixes the key order.",
+        "`json.loads` is the reverse. JSON has no tuple type.",
+        "Print `text`, then `type(json.loads(text)['skills']).__name__`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Read nested JSON safely",
+      "prompt": "The string `raw` holds JSON for two users, one of which has no `email` key. Parse it and print each user's name and email as `name: email`, using `get` with the default `n/a` for the missing email. Expected output: two lines.",
+      "starter": "import json\n\nraw = '[{\"name\": \"Ana\", \"contact\": {\"email\": \"ana@x.org\"}}, {\"name\": \"Bo\", \"contact\": {}}]'\n# Parse and print\n",
+      "solution": "import json\n\nraw = '[{\"name\": \"Ana\", \"contact\": {\"email\": \"ana@x.org\"}}, {\"name\": \"Bo\", \"contact\": {}}]'\nfor user in json.loads(raw):\n    print(f\"{user['name']}: {user['contact'].get('email', 'n/a')}\")\n",
+      "kind": "python",
+      "expected": "Ana: ana@x.org\nBo: n/a",
+      "hints": [
+        "Start with `json.loads(raw)`; the result is a list of dicts.",
+        "The email lives one level down, under `contact`.",
+        "Use `user['contact'].get('email', 'n/a')`; plain indexing would raise `KeyError` for Bo."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Sales by region from CSV",
+      "prompt": "The CSV text below has columns `region,units,price`. Compute revenue per row (units times price), sum it by region, and print the regions in alphabetical order as `region: total` with the total rounded to 2 decimals. Some rows have a quoted region containing a comma, which must stay one field. Use the `csv` module.\n\n```text\nregion,units,price\nNorth,10,2.5\n\"South, East\",4,10.0\nNorth,2,2.5\n\"South, East\",1,10.0\nWest,3,3.0\n```",
+      "starter": "import csv\nimport io\n\ntext = 'region,units,price\\nNorth,10,2.5\\n\"South, East\",4,10.0\\nNorth,2,2.5\\n\"South, East\",1,10.0\\nWest,3,3.0\\n'\n# Total revenue per region\n",
+      "solution": "import csv\nimport io\n\ntext = 'region,units,price\\nNorth,10,2.5\\n\"South, East\",4,10.0\\nNorth,2,2.5\\n\"South, East\",1,10.0\\nWest,3,3.0\\n'\ntotals = {}\nfor row in csv.DictReader(io.StringIO(text)):\n    revenue = int(row[\"units\"]) * float(row[\"price\"])\n    totals[row[\"region\"]] = totals.get(row[\"region\"], 0) + revenue\nfor region in sorted(totals):\n    print(f\"{region}: {totals[region]:.2f}\")\n",
+      "kind": "python",
+      "expected": "North: 30.00\nSouth, East: 50.00\nWest: 9.00"
+    },
+    {
+      "id": "i2",
+      "title": "Flatten and export",
+      "prompt": "The JSON text in the starter holds two teams, each with a list of members that have a `name` and `points`. Flatten it to one row per member with keys `team`, `name` and `points`, write the rows as CSV (header included, `lineterminator=\"\\n\"`) to an `io.StringIO`, print the CSV text, and then print `Best: ` followed by the name of the member with the most points.",
+      "starter": "import csv\nimport io\nimport json\n\nraw = '[{\"team\": \"red\", \"members\": [{\"name\": \"Ana\", \"points\": 30}, {\"name\": \"Bo\", \"points\": 12}]}, {\"team\": \"blue\", \"members\": [{\"name\": \"Cy\", \"points\": 41}]}]'\n# Flatten, write CSV, print, then print the best member\n",
+      "solution": "import csv\nimport io\nimport json\n\nraw = '[{\"team\": \"red\", \"members\": [{\"name\": \"Ana\", \"points\": 30}, {\"name\": \"Bo\", \"points\": 12}]}, {\"team\": \"blue\", \"members\": [{\"name\": \"Cy\", \"points\": 41}]}]'\nrows = []\nfor team in json.loads(raw):\n    for member in team[\"members\"]:\n        rows.append({\"team\": team[\"team\"], \"name\": member[\"name\"], \"points\": member[\"points\"]})\n\nout = io.StringIO()\nwriter = csv.DictWriter(out, fieldnames=[\"team\", \"name\", \"points\"], lineterminator=\"\\n\")\nwriter.writeheader()\nwriter.writerows(rows)\nprint(out.getvalue(), end=\"\")\nbest = max(rows, key=lambda r: r[\"points\"])\nprint(\"Best:\", best[\"name\"])\n",
+      "kind": "python",
+      "expected": "team,name,points\nred,Ana,30\nred,Bo,12\nblue,Cy,41\nBest: Cy"
+    },
+    {
+      "id": "i3",
+      "title": "CSV to JSON with a bad row report",
+      "prompt": "The CSV below has columns `id,amount`. Convert the valid rows to a list of dictionaries with integer `id` and float `amount`, and collect the ids (as the original text) of rows whose `amount` is not a number. Print the JSON text of the valid rows with `sort_keys=True` on one line, then `Bad ids: ` followed by the bad ids joined with a comma (or `none`).\n\n```text\nid,amount\n1,10.5\n2,abc\n3,7\n4,\n```",
+      "starter": "import csv\nimport io\nimport json\n\ntext = \"id,amount\\n1,10.5\\n2,abc\\n3,7\\n4,\\n\"\n# Convert good rows, report bad ids\n",
+      "solution": "import csv\nimport io\nimport json\n\ntext = \"id,amount\\n1,10.5\\n2,abc\\n3,7\\n4,\\n\"\ngood, bad = [], []\nfor row in csv.DictReader(io.StringIO(text)):\n    try:\n        good.append({\"id\": int(row[\"id\"]), \"amount\": float(row[\"amount\"])})\n    except ValueError:\n        bad.append(row[\"id\"])\nprint(json.dumps(good, sort_keys=True))\nprint(\"Bad ids:\", \",\".join(bad) if bad else \"none\")\n",
+      "kind": "python",
+      "expected": "[{\"amount\": 10.5, \"id\": 1}, {\"amount\": 7.0, \"id\": 3}]\nBad ids: 2,4",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nimport csv, io\nrows = list(csv.reader(io.StringIO('a,\"b,c\",d\\n')))\nprint(len(rows[0]))\n```",
+      "options": [
+        "4",
+        "3",
+        "1",
+        "2"
+      ],
+      "answer": 1,
+      "explanation": "The quotes protect the comma inside `b,c`, so the fields are `a`, `b,c` and `d`. Splitting on every comma would give 4, which is the mistake the `csv` module avoids."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\nimport csv, io\nrow = next(csv.DictReader(io.StringIO('n,q\\nx,10\\n')))\nprint(row['q'] + row['q'])\n```",
+      "options": [
+        "20",
+        "1010",
+        "TypeError",
+        "x10"
+      ],
+      "answer": 1,
+      "explanation": "CSV values are strings, so `+` joins them into `1010`. Adding numbers needs `int(row['q'])` first. No error is raised because adding two strings is legal."
+    },
+    {
+      "id": "c3",
+      "question": "What is the value of `json.loads('{\"a\": null, \"b\": true}')`?",
+      "options": [
+        "{'a': None, 'b': True}",
+        "{'a': null, 'b': true}",
+        "{'a': 'null', 'b': 'true'}",
+        "It raises an error"
+      ],
+      "answer": 0,
+      "explanation": "JSON `null`, `true` and `false` become Python `None`, `True` and `False`. The lowercase names are not Python values, and they are not left as strings."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\nimport json\nprint(json.loads(json.dumps({1: 'x'})))\n```",
+      "options": [
+        "{1: 'x'}",
+        "{'1': 'x'}",
+        "['x']",
+        "It raises TypeError"
+      ],
+      "answer": 1,
+      "explanation": "JSON object keys are always strings, so the integer key 1 is written as `\"1\"` and comes back as the string `'1'`. The round trip does not preserve key types."
+    },
+    {
+      "id": "c5",
+      "question": "Which call turns a Python dictionary into JSON text?",
+      "options": [
+        "json.loads(d)",
+        "json.dumps(d)",
+        "json.load(d)",
+        "json.parse(d)"
+      ],
+      "answer": 1,
+      "explanation": "`dumps` (dump to string) returns text. `loads` and `load` read JSON in, and `parse` does not exist in the module."
+    },
+    {
+      "id": "c6",
+      "question": "`json.loads(\"{'a': 1}\")` raises an error. What is the cause?",
+      "options": [
+        "JSON requires double quotes around strings and keys",
+        "JSON cannot hold numbers",
+        "The dictionary is empty",
+        "loads only reads lists"
+      ],
+      "answer": 0,
+      "explanation": "The text is valid Python but not valid JSON, which allows only double-quoted strings. The error is a `JSONDecodeError`, a kind of `ValueError`."
+    }
+  ]
+}
