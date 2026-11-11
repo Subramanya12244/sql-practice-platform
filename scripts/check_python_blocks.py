@@ -3,6 +3,10 @@
 - ```python blocks in notes must exit 0 within 5 s (no network, run in a temp dir).
 - python tasks (exercises and projects): solution + visible + hidden tests must pass; starter + tests must fail.
 Usage: python3 scripts/check_python_blocks.py   (needs pandas + numpy)
+
+Daily Learning lessons (content/daily/) are not checked here. Their plain ```python fences are illustrative snippets
+(Airflow DAGs, PySpark, partial code) that are only syntax-checked, and every tagged example and exercise in them is
+executed by frontend/src/test/siteDaily.test.ts (see docs/DAILY_LEARNING_CONTENT.md).
 """
 import json
 import re
@@ -31,6 +35,8 @@ def main() -> int:
     for md in sorted(CONTENT.rglob("*.md")):
         text = md.read_text()
         rel = md.relative_to(CONTENT)
+        if rel.parts[0] == "daily":
+            continue
         for i, code in enumerate(BLOCK.findall(text)):
             blocks += 1
             ok, msg = run(code)
