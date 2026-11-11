@@ -30,7 +30,12 @@ export function GuidedWorkspace({ items, storageKey, groupBy }: { items: GuidedE
   const [done, setDone] = useState<Done>({});
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setDone(read(storageKey)); setMounted(true); }, [storageKey]);
-  const current = items.find((i) => i.id === params.get("e")) ?? items[0];
+  // ?e= selects an exercise. It is read after hydration (like the other query-driven pages): the prerendered HTML has no
+  // query string, so choosing from the URL during the first render would not match it and React would report a mismatch.
+  // Links, back and forward still work: every change to the query updates `wanted` through the effect.
+  const [wanted, setWanted] = useState<string | null>(null);
+  useEffect(() => { setWanted(params.get("e")); }, [params]);
+  const current = items.find((i) => i.id === wanted) ?? items[0];
   const groups = useMemo(() => {
     const m = new Map<string, GuidedExercise[]>();
     for (const i of items) m.set((groupBy === "dimension" ? i.dimension : i.level) ?? "Other", [...(m.get((groupBy === "dimension" ? i.dimension : i.level) ?? "Other") ?? []), i]);
