@@ -1,0 +1,192 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-csv-json",
+      "python-etl-pipelines",
+      "etl-batch-processing"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "csv-sales-report-writer",
+      "write-daily-summary-json"
+    ],
+    "projects": [
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "environment": {
+    "packages": [
+      "openpyxl",
+      "pandas"
+    ],
+    "note": "Example 5 writes and reads an .xlsx file with openpyxl, which the browser Python does not include. Install it with `pip install openpyxl pandas` and run the example in a local Python session; the browser shows it read-only with the verified output. The browser-run examples and graded exercises write CSV text and files in a temporary folder instead. Cron is described but never run: the cron matcher of Example 4 is a pure-Python check of what an expression means. A real PostgreSQL server is not available; the SQL function of Example 6 runs on the browser's PostgreSQL-compatible database."
+  },
+  "id": "a165",
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Validate a month",
+      "kind": "python",
+      "prompt": "Write `check_month(m)` that returns `m` when it matches `YYYY-MM` (four digits, a dash, two digits, using `re.fullmatch`) and otherwise raises `ValueError('month must look like 2025-03')`. Print `check_month('2025-03')`, then catch the error for `'2025-3'` and print its message.",
+      "starter": "import re\n",
+      "solution": "import re\n\ndef check_month(m):\n    if not re.fullmatch(r'\\d{4}-\\d{2}', m):\n        raise ValueError('month must look like 2025-03')\n    return m\n\nprint(check_month('2025-03'))\ntry:\n    check_month('2025-3')\nexcept ValueError as e:\n    print(e)\n",
+      "hints": [
+        "re.fullmatch requires the whole text to match.",
+        "The pattern is r'\\d{4}-\\d{2}'.",
+        "Raise ValueError with the exact message in the else path."
+      ],
+      "expected": "2025-03\nmonth must look like 2025-03"
+    },
+    {
+      "id": "g2",
+      "title": "CSV text with fixed formatting",
+      "kind": "python",
+      "prompt": "Build a DataFrame with `name` = `['Ana', 'Lund, Fay']` and `total` = `[10.5, 3.0]`. Print its CSV text with `index=False`, two decimals (`float_format='%.2f'`) and `lineterminator='\\n'`, using `end=''` in print.",
+      "starter": "import pandas as pd\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({'name': ['Ana', 'Lund, Fay'], 'total': [10.5, 3.0]})\nprint(df.to_csv(index=False, float_format='%.2f', lineterminator='\\n'), end='')\n",
+      "hints": [
+        "Create the DataFrame from a dict of two lists.",
+        "df.to_csv(...) without a path returns the text.",
+        "Pass index=False, float_format='%.2f', lineterminator='\\n'."
+      ],
+      "expected": "name,total\nAna,10.50\n\"Lund, Fay\",3.00"
+    },
+    {
+      "id": "g3",
+      "title": "One file per period",
+      "kind": "python",
+      "prompt": "Inside a temporary folder, write the text `x` into `report_2025-03.csv` twice, then into `report_2025-04.csv` once (open with mode `'w'`). Print the sorted list of file names.",
+      "starter": "import os\nimport tempfile\n",
+      "solution": "import os\nimport tempfile\n\nwith tempfile.TemporaryDirectory() as folder:\n    for name in ['report_2025-03.csv', 'report_2025-03.csv', 'report_2025-04.csv']:\n        with open(os.path.join(folder, name), 'w') as f:\n            f.write('x')\n    print(sorted(os.listdir(folder)))\n",
+      "hints": [
+        "Use tempfile.TemporaryDirectory() as a context manager.",
+        "open(os.path.join(folder, name), 'w') overwrites an existing file.",
+        "Print sorted(os.listdir(folder)) inside the with block."
+      ],
+      "expected": "['report_2025-03.csv', 'report_2025-04.csv']"
+    },
+    {
+      "id": "g4",
+      "title": "Parse the options",
+      "kind": "python",
+      "prompt": "Write `parse_args(argv)` with `argparse`: required `--month`, and `--min-amount` as float with default 0.0. Call it with `['--month', '2025-03', '--min-amount', '50']` and print `args.month` and `args.min_amount` on one line: `2025-03 50.0`.",
+      "starter": "import argparse\n",
+      "solution": "import argparse\n\ndef parse_args(argv):\n    p = argparse.ArgumentParser(prog='run_report')\n    p.add_argument('--month', required=True)\n    p.add_argument('--min-amount', type=float, default=0.0)\n    return p.parse_args(argv)\n\nargs = parse_args(['--month', '2025-03', '--min-amount', '50'])\nprint(args.month, args.min_amount)\n",
+      "hints": [
+        "Create argparse.ArgumentParser(prog='run_report').",
+        "add_argument('--min-amount', type=float, default=0.0) gives args.min_amount.",
+        "Return p.parse_args(argv) and print the two attributes."
+      ],
+      "expected": "2025-03 50.0"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A parameterised report with CSV output",
+      "kind": "python",
+      "prompt": "Write `report(conn, month, metric, status='paid')` returning CSV text for that month with one row per region ordered by region and the columns `region` and `value`. `metric` is `'revenue'` (sum of amount) or `'orders'` (count); any other value raises `ValueError('bad metric')`; choose the SQL expression from a dict, never from the user text, and pass month and status as `?` parameters. Round values to 2 decimals via `float_format='%.2f'`, `index=False`, `lineterminator='\\n'`. Print the CSV for `('2025-02', 'revenue')`, then for `('2025-01', 'orders')`, then the message of the `ValueError` for `('2025-01', 'profit')`; close the connection.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (month TEXT, region TEXT, amount REAL, status TEXT)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?, ?, ?)\", [\n    (\"2025-01\", \"north\", 100.0, \"paid\"), (\"2025-01\", \"south\", 60.0, \"paid\"), (\"2025-01\", \"north\", 40.0, \"failed\"),\n    (\"2025-02\", \"north\", 80.0, \"paid\"), (\"2025-02\", \"south\", 90.0, \"paid\"), (\"2025-02\", \"south\", 20.0, \"refunded\"),\n])\n\ndef report(conn, month, metric, status='paid'):\n    pass\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (month TEXT, region TEXT, amount REAL, status TEXT)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?, ?, ?)\", [\n    (\"2025-01\", \"north\", 100.0, \"paid\"), (\"2025-01\", \"south\", 60.0, \"paid\"), (\"2025-01\", \"north\", 40.0, \"failed\"),\n    (\"2025-02\", \"north\", 80.0, \"paid\"), (\"2025-02\", \"south\", 90.0, \"paid\"), (\"2025-02\", \"south\", 20.0, \"refunded\"),\n])\n\nMETRICS = {'revenue': 'SUM(amount)', 'orders': 'COUNT(*)'}\n\ndef report(conn, month, metric, status='paid'):\n    if metric not in METRICS:\n        raise ValueError('bad metric')\n    sql = f'SELECT region, {METRICS[metric]} AS value FROM sales WHERE month = ? AND status = ? GROUP BY region ORDER BY region'\n    df = pd.read_sql_query(sql, conn, params=(month, status))\n    return df.to_csv(index=False, float_format='%.2f', lineterminator='\\n')\n\nprint(report(conn, '2025-02', 'revenue'), end='')\nprint(report(conn, '2025-01', 'orders'), end='')\ntry:\n    report(conn, '2025-01', 'profit')\nexcept ValueError as e:\n    print(e)\nconn.close()\n",
+      "expected": "region,value\nnorth,80.00\nsouth,90.00\nregion,value\nnorth,1\nsouth,1\nbad metric"
+    },
+    {
+      "id": "i2",
+      "title": "A parameterised SQL function",
+      "kind": "sql",
+      "prompt": "On the browser database, drop and create `ra_sales(region text, sold_on date, amount numeric(10,2))` with rows `('north', DATE '2025-03-05', 100.00)`, `('south', DATE '2025-03-20', 50.00)`, `('north', DATE '2025-04-01', 70.00)`. Create `ra_total(p_month date)` returning a table `(region text, total numeric)` with the total per region for that month (start of month inclusive, start of next month exclusive), ordered by region. Return `SELECT * FROM ra_total(DATE '2025-03-01')`.",
+      "starter": "SELECT 'north' AS region, 0 AS total;\n",
+      "solution": "DROP TABLE IF EXISTS ra_sales;\nCREATE TABLE ra_sales (region text, sold_on date, amount numeric(10,2));\nINSERT INTO ra_sales VALUES ('north', DATE '2025-03-05', 100.00), ('south', DATE '2025-03-20', 50.00), ('north', DATE '2025-04-01', 70.00);\nCREATE OR REPLACE FUNCTION ra_total(p_month date)\nRETURNS TABLE (region text, total numeric)\nLANGUAGE sql AS $$\n  SELECT s.region, SUM(s.amount) FROM ra_sales s\n  WHERE s.sold_on >= p_month AND s.sold_on < p_month + INTERVAL '1 month'\n  GROUP BY s.region ORDER BY s.region\n$$;\nSELECT * FROM ra_total(DATE '2025-03-01');\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Plan a scheduled report",
+      "kind": "written",
+      "prompt": "A weekly sales report must reach finance every Monday at 06:00 as a CSV and an Excel file. In 5 to 8 sentences, give the cron expression, say how the job gets its parameters and secrets, how reruns avoid duplicate files, what is logged, how failure is signalled, and what you would not rely on formulas for in the Excel file.",
+      "starter": "Write your answer here.",
+      "solution": "The cron expression is 0 6 * * 1, which means minute 0, hour 6, any day of the month, any month, Monday. The job is a script with a main function taking argparse options such as the week, and the database URL is read from an environment variable set for the job, never written in the script. Cron has a minimal environment, so the command uses absolute paths for the interpreter and the script. The output files are named by the period, for example sales_2025-W10.csv, and are written to a temporary name and renamed, so rerunning the same week overwrites the same file instead of creating duplicates. Each run appends a log line with the parameters, row count, total and file names to a log file, and any failed check ends the script with a non-zero exit code so that a wrapper can alert someone. In the Excel file, formulas are stored without calculated results when openpyxl writes them, so any number another program must read is written as a value.",
+      "required": false,
+      "rubric": [
+        "Gives 0 6 * * 1 and explains the fields",
+        "Uses environment variables and absolute paths",
+        "Names files by period and overwrites on rerun",
+        "Logs parameters and totals, and exits non-zero on failure",
+        "Notes that openpyxl does not calculate formulas"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does the cron expression `30 7 1 * *` mean?",
+      "options": [
+        "07:30 on the first day of every month",
+        "Every 30 minutes at 07:00 on Mondays",
+        "07:30 every day in January",
+        "At minute 1 of hour 7 on the 30th"
+      ],
+      "answer": 0,
+      "explanation": "The fields are minute, hour, day of month, month, day of week. Minute 30, hour 7, day of month 1, and a star for month and weekday."
+    },
+    {
+      "id": "c2",
+      "question": "A report job writes `revenue_2025-03.csv`. It is run twice for March. How many files exist afterwards?",
+      "options": [
+        "One, the second run overwrites the first",
+        "Two",
+        "Zero",
+        "It raises an error on the second run"
+      ],
+      "answer": 0,
+      "explanation": "Naming the file by period and opening it for writing replaces the previous file, so reruns are idempotent."
+    },
+    {
+      "id": "c3",
+      "question": "You write `=SUM(C2:C4)` into a cell with openpyxl and read the file with `load_workbook(path, data_only=True)`. What does the cell return?",
+      "options": [
+        "None, because no program has calculated and cached the result",
+        "The sum",
+        "0",
+        "The text '=SUM(C2:C4)'"
+      ],
+      "answer": 0,
+      "explanation": "openpyxl stores the formula but does not calculate. A cached result exists only after a spreadsheet program has opened and saved the file; data_only=True reads that cache."
+    },
+    {
+      "id": "c4",
+      "question": "Why should the column to aggregate in a report function come from a dict of allowed metrics?",
+      "options": [
+        "A ? placeholder cannot stand for a column or function, and user text in the SQL would allow injection",
+        "Dicts make SQL faster",
+        "Placeholders are not allowed in SELECT",
+        "pandas requires it"
+      ],
+      "answer": 0,
+      "explanation": "Parameters bind values only. Choosing the SQL fragment from a fixed dict keeps outside text out of the statement (Day 157)."
+    },
+    {
+      "id": "c5",
+      "question": "A CSV is written by joining strings with commas and one customer is called `Ortega, Luis`. What happens?",
+      "options": [
+        "The name splits into two columns and later columns shift",
+        "The comma is escaped automatically",
+        "pandas fixes it when reading",
+        "Nothing, commas are ignored"
+      ],
+      "answer": 0,
+      "explanation": "Without quoting, the reader sees an extra field. to_csv quotes such values automatically, which is why you should not build CSV by hand."
+    }
+  ]
+}
