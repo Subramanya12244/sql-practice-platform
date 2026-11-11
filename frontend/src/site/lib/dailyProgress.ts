@@ -11,6 +11,7 @@
 import { addDays, nextRevision, type RevItem } from "./revision";
 import type { BranchId, Check, DayExtras, DayMeta, PhaseMeta } from "./daily";
 import { PHASE_BY_ID } from "./daily";
+import { mergeStudy, type StudySession } from "./dailyStudy";
 
 export interface DayRecord {
   /** ISO time the theory was read to the end. */
@@ -30,6 +31,8 @@ export interface DayRecord {
   completedAt?: string;
   /** Saved code per exercise id, so a learner can stop and continue later. */
   drafts?: Record<string, string>;
+  /** Finished study-time sessions for this lesson (active seconds only; see lib/dailyStudy.ts). Absent on older data. */
+  study?: StudySession[];
 }
 
 export interface DailyState {
@@ -275,6 +278,7 @@ export function mergeRecord(a: DayRecord = {}, b: DayRecord = {}): DayRecord {
     lastVisit: latest(a.lastVisit, b.lastVisit),
     completedAt: earliest(a.completedAt, b.completedAt),
     drafts: { ...(b.drafts ?? {}), ...(a.drafts ?? {}) },
+    ...((a.study?.length || b.study?.length) ? { study: mergeStudy(a.study, b.study) } : {}),
   };
 }
 

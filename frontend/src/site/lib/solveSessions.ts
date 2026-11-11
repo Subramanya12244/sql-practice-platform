@@ -37,9 +37,12 @@ export interface SolveSession {
   topic: string;
 }
 
+/** "daily" sessions time a Daily Learning lesson; they never enter `Progress.sessions` (see lib/dailyStudy.ts). */
+export type ActiveKind = SessionKind | "daily";
+
 export interface ActiveSession {
   id: string;
-  kind: SessionKind;
+  kind: ActiveKind;
   ref: string;
   startedAt: string;
   /** Active milliseconds already settled. */
@@ -146,7 +149,7 @@ export const DEFAULT_TARGET_SEC: Record<string, number> = { Easy: 5 * 60, Medium
 
 export function toSession(s: ActiveSession, status: SessionStatus, now: number): SolveSession {
   return {
-    id: s.id, kind: s.kind, ref: s.ref, startedAt: s.startedAt, endedAt: new Date(now).toISOString(),
+    id: s.id, kind: s.kind as SessionKind, ref: s.ref, startedAt: s.startedAt, endedAt: new Date(now).toISOString(),
     activeSec: Math.round(activeMs(s, now) / 1000), attempts: s.attempts, executions: s.executions, hints: s.hints,
     status, difficulty: s.difficulty, topic: s.topic,
   };
@@ -186,7 +189,7 @@ export function subscribeSessions(f: () => void) {
 
 export const getActive = (ref: string): ActiveSession | undefined => readStore()[ref];
 
-export interface OpenMeta { kind: SessionKind; ref: string; difficulty: string; topic: string; targetSec?: number }
+export interface OpenMeta { kind: ActiveKind; ref: string; difficulty: string; topic: string; targetSec?: number }
 
 /**
  * Start a session for `ref`, or return the one already running. Calling this again (a remount,
@@ -282,8 +285,22 @@ function endSession(ref: string, status: SessionStatus, now: number, commit: (s:
 export function sweepStale(commit: (s: SolveSession) => void, now = Date.now()) {
   const store = readStore();
   for (const [ref, s] of Object.entries(store)) {
+    if (s.kind === "daily") continue; // swept by sweepDailyStudy, into Progress.daily
     if (now - s.beat <= STALE_MS) continue;
     if (s.executions > 0 || s.attempts > 0) endSession(ref, "abandoned", s.beat, commit);
     else { const { [ref]: _g, ...rest } = readStore(); writeStore(rest); }
   }
 }
+
+/** Remove and return the active session for `ref` without converting it (Daily Learning commits it into its own record). */
+export function takeActive(ref: string): ActiveSession | null {
+  const store = readStore();
+  const s = store[ref];
+  if (!s) return null;
+  const { [ref]: _gone, ...rest } = store;
+  writeStore(rest);
+  return s;
+}
+
+/** Active sessions whose ref starts with `prefix` (read-only). */
+export const activeWithPrefix = (prefix: string): ActiveSession[] => Object.values(readStore()).filter((s) => s.ref.startsWith(prefix));
