@@ -1,0 +1,189 @@
+{
+  "id": "a167",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "left-join",
+      "group-by"
+    ],
+    "questions": [
+      28,
+      31,
+      149,
+      152,
+      157
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "interview-patterns",
+      "window-functions"
+    ],
+    "patterns": [
+      "top-n-per-group",
+      "anti-join",
+      "month-over-month-growth",
+      "second-highest"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Customers with no orders",
+      "kind": "sql",
+      "prompt": "Write the interview anti-join: the `customer_id` and `company_name` of every customer who has no row in `orders`, ordered by `customer_id`. Columns exactly `customer_id`, `company_name`.",
+      "starter": "SELECT customer_id, company_name\nFROM customers\nORDER BY customer_id\nLIMIT 5;\n",
+      "solution": "SELECT c.customer_id, c.company_name\nFROM customers c\nWHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)\nORDER BY c.customer_id;\n",
+      "hints": [
+        "The question is about customers with no matching order.",
+        "Use `NOT EXISTS` or `LEFT JOIN ... WHERE o.order_id IS NULL`.",
+        "Correlate the subquery on `customer_id` and order by `customer_id`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Second-highest freight",
+      "kind": "sql",
+      "prompt": "Return one row with one column `second_highest_freight`: the second-highest distinct `freight` value in `orders`.",
+      "starter": "SELECT MAX(freight) AS second_highest_freight FROM orders;\n",
+      "solution": "SELECT MAX(freight) AS second_highest_freight\nFROM orders\nWHERE freight < (SELECT MAX(freight) FROM orders);\n",
+      "hints": [
+        "You need the maximum of everything below the maximum.",
+        "A subquery returns the overall maximum.",
+        "`WHERE freight < (SELECT MAX(freight) FROM orders)`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Most units per category",
+      "kind": "sql",
+      "prompt": "For each category return the product with the most units sold (sum of `order_details.quantity`). Columns `category_name`, `product_name`, `units`; ties broken by `product_name`; ordered by `category_name`.",
+      "starter": "SELECT c.category_name, p.product_name, SUM(od.quantity) AS units\nFROM order_details od JOIN products p ON p.product_id = od.product_id JOIN categories c ON c.category_id = p.category_id\nGROUP BY c.category_name, p.product_name\nORDER BY c.category_name\nLIMIT 5;\n",
+      "solution": "SELECT category_name, product_name, units\nFROM (\n  SELECT c.category_name, p.product_name, SUM(od.quantity) AS units,\n         ROW_NUMBER() OVER (PARTITION BY c.category_name ORDER BY SUM(od.quantity) DESC, p.product_name) AS rn\n  FROM order_details od\n  JOIN products p ON p.product_id = od.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  GROUP BY c.category_name, p.product_name\n) t\nWHERE rn = 1\nORDER BY category_name;\n",
+      "hints": [
+        "Aggregate to product first.",
+        "Rank within each category with `ROW_NUMBER() OVER (PARTITION BY ...)`.",
+        "Filter `rn = 1` in an outer query."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Talk through a question",
+      "kind": "written",
+      "prompt": "The interviewer says: `Find our best customers.` Write the clarifying questions you would ask, the grain you would settle on, and the query plan in words (not code), in about 100 words.",
+      "starter": "Questions:\nGrain:\nPlan:",
+      "solution": "Questions: best by what (total revenue, order count or average order value), over which period, do refunded or cancelled orders count, and how many customers do they want (top 10, or a threshold)?\n\nGrain: one row per customer.\n\nPlan: join `orders` to `order_details`, compute revenue per order line as price times quantity times one minus discount, group by customer, and rank by revenue with a tiebreaker on `customer_id`; keep the top ten with `ROW_NUMBER`. Then test: the sum over all customers equals the total revenue, and a customer with no orders does not appear (or appears with zero if they want all).",
+      "hints": [
+        "What could 'best' mean?",
+        "What is one output row?",
+        "How do you prove the totals?"
+      ],
+      "rubric": [
+        "Asks what 'best' means and for the period.",
+        "States the grain as one row per customer.",
+        "Plan names the joins, the metric, the ranking and a tiebreaker.",
+        "Includes a reconciliation test."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Month-over-month in 1997",
+      "kind": "sql",
+      "prompt": "For 1997 return `month` (`YYYY-MM` from `order_date`), `revenue` (sum of unit_price * quantity * (1 - discount) over `order_details`, rounded to 0 decimals as numeric), `previous` (the previous month's revenue using `LAG`) and `change` (`revenue - previous`). Months in order; first month has NULL previous and change.",
+      "starter": "SELECT to_char(order_date, 'YYYY-MM') AS month FROM orders ORDER BY 1 LIMIT 5;\n",
+      "solution": "WITH monthly AS (\n  SELECT to_char(o.order_date, 'YYYY-MM') AS month,\n         ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 0) AS revenue\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  WHERE o.order_date >= DATE '1997-01-01' AND o.order_date < DATE '1998-01-01'\n  GROUP BY 1\n)\nSELECT month, revenue, LAG(revenue) OVER (ORDER BY month) AS previous,\n       revenue - LAG(revenue) OVER (ORDER BY month) AS change\nFROM monthly\nORDER BY month;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Above-average late rate",
+      "kind": "sql",
+      "prompt": "Return the employees whose late-shipment rate (orders with `shipped_date > required_date` divided by all their orders, as a percentage rounded to 1 decimal) is above the company-wide rate across all orders. Columns `last_name`, `late_pct`; ordered by `late_pct` descending then `last_name`.",
+      "starter": "SELECT e.last_name, COUNT(*) AS late_pct FROM employees e JOIN orders o ON o.employee_id = e.employee_id GROUP BY e.last_name ORDER BY e.last_name;\n",
+      "solution": "SELECT e.last_name,\n       ROUND(COUNT(*) FILTER (WHERE o.shipped_date > o.required_date) * 100.0 / COUNT(*), 1) AS late_pct\nFROM employees e\nJOIN orders o ON o.employee_id = e.employee_id\nGROUP BY e.employee_id, e.last_name\nHAVING COUNT(*) FILTER (WHERE o.shipped_date > o.required_date) * 1.0 / COUNT(*) >\n       (SELECT COUNT(*) FILTER (WHERE shipped_date > required_date) * 1.0 / COUNT(*) FROM orders)\nORDER BY late_pct DESC, e.last_name;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Explain a query aloud",
+      "kind": "written",
+      "prompt": "Take your solution to the top-product-per-category question and write the two-minute spoken explanation: what it does, why a window function is used, how ties are handled, and two checks you would run on a table 1,000 times bigger.",
+      "starter": "Explanation:",
+      "solution": "The query first aggregates order lines to one row per product with its revenue (or units). It then ranks products inside each category with `ROW_NUMBER() OVER (PARTITION BY category ORDER BY metric DESC, product_name)`, and an outer query keeps rank 1. A window function is used because the result needs the winner per group while keeping the product name, which a plain `GROUP BY` with `MAX` cannot return together. `ROW_NUMBER` always returns exactly one row per category, with the product name as the tiebreaker so reruns give the same answer; if the business wanted to show tied winners I would switch to `RANK`.\n\nAt a thousand times the data I would check that the query uses the indexes on the join keys (look at the execution plan), that the number of result rows equals the number of categories, and that the sum of the product revenues equals the overall total revenue, so no rows were lost or duplicated by the joins.",
+      "rubric": [
+        "Says what the query does in order: aggregate, rank, filter.",
+        "Explains why a window function and how ties are broken.",
+        "Gives two checks at scale such as plan and reconciliation."
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`SELECT * FROM a WHERE n NOT IN (SELECT n FROM b)` returns no rows although a has values missing from b. What is the likely cause?",
+      "options": [
+        "b.n contains a NULL",
+        "The query needs DISTINCT",
+        "NOT IN needs an index",
+        "a has duplicates"
+      ],
+      "answer": 0,
+      "explanation": "Comparing with NULL gives unknown, so NOT IN is never true when the subquery returns a NULL. NOT EXISTS avoids the trap."
+    },
+    {
+      "id": "c2",
+      "question": "Why is `ROW_NUMBER() ... = 1` written in an outer query?",
+      "options": [
+        "Window functions cannot be filtered in the WHERE of the same SELECT",
+        "It is faster",
+        "ROW_NUMBER only works in subqueries by design",
+        "It removes ties"
+      ],
+      "answer": 0,
+      "explanation": "WHERE runs before window functions are computed, so filter the ranked result from a subquery or CTE."
+    },
+    {
+      "id": "c3",
+      "question": "The first month of a LAG-based change column shows NULL. Is that a bug?",
+      "options": [
+        "No, there is no previous month",
+        "Yes, LAG fails on the first row",
+        "Yes, it should be 0",
+        "Only if ORDER BY is missing"
+      ],
+      "answer": 0,
+      "explanation": "The first row has no previous row; NULL is correct. Replacing it with 0 would invent a change."
+    },
+    {
+      "id": "c4",
+      "question": "What does `COUNT(*) FILTER (WHERE shipped_date > required_date)` count?",
+      "options": [
+        "Rows in the group that satisfy the condition",
+        "All rows",
+        "Rows with a NULL date",
+        "Distinct dates"
+      ],
+      "answer": 0,
+      "explanation": "FILTER restricts that aggregate to the rows matching the condition, so you can compute a rate in one pass."
+    },
+    {
+      "id": "c5",
+      "question": "In an interview you are unsure what 'best customer' means. What should you do first?",
+      "options": [
+        "Ask the interviewer to clarify the metric and period",
+        "Pick revenue silently",
+        "Write the query anyway",
+        "Skip the question"
+      ],
+      "answer": 0,
+      "explanation": "Clarifying the metric, period and ties is part of the task; an unstated assumption is a risk."
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "spark-transformations",
+      "spark-dataframes",
+      "spark-aggregations",
+      "null-handling",
+      "group-by"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "pyspark-transformation"
+    ],
+    "mindmaps": [
+      "spark-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A when/otherwise column",
+      "kind": "python",
+      "prompt": "Replicate `withColumn(\"tier\", F.when(F.col(\"amount\") >= 60, \"high\").when(F.col(\"amount\") >= 30, \"mid\").otherwise(\"low\"))` with pandas on `ROWS`/`COLS` and print the number of orders per tier as a dict with keys sorted alphabetically.",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame(ROWS, columns=COLS)\n# tier column and counts\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport numpy as np\nimport pandas as pd\n\ndf = pd.DataFrame(ROWS, columns=COLS)\ndf[\"tier\"] = np.select([df[\"amount\"] >= 60, df[\"amount\"] >= 30], [\"high\", \"mid\"], default=\"low\")\nprint(df[\"tier\"].value_counts().sort_index().to_dict())\n",
+      "hints": [
+        "when chains are evaluated in order; the first true wins.",
+        "np.select(conditions, choices, default=...) does the same.",
+        "value_counts().sort_index().to_dict() gives the sorted dict."
+      ],
+      "expected": "{'high': 3, 'low': 6, 'mid': 3}"
+    },
+    {
+      "id": "g2",
+      "title": "Filter with isin and not",
+      "kind": "python",
+      "prompt": "Replicate `orders.filter(F.col(\"category\").isin(\"books\", \"games\") & ~F.col(\"amount\").between(20, 60))`. Print the matching order ids as a list.",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\ndf = pd.DataFrame(ROWS, columns=COLS)\n# matching ids\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\ndf = pd.DataFrame(ROWS, columns=COLS)\nout = df[df[\"category\"].isin([\"books\", \"games\"]) & ~df[\"amount\"].between(20, 60)]\nprint(out[\"order_id\"].tolist())\n",
+      "hints": [
+        "between is inclusive on both ends.",
+        "~ negates a boolean Series.",
+        "Combine with & and take the order_id column."
+      ],
+      "expected": "[4, 9, 11, 12]"
+    },
+    {
+      "id": "g3",
+      "title": "Aggregate by customer",
+      "kind": "python",
+      "prompt": "Replicate `orders.groupBy(\"customer_id\").agg(F.count(\"*\").alias(\"orders\"), F.sum(\"amount\").alias(\"total\")).orderBy(F.desc(\"total\"), \"customer_id\")`. Print the first 3 rows with `show(rows, [\"customer_id\", \"orders\", \"total\"])`.",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\ndf = pd.DataFrame(ROWS, columns=COLS)\n# customer totals, top 3\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\ndf = pd.DataFrame(ROWS, columns=COLS)\nout = df.groupby(\"customer_id\", as_index=False).agg(orders=(\"order_id\", \"count\"), total=(\"amount\", \"sum\"))\nout = out.sort_values([\"total\", \"customer_id\"], ascending=[False, True])\nprint(show(out.head(3).values.tolist(), [\"customer_id\", \"orders\", \"total\"]))\n",
+      "hints": [
+        "Use named aggregation with as_index=False.",
+        "Sort by total descending, then customer_id ascending.",
+        "Pass head(3).values.tolist() to show."
+      ],
+      "expected": "+-----------+------+-----+\n|customer_id|orders|total|\n+-----------+------+-----+\n|         c4|     2|  125|\n|         c2|     3|  115|\n|         c1|     3|  105|\n+-----------+------+-----+"
+    },
+    {
+      "id": "g4",
+      "title": "Fix the filter (written)",
+      "kind": "written",
+      "prompt": "A colleague writes `orders.filter(F.col('category') == 'books' and F.col('amount') > 20)` and `orders.filter(F.col('amount') > 20 & F.col('category') == 'books')`. Explain what goes wrong with each and write the correct version. Then say how to find the orders with a missing discount.",
+      "starter": "Problem 1: ...\nProblem 2: ...\nCorrect: ...\nMissing discount: ...",
+      "solution": "The first uses Python's `and`, which asks for a single True or False from a column object and raises an error about ambiguous truth values; columns must be combined with `&`. The second uses `&` but without parentheses: `&` binds tighter than `>` and `==`, so Python reads `20 & F.col('category')` first and the expression fails or is wrong. The correct version is `orders.filter((F.col('category') == 'books') & (F.col('amount') > 20))`. Missing discounts are found with `orders.filter(F.col('discount').isNull())`, not `== None`, because a comparison with null is null and the filter would keep no rows.",
+      "rubric": [
+        "Explains that `and` does not work on columns.",
+        "Explains the operator precedence and the need for parentheses.",
+        "Gives the correct parenthesised `&` filter.",
+        "Uses isNull for missing values."
+      ],
+      "hints": [
+        "Which operators does a column support for logic?",
+        "What binds tighter, & or >?",
+        "How do you test for null?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Null-aware averages",
+      "kind": "python",
+      "prompt": "Using the six-row table with some missing discounts (given as `df` with columns order_id, category, amount, discount), compute per category two averages of `discount`: `avg_known` (nulls ignored) and `avg_zero` (nulls as 0), rounded to 2 decimals, and the count of missing discounts `missing`. Print the pandas DataFrame with `to_string()`, columns in the order `avg_known`, `avg_zero`, `missing`, sorted by category.",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\nrows = [(1, \"books\", 20, None), (2, \"books\", 35, 5), (3, \"games\", 60, 10), (4, \"games\", 15, None), (5, \"music\", 10, 0), (6, \"books\", 45, 5)]\ndf = pd.DataFrame(rows, columns=[\"order_id\", \"category\", \"amount\", \"discount\"])\n# three columns per category\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\nrows = [(1, \"books\", 20, None), (2, \"books\", 35, 5), (3, \"games\", 60, 10), (4, \"games\", 15, None), (5, \"music\", 10, 0), (6, \"books\", 45, 5)]\ndf = pd.DataFrame(rows, columns=[\"order_id\", \"category\", \"amount\", \"discount\"])\ng = df.groupby(\"category\")[\"discount\"]\nout = pd.DataFrame({\"avg_known\": g.mean(), \"avg_zero\": df.assign(d=df[\"discount\"].fillna(0)).groupby(\"category\")[\"d\"].mean(), \"missing\": g.apply(lambda s: int(s.isna().sum()))}).round(2)\nprint(out.to_string())\n",
+      "expected": "          avg_known  avg_zero  missing\ncategory                              \nbooks           5.0      3.33        1\ngames          10.0      5.00        1\nmusic           0.0      0.00        0"
+    },
+    {
+      "id": "i2",
+      "title": "Net revenue and share",
+      "kind": "python",
+      "prompt": "With the same table, compute `net = amount * (1 - discount/100)` (missing discount = 0), total `net` per category, and each category's share of the overall net total as a percent with 1 decimal. Print `category net_total share_pct` rows (net rounded to 2 decimals), sorted by net_total descending, using `to_string(index=False)`.",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\nrows = [(1, \"books\", 20, None), (2, \"books\", 35, 5), (3, \"games\", 60, 10), (4, \"games\", 15, None), (5, \"music\", 10, 0), (6, \"books\", 45, 5)]\ndf = pd.DataFrame(rows, columns=[\"order_id\", \"category\", \"amount\", \"discount\"])\n# net, totals, shares\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\nrows = [(1, \"books\", 20, None), (2, \"books\", 35, 5), (3, \"games\", 60, 10), (4, \"games\", 15, None), (5, \"music\", 10, 0), (6, \"books\", 45, 5)]\ndf = pd.DataFrame(rows, columns=[\"order_id\", \"category\", \"amount\", \"discount\"])\ndf[\"net\"] = df[\"amount\"] * (1 - df[\"discount\"].fillna(0) / 100)\nout = df.groupby(\"category\", as_index=False)[\"net\"].sum().rename(columns={\"net\": \"net_total\"})\nout[\"share_pct\"] = out[\"net_total\"] / out[\"net_total\"].sum() * 100\nout = out.sort_values(\"net_total\", ascending=False).round({\"net_total\": 2, \"share_pct\": 1})\nprint(out.to_string(index=False))\n",
+      "expected": "category  net_total  share_pct\n   books       96.0       54.9\n   games       69.0       39.4\n   music       10.0        5.7"
+    },
+    {
+      "id": "i3",
+      "title": "Write a PySpark job (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Write a PySpark job for the orders DataFrame (order_id, customer_id, category, amount, discount) that produces, per category, the net revenue (missing discount = 0), the number of distinct customers and the largest net order, keeps only categories with a net revenue above 50, and orders the result by net revenue descending. Explain which steps are narrow and which cause a shuffle.",
+      "starter": "result = orders...",
+      "solution": "```python\nfrom pyspark.sql import functions as F\n\nnet = F.col(\"amount\") * (1 - F.coalesce(F.col(\"discount\"), F.lit(0)) / 100)\nresult = (\n    orders\n    .withColumn(\"net\", net)\n    .groupBy(\"category\")\n    .agg(\n        F.sum(\"net\").alias(\"net_total\"),\n        F.countDistinct(\"customer_id\").alias(\"customers\"),\n        F.max(\"net\").alias(\"largest_net\"),\n    )\n    .filter(F.col(\"net_total\") > 50)\n    .orderBy(F.desc(\"net_total\"))\n)\nresult.show()\n```\n\n`withColumn` is narrow. `groupBy().agg()` is wide: rows are partially aggregated inside each partition and the partial results are shuffled by category. The filter on `net_total` runs after the aggregation on the small result (the SQL `HAVING`), and `orderBy` is another wide step that shuffles to sort the result. `show()` is the action that runs everything. With pandas on the sample table the categories above 50 are books (96.00) and games (69.00).",
+      "rubric": [
+        "Net column uses coalesce for missing discounts.",
+        "groupBy with named aggregates including countDistinct.",
+        "Filters on the aggregate after the groupBy and orders descending.",
+        "Identifies groupBy and orderBy as shuffles."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "pyspark"
+    ],
+    "note": "Spark needs Java 17 or newer; then pip install pyspark and run the PySpark code with python. Spark cannot run in the course tests or the browser. The PySpark expressions are shown as text and every result was verified through pandas and SQL (PGlite) equivalents, which the graded exercises also use. Note that pandas rounds halves to even while Spark's round rounds halves up, so the examples avoid exact halves."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `orders.filter(F.col('discount') == None)` return?",
+      "options": [
+        "The rows with a missing discount",
+        "No rows, because a comparison with null is null",
+        "All rows",
+        "An error at definition time"
+      ],
+      "answer": 1,
+      "explanation": "A comparison with null yields null, and filter keeps only rows where the condition is true, so no rows are kept. Use isNull()."
+    },
+    {
+      "id": "c2",
+      "question": "Why must each comparison be in parentheses in `(F.col('a') > 1) & (F.col('b') == 2)`?",
+      "options": [
+        "For readability only",
+        "`&` binds tighter than the comparison operators in Python",
+        "Spark requires brackets for strings",
+        "Parentheses make the filter faster"
+      ],
+      "answer": 1,
+      "explanation": "Python evaluates & before > and ==, so without parentheses the expression is parsed in the wrong order and fails."
+    },
+    {
+      "id": "c3",
+      "question": "A column has values 20, NULL, 10. What is F.avg of it, and F.count('*') of the DataFrame with these three rows?",
+      "options": [
+        "15 and 3",
+        "10 and 2",
+        "15 and 2",
+        "30 and 3"
+      ],
+      "answer": 0,
+      "explanation": "avg skips nulls: (20 + 10) / 2 = 15. count('*') counts all three rows; count of the column would be 2."
+    },
+    {
+      "id": "c4",
+      "question": "Which step needs a shuffle?",
+      "options": [
+        "withColumn",
+        "filter",
+        "groupBy(...).agg(...)",
+        "select"
+      ],
+      "answer": 2,
+      "explanation": "Aggregating by key needs all rows with the same key together, so data moves between partitions. The others are narrow."
+    },
+    {
+      "id": "c5",
+      "question": "Which is true of between(10, 50)?",
+      "options": [
+        "Excludes both ends",
+        "Includes both ends",
+        "Includes only the lower end",
+        "Includes only the upper end"
+      ],
+      "answer": 1,
+      "explanation": "between is inclusive on both ends, like SQL BETWEEN."
+    }
+  ],
+  "id": "e164"
+}

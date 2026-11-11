@@ -1,0 +1,187 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "dbt-tests",
+      "etl-idempotency"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "environment": {
+    "packages": [
+      "pytest"
+    ],
+    "note": "The bash examples need Python 3 with pytest installed (pip install pytest) and run pytest in an empty throwaway folder; the browser cannot run pytest, so the graded exercises use a small assert harness (run_tests and raises) written in plain Python. The exact summary line wording (for example '5 passed') is pytest's; the filter removes the run time."
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Write a transform from its tests",
+      "kind": "python",
+      "prompt": "The harness and three tests are given. Write `clean_amount(raw)` so that all three tests pass: it removes spaces, `$` and `,`, converts to a `Decimal` and returns whole cents as an `int`. Do not change the tests. The program must print the three PASS lines and the summary.",
+      "starter": "class raises:\n    def __init__(self, exc):\n        self.exc = exc\n    def __enter__(self):\n        return self\n    def __exit__(self, t, v, tb):\n        if t is None:\n            raise AssertionError(f\"did not raise {self.exc.__name__}\")\n        return issubclass(t, self.exc)\n\ndef run_tests(ns):\n    passed = failed = 0\n    for name in sorted(ns):\n        if name.startswith(\"test_\") and callable(ns[name]):\n            try:\n                ns[name]()\n                passed += 1\n                print(\"PASS\", name)\n            except AssertionError as e:\n                failed += 1\n                print(\"FAIL\", name, e)\n    print(f\"{passed} passed, {failed} failed\")\n\nfrom decimal import Decimal\n\ndef clean_amount(raw):\n    pass\n\ndef test_plain():\n    assert clean_amount('12.50') == 1250\n\ndef test_symbols():\n    assert clean_amount(' $1,250.50 ') == 125050\n\ndef test_whole():\n    assert clean_amount('7') == 700\n\nrun_tests(globals())\n",
+      "solution": "class raises:\n    def __init__(self, exc):\n        self.exc = exc\n    def __enter__(self):\n        return self\n    def __exit__(self, t, v, tb):\n        if t is None:\n            raise AssertionError(f\"did not raise {self.exc.__name__}\")\n        return issubclass(t, self.exc)\n\ndef run_tests(ns):\n    passed = failed = 0\n    for name in sorted(ns):\n        if name.startswith(\"test_\") and callable(ns[name]):\n            try:\n                ns[name]()\n                passed += 1\n                print(\"PASS\", name)\n            except AssertionError as e:\n                failed += 1\n                print(\"FAIL\", name, e)\n    print(f\"{passed} passed, {failed} failed\")\n\nfrom decimal import Decimal\n\ndef clean_amount(raw):\n    text = str(raw).strip().replace('$', '').replace(',', '')\n    return int(Decimal(text) * 100)\n\ndef test_plain():\n    assert clean_amount('12.50') == 1250\n\ndef test_symbols():\n    assert clean_amount(' $1,250.50 ') == 125050\n\ndef test_whole():\n    assert clean_amount('7') == 700\n\nrun_tests(globals())\n",
+      "hints": [
+        "The function must clean the text before converting, so start with `str(raw).strip()`.",
+        "Remove `$` and `,` with `.replace`, then build `Decimal(text)` from the string.",
+        "Return `int(Decimal(text) * 100)`."
+      ],
+      "expected": "PASS test_plain\nPASS test_symbols\nPASS test_whole\n3 passed, 0 failed"
+    },
+    {
+      "id": "g2",
+      "title": "A failure test with raises",
+      "kind": "python",
+      "prompt": "Add a test function `test_bad_amount` that uses the provided `raises` helper to check that `clean_amount('abc')` raises `ValueError`. `clean_amount` is given and already raises it. The program must print `PASS test_bad_amount` and `1 passed, 0 failed`.",
+      "starter": "class raises:\n    def __init__(self, exc):\n        self.exc = exc\n    def __enter__(self):\n        return self\n    def __exit__(self, t, v, tb):\n        if t is None:\n            raise AssertionError(f\"did not raise {self.exc.__name__}\")\n        return issubclass(t, self.exc)\n\ndef run_tests(ns):\n    passed = failed = 0\n    for name in sorted(ns):\n        if name.startswith(\"test_\") and callable(ns[name]):\n            try:\n                ns[name]()\n                passed += 1\n                print(\"PASS\", name)\n            except AssertionError as e:\n                failed += 1\n                print(\"FAIL\", name, e)\n    print(f\"{passed} passed, {failed} failed\")\n\ndef clean_amount(raw):\n    try:\n        return round(float(str(raw).strip()) * 100)\n    except ValueError:\n        raise ValueError(f'bad amount: {raw!r}')\n\n# Your test here\n\nrun_tests(globals())\n",
+      "solution": "class raises:\n    def __init__(self, exc):\n        self.exc = exc\n    def __enter__(self):\n        return self\n    def __exit__(self, t, v, tb):\n        if t is None:\n            raise AssertionError(f\"did not raise {self.exc.__name__}\")\n        return issubclass(t, self.exc)\n\ndef run_tests(ns):\n    passed = failed = 0\n    for name in sorted(ns):\n        if name.startswith(\"test_\") and callable(ns[name]):\n            try:\n                ns[name]()\n                passed += 1\n                print(\"PASS\", name)\n            except AssertionError as e:\n                failed += 1\n                print(\"FAIL\", name, e)\n    print(f\"{passed} passed, {failed} failed\")\n\ndef clean_amount(raw):\n    try:\n        return round(float(str(raw).strip()) * 100)\n    except ValueError:\n        raise ValueError(f'bad amount: {raw!r}')\n\ndef test_bad_amount():\n    with raises(ValueError):\n        clean_amount('abc')\n\nrun_tests(globals())\n",
+      "hints": [
+        "A test is a function whose name starts with `test_`.",
+        "Use `with raises(ValueError):` around the call that should fail.",
+        "`def test_bad_amount():` then an indented `with raises(ValueError):` and inside it `clean_amount('abc')`."
+      ],
+      "expected": "PASS test_bad_amount\n1 passed, 0 failed"
+    },
+    {
+      "id": "g3",
+      "title": "Parametrize by hand",
+      "kind": "python",
+      "prompt": "The test data `CASES` pairs raw strings with expected cents. Write a function `test_cases()` that loops over `CASES`, asserts `clean_amount(raw) == expected` with the failure message `f'{raw!r}: got {got}'` and finally run the harness. A bug in `clean_amount` makes one case fail: fix `clean_amount` (not the cases) so the program prints `PASS test_cases` and `1 passed, 0 failed`.",
+      "starter": "class raises:\n    def __init__(self, exc):\n        self.exc = exc\n    def __enter__(self):\n        return self\n    def __exit__(self, t, v, tb):\n        if t is None:\n            raise AssertionError(f\"did not raise {self.exc.__name__}\")\n        return issubclass(t, self.exc)\n\ndef run_tests(ns):\n    passed = failed = 0\n    for name in sorted(ns):\n        if name.startswith(\"test_\") and callable(ns[name]):\n            try:\n                ns[name]()\n                passed += 1\n                print(\"PASS\", name)\n            except AssertionError as e:\n                failed += 1\n                print(\"FAIL\", name, e)\n    print(f\"{passed} passed, {failed} failed\")\n\nCASES = [('5', 500), ('5.5', 550), ('$5.05', 505), ('1,000', 100000)]\n\ndef clean_amount(raw):\n    text = str(raw).strip().replace('$', '')\n    return round(float(text) * 100)\n\n# Your test here\n\nrun_tests(globals())\n",
+      "solution": "class raises:\n    def __init__(self, exc):\n        self.exc = exc\n    def __enter__(self):\n        return self\n    def __exit__(self, t, v, tb):\n        if t is None:\n            raise AssertionError(f\"did not raise {self.exc.__name__}\")\n        return issubclass(t, self.exc)\n\ndef run_tests(ns):\n    passed = failed = 0\n    for name in sorted(ns):\n        if name.startswith(\"test_\") and callable(ns[name]):\n            try:\n                ns[name]()\n                passed += 1\n                print(\"PASS\", name)\n            except AssertionError as e:\n                failed += 1\n                print(\"FAIL\", name, e)\n    print(f\"{passed} passed, {failed} failed\")\n\nCASES = [('5', 500), ('5.5', 550), ('$5.05', 505), ('1,000', 100000)]\n\ndef clean_amount(raw):\n    text = str(raw).strip().replace('$', '').replace(',', '')\n    return round(float(text) * 100)\n\ndef test_cases():\n    for raw, expected in CASES:\n        got = clean_amount(raw)\n        assert got == expected, f'{raw!r}: got {got}'\n\nrun_tests(globals())\n",
+      "hints": [
+        "Write the loop with tuple unpacking: `for raw, expected in CASES:`.",
+        "The case `'1,000'` fails because the function never removes the thousands separator.",
+        "Add `.replace(',', '')` to the cleaning in `clean_amount`, and assert inside the loop with the given message."
+      ],
+      "expected": "PASS test_cases\n1 passed, 0 failed"
+    },
+    {
+      "id": "g4",
+      "title": "Integration check in SQL",
+      "kind": "sql",
+      "prompt": "An integration test would assert the end state of the target table. Write one query on `orders_clean` returning columns `n` (row count), `total` (sum of `amount_cents`) and `dupes` (number of order_ids that appear more than once, which should be 0 in a correct load).",
+      "starter": "CREATE TABLE orders_clean (order_id int, amount_cents int);\nINSERT INTO orders_clean VALUES (1, 1250), (2, 725), (2, 725), (3, 100);\n\nSELECT COUNT(*) AS n FROM orders_clean;\n",
+      "solution": "CREATE TABLE orders_clean (order_id int, amount_cents int);\nINSERT INTO orders_clean VALUES (1, 1250), (2, 725), (2, 725), (3, 100);\n\nSELECT COUNT(*) AS n,\n       SUM(amount_cents) AS total,\n       COUNT(*) - COUNT(DISTINCT order_id) AS dupes\nFROM orders_clean;\n",
+      "hints": [
+        "Three numbers come from one pass over the table, so use aggregates without GROUP BY.",
+        "`COUNT(DISTINCT order_id)` counts the different keys.",
+        "Duplicated rows are `COUNT(*) - COUNT(DISTINCT order_id)`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Build the test runner",
+      "kind": "python",
+      "prompt": "Write `run_tests(ns)` yourself. It runs every callable in the dictionary `ns` whose name starts with `test_`, in alphabetical order. A test passes when it raises nothing; an `AssertionError` is a failure (print `FAIL <name>: <message>`); any other exception is an error (print `ERROR <name>: <ExceptionClassName>`). Passing tests print `PASS <name>`. At the end print `<p> passed, <f> failed, <e> errors`.",
+      "starter": "def test_a():\n    assert 1 + 1 == 2\n\ndef test_b():\n    assert 2 * 2 == 5, 'math is wrong'\n\ndef test_c():\n    int('x')\n\ndef run_tests(ns):\n    pass\n\nrun_tests(globals())\n",
+      "solution": "def test_a():\n    assert 1 + 1 == 2\n\ndef test_b():\n    assert 2 * 2 == 5, 'math is wrong'\n\ndef test_c():\n    int('x')\n\ndef run_tests(ns):\n    passed = failed = errors = 0\n    for name in sorted(ns):\n        if name.startswith('test_') and callable(ns[name]):\n            try:\n                ns[name]()\n                passed += 1\n                print('PASS', name)\n            except AssertionError as e:\n                failed += 1\n                print(f'FAIL {name}: {e}')\n            except Exception as e:\n                errors += 1\n                print(f'ERROR {name}: {type(e).__name__}')\n    print(f'{passed} passed, {failed} failed, {errors} errors')\n\nrun_tests(globals())\n",
+      "expected": "PASS test_a\nFAIL test_b: math is wrong\nERROR test_c: ValueError\n1 passed, 1 failed, 1 errors"
+    },
+    {
+      "id": "i2",
+      "title": "Idempotency integration test",
+      "kind": "python",
+      "prompt": "The function `load(conn, rows)` is given. Write `test_rerun_idempotent()` that creates a fresh in-memory `sqlite3` database, loads `RAW` twice, and asserts that `SELECT COUNT(*), SUM(amount_cents) FROM orders_clean` returns `(2, 1975)` (failed orders are skipped). Write `test_changed_amount_updates()` that loads `RAW`, then loads the same orders with order 1 changed to 2000 cents, and asserts the table holds `(2, 2725)`. Call both tests and print `done` when both pass.",
+      "starter": "import sqlite3\n\nRAW = [(1, 1250, 'paid'), (2, 300, 'failed'), (3, 725, 'refunded')]\n\ndef load(conn, rows):\n    conn.execute('CREATE TABLE IF NOT EXISTS orders_clean (order_id INTEGER PRIMARY KEY, amount_cents INTEGER, status TEXT)')\n    with conn:\n        for oid, amount, status in rows:\n            if status != 'failed':\n                conn.execute('INSERT OR REPLACE INTO orders_clean VALUES (?, ?, ?)', (oid, amount, status))\n\n# Your tests here\n\nprint('not done')\n",
+      "solution": "import sqlite3\n\nRAW = [(1, 1250, 'paid'), (2, 300, 'failed'), (3, 725, 'refunded')]\n\ndef load(conn, rows):\n    conn.execute('CREATE TABLE IF NOT EXISTS orders_clean (order_id INTEGER PRIMARY KEY, amount_cents INTEGER, status TEXT)')\n    with conn:\n        for oid, amount, status in rows:\n            if status != 'failed':\n                conn.execute('INSERT OR REPLACE INTO orders_clean VALUES (?, ?, ?)', (oid, amount, status))\n\ndef summary(conn):\n    return conn.execute('SELECT COUNT(*), SUM(amount_cents) FROM orders_clean').fetchone()\n\ndef test_rerun_idempotent():\n    conn = sqlite3.connect(':memory:')\n    load(conn, RAW)\n    load(conn, RAW)\n    assert summary(conn) == (2, 1975)\n\ndef test_changed_amount_updates():\n    conn = sqlite3.connect(':memory:')\n    load(conn, RAW)\n    load(conn, [(1, 2000, 'paid')] + RAW[1:])\n    assert summary(conn) == (2, 2725)\n\ntest_rerun_idempotent()\ntest_changed_amount_updates()\nprint('done')\n",
+      "expected": "done"
+    },
+    {
+      "id": "i3",
+      "title": "Write a pytest file for dedupe_latest",
+      "kind": "written",
+      "required": false,
+      "prompt": "Write the contents of `test_dedupe.py` for `dedupe_latest(rows)` from the lesson (it keeps the row with the greatest `updated_at` per `order_id` and returns rows sorted by `order_id`). Include a fixture with at least five rows, one parametrized test, and a test that an empty list returns an empty list. Explain in two sentences which cases you chose and why.",
+      "starter": "# test_dedupe.py\n",
+      "solution": "```python\nimport pytest\nfrom transforms import dedupe_latest\n\n@pytest.fixture\ndef rows():\n    return [\n        {\"order_id\": 3, \"updated_at\": \"2026-01-01\", \"status\": \"paid\"},\n        {\"order_id\": 1, \"updated_at\": \"2026-01-01\", \"status\": \"paid\"},\n        {\"order_id\": 1, \"updated_at\": \"2026-01-04\", \"status\": \"refunded\"},\n        {\"order_id\": 2, \"updated_at\": \"2026-01-02\", \"status\": \"paid\"},\n        {\"order_id\": 2, \"updated_at\": \"2026-01-02\", \"status\": \"paid\"},\n    ]\n\ndef test_one_row_per_key(rows):\n    assert [r[\"order_id\"] for r in dedupe_latest(rows)] == [1, 2, 3]\n\n@pytest.mark.parametrize(\"order_id, status\", [(1, \"refunded\"), (2, \"paid\"), (3, \"paid\")])\ndef test_latest_wins(rows, order_id, status):\n    got = {r[\"order_id\"]: r for r in dedupe_latest(rows)}\n    assert got[order_id][\"status\"] == status\n\ndef test_empty():\n    assert dedupe_latest([]) == []\n```\n\nThe fixture contains an out-of-order key, a key with a newer update, and an exact duplicate, which are the shapes of real duplicate data. The parametrized test checks every key's surviving status, and the empty list guards the boundary where a loop-based implementation might fail.",
+      "rubric": [
+        "The file imports pytest and the function and uses `test_` names.",
+        "A fixture supplies at least five rows including a duplicate key with different `updated_at` values.",
+        "One test uses `@pytest.mark.parametrize` with several expected statuses.",
+        "An empty input is tested.",
+        "The explanation names the cases and why they matter."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A file is named `checks.py` and contains `def test_amount():`. You run `python -m pytest -q`. What happens by default?",
+      "options": [
+        "The test runs and passes",
+        "No tests are collected because the file name does not match test_*.py",
+        "pytest raises an import error",
+        "pytest runs every file in the folder"
+      ],
+      "answer": 1,
+      "explanation": "By default pytest only collects files named `test_*.py` or `*_test.py`. `checks.py` matches neither, so the function inside is never run and pytest reports that no tests ran, which looks like success to a careless reader."
+    },
+    {
+      "id": "c2",
+      "question": "Which test best checks that a transform does not silently turn bad input into zero?",
+      "options": [
+        "assert clean_amount('0') == 0",
+        "with pytest.raises(ValueError): clean_amount('abc')",
+        "assert clean_amount('abc') == 0",
+        "assert isinstance(clean_amount('5'), int)"
+      ],
+      "answer": 1,
+      "explanation": "The raises test passes only if bad input stops with an exception. Asserting that bad input gives 0 would lock in the silent coercion, and the other options never feed bad input."
+    },
+    {
+      "id": "c3",
+      "question": "Why does an integration test of a pipeline use `tmp_path` or an in-memory database?",
+      "options": [
+        "It makes the test faster than unit tests",
+        "Each run starts from an empty, private database, so results do not depend on earlier data",
+        "pytest requires it",
+        "It avoids writing assertions"
+      ],
+      "answer": 1,
+      "explanation": "A fresh private store makes the test repeatable and keeps it from touching real data. Speed is a side effect, and nothing requires it; assertions are still needed."
+    },
+    {
+      "id": "c4",
+      "question": "A parametrized test has 6 cases and the file has 2 other tests, all passing. What does `pytest -q` report?",
+      "options": [
+        "3 passed",
+        "8 passed",
+        "6 passed",
+        "2 passed"
+      ],
+      "answer": 1,
+      "explanation": "Each parameter set is collected and reported as its own test, so 6 + 2 = 8."
+    },
+    {
+      "id": "c5",
+      "question": "In the browser harness, a test function contains `assert clean_amount('2.5') == 25`. The function correctly returns 250. What should you change?",
+      "options": [
+        "The function, to return 25",
+        "The test, because the expected value is wrong",
+        "The harness",
+        "Nothing; a failing test is fine"
+      ],
+      "answer": 1,
+      "explanation": "2.5 is 250 cents, so the function is right and the test states the wrong specification. Change the test deliberately; changing the function to satisfy a wrong test introduces a bug."
+    }
+  ],
+  "id": "e138"
+}

@@ -1,0 +1,189 @@
+{
+  "id": "e180",
+  "time": {
+    "theory": 15,
+    "examples": 20,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-architecture",
+      "dwh-architecture",
+      "etl-incremental-load",
+      "etl-pipeline-monitoring"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "end-to-end-pipeline",
+      "sales-analytics-pipeline",
+      "airflow-etl-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track",
+      "warehousing-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "The reconciliation sentence",
+      "kind": "python",
+      "prompt": "Write `summary(raw, clean, quarantined, fact_rows)` returning `raw <raw> = clean <clean> + quarantined <quarantined> (<OK or MISMATCH>); fact rows <fact_rows> of <clean> clean`. The word is `OK` when `raw == clean + quarantined`. Print `summary(120, 114, 6, 91)` and `summary(120, 114, 7, 91)`.",
+      "starter": "def summary(raw, clean, quarantined, fact_rows):\n    return \"\"\n\nprint(summary(120, 114, 6, 91))\nprint(summary(120, 114, 7, 91))\n",
+      "solution": "def summary(raw, clean, quarantined, fact_rows):\n    status = \"OK\" if raw == clean + quarantined else \"MISMATCH\"\n    return f\"raw {raw} = clean {clean} + quarantined {quarantined} ({status}); fact rows {fact_rows} of {clean} clean\"\n\nprint(summary(120, 114, 6, 91))\nprint(summary(120, 114, 7, 91))\n",
+      "hints": [
+        "Decide the status word first with a conditional expression.",
+        "The sentence is one f-string with the four numbers and the status.",
+        "`status = \"OK\" if raw == clean + quarantined else \"MISMATCH\"`."
+      ],
+      "expected": "raw 120 = clean 114 + quarantined 6 (OK); fact rows 91 of 114 clean\nraw 120 = clean 114 + quarantined 7 (MISMATCH); fact rows 91 of 114 clean"
+    },
+    {
+      "id": "g2",
+      "title": "Rows processed: full against incremental",
+      "kind": "python",
+      "prompt": "New rows per night are `[40, 30, 50, 20]`. A full load processes all rows seen so far each night; an incremental load processes only that night's new rows. Print `full: <list>` and `incremental: <list>` (the rows processed per night) and then `full total: <n> incremental total: <n>`.",
+      "starter": "new_rows = [40, 30, 50, 20]\n",
+      "solution": "new_rows = [40, 30, 50, 20]\nfull, seen = [], 0\nfor n in new_rows:\n    seen += n\n    full.append(seen)\nprint(\"full:\", full)\nprint(\"incremental:\", new_rows)\nprint(\"full total:\", sum(full), \"incremental total:\", sum(new_rows))\n",
+      "hints": [
+        "A full load on night k processes the running total of new rows.",
+        "Keep a running total and append it to a list each night.",
+        "The incremental list is `new_rows` itself; print the two sums at the end."
+      ],
+      "expected": "full: [40, 70, 120, 140]\nincremental: [40, 30, 50, 20]\nfull total: 370 incremental total: 140"
+    },
+    {
+      "id": "g3",
+      "title": "Country share and rank in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the CTE `sales(country, amount_cents)` lists sales rows. Return `country`, `revenue` (sum of amount_cents), `share_pct` (revenue as a percentage of the total, rounded to 1 decimal) and `rnk` (rank by revenue, highest first, using `rank() OVER (ORDER BY ...)`), ordered by rnk then country.",
+      "starter": "WITH sales(country, amount_cents) AS (VALUES ('DE',1000),('DE',2000),('FR',1500),('US',4000),('FR',1500),('IN',500))\nSELECT country FROM sales ORDER BY country;\n",
+      "solution": "WITH sales(country, amount_cents) AS (VALUES ('DE',1000),('DE',2000),('FR',1500),('US',4000),('FR',1500),('IN',500)),\nper AS (SELECT country, sum(amount_cents) AS revenue FROM sales GROUP BY country)\nSELECT country, revenue, round(100.0 * revenue / sum(revenue) OVER (), 1) AS share_pct,\n       rank() OVER (ORDER BY revenue DESC) AS rnk\nFROM per ORDER BY rnk, country;\n",
+      "ordered": true,
+      "hints": [
+        "First aggregate to one row per country, then add window functions.",
+        "`sum(revenue) OVER ()` is the total; `rank() OVER (ORDER BY revenue DESC)` ranks.",
+        "Order the final query by `rnk, country`; ties share a rank."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Name a trade-off (written)",
+      "kind": "written",
+      "prompt": "Pick one design choice of the capstone (for example quarantine instead of stopping, or incremental instead of full load) and write the trade-off in three sentences: what you chose, what it gains, what it costs, and when the other option would be right.",
+      "starter": "Choice:\nGains:\nCosts:\nThe other option is right when:",
+      "solution": "Choice: incremental loading with a watermark instead of a full reload. It gains cost that follows the daily volume (the nightly work in the capstone is only the new orders) and a short load window as history grows. It costs extra machinery, the watermark table and the upsert, and it misses late-arriving orders older than the watermark unless an overlap window is reloaded. A full reload is the right choice when the table is small, when the source changes rows in the past without a reliable timestamp, or when simplicity and certainty matter more than cost, for example for a dimension of a few thousand rows.",
+      "rubric": [
+        "States the choice clearly.",
+        "Names what it gains and what it costs.",
+        "Gives a case where the alternative would be better."
+      ],
+      "hints": [
+        "Pick one choice and state it in one sentence.",
+        "Gain and cost are different things: write one of each.",
+        "Finish with 'the other option is right when' and a concrete case."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "The final acceptance report",
+      "kind": "python",
+      "prompt": "Use `pipeline()` (given below). Print `R1: PASS|FAIL` for raw = clean + quarantined, `R2: PASS|FAIL` for fact rows equal to the number of clean paid orders, `R3: PASS|FAIL` for the fact revenue (sum of amount_cents) equal to the clean paid revenue, and `R4: PASS|FAIL` for a second `load_fact(conn, good)` returning 0. Then print `revenue by month: ` followed by `<month>=<cents>` pairs separated by commas (months ascending, from the warehouse joined to `dim_date`), and `orders by country: ` followed by `<country>=<count>` pairs sorted by country (country from `dim_customer`).",
+      "starter": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nclass RateLimited(Exception):\n    def __init__(self, retry_after):\n        super().__init__(\"429 too many requests\")\n        self.retry_after = retry_after\n\nclass Unauthorized(Exception):\n    pass\n\ndef make_api(orders, api_key=\"secret-key\", every=3):\n    \"\"\"Stand-in for GET /orders?page=N&page_size=P: no network, same answers (200, 401, 429).\"\"\"\n    state = {\"calls\": 0, \"limited\": 0}\n    def get_orders(page, page_size, headers):\n        state[\"calls\"] += 1\n        if headers.get(\"X-Api-Key\") != api_key:\n            raise Unauthorized(\"401 invalid API key\")\n        if every and state[\"calls\"] % every == 0:\n            state[\"limited\"] += 1\n            raise RateLimited(2)\n        total = -(-len(orders) // page_size)\n        start = (page - 1) * page_size\n        return {\"data\": orders[start:start + page_size], \"page\": page, \"total_pages\": total}\n    return get_orders, state\n\ndef fetch_page(api, page, size, headers, sleep, max_tries=5):\n    for attempt in range(max_tries):\n        try:\n            return api(page, size, headers)\n        except RateLimited as e:\n            sleep(e.retry_after * 2 ** attempt)\n    raise RuntimeError(f\"page {page} still rate limited after {max_tries} tries\")\n\ndef fetch_all(api, headers, sleep, size=25):\n    records, page, total = [], 1, 1\n    while page <= total:\n        body = fetch_page(api, page, size, headers, sleep)\n        records.extend(body[\"data\"])\n        total = body[\"total_pages\"]\n        page += 1\n    return records\n\nfrom datetime import datetime\n\ndef first_problem(rec, seen, known):\n    \"\"\"The first rule a raw order breaks, or None. `seen` holds the order ids already processed.\"\"\"\n    if rec[\"order_id\"] in seen:\n        return \"duplicate order_id\"\n    if not rec[\"created_at\"]:\n        return \"missing created_at\"\n    try:\n        datetime.strptime(rec[\"created_at\"], \"%Y-%m-%dT%H:%M:%SZ\")\n    except ValueError:\n        return \"bad created_at\"\n    if not isinstance(rec[\"amount_cents\"], int) or rec[\"amount_cents\"] <= 0:\n        return \"bad amount\"\n    if rec[\"customer_id\"].strip().upper() not in known:\n        return \"unknown customer\"\n    if rec[\"currency\"].strip().upper() != \"EUR\":\n        return \"bad currency\"\n    if rec[\"status\"].strip().lower() not in (\"paid\", \"refunded\", \"failed\"):\n        return \"bad status\"\n    return None\n\ndef transform(rec):\n    \"\"\"Typed, normalised copy of a valid raw order.\"\"\"\n    return {\"sale_id\": int(rec[\"order_id\"][1:]), \"order_id\": rec[\"order_id\"],\n            \"customer_id\": rec[\"customer_id\"].strip().upper(), \"product_id\": rec[\"product_id\"],\n            \"quantity\": int(rec[\"quantity\"]), \"amount_cents\": rec[\"amount_cents\"],\n            \"status\": rec[\"status\"].strip().lower(), \"created_at\": rec[\"created_at\"],\n            \"date_key\": int(rec[\"created_at\"][:10].replace(\"-\", \"\"))}\n\ndef clean_orders(raw, known):\n    good, quarantine, seen = [], [], set()\n    for rec in raw:\n        reason = first_problem(rec, seen, known)\n        seen.add(rec[\"order_id\"])\n        if reason:\n            quarantine.append({\"order_id\": rec[\"order_id\"], \"reason\": reason, \"payload\": rec})\n        else:\n            good.append(transform(rec))\n    return good, quarantine\n\nimport sqlite3\nfrom datetime import date, timedelta\n\nDDL = \"\"\"\nCREATE TABLE dim_date (date_key INTEGER PRIMARY KEY, full_date TEXT, year INTEGER, month INTEGER);\nCREATE TABLE dim_product (product_key INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT UNIQUE, product_name TEXT, category TEXT);\nCREATE TABLE dim_customer (customer_key INTEGER PRIMARY KEY AUTOINCREMENT, customer_id TEXT, customer_name TEXT, country TEXT,\n                           valid_from TEXT, valid_to TEXT, is_current INTEGER);\nCREATE TABLE fact_sales (sale_id INTEGER PRIMARY KEY, date_key INTEGER, customer_key INTEGER, product_key INTEGER,\n                         quantity INTEGER, amount_cents INTEGER);\nCREATE TABLE etl_state (name TEXT PRIMARY KEY, watermark TEXT);\n\"\"\"\n\ndef init_warehouse():\n    conn = sqlite3.connect(\":memory:\")\n    conn.executescript(DDL)\n    return conn\n\ndef load_dim_date(conn, start, end):\n    days = (end - start).days + 1\n    rows = [(int(d.strftime(\"%Y%m%d\")), d.isoformat(), d.year, d.month) for d in (start + timedelta(days=i) for i in range(days))]\n    with conn:\n        conn.executemany(\"INSERT OR IGNORE INTO dim_date VALUES (?, ?, ?, ?)\", rows)\n\ndef load_dim_product(conn, products):\n    with conn:\n        conn.executemany(\"\"\"INSERT INTO dim_product (product_id, product_name, category) VALUES (?, ?, ?)\n                            ON CONFLICT(product_id) DO UPDATE SET product_name = excluded.product_name, category = excluded.category\"\"\", products)\n\ndef load_dim_customer(conn, customers, as_of, first_from=\"2026-01-01\"):\n    \"\"\"Type 2 history: a changed customer gets a new row; the old row is closed on `as_of`.\"\"\"\n    with conn:\n        for cid, name, country in customers:\n            cur = conn.execute(\"SELECT customer_key, customer_name, country FROM dim_customer WHERE customer_id = ? AND is_current = 1\", (cid,)).fetchone()\n            if cur is None:\n                conn.execute(\"INSERT INTO dim_customer (customer_id, customer_name, country, valid_from, valid_to, is_current) VALUES (?, ?, ?, ?, '9999-12-31', 1)\",\n                             (cid, name, country, first_from))\n            elif (cur[1], cur[2]) != (name, country):\n                conn.execute(\"UPDATE dim_customer SET valid_to = ?, is_current = 0 WHERE customer_key = ?\", (as_of, cur[0]))\n                conn.execute(\"INSERT INTO dim_customer (customer_id, customer_name, country, valid_from, valid_to, is_current) VALUES (?, ?, ?, ?, '9999-12-31', 1)\",\n                             (cid, name, country, as_of))\n\ndef load_fact(conn, good):\n    \"\"\"Incremental: only paid orders newer than the watermark; upsert on sale_id; the watermark moves after the load.\"\"\"\n    row = conn.execute(\"SELECT watermark FROM etl_state WHERE name = 'fact_sales'\").fetchone()\n    mark = row[0] if row else \"\"\n    new = [g for g in good if g[\"created_at\"] > mark]\n    facts = []\n    for g in new:\n        if g[\"status\"] != \"paid\":\n            continue\n        day = g[\"created_at\"][:10]\n        ck = conn.execute(\"SELECT customer_key FROM dim_customer WHERE customer_id = ? AND valid_from <= ? AND ? < valid_to\", (g[\"customer_id\"], day, day)).fetchone()[0]\n        pk = conn.execute(\"SELECT product_key FROM dim_product WHERE product_id = ?\", (g[\"product_id\"],)).fetchone()[0]\n        facts.append((g[\"sale_id\"], g[\"date_key\"], ck, pk, g[\"quantity\"], g[\"amount_cents\"]))\n    with conn:\n        conn.executemany(\"\"\"INSERT INTO fact_sales VALUES (?, ?, ?, ?, ?, ?)\n                            ON CONFLICT(sale_id) DO UPDATE SET date_key = excluded.date_key, customer_key = excluded.customer_key,\n                            product_key = excluded.product_key, quantity = excluded.quantity, amount_cents = excluded.amount_cents\"\"\", facts)\n        if new:\n            conn.execute(\"INSERT INTO etl_state VALUES ('fact_sales', ?) ON CONFLICT(name) DO UPDATE SET watermark = excluded.watermark\",\n                         (max(g[\"created_at\"] for g in new),))\n    return len(facts)\n\nimport json\nimport sqlite3\n\ndef land(conn, batch_id, records):\n    \"\"\"Land raw records unchanged; a batch is replaced as a whole, so re-running it adds nothing.\"\"\"\n    conn.execute(\"CREATE TABLE IF NOT EXISTS raw_orders (batch_id TEXT, seq INTEGER, payload TEXT, PRIMARY KEY (batch_id, seq))\")\n    with conn:\n        conn.execute(\"DELETE FROM raw_orders WHERE batch_id = ?\", (batch_id,))\n        conn.executemany(\"INSERT INTO raw_orders VALUES (?, ?, ?)\",\n                         [(batch_id, i, json.dumps(r, sort_keys=True)) for i, r in enumerate(records)])\n\ndef pipeline(orders_in=None):\n    \"\"\"Days 174 to 177 in one call: ingest and land, clean, load the star schema; returns the warehouse and the numbers.\"\"\"\n    customers, products, orders = generate()\n    api, state = make_api(orders)\n    waits = []\n    raw = fetch_all(api, {\"X-Api-Key\": \"secret-key\"}, waits.append)\n    raw_db = sqlite3.connect(\":memory:\")\n    land(raw_db, \"b1\", raw)\n    good, quarantine = clean_orders(raw, {c[0] for c in customers})\n    conn = init_warehouse()\n    load_dim_date(conn, date(2026, 1, 1), date(2026, 3, 31))\n    load_dim_product(conn, products)\n    load_dim_customer(conn, customers, \"2026-01-01\")\n    added = load_fact(conn, good)\n    return conn, {\"raw\": len(raw), \"landed\": raw_db.execute(\"SELECT COUNT(*) FROM raw_orders\").fetchone()[0], \"calls\": state[\"calls\"],\n                  \"waits\": waits, \"clean\": len(good), \"quarantined\": len(quarantine), \"fact_rows\": added, \"good\": good}\n\nconn, r = pipeline()\n",
+      "solution": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nclass RateLimited(Exception):\n    def __init__(self, retry_after):\n        super().__init__(\"429 too many requests\")\n        self.retry_after = retry_after\n\nclass Unauthorized(Exception):\n    pass\n\ndef make_api(orders, api_key=\"secret-key\", every=3):\n    \"\"\"Stand-in for GET /orders?page=N&page_size=P: no network, same answers (200, 401, 429).\"\"\"\n    state = {\"calls\": 0, \"limited\": 0}\n    def get_orders(page, page_size, headers):\n        state[\"calls\"] += 1\n        if headers.get(\"X-Api-Key\") != api_key:\n            raise Unauthorized(\"401 invalid API key\")\n        if every and state[\"calls\"] % every == 0:\n            state[\"limited\"] += 1\n            raise RateLimited(2)\n        total = -(-len(orders) // page_size)\n        start = (page - 1) * page_size\n        return {\"data\": orders[start:start + page_size], \"page\": page, \"total_pages\": total}\n    return get_orders, state\n\ndef fetch_page(api, page, size, headers, sleep, max_tries=5):\n    for attempt in range(max_tries):\n        try:\n            return api(page, size, headers)\n        except RateLimited as e:\n            sleep(e.retry_after * 2 ** attempt)\n    raise RuntimeError(f\"page {page} still rate limited after {max_tries} tries\")\n\ndef fetch_all(api, headers, sleep, size=25):\n    records, page, total = [], 1, 1\n    while page <= total:\n        body = fetch_page(api, page, size, headers, sleep)\n        records.extend(body[\"data\"])\n        total = body[\"total_pages\"]\n        page += 1\n    return records\n\nfrom datetime import datetime\n\ndef first_problem(rec, seen, known):\n    \"\"\"The first rule a raw order breaks, or None. `seen` holds the order ids already processed.\"\"\"\n    if rec[\"order_id\"] in seen:\n        return \"duplicate order_id\"\n    if not rec[\"created_at\"]:\n        return \"missing created_at\"\n    try:\n        datetime.strptime(rec[\"created_at\"], \"%Y-%m-%dT%H:%M:%SZ\")\n    except ValueError:\n        return \"bad created_at\"\n    if not isinstance(rec[\"amount_cents\"], int) or rec[\"amount_cents\"] <= 0:\n        return \"bad amount\"\n    if rec[\"customer_id\"].strip().upper() not in known:\n        return \"unknown customer\"\n    if rec[\"currency\"].strip().upper() != \"EUR\":\n        return \"bad currency\"\n    if rec[\"status\"].strip().lower() not in (\"paid\", \"refunded\", \"failed\"):\n        return \"bad status\"\n    return None\n\ndef transform(rec):\n    \"\"\"Typed, normalised copy of a valid raw order.\"\"\"\n    return {\"sale_id\": int(rec[\"order_id\"][1:]), \"order_id\": rec[\"order_id\"],\n            \"customer_id\": rec[\"customer_id\"].strip().upper(), \"product_id\": rec[\"product_id\"],\n            \"quantity\": int(rec[\"quantity\"]), \"amount_cents\": rec[\"amount_cents\"],\n            \"status\": rec[\"status\"].strip().lower(), \"created_at\": rec[\"created_at\"],\n            \"date_key\": int(rec[\"created_at\"][:10].replace(\"-\", \"\"))}\n\ndef clean_orders(raw, known):\n    good, quarantine, seen = [], [], set()\n    for rec in raw:\n        reason = first_problem(rec, seen, known)\n        seen.add(rec[\"order_id\"])\n        if reason:\n            quarantine.append({\"order_id\": rec[\"order_id\"], \"reason\": reason, \"payload\": rec})\n        else:\n            good.append(transform(rec))\n    return good, quarantine\n\nimport sqlite3\nfrom datetime import date, timedelta\n\nDDL = \"\"\"\nCREATE TABLE dim_date (date_key INTEGER PRIMARY KEY, full_date TEXT, year INTEGER, month INTEGER);\nCREATE TABLE dim_product (product_key INTEGER PRIMARY KEY AUTOINCREMENT, product_id TEXT UNIQUE, product_name TEXT, category TEXT);\nCREATE TABLE dim_customer (customer_key INTEGER PRIMARY KEY AUTOINCREMENT, customer_id TEXT, customer_name TEXT, country TEXT,\n                           valid_from TEXT, valid_to TEXT, is_current INTEGER);\nCREATE TABLE fact_sales (sale_id INTEGER PRIMARY KEY, date_key INTEGER, customer_key INTEGER, product_key INTEGER,\n                         quantity INTEGER, amount_cents INTEGER);\nCREATE TABLE etl_state (name TEXT PRIMARY KEY, watermark TEXT);\n\"\"\"\n\ndef init_warehouse():\n    conn = sqlite3.connect(\":memory:\")\n    conn.executescript(DDL)\n    return conn\n\ndef load_dim_date(conn, start, end):\n    days = (end - start).days + 1\n    rows = [(int(d.strftime(\"%Y%m%d\")), d.isoformat(), d.year, d.month) for d in (start + timedelta(days=i) for i in range(days))]\n    with conn:\n        conn.executemany(\"INSERT OR IGNORE INTO dim_date VALUES (?, ?, ?, ?)\", rows)\n\ndef load_dim_product(conn, products):\n    with conn:\n        conn.executemany(\"\"\"INSERT INTO dim_product (product_id, product_name, category) VALUES (?, ?, ?)\n                            ON CONFLICT(product_id) DO UPDATE SET product_name = excluded.product_name, category = excluded.category\"\"\", products)\n\ndef load_dim_customer(conn, customers, as_of, first_from=\"2026-01-01\"):\n    \"\"\"Type 2 history: a changed customer gets a new row; the old row is closed on `as_of`.\"\"\"\n    with conn:\n        for cid, name, country in customers:\n            cur = conn.execute(\"SELECT customer_key, customer_name, country FROM dim_customer WHERE customer_id = ? AND is_current = 1\", (cid,)).fetchone()\n            if cur is None:\n                conn.execute(\"INSERT INTO dim_customer (customer_id, customer_name, country, valid_from, valid_to, is_current) VALUES (?, ?, ?, ?, '9999-12-31', 1)\",\n                             (cid, name, country, first_from))\n            elif (cur[1], cur[2]) != (name, country):\n                conn.execute(\"UPDATE dim_customer SET valid_to = ?, is_current = 0 WHERE customer_key = ?\", (as_of, cur[0]))\n                conn.execute(\"INSERT INTO dim_customer (customer_id, customer_name, country, valid_from, valid_to, is_current) VALUES (?, ?, ?, ?, '9999-12-31', 1)\",\n                             (cid, name, country, as_of))\n\ndef load_fact(conn, good):\n    \"\"\"Incremental: only paid orders newer than the watermark; upsert on sale_id; the watermark moves after the load.\"\"\"\n    row = conn.execute(\"SELECT watermark FROM etl_state WHERE name = 'fact_sales'\").fetchone()\n    mark = row[0] if row else \"\"\n    new = [g for g in good if g[\"created_at\"] > mark]\n    facts = []\n    for g in new:\n        if g[\"status\"] != \"paid\":\n            continue\n        day = g[\"created_at\"][:10]\n        ck = conn.execute(\"SELECT customer_key FROM dim_customer WHERE customer_id = ? AND valid_from <= ? AND ? < valid_to\", (g[\"customer_id\"], day, day)).fetchone()[0]\n        pk = conn.execute(\"SELECT product_key FROM dim_product WHERE product_id = ?\", (g[\"product_id\"],)).fetchone()[0]\n        facts.append((g[\"sale_id\"], g[\"date_key\"], ck, pk, g[\"quantity\"], g[\"amount_cents\"]))\n    with conn:\n        conn.executemany(\"\"\"INSERT INTO fact_sales VALUES (?, ?, ?, ?, ?, ?)\n                            ON CONFLICT(sale_id) DO UPDATE SET date_key = excluded.date_key, customer_key = excluded.customer_key,\n                            product_key = excluded.product_key, quantity = excluded.quantity, amount_cents = excluded.amount_cents\"\"\", facts)\n        if new:\n            conn.execute(\"INSERT INTO etl_state VALUES ('fact_sales', ?) ON CONFLICT(name) DO UPDATE SET watermark = excluded.watermark\",\n                         (max(g[\"created_at\"] for g in new),))\n    return len(facts)\n\nimport json\nimport sqlite3\n\ndef land(conn, batch_id, records):\n    \"\"\"Land raw records unchanged; a batch is replaced as a whole, so re-running it adds nothing.\"\"\"\n    conn.execute(\"CREATE TABLE IF NOT EXISTS raw_orders (batch_id TEXT, seq INTEGER, payload TEXT, PRIMARY KEY (batch_id, seq))\")\n    with conn:\n        conn.execute(\"DELETE FROM raw_orders WHERE batch_id = ?\", (batch_id,))\n        conn.executemany(\"INSERT INTO raw_orders VALUES (?, ?, ?)\",\n                         [(batch_id, i, json.dumps(r, sort_keys=True)) for i, r in enumerate(records)])\n\ndef pipeline(orders_in=None):\n    \"\"\"Days 174 to 177 in one call: ingest and land, clean, load the star schema; returns the warehouse and the numbers.\"\"\"\n    customers, products, orders = generate()\n    api, state = make_api(orders)\n    waits = []\n    raw = fetch_all(api, {\"X-Api-Key\": \"secret-key\"}, waits.append)\n    raw_db = sqlite3.connect(\":memory:\")\n    land(raw_db, \"b1\", raw)\n    good, quarantine = clean_orders(raw, {c[0] for c in customers})\n    conn = init_warehouse()\n    load_dim_date(conn, date(2026, 1, 1), date(2026, 3, 31))\n    load_dim_product(conn, products)\n    load_dim_customer(conn, customers, \"2026-01-01\")\n    added = load_fact(conn, good)\n    return conn, {\"raw\": len(raw), \"landed\": raw_db.execute(\"SELECT COUNT(*) FROM raw_orders\").fetchone()[0], \"calls\": state[\"calls\"],\n                  \"waits\": waits, \"clean\": len(good), \"quarantined\": len(quarantine), \"fact_rows\": added, \"good\": good}\n\nconn, r = pipeline()\ngood = r[\"good\"]\npaid = [g for g in good if g[\"status\"] == \"paid\"]\nfact_rows, revenue = conn.execute(\"SELECT COUNT(*), SUM(amount_cents) FROM fact_sales\").fetchone()\nresults = [(\"R1\", r[\"raw\"] == r[\"clean\"] + r[\"quarantined\"]), (\"R2\", fact_rows == len(paid)),\n           (\"R3\", revenue == sum(g[\"amount_cents\"] for g in paid)), (\"R4\", load_fact(conn, good) == 0)]\nfor name, ok in results:\n    print(f\"{name}: {'PASS' if ok else 'FAIL'}\")\nmonths = conn.execute(\"SELECT d.month, SUM(f.amount_cents) FROM fact_sales f JOIN dim_date d ON d.date_key = f.date_key GROUP BY d.month ORDER BY d.month\").fetchall()\nprint(\"revenue by month: \" + \",\".join(f\"{m}={c}\" for m, c in months))\ncountries = conn.execute(\"SELECT c.country, COUNT(*) FROM fact_sales f JOIN dim_customer c ON c.customer_key = f.customer_key GROUP BY c.country ORDER BY c.country\").fetchall()\nprint(\"orders by country: \" + \",\".join(f\"{c}={n}\" for c, n in countries))\n",
+      "expected": "R1: PASS\nR2: PASS\nR3: PASS\nR4: PASS\nrevenue by month: 1=221500,2=110000,3=192000\norders by country: BR=8,DE=22,FR=21,IN=12,US=28"
+    },
+    {
+      "id": "i2",
+      "title": "A scale estimate",
+      "kind": "python",
+      "prompt": "Write `plan(n_records, page_size, every, wait_seconds)` that simulates the ingestion loop (a call is rate limited when its number is a multiple of `every`, and a limited call is repeated) and returns `(pages, calls, minutes)` where minutes is the whole number of minutes of waiting, `limited * wait_seconds // 60`. Print `<n> records, page size <p>: pages=<pages> calls=<calls> wait=<minutes> min` for `(120000, 25)`, `(120000, 250)` and `(1200000, 250)`, with `every=3` and `wait_seconds=2`.",
+      "starter": "def plan(n_records, page_size, every, wait_seconds):\n    return (0, 0, 0)\n\nfor n, size in [(120000, 25), (120000, 250), (1200000, 250)]:\n    pages, calls, minutes = plan(n, size, 3, 2)\n    print(f\"{n} records, page size {size}: pages={pages} calls={calls} wait={minutes} min\")\n",
+      "solution": "def plan(n_records, page_size, every, wait_seconds):\n    pages = -(-n_records // page_size)\n    calls = done = 0\n    while done < pages:\n        calls += 1\n        if every and calls % every == 0:\n            continue\n        done += 1\n    limited = calls - pages\n    return (pages, calls, limited * wait_seconds // 60)\n\nfor n, size in [(120000, 25), (120000, 250), (1200000, 250)]:\n    pages, calls, minutes = plan(n, size, 3, 2)\n    print(f\"{n} records, page size {size}: pages={pages} calls={calls} wait={minutes} min\")\n",
+      "expected": "120000 records, page size 25: pages=4800 calls=7199 wait=79 min\n120000 records, page size 250: pages=480 calls=719 wait=7 min\n1200000 records, page size 250: pages=4800 calls=7199 wait=79 min"
+    },
+    {
+      "id": "i3",
+      "title": "Your five-minute demo and retrospective (written)",
+      "kind": "written",
+      "prompt": "Write the script of your five-minute demo as five timed parts (problem, flow, result with three numbers that reconcile, two trade-offs with the rejected alternative, limits), then a retrospective with one thing that went well, one that was hard, and the next step you will take on the engineer path.",
+      "starter": "Problem (1 min):\nFlow (1 min):\nResult (1 min):\nTrade-offs (1 min):\nLimits (1 min):\nRetrospective:",
+      "solution": "Problem: orders arrive from an API and a CSV with duplicates and bad rows; the business needs trustworthy sales numbers. Flow: API and CSV into a raw layer, cleaning with a quarantine, a star schema loaded incrementally, analytics views, with a DAG, tests and alerts around it. Result: 120 records read, 114 clean and 6 quarantined with reasons, 91 paid orders in fact_sales with 523500 cents of revenue, and a second run adding 0 rows, so the counts reconcile at every stage. Trade-offs: quarantine instead of stopping the run (good data keeps flowing, but someone must review the quarantine) and incremental instead of full loading (cost follows daily volume, but late-arriving orders need an overlap window). Limits: late data older than the watermark, a SQLite stand-in for PostgreSQL, Airflow modelled rather than run. Retrospective: well, the reconciliation checks caught mistakes early; hard, the type 2 customer lookup; next step, load the same schema into a real PostgreSQL server and run the DAG in Airflow.",
+      "rubric": [
+        "All five parts are present and fit five minutes.",
+        "The result quotes numbers that reconcile.",
+        "Each trade-off names the alternative and its cost.",
+        "Limits are specific.",
+        "The retrospective ends in a concrete next step."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A demo says '114 clean and 8 quarantined from 120 raw'. What is wrong?",
+      "options": [
+        "Nothing, quarantine counts vary",
+        "114 + 8 = 122, so the numbers do not reconcile and the claim cannot be trusted",
+        "Quarantined rows should be zero",
+        "Raw should be smaller"
+      ],
+      "answer": 1,
+      "explanation": "Every raw record is either clean or quarantined, so the two must add to 120. A claim that fails the identity shows a counting error."
+    },
+    {
+      "id": "c2",
+      "question": "Over three nightly runs the new rows are 40, 30 and 50. How many rows does a full reload process in total?",
+      "options": [
+        "120",
+        "40 + 70 + 120 = 230",
+        "50",
+        "130"
+      ],
+      "answer": 1,
+      "explanation": "A full load reprocesses everything seen so far: 40, then 70, then 120, which is 230 in total, against 120 for the incremental load."
+    },
+    {
+      "id": "c3",
+      "question": "Which statement shows the best judgment in a trade-off discussion?",
+      "options": [
+        "We always use incremental loads",
+        "We chose incremental loading because the volume grows daily, and would use a full reload for a small, fast-changing dimension",
+        "Full loads are bad",
+        "It does not matter"
+      ],
+      "answer": 1,
+      "explanation": "Judgment is stating the reason for the choice and the case where the alternative wins. Absolute statements hide the trade-off."
+    },
+    {
+      "id": "c4",
+      "question": "At 1000 times the data, the stand-in ingestion takes more than an hour of rate-limit waiting. What is the most sensible change first?",
+      "options": [
+        "Remove the retries",
+        "Raise the page size and work within the limit, for example with date-range batches in parallel",
+        "Ignore 429 responses",
+        "Wait longer between calls"
+      ],
+      "answer": 1,
+      "explanation": "Fewer, larger requests and parallel batches within the limit reduce the calls. Ignoring or removing retries loses data, and waiting longer makes the run slower."
+    },
+    {
+      "id": "c5",
+      "question": "Which item belongs in the Limitations part of the demo?",
+      "options": [
+        "Nothing, limits hurt the project",
+        "Late-arriving orders older than the watermark are skipped",
+        "The names of the tables",
+        "The number of commits"
+      ],
+      "answer": 1,
+      "explanation": "Naming a real limit shows you understand your design. Hiding it invites the reviewer to find it."
+    }
+  ]
+}

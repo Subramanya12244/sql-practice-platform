@@ -1,0 +1,190 @@
+{
+  "id": "e158",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "airflow-operators",
+      "airflow-scheduling",
+      "airflow-backfilling"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "airflow-etl-pipeline"
+    ],
+    "mindmaps": [
+      "airflow-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Logical dates with catchup",
+      "kind": "python",
+      "prompt": "A `@daily` DAG has `start_date` 10 March 2025 and `catchup=True`. The clock reads 14 March 2025, 09:00. Print the logical date (interval start) of each planned run as `YYYY-MM-DD`, one per line.",
+      "starter": "from datetime import datetime, timedelta\n\n\ndef next_boundary(moment, schedule):\n    if schedule == \"@hourly\":\n        return moment.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)\n    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)\n    if schedule == \"@daily\":\n        return midnight + timedelta(days=1)\n    if schedule == \"@weekly\":\n        return midnight + timedelta(days=7 - (midnight.weekday() + 1) % 7)\n    if schedule == \"@monthly\":\n        return (midnight.replace(day=1) + timedelta(days=32)).replace(day=1)\n    raise ValueError(f\"unsupported schedule {schedule!r}\")\n\n\ndef intervals(start_date, schedule, now):\n    begin = next_boundary(start_date - timedelta(microseconds=1), schedule)\n    result = []\n    while True:\n        end = next_boundary(begin, schedule)\n        if end > now:\n            return result\n        result.append((begin, end))\n        begin = end\n\n\ndef planned_runs(start_date, schedule, now, catchup):\n    found = intervals(start_date, schedule, now)\n    return found if catchup else found[-1:]\n\nnow = datetime(2025, 3, 14, 9, 0)\n# print the logical dates\n",
+      "solution": "from datetime import datetime, timedelta\n\n\ndef next_boundary(moment, schedule):\n    if schedule == \"@hourly\":\n        return moment.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)\n    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)\n    if schedule == \"@daily\":\n        return midnight + timedelta(days=1)\n    if schedule == \"@weekly\":\n        return midnight + timedelta(days=7 - (midnight.weekday() + 1) % 7)\n    if schedule == \"@monthly\":\n        return (midnight.replace(day=1) + timedelta(days=32)).replace(day=1)\n    raise ValueError(f\"unsupported schedule {schedule!r}\")\n\n\ndef intervals(start_date, schedule, now):\n    begin = next_boundary(start_date - timedelta(microseconds=1), schedule)\n    result = []\n    while True:\n        end = next_boundary(begin, schedule)\n        if end > now:\n            return result\n        result.append((begin, end))\n        begin = end\n\n\ndef planned_runs(start_date, schedule, now, catchup):\n    found = intervals(start_date, schedule, now)\n    return found if catchup else found[-1:]\n\nnow = datetime(2025, 3, 14, 9, 0)\nfor begin, end in planned_runs(datetime(2025, 3, 10), \"@daily\", now, True):\n    print(begin.strftime(\"%Y-%m-%d\"))\n",
+      "hints": [
+        "planned_runs(start, schedule, now, catchup) returns (begin, end) pairs.",
+        "The logical date is the begin of each pair.",
+        "begin.strftime(\"%Y-%m-%d\")"
+      ],
+      "expected": "2025-03-10\n2025-03-11\n2025-03-12\n2025-03-13"
+    },
+    {
+      "id": "g2",
+      "title": "Hourly runs in a day",
+      "kind": "python",
+      "prompt": "Print the number of finished intervals of an `@hourly` DAG with `start_date` 1 June 2025 when the clock reads 1 June 2025, 17:30.",
+      "starter": "from datetime import datetime, timedelta\n\n\ndef next_boundary(moment, schedule):\n    if schedule == \"@hourly\":\n        return moment.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)\n    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)\n    if schedule == \"@daily\":\n        return midnight + timedelta(days=1)\n    if schedule == \"@weekly\":\n        return midnight + timedelta(days=7 - (midnight.weekday() + 1) % 7)\n    if schedule == \"@monthly\":\n        return (midnight.replace(day=1) + timedelta(days=32)).replace(day=1)\n    raise ValueError(f\"unsupported schedule {schedule!r}\")\n\n\ndef intervals(start_date, schedule, now):\n    begin = next_boundary(start_date - timedelta(microseconds=1), schedule)\n    result = []\n    while True:\n        end = next_boundary(begin, schedule)\n        if end > now:\n            return result\n        result.append((begin, end))\n        begin = end\n\n\ndef planned_runs(start_date, schedule, now, catchup):\n    found = intervals(start_date, schedule, now)\n    return found if catchup else found[-1:]\n\n# print the number of intervals\n",
+      "solution": "from datetime import datetime, timedelta\n\n\ndef next_boundary(moment, schedule):\n    if schedule == \"@hourly\":\n        return moment.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)\n    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)\n    if schedule == \"@daily\":\n        return midnight + timedelta(days=1)\n    if schedule == \"@weekly\":\n        return midnight + timedelta(days=7 - (midnight.weekday() + 1) % 7)\n    if schedule == \"@monthly\":\n        return (midnight.replace(day=1) + timedelta(days=32)).replace(day=1)\n    raise ValueError(f\"unsupported schedule {schedule!r}\")\n\n\ndef intervals(start_date, schedule, now):\n    begin = next_boundary(start_date - timedelta(microseconds=1), schedule)\n    result = []\n    while True:\n        end = next_boundary(begin, schedule)\n        if end > now:\n            return result\n        result.append((begin, end))\n        begin = end\n\n\ndef planned_runs(start_date, schedule, now, catchup):\n    found = intervals(start_date, schedule, now)\n    return found if catchup else found[-1:]\n\nprint(len(intervals(datetime(2025, 6, 1), \"@hourly\", datetime(2025, 6, 1, 17, 30))))\n",
+      "hints": [
+        "intervals(start, schedule, now) lists the finished intervals.",
+        "Count them with len.",
+        "The last finished hour ends at 17:00."
+      ],
+      "expected": "17"
+    },
+    {
+      "id": "g3",
+      "title": "First monthly interval",
+      "kind": "python",
+      "prompt": "For a `@monthly` DAG with `start_date` 10 March 2025, print the start of its first interval and the time it ends, as `YYYY-MM-DD` on one line separated by ` to `.",
+      "starter": "from datetime import datetime, timedelta\n\n\ndef next_boundary(moment, schedule):\n    if schedule == \"@hourly\":\n        return moment.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)\n    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)\n    if schedule == \"@daily\":\n        return midnight + timedelta(days=1)\n    if schedule == \"@weekly\":\n        return midnight + timedelta(days=7 - (midnight.weekday() + 1) % 7)\n    if schedule == \"@monthly\":\n        return (midnight.replace(day=1) + timedelta(days=32)).replace(day=1)\n    raise ValueError(f\"unsupported schedule {schedule!r}\")\n\n\ndef intervals(start_date, schedule, now):\n    begin = next_boundary(start_date - timedelta(microseconds=1), schedule)\n    result = []\n    while True:\n        end = next_boundary(begin, schedule)\n        if end > now:\n            return result\n        result.append((begin, end))\n        begin = end\n\n\ndef planned_runs(start_date, schedule, now, catchup):\n    found = intervals(start_date, schedule, now)\n    return found if catchup else found[-1:]\n\n# print the first interval\n",
+      "solution": "from datetime import datetime, timedelta\n\n\ndef next_boundary(moment, schedule):\n    if schedule == \"@hourly\":\n        return moment.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)\n    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)\n    if schedule == \"@daily\":\n        return midnight + timedelta(days=1)\n    if schedule == \"@weekly\":\n        return midnight + timedelta(days=7 - (midnight.weekday() + 1) % 7)\n    if schedule == \"@monthly\":\n        return (midnight.replace(day=1) + timedelta(days=32)).replace(day=1)\n    raise ValueError(f\"unsupported schedule {schedule!r}\")\n\n\ndef intervals(start_date, schedule, now):\n    begin = next_boundary(start_date - timedelta(microseconds=1), schedule)\n    result = []\n    while True:\n        end = next_boundary(begin, schedule)\n        if end > now:\n            return result\n        result.append((begin, end))\n        begin = end\n\n\ndef planned_runs(start_date, schedule, now, catchup):\n    found = intervals(start_date, schedule, now)\n    return found if catchup else found[-1:]\n\nfirst = intervals(datetime(2025, 3, 10), \"@monthly\", datetime(2026, 1, 1))[0]\nprint(first[0].strftime(\"%Y-%m-%d\"), \"to\", first[1].strftime(\"%Y-%m-%d\"))\n",
+      "hints": [
+        "Use a late 'now' so that finished intervals exist.",
+        "Take element 0 of the returned list.",
+        "Each element is a (begin, end) pair."
+      ],
+      "expected": "2025-04-01 to 2025-05-01"
+    },
+    {
+      "id": "g4",
+      "title": "Pick the operators",
+      "kind": "written",
+      "prompt": "A DAG must (1) mark the start of the workflow, (2) run `curl` to download a file, (3) run a Python function that cleans it, and (4) run a SQL statement in the warehouse. Name the operator you would use for each task and say, for task 4, where the work happens.",
+      "starter": "1:\n2:\n3:\n4:\n",
+      "solution": "1. `EmptyOperator` as a start marker. 2. `BashOperator` with `bash_command=\"curl ...\"`. 3. `PythonOperator` with `python_callable=clean_file` (and `op_kwargs` if arguments are needed). 4. A SQL operator from a provider package, for example `SQLExecuteQueryOperator` from `apache-airflow-providers-common-sql`, with a connection to the warehouse. For the SQL task the work happens inside the warehouse: Airflow only submits the statement and records the outcome, so the worker's memory is not used for the data.",
+      "rubric": [
+        "Chooses EmptyOperator for the marker, BashOperator for curl and PythonOperator for the function.",
+        "Names a SQL operator from a provider for the warehouse statement.",
+        "States that the SQL work runs in the database, not in the worker."
+      ],
+      "hints": [
+        "Which operator does nothing?",
+        "Shell command versus Python function.",
+        "SQL operators come from provider packages."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "When does the first run happen?",
+      "kind": "python",
+      "prompt": "For each of the three DAGs below print `<schedule>: <logical date> runs at <end>` where the logical date is the start of the first interval and `end` its end, both formatted `%Y-%m-%d %H:%M`. The DAGs are `(\"@daily\", 2025-01-01 00:00)`, `(\"@hourly\", 2025-01-01 10:30)` and `(\"@weekly\", 2025-01-01 00:00)`. Use `intervals` with a clock that is far enough ahead.",
+      "starter": "from datetime import datetime, timedelta\n\n\ndef next_boundary(moment, schedule):\n    if schedule == \"@hourly\":\n        return moment.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)\n    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)\n    if schedule == \"@daily\":\n        return midnight + timedelta(days=1)\n    if schedule == \"@weekly\":\n        return midnight + timedelta(days=7 - (midnight.weekday() + 1) % 7)\n    if schedule == \"@monthly\":\n        return (midnight.replace(day=1) + timedelta(days=32)).replace(day=1)\n    raise ValueError(f\"unsupported schedule {schedule!r}\")\n\n\ndef intervals(start_date, schedule, now):\n    begin = next_boundary(start_date - timedelta(microseconds=1), schedule)\n    result = []\n    while True:\n        end = next_boundary(begin, schedule)\n        if end > now:\n            return result\n        result.append((begin, end))\n        begin = end\n\n\ndef planned_runs(start_date, schedule, now, catchup):\n    found = intervals(start_date, schedule, now)\n    return found if catchup else found[-1:]\n\ncases = [(\"@daily\", datetime(2025, 1, 1)), (\"@hourly\", datetime(2025, 1, 1, 10, 30)), (\"@weekly\", datetime(2025, 1, 1))]\n# print one line per case\n",
+      "solution": "from datetime import datetime, timedelta\n\n\ndef next_boundary(moment, schedule):\n    if schedule == \"@hourly\":\n        return moment.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)\n    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)\n    if schedule == \"@daily\":\n        return midnight + timedelta(days=1)\n    if schedule == \"@weekly\":\n        return midnight + timedelta(days=7 - (midnight.weekday() + 1) % 7)\n    if schedule == \"@monthly\":\n        return (midnight.replace(day=1) + timedelta(days=32)).replace(day=1)\n    raise ValueError(f\"unsupported schedule {schedule!r}\")\n\n\ndef intervals(start_date, schedule, now):\n    begin = next_boundary(start_date - timedelta(microseconds=1), schedule)\n    result = []\n    while True:\n        end = next_boundary(begin, schedule)\n        if end > now:\n            return result\n        result.append((begin, end))\n        begin = end\n\n\ndef planned_runs(start_date, schedule, now, catchup):\n    found = intervals(start_date, schedule, now)\n    return found if catchup else found[-1:]\n\ncases = [(\"@daily\", datetime(2025, 1, 1)), (\"@hourly\", datetime(2025, 1, 1, 10, 30)), (\"@weekly\", datetime(2025, 1, 1))]\nfmt = \"%Y-%m-%d %H:%M\"\nfor schedule, start in cases:\n    begin, end = intervals(start, schedule, datetime(2026, 1, 1))[0]\n    print(f\"{schedule}: {begin.strftime(fmt)} runs at {end.strftime(fmt)}\")\n",
+      "expected": "@daily: 2025-01-01 00:00 runs at 2025-01-02 00:00\n@hourly: 2025-01-01 11:00 runs at 2025-01-01 12:00\n@weekly: 2025-01-05 00:00 runs at 2025-01-12 00:00"
+    },
+    {
+      "id": "i2",
+      "title": "Backfill size",
+      "kind": "python",
+      "prompt": "A DAG has `start_date` 1 January 2025 and the clock reads 1 April 2025, 00:00. For each schedule in `@hourly`, `@daily`, `@weekly`, `@monthly` print `<schedule>: <runs with catchup=True> <runs with catchup=False>`, one line per schedule in that order.",
+      "starter": "from datetime import datetime, timedelta\n\n\ndef next_boundary(moment, schedule):\n    if schedule == \"@hourly\":\n        return moment.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)\n    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)\n    if schedule == \"@daily\":\n        return midnight + timedelta(days=1)\n    if schedule == \"@weekly\":\n        return midnight + timedelta(days=7 - (midnight.weekday() + 1) % 7)\n    if schedule == \"@monthly\":\n        return (midnight.replace(day=1) + timedelta(days=32)).replace(day=1)\n    raise ValueError(f\"unsupported schedule {schedule!r}\")\n\n\ndef intervals(start_date, schedule, now):\n    begin = next_boundary(start_date - timedelta(microseconds=1), schedule)\n    result = []\n    while True:\n        end = next_boundary(begin, schedule)\n        if end > now:\n            return result\n        result.append((begin, end))\n        begin = end\n\n\ndef planned_runs(start_date, schedule, now, catchup):\n    found = intervals(start_date, schedule, now)\n    return found if catchup else found[-1:]\n\n# print one line per schedule\n",
+      "solution": "from datetime import datetime, timedelta\n\n\ndef next_boundary(moment, schedule):\n    if schedule == \"@hourly\":\n        return moment.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)\n    midnight = moment.replace(hour=0, minute=0, second=0, microsecond=0)\n    if schedule == \"@daily\":\n        return midnight + timedelta(days=1)\n    if schedule == \"@weekly\":\n        return midnight + timedelta(days=7 - (midnight.weekday() + 1) % 7)\n    if schedule == \"@monthly\":\n        return (midnight.replace(day=1) + timedelta(days=32)).replace(day=1)\n    raise ValueError(f\"unsupported schedule {schedule!r}\")\n\n\ndef intervals(start_date, schedule, now):\n    begin = next_boundary(start_date - timedelta(microseconds=1), schedule)\n    result = []\n    while True:\n        end = next_boundary(begin, schedule)\n        if end > now:\n            return result\n        result.append((begin, end))\n        begin = end\n\n\ndef planned_runs(start_date, schedule, now, catchup):\n    found = intervals(start_date, schedule, now)\n    return found if catchup else found[-1:]\n\nstart = datetime(2025, 1, 1)\nnow = datetime(2025, 4, 1)\nfor schedule in [\"@hourly\", \"@daily\", \"@weekly\", \"@monthly\"]:\n    on = len(planned_runs(start, schedule, now, True))\n    off = len(planned_runs(start, schedule, now, False))\n    print(f\"{schedule}: {on} {off}\")\n",
+      "expected": "@hourly: 2160 1\n@daily: 90 1\n@weekly: 12 1\n@monthly: 3 1"
+    },
+    {
+      "id": "i3",
+      "title": "The DAG that never ran",
+      "kind": "written",
+      "required": false,
+      "prompt": "A colleague writes: 'I created the DAG at noon today with start_date=datetime(2025, 6, 10) and @daily. It is 15:00 on 10 June and nothing has run.' Explain why, say when the first run will appear and what its logical date is, and give two ways the colleague could get a run sooner for testing.",
+      "starter": "Why:\n\nFirst run:\n\nTwo options:\n",
+      "solution": "The first daily interval for start_date 10 June covers 10 June 00:00 to 11 June 00:00, and a run is created only after its interval has ended. At 15:00 on 10 June the interval is still open, so no run exists. The first run appears just after midnight on 11 June and its logical date is 10 June. To test sooner, trigger the DAG manually from the UI or command line (a manual run does not wait for an interval), or change the schedule to something shorter such as @hourly for the test.",
+      "rubric": [
+        "States that a run is created only after its data interval ends.",
+        "Gives 11 June just after midnight as the time and 10 June as the logical date.",
+        "Offers manual triggering and a shorter schedule, or equivalent."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "apache-airflow"
+    ],
+    "note": "Airflow is not installed here, so the DAG file is shown in a fence and not executed; the lists of runs, interval boundaries and counts in the lesson come from the pure-Python schedule model, which uses naive dates (Airflow uses UTC by default). To run real Airflow, install apache-airflow in a virtual environment with the official constraints file for your Airflow and Python versions, or use the official Docker Compose file from the Airflow documentation, and compare the data intervals shown in the UI with the model. Import paths and the default for catchup differ between versions, so set catchup explicitly and follow the documentation of your version."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A @daily DAG has start_date 1 January and is unpaused at 12:00 on 1 January. When does its first run start, and what is its logical date?",
+      "options": [
+        "12:00 on 1 January, logical date 1 January",
+        "After midnight on 2 January, logical date 1 January",
+        "After midnight on 2 January, logical date 2 January",
+        "Never"
+      ],
+      "answer": 1,
+      "explanation": "The run for an interval starts after the interval ends, and its logical date is the interval's start. Midnight on 2 January closes the 1 January interval."
+    },
+    {
+      "id": "c2",
+      "question": "The DAG is switched on at 06:00 on 4 January with start_date 1 January, @daily and catchup=False. Which logical dates run?",
+      "options": [
+        "1, 2 and 3 January",
+        "Only 3 January",
+        "Only 4 January",
+        "None"
+      ],
+      "answer": 1,
+      "explanation": "Without catchup only the latest finished interval, 3 January, runs. 4 January is still open and 1 and 2 January are skipped."
+    },
+    {
+      "id": "c3",
+      "question": "Which start_date is a mistake?",
+      "options": [
+        "datetime(2025, 1, 1)",
+        "datetime.now()",
+        "datetime(2024, 12, 31)",
+        "A fixed date in the past"
+      ],
+      "answer": 1,
+      "explanation": "A moving start date moves the first interval with it, so it never completes. Use a fixed date."
+    },
+    {
+      "id": "c4",
+      "question": "What does `echo {{ ds }}` render to for the run with logical date 3 January 2025?",
+      "options": [
+        "echo ds",
+        "echo 2025-01-03",
+        "echo 2025-01-04",
+        "echo today"
+      ],
+      "answer": 1,
+      "explanation": "ds is the logical date (the interval start) formatted YYYY-MM-DD. The interval end would be 4 January, but that is not ds."
+    },
+    {
+      "id": "c5",
+      "question": "The model says intervals(datetime(2025,1,1), '@weekly', datetime(2025,1,20)) starts on 5 and 12 January. Why not 1 January?",
+      "options": [
+        "Weeks start on Sunday boundaries, and the first boundary after the start date is 5 January",
+        "Weekly DAGs skip the first week",
+        "1 January is a holiday",
+        "The model is wrong"
+      ],
+      "answer": 0,
+      "explanation": "@weekly is midnight on Sunday. A start date that is not on a boundary moves the first interval to the next boundary."
+    }
+  ]
+}

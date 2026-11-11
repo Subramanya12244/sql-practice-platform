@@ -1,0 +1,193 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "spark-architecture",
+      "spark-lazy-evaluation",
+      "spark-dataframes",
+      "spark-transformations",
+      "spark-actions"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "pyspark-transformation"
+    ],
+    "mindmaps": [
+      "spark-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Transformation or action?",
+      "kind": "python",
+      "prompt": "Write `kind(op)` returning \"action\" for `show`, `count`, `collect`, `take`, `first`, `write`, \"wide\" for `groupBy`, `join`, `orderBy`, `distinct`, and \"narrow\" for everything else. Print `op kind` for select, groupBy, count, filter, join, withColumn, collect, one per line.",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\ndef kind(op):\n    return \"narrow\"\n\nfor op in [\"select\", \"groupBy\", \"count\", \"filter\", \"join\", \"withColumn\", \"collect\"]:\n    print(op, kind(op))\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nACTIONS = {\"show\", \"count\", \"collect\", \"take\", \"first\", \"write\"}\nWIDE = {\"groupBy\", \"join\", \"orderBy\", \"distinct\"}\n\ndef kind(op):\n    if op in ACTIONS:\n        return \"action\"\n    return \"wide\" if op in WIDE else \"narrow\"\n\nfor op in [\"select\", \"groupBy\", \"count\", \"filter\", \"join\", \"withColumn\", \"collect\"]:\n    print(op, kind(op))\n",
+      "hints": [
+        "Put the action names and the wide names in two sets.",
+        "Check actions first, then wide, else narrow.",
+        "Print f-string op and kind(op)."
+      ],
+      "expected": "select narrow\ngroupBy wide\ncount action\nfilter narrow\njoin wide\nwithColumn narrow\ncollect action"
+    },
+    {
+      "id": "g2",
+      "title": "Partition sums",
+      "kind": "python",
+      "prompt": "Split `ROWS` into 4 partitions with `slices(ROWS, 4)`. Print the number of rows and the sum of `amount` (column index 3) of each partition as `partition i: n rows, total t`, for i = 0 to 3.",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\n# slice into 4 partitions and summarise each\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nfor i, p in enumerate(slices(ROWS, 4)):\n    print(f\"partition {i}: {len(p)} rows, total {sum(r[3] for r in p)}\")\n",
+      "hints": [
+        "slices(ROWS, n) returns a list of partitions.",
+        "Use enumerate to number them.",
+        "The amount is r[3]."
+      ],
+      "expected": "partition 0: 3 rows, total 115\npartition 1: 3 rows, total 70\npartition 2: 3 rows, total 135\npartition 3: 3 rows, total 100"
+    },
+    {
+      "id": "g3",
+      "title": "The PySpark filter in pandas",
+      "kind": "python",
+      "prompt": "Replicate `orders.filter((F.col(\"category\") == \"games\") & (F.col(\"amount\") > 20)).withColumn(\"amount_k\", F.col(\"amount\") / 1000)` with pandas on `ROWS` and `COLS`, then print it with `show(rows, cols)` using the columns order_id, category, amount, amount_k (values as they are, the last as a float).",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\ndf = pd.DataFrame(ROWS, columns=COLS)\n# filter and add amount_k\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\ndf = pd.DataFrame(ROWS, columns=COLS)\nout = df[(df[\"category\"] == \"games\") & (df[\"amount\"] > 20)].copy()\nout[\"amount_k\"] = out[\"amount\"] / 1000\nprint(show(out[[\"order_id\", \"category\", \"amount\", \"amount_k\"]].values.tolist(), [\"order_id\", \"category\", \"amount\", \"amount_k\"]))\n",
+      "hints": [
+        "Combine the two conditions with &, each in parentheses.",
+        "Create the new column with division by 1000.",
+        "Pass out[[...]].values.tolist() and the column names to show."
+      ],
+      "expected": "+--------+--------+------+--------+\n|order_id|category|amount|amount_k|\n+--------+--------+------+--------+\n|       3|   games|    60|    0.06|\n|       9|   games|    80|    0.08|\n|      11|   games|    70|    0.07|\n+--------+--------+------+--------+"
+    },
+    {
+      "id": "g4",
+      "title": "Write a first PySpark job (written)",
+      "kind": "written",
+      "prompt": "Write a PySpark job that creates a SparkSession in local mode, reads an `orders` DataFrame from a list of tuples with columns order_id, category and amount, keeps orders with amount of at least 30, adds a column `amount_k` (amount / 1000) and prints the result. State which line triggers computation and what `explain()` would show about shuffles for this job.",
+      "starter": "spark = ...\norders = ...",
+      "solution": "```python\nfrom pyspark.sql import SparkSession, functions as F\n\nspark = SparkSession.builder.master(\"local[*]\").appName(\"first_job\").getOrCreate()\n\norders = spark.createDataFrame(\n    [(1, \"books\", 20), (2, \"books\", 35), (3, \"games\", 60)],\n    [\"order_id\", \"category\", \"amount\"],\n)\nresult = orders.filter(F.col(\"amount\") >= 30).withColumn(\"amount_k\", F.col(\"amount\") / 1000)\nresult.show()\n```\n\n`createDataFrame`, `filter` and `withColumn` are lazy: they build a plan and run nothing. `result.show()` is the action that triggers the computation. Both `filter` and `withColumn` are narrow transformations, so the plan has no shuffle and `explain()` would show no `Exchange` operator; the job is a single stage.",
+      "rubric": [
+        "Creates a local SparkSession and DataFrame with the schema.",
+        "Uses filter and withColumn with column expressions.",
+        "Identifies show() as the action and the others as lazy.",
+        "States that narrow transformations need no shuffle."
+      ],
+      "hints": [
+        "Start from SparkSession.builder.",
+        "Use F.col for the expressions.",
+        "Which call asks for output?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Shuffle by customer",
+      "kind": "python",
+      "prompt": "For `n = 4` partitions, split `ROWS` with `slices(ROWS, 4)` and compute for `groupBy(\"customer_id\")`: the number of rows that move (the target partition `target(customer_id, 4)` differs from the current partition), and the number of rows each target partition receives (a list of 4 counts, indexed by partition). Print `moved <k> of 12` and then the list of counts.",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nn = 4\nparts = slices(ROWS, n)\n# rows moved and rows received per partition\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nn = 4\nparts = slices(ROWS, n)\nmoved = 0\nreceived = [0] * n\nfor i, p in enumerate(parts):\n    for r in p:\n        t = target(r[1], n)\n        received[t] += 1\n        if t != i:\n            moved += 1\nprint(\"moved\", moved, \"of\", len(ROWS))\nprint(received)\n",
+      "expected": "moved 9 of 12\n[2, 5, 2, 3]"
+    },
+    {
+      "id": "i2",
+      "title": "Add select to the lazy frame",
+      "kind": "python",
+      "prompt": "The class below has `filter` and a `collect` that already understands `select` steps, but lacks the `select(cols)` method. Add it (it must return a new LazyFrame with the step `(\"select\", cols, None)` appended), then run: `df.filter(\"amount >= 30\", lambda r: r[\"amount\"] >= 30).select([\"order_id\", \"amount\"])`. Print the number of jobs before the action, then the first two collected rows, then the number of jobs after (each on its own line, rows as dicts).",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nclass LazyFrame:\n    jobs = 0\n\n    def __init__(self, rows, cols, plan=()):\n        self.rows, self.cols, self.plan = rows, cols, tuple(plan)\n\n    def filter(self, name, fn):\n        return LazyFrame(self.rows, self.cols, self.plan + ((\"filter\", name, fn),))\n\n    def collect(self):\n        LazyFrame.jobs += 1\n        rows = [dict(zip(self.cols, r)) for r in self.rows]\n        for kind, name, fn in self.plan:\n            if kind == \"filter\":\n                rows = [r for r in rows if fn(r)]\n            elif kind == \"select\":\n                rows = [{c: r[c] for c in name} for r in rows]\n        return rows\n\n    def count(self):\n        return len(self.collect())\n\ndf = LazyFrame(ROWS, COLS)\nq = df.filter(\"amount >= 30\", lambda r: r[\"amount\"] >= 30)  # add select([\"order_id\", \"amount\"])\nprint(LazyFrame.jobs)\nprint(q.collect()[:2])\nprint(LazyFrame.jobs)\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nclass LazyFrame:\n    jobs = 0\n\n    def __init__(self, rows, cols, plan=()):\n        self.rows, self.cols, self.plan = rows, cols, tuple(plan)\n\n    def filter(self, name, fn):\n        return LazyFrame(self.rows, self.cols, self.plan + ((\"filter\", name, fn),))\n\n    def collect(self):\n        LazyFrame.jobs += 1\n        rows = [dict(zip(self.cols, r)) for r in self.rows]\n        for kind, name, fn in self.plan:\n            if kind == \"filter\":\n                rows = [r for r in rows if fn(r)]\n            elif kind == \"select\":\n                rows = [{c: r[c] for c in name} for r in rows]\n        return rows\n\n    def count(self):\n        return len(self.collect())\n\n    def select(self, cols):\n        return LazyFrame(self.rows, self.cols, self.plan + ((\"select\", cols, None),))\n\ndf = LazyFrame(ROWS, COLS)\nq = df.filter(\"amount >= 30\", lambda r: r[\"amount\"] >= 30).select([\"order_id\", \"amount\"])\nprint(LazyFrame.jobs)\nprint(q.collect()[:2])\nprint(LazyFrame.jobs)\n",
+      "expected": "0\n[{'order_id': 2, 'amount': 35}, {'order_id': 3, 'amount': 60}]\n1"
+    },
+    {
+      "id": "i3",
+      "title": "Count jobs and stages (written, stretch)",
+      "kind": "written",
+      "prompt": "For this code, say how many jobs run, which lines are actions, how many shuffles each job contains and how many stages that gives: `a = df.filter(...)`; `b = a.groupBy('category').agg(F.sum('amount'))`; `n = b.count()`; `b.show()`; `c = b.orderBy('category')`; `c.collect()`.",
+      "starter": "Jobs: ...\nActions: ...\nShuffles and stages: ...",
+      "solution": "Three jobs run, one for each action: `b.count()`, `b.show()` and `c.collect()`; the lines that only assign `a`, `b` and `c` run nothing. The jobs for `count()` and `show()` each contain one shuffle, for the `groupBy` aggregation, so two stages each (the map side with the filter and partial aggregation, and the reduce side that combines groups). The job for `c.collect()` repeats the filter and the aggregation, since `b` was not cached, and adds a second shuffle for `orderBy` (range partitioning for the sort), so it has two shuffles and three stages. Caching `b` would let the later actions reuse its result instead of recomputing it. Spark's adaptive query execution can change the physical plan, so the exact number of stages shown in the UI can differ from this count.",
+      "rubric": [
+        "Counts one job per action.",
+        "Identifies the groupBy and orderBy shuffles.",
+        "Notes that the plan is recomputed without caching.",
+        "Gives stages as shuffles plus one per job."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "pyspark"
+    ],
+    "note": "Spark needs Java 17 or newer installed on your computer; then pip install pyspark and run the code with python. Spark cannot run in the course tests or the browser. The PySpark code is shown as text, and every result was verified through pandas, SQL (PGlite) and small pure-Python models of lazy plans, partitions and shuffles, which are also what the graded exercises use. The hash function in the shuffle model is CRC32, not the Murmur3 hash Spark uses, so partition numbers illustrate the idea and do not match a real cluster."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which line of PySpark actually starts computation?",
+      "options": [
+        "df.filter(F.col('a') > 1)",
+        "df.withColumn('b', F.col('a') * 2)",
+        "df.count()",
+        "df.select('a')"
+      ],
+      "answer": 2,
+      "explanation": "count() is an action. The others are transformations that only extend the plan."
+    },
+    {
+      "id": "c2",
+      "question": "A plan has one groupBy and one join (a shuffle join). How many stages does the job have?",
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "answer": 2,
+      "explanation": "Stages are shuffles plus one. Two shuffles give three stages (assuming neither join side is broadcast)."
+    },
+    {
+      "id": "c3",
+      "question": "Why can collect() be dangerous on a large DataFrame?",
+      "options": [
+        "It runs slowly on executors",
+        "It brings all rows into the driver's memory",
+        "It deletes the data",
+        "It forces a shuffle"
+      ],
+      "answer": 1,
+      "explanation": "collect() returns all rows to the driver process, which can run out of memory. Use take, limit or write instead."
+    },
+    {
+      "id": "c4",
+      "question": "df2 = df.filter(...) is executed. What is true of df?",
+      "options": [
+        "It now contains only the filtered rows",
+        "It is unchanged, because DataFrames are immutable",
+        "It was deleted",
+        "It was cached"
+      ],
+      "answer": 1,
+      "explanation": "Transformations return new DataFrames and leave the original unchanged. Nothing has even run yet."
+    },
+    {
+      "id": "c5",
+      "question": "What does a narrow transformation guarantee?",
+      "options": [
+        "No data moves between partitions",
+        "The result is sorted",
+        "It runs on the driver",
+        "It is cached"
+      ],
+      "answer": 0,
+      "explanation": "Each output partition depends on one input partition, so no shuffle is needed. Sorting, grouping and joins are generally wide."
+    }
+  ],
+  "id": "e163"
+}

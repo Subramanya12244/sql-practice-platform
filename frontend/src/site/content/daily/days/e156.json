@@ -1,0 +1,169 @@
+{
+  "id": "e156",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "airflow-dags"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "end-to-end-pipeline"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Read project metadata",
+      "kind": "python",
+      "prompt": "Parse the `text` below with `tomllib` and print the project name and version on one line separated by a space, then the number of dependencies.",
+      "starter": "import tomllib\n\ntext = \"\"\"\n[project]\nname = \"orders-pipeline\"\nversion = \"0.2.1\"\ndependencies = [\"pandas>=2.2,<3\", \"requests>=2.31\", \"sqlalchemy==2.0.30\"]\n\n[project.scripts]\norders-load = \"pipeline.cli:main\"\norders-check = \"pipeline.checks:run\"\n\"\"\"\n# print the name and version, then the dependency count\n",
+      "solution": "import tomllib\n\ntext = \"\"\"\n[project]\nname = \"orders-pipeline\"\nversion = \"0.2.1\"\ndependencies = [\"pandas>=2.2,<3\", \"requests>=2.31\", \"sqlalchemy==2.0.30\"]\n\n[project.scripts]\norders-load = \"pipeline.cli:main\"\norders-check = \"pipeline.checks:run\"\n\"\"\"\nproject = tomllib.loads(text)[\"project\"]\nprint(project[\"name\"], project[\"version\"])\nprint(len(project[\"dependencies\"]))\n",
+      "hints": [
+        "Use tomllib.loads(text) and take the \"project\" table.",
+        "Indexing gives name, version and dependencies.",
+        "print(project[\"name\"], project[\"version\"]) then print(len(project[\"dependencies\"]))."
+      ],
+      "expected": "orders-pipeline 0.2.1\n3"
+    },
+    {
+      "id": "g2",
+      "title": "Split the entry points",
+      "kind": "python",
+      "prompt": "For each command in `[project.scripts]` of the same text, print `<command>: import <module>, call <function>`, in file order.",
+      "starter": "import tomllib\n\ntext = \"\"\"\n[project]\nname = \"orders-pipeline\"\nversion = \"0.2.1\"\ndependencies = [\"pandas>=2.2,<3\", \"requests>=2.31\", \"sqlalchemy==2.0.30\"]\n\n[project.scripts]\norders-load = \"pipeline.cli:main\"\norders-check = \"pipeline.checks:run\"\n\"\"\"\n# print one line per entry point\n",
+      "solution": "import tomllib\n\ntext = \"\"\"\n[project]\nname = \"orders-pipeline\"\nversion = \"0.2.1\"\ndependencies = [\"pandas>=2.2,<3\", \"requests>=2.31\", \"sqlalchemy==2.0.30\"]\n\n[project.scripts]\norders-load = \"pipeline.cli:main\"\norders-check = \"pipeline.checks:run\"\n\"\"\"\nscripts = tomllib.loads(text)[\"project\"][\"scripts\"]\nfor command, target in scripts.items():\n    module, function = target.split(\":\")\n    print(f\"{command}: import {module}, call {function}\")\n",
+      "hints": [
+        "scripts is a dict from command to the target text.",
+        "The target is module:function.",
+        "target.split(\":\") returns the two parts."
+      ],
+      "expected": "orders-load: import pipeline.cli, call main\norders-check: import pipeline.checks, call run"
+    },
+    {
+      "id": "g3",
+      "title": "Merge defaults and an environment",
+      "kind": "python",
+      "prompt": "Merge the `default` table with the `test` table (values in `test` win) and print the resulting dictionary.",
+      "starter": "import tomllib\n\ntext = \"\"\"\n[default]\nbatch_size = 100\nlog_level = \"INFO\"\n\n[test]\nbatch_size = 5\ndb = \"sqlite:///:memory:\"\n\"\"\"\ndata = tomllib.loads(text)\n# print the merged dict\n",
+      "solution": "import tomllib\n\ntext = \"\"\"\n[default]\nbatch_size = 100\nlog_level = \"INFO\"\n\n[test]\nbatch_size = 5\ndb = \"sqlite:///:memory:\"\n\"\"\"\ndata = tomllib.loads(text)\nprint({**data[\"default\"], **data[\"test\"]})\n",
+      "hints": [
+        "Two dictionaries can be merged with {**a, **b}.",
+        "Later keys win.",
+        "print({**data[\"default\"], **data[\"test\"]})."
+      ],
+      "expected": "{'batch_size': 5, 'log_level': 'INFO', 'db': 'sqlite:///:memory:'}"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Layered configuration",
+      "kind": "python",
+      "prompt": "Write `load(env, environ)` that starts from the `default` table, applies the table named `env` if it exists, then applies overrides from `environ`: the key `PIPELINE_BATCH` (converted to int) replaces `batch_size`. It must raise `KeyError` naming `DB_PASSWORD` when that key is missing from `environ`, and never put the password in the result. Print `load(\"default\", env1)`, `load(\"prod\", env1)` and the message of the error for `load(\"prod\", {})`, using `env1 = {\"DB_PASSWORD\": \"x\", \"PIPELINE_BATCH\": \"7\"}` for the first two, each on its own line (`error: ` prefix for the third).",
+      "starter": "import tomllib\n\nTEXT = \"\"\"\n[default]\nbatch_size = 100\nlog_level = \"INFO\"\n\n[prod]\nbatch_size = 1000\nlog_level = \"WARNING\"\n\"\"\"\n\n\ndef load(env, environ):\n    return {}\n\n\nenv1 = {\"DB_PASSWORD\": \"x\", \"PIPELINE_BATCH\": \"7\"}\n# print the three lines\n",
+      "solution": "import tomllib\n\nTEXT = \"\"\"\n[default]\nbatch_size = 100\nlog_level = \"INFO\"\n\n[prod]\nbatch_size = 1000\nlog_level = \"WARNING\"\n\"\"\"\n\n\ndef load(env, environ):\n    if \"DB_PASSWORD\" not in environ:\n        raise KeyError(\"DB_PASSWORD\")\n    data = tomllib.loads(TEXT)\n    cfg = {**data[\"default\"], **data.get(env, {})}\n    if \"PIPELINE_BATCH\" in environ:\n        cfg[\"batch_size\"] = int(environ[\"PIPELINE_BATCH\"])\n    return cfg\n\n\nenv1 = {\"DB_PASSWORD\": \"x\", \"PIPELINE_BATCH\": \"7\"}\nprint(load(\"default\", env1))\nprint(load(\"prod\", env1))\ntry:\n    load(\"prod\", {})\nexcept KeyError as error:\n    print(\"error:\", error)\n",
+      "expected": "{'batch_size': 7, 'log_level': 'INFO'}\n{'batch_size': 7, 'log_level': 'WARNING'}\nerror: 'DB_PASSWORD'"
+    },
+    {
+      "id": "i2",
+      "title": "Classify dependencies",
+      "kind": "python",
+      "prompt": "Classify each specifier in the list as `pinned` (contains `==`), `range` (contains `>`, `<` or `~=` but no `==`) or `unpinned` (a bare name). Print three lines in this order: `pinned: ` then the comma-separated sorted package names (the text before the first operator), then the same for `range` and `unpinned`. Use `none` when a class is empty.",
+      "starter": "specs = [\"pandas>=2.2,<3\", \"requests\", \"sqlalchemy==2.0.30\", \"numpy~=2.0\", \"tqdm\", \"pytest==8.2.0\"]\n# print pinned, range and unpinned lines\n",
+      "solution": "import re\n\nspecs = [\"pandas>=2.2,<3\", \"requests\", \"sqlalchemy==2.0.30\", \"numpy~=2.0\", \"tqdm\", \"pytest==8.2.0\"]\nclasses = {\"pinned\": [], \"range\": [], \"unpinned\": []}\nfor spec in specs:\n    name = re.split(r\"[=<>~!]\", spec)[0]\n    if \"==\" in spec:\n        classes[\"pinned\"].append(name)\n    elif re.search(r\"[<>~]\", spec):\n        classes[\"range\"].append(name)\n    else:\n        classes[\"unpinned\"].append(name)\nfor key in [\"pinned\", \"range\", \"unpinned\"]:\n    print(f\"{key}: \" + (\", \".join(sorted(classes[key])) or \"none\"))\n\n",
+      "expected": "pinned: pytest, sqlalchemy\nrange: numpy, pandas\nunpinned: requests, tqdm"
+    },
+    {
+      "id": "i3",
+      "title": "Design the package",
+      "kind": "written",
+      "required": false,
+      "prompt": "A script `load_orders.py` reads `orders.csv` from the current folder and writes to a database whose password is hard-coded. Describe how you would turn it into a package named `ordersync`: the folder layout, the `[project.scripts]` entry, where the password and the database host should come from, and how to run it without installing.",
+      "starter": "Layout:\n\nEntry point:\n\nConfiguration and secrets:\n\nRunning without installing:\n",
+      "solution": "Layout: `pyproject.toml`, `config.toml`, `src/ordersync/{__init__,__main__,cli,config}.py` and `tests/`. Entry point: `[project.scripts]` with `ordersync = \"ordersync.cli:main\"`, where `main(argv=None)` parses options such as `--input` (instead of assuming the current folder) and returns an exit code; `__main__.py` does `raise SystemExit(main())`. Configuration: non-secret settings (host, batch size) live in `config.toml` with a table per environment selected by `ORDERSYNC_ENV`; the password comes only from an environment variable such as `ORDERSYNC_DB_PASSWORD`, and the loader raises an error if it is missing. Running without installing: `PYTHONPATH=src python -m ordersync --input orders.csv`.",
+      "rubric": [
+        "Uses a src layout with a package, __main__.py and tests.",
+        "Defines an entry point as module:function and a main that returns an exit code.",
+        "Keeps the password out of files and reads it from the environment.",
+        "Shows python -m with PYTHONPATH=src for running without installing."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "The bash examples need Python 3.11 or later on your PATH (tomllib is in the standard library from 3.11) and run in a throwaway folder; the browser cannot run them, so they are shown with the output produced when the lesson was tested. Installing a project with pip install -e . and building a wheel need a package index and are shown but not run. The Python examples and exercises use tomllib on strings and are graded in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does the entry point `orders-load = \"pipeline.cli:main\"` do after installation?",
+      "options": [
+        "Creates a command that imports pipeline.cli and calls main",
+        "Copies main into the current folder",
+        "Runs main at install time",
+        "Renames the package"
+      ],
+      "answer": 0,
+      "explanation": "module:function names the code to call. The command is created at install time, but main runs only when someone runs orders-load."
+    },
+    {
+      "id": "c2",
+      "question": "Why does `python src/pipeline/cli.py` fail with ModuleNotFoundError for `from pipeline.config import load_config`?",
+      "options": [
+        "tomllib is missing",
+        "Python puts src/pipeline on the path, not src, so the name pipeline is not found",
+        "The file needs execute permission",
+        "argparse is not installed"
+      ],
+      "answer": 1,
+      "explanation": "The import path starts at the script's own folder. Using python -m pipeline.cli with src on the path resolves the package name."
+    },
+    {
+      "id": "c3",
+      "question": "Where should a database password for production come from?",
+      "options": [
+        "config.toml in the repository",
+        "An environment variable or secrets manager",
+        "A default in the code",
+        "The pyproject.toml"
+      ],
+      "answer": 1,
+      "explanation": "Anything committed stays in the history. Environment variables or a secrets manager keep the secret outside the repository."
+    },
+    {
+      "id": "c4",
+      "question": "What does {**defaults, **prod} return when both define batch_size?",
+      "options": [
+        "The value from defaults",
+        "The value from prod",
+        "A list of both",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "Keys from later dictionaries replace earlier ones, which is how an environment table overrides the defaults."
+    },
+    {
+      "id": "c5",
+      "question": "Which specifier gives the most reproducible deployment?",
+      "options": [
+        "pandas",
+        "pandas>=2",
+        "pandas==2.2.2",
+        "pandas<3"
+      ],
+      "answer": 2,
+      "explanation": "Only == fixes one version. A bare name and ranges accept new releases that can change behaviour."
+    }
+  ]
+}

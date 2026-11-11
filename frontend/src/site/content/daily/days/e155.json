@@ -1,0 +1,187 @@
+{
+  "id": "e155",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "airflow-architecture"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "airflow-etl-pipeline"
+    ],
+    "mindmaps": [
+      "airflow-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Split image references",
+      "kind": "python",
+      "prompt": "`split_image` is given. Print `split_image(ref)` for `postgres:16`, `redis` and `adminer:4`, one tuple per line.",
+      "starter": "import re\n\n\ndef split_image(reference):\n    name, _, tag = reference.partition(\":\")\n    return name, tag or \"latest\"\n\n\ndef validate_compose(cfg):\n    problems = []\n    services = cfg.get(\"services\") or {}\n    if not services:\n        return [\"no services defined\"]\n    declared = set(cfg.get(\"volumes\") or {})\n    host_ports = {}\n    for name in sorted(services):\n        svc = services[name]\n        if \"image\" not in svc:\n            problems.append(f\"{name}: image missing\")\n        else:\n            image, tag = split_image(svc[\"image\"])\n            if tag == \"latest\":\n                problems.append(f\"{name}: pin the image tag\")\n            if image == \"postgres\" and \"POSTGRES_PASSWORD\" not in (svc.get(\"environment\") or {}):\n                problems.append(f\"{name}: POSTGRES_PASSWORD missing\")\n        for mapping in svc.get(\"ports\", []):\n            match = re.fullmatch(r\"(\\d+):(\\d+)\", mapping)\n            if not match or not all(1 <= int(g) <= 65535 for g in match.groups()):\n                problems.append(f\"{name}: bad port mapping {mapping!r}\")\n                continue\n            host = int(match.group(1))\n            if host in host_ports:\n                problems.append(f\"host port {host} used by {host_ports[host]} and {name}\")\n            else:\n                host_ports[host] = name\n        for volume in svc.get(\"volumes\", []):\n            source = volume.split(\":\")[0]\n            named = \"/\" not in source and not source.startswith(\".\")\n            if named and source not in declared:\n                problems.append(f\"{name}: volume {source} not declared\")\n    return problems\n\n# print three tuples\n",
+      "solution": "import re\n\n\ndef split_image(reference):\n    name, _, tag = reference.partition(\":\")\n    return name, tag or \"latest\"\n\n\ndef validate_compose(cfg):\n    problems = []\n    services = cfg.get(\"services\") or {}\n    if not services:\n        return [\"no services defined\"]\n    declared = set(cfg.get(\"volumes\") or {})\n    host_ports = {}\n    for name in sorted(services):\n        svc = services[name]\n        if \"image\" not in svc:\n            problems.append(f\"{name}: image missing\")\n        else:\n            image, tag = split_image(svc[\"image\"])\n            if tag == \"latest\":\n                problems.append(f\"{name}: pin the image tag\")\n            if image == \"postgres\" and \"POSTGRES_PASSWORD\" not in (svc.get(\"environment\") or {}):\n                problems.append(f\"{name}: POSTGRES_PASSWORD missing\")\n        for mapping in svc.get(\"ports\", []):\n            match = re.fullmatch(r\"(\\d+):(\\d+)\", mapping)\n            if not match or not all(1 <= int(g) <= 65535 for g in match.groups()):\n                problems.append(f\"{name}: bad port mapping {mapping!r}\")\n                continue\n            host = int(match.group(1))\n            if host in host_ports:\n                problems.append(f\"host port {host} used by {host_ports[host]} and {name}\")\n            else:\n                host_ports[host] = name\n        for volume in svc.get(\"volumes\", []):\n            source = volume.split(\":\")[0]\n            named = \"/\" not in source and not source.startswith(\".\")\n            if named and source not in declared:\n                problems.append(f\"{name}: volume {source} not declared\")\n    return problems\n\nfor ref in [\"postgres:16\", \"redis\", \"adminer:4\"]:\n    print(split_image(ref))\n",
+      "hints": [
+        "Loop over the three references.",
+        "split_image returns a tuple (name, tag).",
+        "print(split_image(ref))."
+      ],
+      "expected": "('postgres', '16')\n('redis', 'latest')\n('adminer', '4')"
+    },
+    {
+      "id": "g2",
+      "title": "Host ports in use",
+      "kind": "python",
+      "prompt": "`services` maps service names to port lists. Print the sorted list of host ports (integers, the number before the colon) across all services, as one Python list.",
+      "starter": "import re\n\n\ndef split_image(reference):\n    name, _, tag = reference.partition(\":\")\n    return name, tag or \"latest\"\n\n\ndef validate_compose(cfg):\n    problems = []\n    services = cfg.get(\"services\") or {}\n    if not services:\n        return [\"no services defined\"]\n    declared = set(cfg.get(\"volumes\") or {})\n    host_ports = {}\n    for name in sorted(services):\n        svc = services[name]\n        if \"image\" not in svc:\n            problems.append(f\"{name}: image missing\")\n        else:\n            image, tag = split_image(svc[\"image\"])\n            if tag == \"latest\":\n                problems.append(f\"{name}: pin the image tag\")\n            if image == \"postgres\" and \"POSTGRES_PASSWORD\" not in (svc.get(\"environment\") or {}):\n                problems.append(f\"{name}: POSTGRES_PASSWORD missing\")\n        for mapping in svc.get(\"ports\", []):\n            match = re.fullmatch(r\"(\\d+):(\\d+)\", mapping)\n            if not match or not all(1 <= int(g) <= 65535 for g in match.groups()):\n                problems.append(f\"{name}: bad port mapping {mapping!r}\")\n                continue\n            host = int(match.group(1))\n            if host in host_ports:\n                problems.append(f\"host port {host} used by {host_ports[host]} and {name}\")\n            else:\n                host_ports[host] = name\n        for volume in svc.get(\"volumes\", []):\n            source = volume.split(\":\")[0]\n            named = \"/\" not in source and not source.startswith(\".\")\n            if named and source not in declared:\n                problems.append(f\"{name}: volume {source} not declared\")\n    return problems\n\nservices = {\"db\": [\"5432:5432\"], \"web\": [\"8080:80\", \"8443:443\"], \"cache\": [\"6379:6379\"]}\n# print the sorted host ports\n",
+      "solution": "import re\n\n\ndef split_image(reference):\n    name, _, tag = reference.partition(\":\")\n    return name, tag or \"latest\"\n\n\ndef validate_compose(cfg):\n    problems = []\n    services = cfg.get(\"services\") or {}\n    if not services:\n        return [\"no services defined\"]\n    declared = set(cfg.get(\"volumes\") or {})\n    host_ports = {}\n    for name in sorted(services):\n        svc = services[name]\n        if \"image\" not in svc:\n            problems.append(f\"{name}: image missing\")\n        else:\n            image, tag = split_image(svc[\"image\"])\n            if tag == \"latest\":\n                problems.append(f\"{name}: pin the image tag\")\n            if image == \"postgres\" and \"POSTGRES_PASSWORD\" not in (svc.get(\"environment\") or {}):\n                problems.append(f\"{name}: POSTGRES_PASSWORD missing\")\n        for mapping in svc.get(\"ports\", []):\n            match = re.fullmatch(r\"(\\d+):(\\d+)\", mapping)\n            if not match or not all(1 <= int(g) <= 65535 for g in match.groups()):\n                problems.append(f\"{name}: bad port mapping {mapping!r}\")\n                continue\n            host = int(match.group(1))\n            if host in host_ports:\n                problems.append(f\"host port {host} used by {host_ports[host]} and {name}\")\n            else:\n                host_ports[host] = name\n        for volume in svc.get(\"volumes\", []):\n            source = volume.split(\":\")[0]\n            named = \"/\" not in source and not source.startswith(\".\")\n            if named and source not in declared:\n                problems.append(f\"{name}: volume {source} not declared\")\n    return problems\n\nservices = {\"db\": [\"5432:5432\"], \"web\": [\"8080:80\", \"8443:443\"], \"cache\": [\"6379:6379\"]}\nports = sorted(int(m.split(\":\")[0]) for mappings in services.values() for m in mappings)\nprint(ports)\n",
+      "hints": [
+        "Each mapping is a string HOST:CONTAINER.",
+        "m.split(\":\")[0] is the host part; convert it with int.",
+        "Use a nested comprehension over services.values() and sort it."
+      ],
+      "expected": "[5432, 6379, 8080, 8443]"
+    },
+    {
+      "id": "g3",
+      "title": "Undeclared volumes",
+      "kind": "python",
+      "prompt": "Print the sorted list of named volumes that services mount but the top-level `volumes` block does not declare. A source is named when it contains no `/` and does not start with `.`. Use the `cfg` below.",
+      "starter": "import re\n\n\ndef split_image(reference):\n    name, _, tag = reference.partition(\":\")\n    return name, tag or \"latest\"\n\n\ndef validate_compose(cfg):\n    problems = []\n    services = cfg.get(\"services\") or {}\n    if not services:\n        return [\"no services defined\"]\n    declared = set(cfg.get(\"volumes\") or {})\n    host_ports = {}\n    for name in sorted(services):\n        svc = services[name]\n        if \"image\" not in svc:\n            problems.append(f\"{name}: image missing\")\n        else:\n            image, tag = split_image(svc[\"image\"])\n            if tag == \"latest\":\n                problems.append(f\"{name}: pin the image tag\")\n            if image == \"postgres\" and \"POSTGRES_PASSWORD\" not in (svc.get(\"environment\") or {}):\n                problems.append(f\"{name}: POSTGRES_PASSWORD missing\")\n        for mapping in svc.get(\"ports\", []):\n            match = re.fullmatch(r\"(\\d+):(\\d+)\", mapping)\n            if not match or not all(1 <= int(g) <= 65535 for g in match.groups()):\n                problems.append(f\"{name}: bad port mapping {mapping!r}\")\n                continue\n            host = int(match.group(1))\n            if host in host_ports:\n                problems.append(f\"host port {host} used by {host_ports[host]} and {name}\")\n            else:\n                host_ports[host] = name\n        for volume in svc.get(\"volumes\", []):\n            source = volume.split(\":\")[0]\n            named = \"/\" not in source and not source.startswith(\".\")\n            if named and source not in declared:\n                problems.append(f\"{name}: volume {source} not declared\")\n    return problems\n\ncfg = {\n    \"services\": {\"db\": {\"volumes\": [\"pgdata:/var/lib/postgresql/data\", \"./init:/docker-entrypoint-initdb.d\"]}, \"etl\": {\"volumes\": [\"scratch:/tmp/work\", \"pgdata:/shared\"]}},\n    \"volumes\": {\"pgdata\": {}},\n}\n# print the undeclared names\n",
+      "solution": "import re\n\n\ndef split_image(reference):\n    name, _, tag = reference.partition(\":\")\n    return name, tag or \"latest\"\n\n\ndef validate_compose(cfg):\n    problems = []\n    services = cfg.get(\"services\") or {}\n    if not services:\n        return [\"no services defined\"]\n    declared = set(cfg.get(\"volumes\") or {})\n    host_ports = {}\n    for name in sorted(services):\n        svc = services[name]\n        if \"image\" not in svc:\n            problems.append(f\"{name}: image missing\")\n        else:\n            image, tag = split_image(svc[\"image\"])\n            if tag == \"latest\":\n                problems.append(f\"{name}: pin the image tag\")\n            if image == \"postgres\" and \"POSTGRES_PASSWORD\" not in (svc.get(\"environment\") or {}):\n                problems.append(f\"{name}: POSTGRES_PASSWORD missing\")\n        for mapping in svc.get(\"ports\", []):\n            match = re.fullmatch(r\"(\\d+):(\\d+)\", mapping)\n            if not match or not all(1 <= int(g) <= 65535 for g in match.groups()):\n                problems.append(f\"{name}: bad port mapping {mapping!r}\")\n                continue\n            host = int(match.group(1))\n            if host in host_ports:\n                problems.append(f\"host port {host} used by {host_ports[host]} and {name}\")\n            else:\n                host_ports[host] = name\n        for volume in svc.get(\"volumes\", []):\n            source = volume.split(\":\")[0]\n            named = \"/\" not in source and not source.startswith(\".\")\n            if named and source not in declared:\n                problems.append(f\"{name}: volume {source} not declared\")\n    return problems\n\ncfg = {\n    \"services\": {\"db\": {\"volumes\": [\"pgdata:/var/lib/postgresql/data\", \"./init:/docker-entrypoint-initdb.d\"]}, \"etl\": {\"volumes\": [\"scratch:/tmp/work\", \"pgdata:/shared\"]}},\n    \"volumes\": {\"pgdata\": {}},\n}\ndeclared = set(cfg[\"volumes\"])\nmissing = set()\nfor svc in cfg[\"services\"].values():\n    for v in svc[\"volumes\"]:\n        source = v.split(\":\")[0]\n        if \"/\" not in source and not source.startswith(\".\") and source not in declared:\n            missing.add(source)\nprint(sorted(missing))\n",
+      "hints": [
+        "The source is the part of the volume string before the first colon.",
+        "Skip sources that contain a slash or start with a dot: those are paths, not named volumes.",
+        "Collect names not in set(cfg[\"volumes\"]) and print sorted(...)."
+      ],
+      "expected": "['scratch']"
+    },
+    {
+      "id": "g4",
+      "title": "Explain a docker run line",
+      "kind": "written",
+      "prompt": "Explain what each option of this command does and name one thing that would go wrong if `-v` were removed: `docker run --name pg -e POSTGRES_PASSWORD=change-me -p 5433:5432 -v pgdata:/var/lib/postgresql/data -d postgres:16`.",
+      "starter": "--name:\n-e:\n-p:\n-v:\n-d:\nWithout -v:\n",
+      "solution": "`--name pg` names the container so that `docker logs pg` and `docker stop pg` can refer to it. `-e POSTGRES_PASSWORD=change-me` sets the environment variable the PostgreSQL image requires to initialise the database. `-p 5433:5432` publishes container port 5432 on host port 5433, so a client on the host connects to port 5433. `-v pgdata:/var/lib/postgresql/data` mounts the named volume `pgdata` at the data directory. `-d` runs the container in the background. Without `-v`, the database files live in the container's own writable layer, so `docker rm pg` deletes the database and a new container starts empty.",
+      "rubric": [
+        "Explains the host and container sides of -p 5433:5432.",
+        "Says -e sets the password variable that the image needs.",
+        "Explains that -v keeps data after the container is removed.",
+        "Names data loss on docker rm as the consequence of removing -v."
+      ],
+      "hints": [
+        "Read each option from the lesson's list.",
+        "In -p the left number is on your machine.",
+        "Think about what docker rm deletes."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Health checks and dependencies",
+      "kind": "python",
+      "prompt": "Write `check_stack(cfg)` returning a sorted list of problems: for each service whose image name is `postgres` (use `split_image`) and that has no `healthcheck` key, add `<service>: healthcheck missing`; for each name in a service's `depends_on` list that is not a service in the file, add `<service>: depends_on unknown service <name>`. Print each problem on its own line, or `ok` if there are none.",
+      "starter": "import re\n\n\ndef split_image(reference):\n    name, _, tag = reference.partition(\":\")\n    return name, tag or \"latest\"\n\n\ndef validate_compose(cfg):\n    problems = []\n    services = cfg.get(\"services\") or {}\n    if not services:\n        return [\"no services defined\"]\n    declared = set(cfg.get(\"volumes\") or {})\n    host_ports = {}\n    for name in sorted(services):\n        svc = services[name]\n        if \"image\" not in svc:\n            problems.append(f\"{name}: image missing\")\n        else:\n            image, tag = split_image(svc[\"image\"])\n            if tag == \"latest\":\n                problems.append(f\"{name}: pin the image tag\")\n            if image == \"postgres\" and \"POSTGRES_PASSWORD\" not in (svc.get(\"environment\") or {}):\n                problems.append(f\"{name}: POSTGRES_PASSWORD missing\")\n        for mapping in svc.get(\"ports\", []):\n            match = re.fullmatch(r\"(\\d+):(\\d+)\", mapping)\n            if not match or not all(1 <= int(g) <= 65535 for g in match.groups()):\n                problems.append(f\"{name}: bad port mapping {mapping!r}\")\n                continue\n            host = int(match.group(1))\n            if host in host_ports:\n                problems.append(f\"host port {host} used by {host_ports[host]} and {name}\")\n            else:\n                host_ports[host] = name\n        for volume in svc.get(\"volumes\", []):\n            source = volume.split(\":\")[0]\n            named = \"/\" not in source and not source.startswith(\".\")\n            if named and source not in declared:\n                problems.append(f\"{name}: volume {source} not declared\")\n    return problems\n\ncfg = {\n    \"services\": {\n        \"db\": {\"image\": \"postgres:16\"},\n        \"etl\": {\"image\": \"python:3.12\", \"depends_on\": [\"db\", \"cache\"]},\n        \"warehouse\": {\"image\": \"postgres:15\", \"healthcheck\": {\"test\": [\"CMD-SHELL\", \"pg_isready\"]}},\n    }\n}\n\n\ndef check_stack(cfg):\n    return []\n\n\n# print the problems\n",
+      "solution": "import re\n\n\ndef split_image(reference):\n    name, _, tag = reference.partition(\":\")\n    return name, tag or \"latest\"\n\n\ndef validate_compose(cfg):\n    problems = []\n    services = cfg.get(\"services\") or {}\n    if not services:\n        return [\"no services defined\"]\n    declared = set(cfg.get(\"volumes\") or {})\n    host_ports = {}\n    for name in sorted(services):\n        svc = services[name]\n        if \"image\" not in svc:\n            problems.append(f\"{name}: image missing\")\n        else:\n            image, tag = split_image(svc[\"image\"])\n            if tag == \"latest\":\n                problems.append(f\"{name}: pin the image tag\")\n            if image == \"postgres\" and \"POSTGRES_PASSWORD\" not in (svc.get(\"environment\") or {}):\n                problems.append(f\"{name}: POSTGRES_PASSWORD missing\")\n        for mapping in svc.get(\"ports\", []):\n            match = re.fullmatch(r\"(\\d+):(\\d+)\", mapping)\n            if not match or not all(1 <= int(g) <= 65535 for g in match.groups()):\n                problems.append(f\"{name}: bad port mapping {mapping!r}\")\n                continue\n            host = int(match.group(1))\n            if host in host_ports:\n                problems.append(f\"host port {host} used by {host_ports[host]} and {name}\")\n            else:\n                host_ports[host] = name\n        for volume in svc.get(\"volumes\", []):\n            source = volume.split(\":\")[0]\n            named = \"/\" not in source and not source.startswith(\".\")\n            if named and source not in declared:\n                problems.append(f\"{name}: volume {source} not declared\")\n    return problems\n\ncfg = {\n    \"services\": {\n        \"db\": {\"image\": \"postgres:16\"},\n        \"etl\": {\"image\": \"python:3.12\", \"depends_on\": [\"db\", \"cache\"]},\n        \"warehouse\": {\"image\": \"postgres:15\", \"healthcheck\": {\"test\": [\"CMD-SHELL\", \"pg_isready\"]}},\n    }\n}\n\n\ndef check_stack(cfg):\n    problems = []\n    services = cfg[\"services\"]\n    for name in sorted(services):\n        svc = services[name]\n        if split_image(svc[\"image\"])[0] == \"postgres\" and \"healthcheck\" not in svc:\n            problems.append(f\"{name}: healthcheck missing\")\n        for dep in svc.get(\"depends_on\", []):\n            if dep not in services:\n                problems.append(f\"{name}: depends_on unknown service {dep}\")\n    return sorted(problems)\n\n\nresult = check_stack(cfg)\nprint(\"\\n\".join(result) if result else \"ok\")\n",
+      "expected": "db: healthcheck missing\netl: depends_on unknown service cache"
+    },
+    {
+      "id": "i2",
+      "title": "Generate the docker run command",
+      "kind": "python",
+      "prompt": "Write `build_run(name, service)` returning the single-line command string `docker run --name <name>` followed by one `-e KEY=value` for each environment variable in alphabetical key order, one `-p <mapping>` per port, one `-v <volume>` per volume, then `-d <image>`, all separated by single spaces. Print the result for the service below.",
+      "starter": "service = {\n    \"image\": \"postgres:16\",\n    \"environment\": {\"POSTGRES_DB\": \"warehouse\", \"POSTGRES_PASSWORD\": \"change-me\"},\n    \"ports\": [\"5433:5432\"],\n    \"volumes\": [\"pgdata:/var/lib/postgresql/data\"],\n}\n\n\ndef build_run(name, service):\n    return \"\"\n\n\n# print build_run(\"pg\", service)\n",
+      "solution": "service = {\n    \"image\": \"postgres:16\",\n    \"environment\": {\"POSTGRES_DB\": \"warehouse\", \"POSTGRES_PASSWORD\": \"change-me\"},\n    \"ports\": [\"5433:5432\"],\n    \"volumes\": [\"pgdata:/var/lib/postgresql/data\"],\n}\n\n\ndef build_run(name, service):\n    parts = [\"docker\", \"run\", \"--name\", name]\n    for key in sorted(service.get(\"environment\", {})):\n        parts += [\"-e\", f\"{key}={service['environment'][key]}\"]\n    for port in service.get(\"ports\", []):\n        parts += [\"-p\", port]\n    for volume in service.get(\"volumes\", []):\n        parts += [\"-v\", volume]\n    parts += [\"-d\", service[\"image\"]]\n    return \" \".join(parts)\n\n\nprint(build_run(\"pg\", service))\n",
+      "expected": "docker run --name pg -e POSTGRES_DB=warehouse -e POSTGRES_PASSWORD=change-me -p 5433:5432 -v pgdata:/var/lib/postgresql/data -d postgres:16"
+    },
+    {
+      "id": "i3",
+      "title": "Write the compose file for a test stack",
+      "kind": "written",
+      "prompt": "Write a `docker-compose.yml` for a test stack with PostgreSQL 16 (database `warehouse`, password from an environment variable you name, host port 5433, data on a named volume) and an `adminer:4` service on host port 8080. Then state what `docker compose down` and `docker compose down -v` each do to the data.",
+      "starter": "services:\n",
+      "solution": "```yaml\nservices:\n  db:\n    image: postgres:16\n    environment:\n      POSTGRES_DB: warehouse\n      POSTGRES_PASSWORD: ${WAREHOUSE_PASSWORD}\n    ports:\n      - \"5433:5432\"\n    volumes:\n      - pgdata:/var/lib/postgresql/data\n  adminer:\n    image: adminer:4\n    ports:\n      - \"8080:8080\"\nvolumes:\n  pgdata:\n```\n\nThe password is read from the shell or an ignored `.env` file, so it is not committed. `docker compose down` removes the containers and network but keeps the named volume `pgdata`, so the data survives the next `up`. `docker compose down -v` also deletes the named volumes, so the database starts empty.",
+      "rubric": [
+        "Pins both images and uses the host:container port mapping format with quotes.",
+        "Declares the named volume at the top level and mounts it at the PostgreSQL data directory.",
+        "Takes the password from a variable instead of a literal.",
+        "Explains the difference between down and down -v."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Docker is not installed in this course environment and the browser cannot run containers. Docker commands and docker-compose.yml are shown in fences, are not executed and no output of them is claimed. To try them, install Docker Desktop or Docker Engine, run the docker run command from the lesson, then check it with docker ps and docker logs pg. The Python examples model the configuration rules (image tags, port mappings, volumes, required variables) and are verified here; the compose file is represented as a Python dictionary because PyYAML is not available in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A container started without a volume is removed with docker rm and recreated. What happened to its database files?",
+      "options": [
+        "They survive in the image",
+        "They are lost with the container's own file system",
+        "They move to the host automatically",
+        "They are kept as a backup"
+      ],
+      "answer": 1,
+      "explanation": "The container's writable layer is deleted with the container; images are read-only. Only a mounted volume or bind mount keeps data."
+    },
+    {
+      "id": "c2",
+      "question": "The mapping is -p 5433:5432. Which port does a client on your laptop use?",
+      "options": [
+        "5432",
+        "5433",
+        "Either",
+        "None, it needs a volume"
+      ],
+      "answer": 1,
+      "explanation": "The left number is the host port. The container still listens on 5432 internally, but only 5433 is published on the host."
+    },
+    {
+      "id": "c3",
+      "question": "What does the official postgres image do when POSTGRES_PASSWORD is not set (and no trust setting is given)?",
+      "options": [
+        "Uses an empty password",
+        "Refuses to start and logs an error",
+        "Generates a random password",
+        "Starts without a database"
+      ],
+      "answer": 1,
+      "explanation": "The image stops at initialisation and prints a message naming the variable. It never invents a password."
+    },
+    {
+      "id": "c4",
+      "question": "What does validate_compose report for services with the same host port, such as 5432:5432 in two services?",
+      "options": [
+        "Nothing, containers have separate networks",
+        "A conflict, because a host port can be published by only one service",
+        "That the volume is undeclared",
+        "That the image is unpinned"
+      ],
+      "answer": 1,
+      "explanation": "Containers are isolated, but published ports use the host's network, where each port number can be bound once."
+    },
+    {
+      "id": "c5",
+      "question": "Which statement about docker compose down is true?",
+      "options": [
+        "It deletes named volumes by default",
+        "It removes containers and the network but keeps named volumes",
+        "It only stops containers and keeps them",
+        "It deletes the images"
+      ],
+      "answer": 1,
+      "explanation": "down removes containers and networks; named volumes are deleted only with -v. Stopping without removing is what docker compose stop does."
+    }
+  ]
+}

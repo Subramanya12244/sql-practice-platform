@@ -1,0 +1,186 @@
+{
+  "id": "e173",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-architecture",
+      "dwh-star-schema",
+      "etl-data-validation"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "end-to-end-pipeline",
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Profile the statuses",
+      "kind": "python",
+      "prompt": "Using `generate()`, count the raw order records per `status` and print one line per status as `<status>: <count>`, sorted by status name. Print nothing else.",
+      "starter": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\ncustomers, products, orders = generate()\n# count the statuses and print them\n",
+      "solution": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\ncustomers, products, orders = generate()\ncounts = {}\nfor r in orders:\n    counts[r[\"status\"]] = counts.get(r[\"status\"], 0) + 1\nfor status, n in sorted(counts.items()):\n    print(f\"{status}: {n}\")\n",
+      "hints": [
+        "Use a dictionary and `counts.get(key, 0) + 1`.",
+        "Loop over `orders` and key the dictionary by `r[\"status\"]`.",
+        "Print with `for status, n in sorted(counts.items()):` and an f-string `{status}: {n}`."
+      ],
+      "expected": "failed: 13\npaid: 96\npending: 1\nrefunded: 10"
+    },
+    {
+      "id": "g2",
+      "title": "How many pages",
+      "kind": "python",
+      "prompt": "The API returns `page_size` records per page. For page sizes 10, 25 and 50 print `page_size=<n> pages=<pages> last_page=<records on the last page>` for the generated orders, one line per size, in that order.",
+      "starter": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\ncustomers, products, orders = generate()\nfor size in (10, 25, 50):\n    pass\n",
+      "solution": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\ncustomers, products, orders = generate()\nfor size in (10, 25, 50):\n    pages = -(-len(orders) // size)\n    last = len(orders) - (pages - 1) * size\n    print(f\"page_size={size} pages={pages} last_page={last}\")\n",
+      "hints": [
+        "Pages is the record count divided by the page size, rounded up.",
+        "`-(-a // b)` rounds up in integer arithmetic; `math.ceil(a / b)` also works.",
+        "The last page holds `len(orders) - (pages - 1) * size` records."
+      ],
+      "expected": "page_size=10 pages=12 last_page=10\npage_size=25 pages=5 last_page=20\npage_size=50 pages=3 last_page=20"
+    },
+    {
+      "id": "g3",
+      "title": "Orders per month in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite, the CTE `src(order_id, created_at, amount_cents)` lists raw orders. Return the columns `month` (text such as `2026-01`, from `to_char(created_at, 'YYYY-MM')`), `orders` (count) and `cents` (sum of amount_cents), ordered by month.",
+      "starter": "WITH src(order_id, created_at, amount_cents) AS (VALUES ('O1', DATE '2026-01-05', 1000), ('O2', DATE '2026-01-20', 500), ('O3', DATE '2026-02-02', 2500), ('O4', DATE '2026-03-09', 700), ('O5', DATE '2026-03-10', 300))\nSELECT order_id FROM src ORDER BY order_id;\n",
+      "solution": "WITH src(order_id, created_at, amount_cents) AS (VALUES ('O1', DATE '2026-01-05', 1000), ('O2', DATE '2026-01-20', 500), ('O3', DATE '2026-02-02', 2500), ('O4', DATE '2026-03-09', 700), ('O5', DATE '2026-03-10', 300))\nSELECT to_char(created_at, 'YYYY-MM') AS month, count(*) AS orders, sum(amount_cents) AS cents\nFROM src GROUP BY 1 ORDER BY month;\n",
+      "ordered": true,
+      "hints": [
+        "Group by the month text, not by the full date.",
+        "`to_char(created_at, 'YYYY-MM')` gives the month; `GROUP BY 1` groups by the first output column.",
+        "`SELECT to_char(created_at,'YYYY-MM') AS month, count(*) AS orders, sum(amount_cents) AS cents FROM src GROUP BY 1 ORDER BY month`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Write the grain and two requirements (written)",
+      "kind": "written",
+      "prompt": "For the capstone fact table `fact_sales`, write the grain in one sentence, then write two requirements about the failure paths (a bad record and a repeated run), each phrased so that a number or query decides pass or fail.",
+      "starter": "Grain: ...\nR-bad-record: ...\nR-rerun: ...",
+      "solution": "Grain: one row in fact_sales is one paid order, identified by sale_id, with its date, customer, product, quantity and amount in cents. R-bad-record: every raw order is either loaded or written to the quarantine with a reason, so the raw count equals loaded plus quarantined, and the quarantine holds exactly the records that break a rule. R-rerun: running the whole pipeline a second time on the same input leaves the fact table row count and the sum of amount_cents unchanged, so the count before and after the second run is identical.",
+      "rubric": [
+        "The grain names what one row means (a paid order) and its key.",
+        "The bad-record requirement is a count comparison, not an adjective.",
+        "The re-run requirement states what must stay unchanged and how it is measured."
+      ],
+      "hints": [
+        "The grain starts with 'One row is'.",
+        "Think of a subtraction: raw minus loaded minus quarantined.",
+        "For the re-run, compare the row count and the sum before and after."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "The expected numbers for Day 175",
+      "kind": "python",
+      "prompt": "From `generate()`, apply the six rules (duplicate order_id after the first occurrence, missing created_at, amount_cents <= 0, customer not in the customers list, currency other than EUR, status outside paid/refunded/failed). A record that breaks a rule is quarantined once, with the first rule it breaks in the order listed. Print four lines: `raw=<n>`, `quarantined=<n>`, `clean=<n>`, then `by rule: ` followed by `<rule>=<count>` pairs separated by commas, sorted by rule name, using the rule names `duplicate`, `missing_ts`, `amount`, `customer`, `currency`, `status`.",
+      "starter": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\ncustomers, products, orders = generate()\nprint(\"raw=0\")\n",
+      "solution": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\ncustomers, products, orders = generate()\nknown = {c[0] for c in customers}\nseen, by_rule, clean = set(), {}, 0\nfor r in orders:\n    if r[\"order_id\"] in seen:\n        rule = \"duplicate\"\n    elif not r[\"created_at\"]:\n        rule = \"missing_ts\"\n    elif r[\"amount_cents\"] <= 0:\n        rule = \"amount\"\n    elif r[\"customer_id\"] not in known:\n        rule = \"customer\"\n    elif r[\"currency\"] != \"EUR\":\n        rule = \"currency\"\n    elif r[\"status\"] not in (\"paid\", \"refunded\", \"failed\"):\n        rule = \"status\"\n    else:\n        rule = None\n    seen.add(r[\"order_id\"])\n    if rule:\n        by_rule[rule] = by_rule.get(rule, 0) + 1\n    else:\n        clean += 1\nprint(\"raw=\" + str(len(orders)))\nprint(\"quarantined=\" + str(sum(by_rule.values())))\nprint(\"clean=\" + str(clean))\nprint(\"by rule: \" + \",\".join(f\"{k}={v}\" for k, v in sorted(by_rule.items())))\n",
+      "expected": "raw=120\nquarantined=6\nclean=114\nby rule: amount=1,currency=1,customer=1,duplicate=1,missing_ts=1,status=1"
+    },
+    {
+      "id": "i2",
+      "title": "Check a source-to-target mapping",
+      "kind": "python",
+      "prompt": "`targets` lists the columns the fact table needs and `mapping` lists what the draft maps. Print `missing: <comma-separated columns in targets but not in mapping, sorted>`, `extra: <columns in mapping but not in targets, sorted>` and `ready: True` or `ready: False` (True only when both lists are empty). Use `none` when a list is empty.",
+      "starter": "targets = [\"sale_id\", \"date_key\", \"customer_key\", \"product_key\", \"quantity\", \"amount_cents\"]\nmapping = {\"sale_id\": \"order_id\", \"date_key\": \"created_at\", \"customer_key\": \"customer_id\", \"quantity\": \"quantity\", \"amount\": \"amount_cents\"}\nprint(\"ready: True\")\n",
+      "solution": "targets = [\"sale_id\", \"date_key\", \"customer_key\", \"product_key\", \"quantity\", \"amount_cents\"]\nmapping = {\"sale_id\": \"order_id\", \"date_key\": \"created_at\", \"customer_key\": \"customer_id\", \"quantity\": \"quantity\", \"amount\": \"amount_cents\"}\nmissing = sorted(set(targets) - set(mapping))\nextra = sorted(set(mapping) - set(targets))\nprint(\"missing: \" + (\", \".join(missing) or \"none\"))\nprint(\"extra: \" + (\", \".join(extra) or \"none\"))\nprint(\"ready: \" + str(not missing and not extra))\n",
+      "expected": "missing: amount_cents, product_key\nextra: amount\nready: False"
+    },
+    {
+      "id": "i3",
+      "title": "Scope document for the capstone (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Write the one-page scope of the capstone as bullet lists: sources (with sizes and known defects), five requirements phrased as checks, what is out of scope, the architecture as a text diagram and the six build steps of Days 174 to 179 with a finish line for each.",
+      "starter": "Sources:\nRequirements:\nOut of scope:\nArchitecture:\nPlan:",
+      "solution": "Sources: orders API stand-in, 120 records on 5 pages of 25, with six planted defect types; customers.csv with 20 rows. Requirements: raw equals loaded plus quarantined; the fact table holds paid orders only; revenue in cents is an integer; a second run changes no row counts or totals; every quarantined record carries a reason. Out of scope: real-time streaming, a real PostgreSQL server, authentication beyond an API key, dashboards. Architecture: API and CSV, then ingest to raw tables, then clean and validate with a quarantine table, then load dimensions and fact incrementally, then analytics views. Plan: Day 174 ingestion finishes when 120 raw records are landed twice with the same count; Day 175 when the quarantine holds the six defective records; Day 176 when fact_sales has the expected rows and a re-run adds none; Day 177 when three metric queries return checked numbers; Day 178 when the DAG order and the tests pass; Day 179 when the README and a clean repository exist.",
+      "rubric": [
+        "Sources include sizes and defects.",
+        "Requirements are checkable statements.",
+        "Out-of-scope items are listed explicitly.",
+        "Each plan step has a finish line that can be tested."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which is a testable requirement?",
+      "options": [
+        "The pipeline cleans the data well",
+        "Raw record count equals loaded count plus quarantined count",
+        "The pipeline is fast",
+        "The data looks right to the team"
+      ],
+      "answer": 1,
+      "explanation": "A requirement must let a number decide pass or fail. The reconciliation is a subtraction; the others are adjectives that no check can fail."
+    },
+    {
+      "id": "c2",
+      "question": "What is the grain of `fact_sales` in this project?",
+      "options": [
+        "One row per customer",
+        "One row per paid order",
+        "One row per day",
+        "One row per product"
+      ],
+      "answer": 1,
+      "explanation": "The fact table has one row per paid order; customers, products and days are dimensions. Mixing grains makes sums wrong."
+    },
+    {
+      "id": "c3",
+      "question": "Why profile the data before designing the pipeline?",
+      "options": [
+        "To make the pipeline faster",
+        "Because the defects found (duplicates, unknown keys) decide the rules, the quarantine and the idempotency needs",
+        "Because profiling replaces validation",
+        "Because the warehouse requires it"
+      ],
+      "answer": 1,
+      "explanation": "Profiling tells you what must be handled. It does not replace validation, which runs on every load."
+    },
+    {
+      "id": "c4",
+      "question": "120 records are served 25 per page. How many requests are needed to read them all, and how many records are on the last page?",
+      "options": [
+        "5 requests, 25 records",
+        "5 requests, 20 records",
+        "4 requests, 20 records",
+        "6 requests, 20 records"
+      ],
+      "answer": 1,
+      "explanation": "120 / 25 rounds up to 5 pages; four full pages hold 100 records, leaving 20 on the last page. Four requests would miss them."
+    },
+    {
+      "id": "c5",
+      "question": "The mapping says `fact_sales.customer_key` comes from `customer_id via dim_customer`. What does that mean?",
+      "options": [
+        "The fact table stores the text customer id",
+        "The loader looks up the surrogate key of the customer dimension row and stores that number",
+        "The key is copied from the CSV",
+        "It is generated randomly"
+      ],
+      "answer": 1,
+      "explanation": "Fact rows store surrogate keys of dimension rows, found by looking up the business key. Storing the text id would break the star schema."
+    }
+  ]
+}

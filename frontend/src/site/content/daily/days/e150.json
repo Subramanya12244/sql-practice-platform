@@ -1,0 +1,182 @@
+{
+  "id": "e150",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "views",
+      "dwh-data-marts",
+      "etl-idempotency"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "star-schema-warehouse",
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "warehousing-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Read the stored aggregate",
+      "kind": "sql",
+      "prompt": "Return `category`, `units` and `cents` from `mv_monthly_category` for `month = 2`, ordered by `category`.",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE MATERIALIZED VIEW mv_monthly_category AS\nSELECT d.year, d.month, p.category, count(*) AS lines, sum(f.quantity) AS units, sum(f.amount_cents) AS cents\nFROM fact_sales f JOIN dim_date d ON d.date_key = f.date_key JOIN dim_product p ON p.product_key = f.product_key\nGROUP BY d.year, d.month, p.category;\nCREATE UNIQUE INDEX ux_mv_monthly_category ON mv_monthly_category (year, month, category);\nSELECT category FROM mv_monthly_category WHERE month = 2 ORDER BY category;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE MATERIALIZED VIEW mv_monthly_category AS\nSELECT d.year, d.month, p.category, count(*) AS lines, sum(f.quantity) AS units, sum(f.amount_cents) AS cents\nFROM fact_sales f JOIN dim_date d ON d.date_key = f.date_key JOIN dim_product p ON p.product_key = f.product_key\nGROUP BY d.year, d.month, p.category;\nCREATE UNIQUE INDEX ux_mv_monthly_category ON mv_monthly_category (year, month, category);\nSELECT category, units, cents FROM mv_monthly_category WHERE month = 2 ORDER BY category;\n",
+      "ordered": true,
+      "hints": [
+        "The materialised view is queried like a table.",
+        "Filter on `month = 2`.",
+        "Select `category, units, cents`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Measure the staleness",
+      "kind": "sql",
+      "prompt": "After two new sales are inserted (the block does it), return one row with `in_view` (the sum of `cents` in the materialised view) and `in_fact` (the sum of `amount_cents` in `fact_sales`).",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE MATERIALIZED VIEW mv_monthly_category AS\nSELECT d.year, d.month, p.category, count(*) AS lines, sum(f.quantity) AS units, sum(f.amount_cents) AS cents\nFROM fact_sales f JOIN dim_date d ON d.date_key = f.date_key JOIN dim_product p ON p.product_key = f.product_key\nGROUP BY d.year, d.month, p.category;\nCREATE UNIQUE INDEX ux_mv_monthly_category ON mv_monthly_category (year, month, category);\nINSERT INTO fact_sales VALUES (61, 20260210, 1, 1, 1, 750), (62, 20260211, 2, 2, 2, 2000);\nSELECT 0 AS in_view, 0 AS in_fact;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE MATERIALIZED VIEW mv_monthly_category AS\nSELECT d.year, d.month, p.category, count(*) AS lines, sum(f.quantity) AS units, sum(f.amount_cents) AS cents\nFROM fact_sales f JOIN dim_date d ON d.date_key = f.date_key JOIN dim_product p ON p.product_key = f.product_key\nGROUP BY d.year, d.month, p.category;\nCREATE UNIQUE INDEX ux_mv_monthly_category ON mv_monthly_category (year, month, category);\nINSERT INTO fact_sales VALUES (61, 20260210, 1, 1, 1, 750), (62, 20260211, 2, 2, 2, 2000);\nSELECT (SELECT sum(cents) FROM mv_monthly_category) AS in_view, (SELECT sum(amount_cents) FROM fact_sales) AS in_fact;\n",
+      "ordered": true,
+      "hints": [
+        "The view still holds the numbers of its last refresh.",
+        "Use two scalar subqueries.",
+        "`sum(cents)` from the view and `sum(amount_cents)` from the fact."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Refresh, then compare",
+      "kind": "sql",
+      "prompt": "Refresh the materialised view after the two new sales, then return `in_view`, `in_fact` as in the previous exercise.",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE MATERIALIZED VIEW mv_monthly_category AS\nSELECT d.year, d.month, p.category, count(*) AS lines, sum(f.quantity) AS units, sum(f.amount_cents) AS cents\nFROM fact_sales f JOIN dim_date d ON d.date_key = f.date_key JOIN dim_product p ON p.product_key = f.product_key\nGROUP BY d.year, d.month, p.category;\nCREATE UNIQUE INDEX ux_mv_monthly_category ON mv_monthly_category (year, month, category);\nINSERT INTO fact_sales VALUES (61, 20260210, 1, 1, 1, 750), (62, 20260211, 2, 2, 2, 2000);\nSELECT 0 AS in_view, 0 AS in_fact;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE MATERIALIZED VIEW mv_monthly_category AS\nSELECT d.year, d.month, p.category, count(*) AS lines, sum(f.quantity) AS units, sum(f.amount_cents) AS cents\nFROM fact_sales f JOIN dim_date d ON d.date_key = f.date_key JOIN dim_product p ON p.product_key = f.product_key\nGROUP BY d.year, d.month, p.category;\nCREATE UNIQUE INDEX ux_mv_monthly_category ON mv_monthly_category (year, month, category);\nINSERT INTO fact_sales VALUES (61, 20260210, 1, 1, 1, 750), (62, 20260211, 2, 2, 2, 2000);\nREFRESH MATERIALIZED VIEW mv_monthly_category;\nSELECT (SELECT sum(cents) FROM mv_monthly_category) AS in_view, (SELECT sum(amount_cents) FROM fact_sales) AS in_fact;\n",
+      "ordered": true,
+      "hints": [
+        "Refresh before the comparison.",
+        "`REFRESH MATERIALIZED VIEW mv_monthly_category;`",
+        "Then run the same two-subquery comparison."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Average from additive parts",
+      "kind": "python",
+      "prompt": "`daily` holds per-day `units` and `cents` for one month as two lists. Print the correct monthly average price `sum(cents) / sum(units)` rounded to 1 decimal, and then the wrong average of the daily averages rounded to 1 decimal, on separate lines. Expected output: `706.7` then `900.0`.",
+      "starter": "units = [2, 10, 3]\ncents = [2000, 5000, 3600]\nprint(0)\nprint(0)\n",
+      "solution": "units = [2, 10, 3]\ncents = [2000, 5000, 3600]\nprint(round(sum(cents) / sum(units), 1))\nprint(round(sum(c / u for c, u in zip(cents, units)) / len(units), 1))\n",
+      "expected": "706.7\n900.0",
+      "hints": [
+        "The correct figure divides the total cents by the total units.",
+        "The wrong figure averages the three daily ratios.",
+        "Use `zip(cents, units)` for the daily ratios."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A view by country",
+      "kind": "sql",
+      "prompt": "Create a materialised view `mv_country_month` with `country`, `month` and `cents` (sum of `amount_cents`) grouped by customer country and month, then return its rows for `month = 1`, ordered by `country`.",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nSELECT 'x' AS country, 1 AS month, 0 AS cents;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE MATERIALIZED VIEW mv_country_month AS SELECT c.country, d.month, sum(f.amount_cents) AS cents FROM fact_sales f JOIN dim_customer c ON c.customer_key = f.customer_key JOIN dim_date d ON d.date_key = f.date_key GROUP BY c.country, d.month;\nSELECT country, month, cents FROM mv_country_month WHERE month = 1 ORDER BY country;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Recompute the touched days",
+      "kind": "sql",
+      "prompt": "`agg_sales_daily` exists and two new sales (dated 20260210 and 20260211) are inserted. Recompute the aggregate rows of those two days (delete them, insert from `fact_sales`), then return `date_key`, `lines`, `cents` for those two days ordered by `date_key`.",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE agg_sales_daily (date_key integer PRIMARY KEY, lines integer NOT NULL, units integer NOT NULL, cents bigint NOT NULL);\nINSERT INTO agg_sales_daily SELECT date_key, count(*), sum(quantity), sum(amount_cents) FROM fact_sales GROUP BY date_key;\nINSERT INTO fact_sales VALUES (61, 20260210, 1, 1, 1, 750), (62, 20260211, 2, 2, 2, 2000);\nSELECT date_key, lines, cents FROM agg_sales_daily WHERE date_key IN (20260210, 20260211) ORDER BY date_key;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE agg_sales_daily (date_key integer PRIMARY KEY, lines integer NOT NULL, units integer NOT NULL, cents bigint NOT NULL);\nINSERT INTO agg_sales_daily SELECT date_key, count(*), sum(quantity), sum(amount_cents) FROM fact_sales GROUP BY date_key;\nINSERT INTO fact_sales VALUES (61, 20260210, 1, 1, 1, 750), (62, 20260211, 2, 2, 2, 2000);\nDELETE FROM agg_sales_daily WHERE date_key IN (20260210, 20260211);\nINSERT INTO agg_sales_daily SELECT date_key, count(*), sum(quantity), sum(amount_cents) FROM fact_sales WHERE date_key IN (20260210, 20260211) GROUP BY date_key;\nSELECT date_key, lines, cents FROM agg_sales_daily WHERE date_key IN (20260210, 20260211) ORDER BY date_key;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Choose: view, table or neither",
+      "kind": "written",
+      "prompt": "Three dashboard queries: (a) revenue by month and category, run hourly; (b) the sales of one customer, run a few times a day; (c) distinct customers per month. Say whether you would use a materialised view, an aggregate table, an index or nothing, and how each stays correct.",
+      "starter": "Write your choices here.",
+      "solution": "(a) A materialised view (or a daily aggregate table) of lines, units and cents by month and category: the result is tiny, the query is repeated and scans the whole fact table. Refresh it at the end of the nightly load, with a unique index so that CONCURRENTLY works, and show the refresh time. (b) An index on customer_key (or a composite with date_key): the query is selective and cheap with an index, so storing results is unnecessary. (c) Distinct customers are not additive, so a daily table cannot be summed to a monthly figure; precompute the monthly distinct count directly from the fact table in the aggregate (grain month) or compute it on demand if the volume allows. In all cases, compare totals with the fact table after each refresh.",
+      "rubric": [
+        "Picks a materialised view or table for the repeated heavy aggregate",
+        "Picks an index for the selective lookup",
+        "Notices that distinct counts are not additive",
+        "Says how freshness or correctness is checked"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does a materialised view store?",
+      "options": [
+        "Only the query text",
+        "The result rows of the query at the last refresh",
+        "A copy of the base tables",
+        "An index"
+      ],
+      "answer": 1,
+      "explanation": "Unlike a regular view it holds data, which is why reads are fast and why it can be stale."
+    },
+    {
+      "id": "c2",
+      "question": "What does `REFRESH MATERIALIZED VIEW CONCURRENTLY` require?",
+      "options": [
+        "A partitioned table",
+        "A unique index on the materialised view",
+        "Superuser rights only",
+        "An empty view"
+      ],
+      "answer": 1,
+      "explanation": "PostgreSQL needs a unique index to match old and new rows while readers continue to use the view."
+    },
+    {
+      "id": "c3",
+      "question": "A retried load adds each day's new cents to `agg_sales_daily` with `cents = cents + x`. What goes wrong?",
+      "options": [
+        "Nothing",
+        "The retry adds the same cents again and double counts",
+        "The table is locked",
+        "The primary key rejects it"
+      ],
+      "answer": 1,
+      "explanation": "Additive updates are not idempotent. Recompute the touched days from the fact table instead."
+    },
+    {
+      "id": "c4",
+      "question": "Why store `units` and `cents` instead of `avg_price` in a daily aggregate?",
+      "options": [
+        "Averages cannot be stored",
+        "Sums roll up to months correctly; an average of daily averages weights days equally",
+        "Integers are faster",
+        "Avg is not a SQL function"
+      ],
+      "answer": 1,
+      "explanation": "The monthly average is total cents over total units. Averaging daily averages gives a different, wrong number when daily volumes differ."
+    },
+    {
+      "id": "c5",
+      "question": "After the nightly load the dashboard still shows yesterday's numbers. What is the most likely cause?",
+      "options": [
+        "The fact table is empty",
+        "The materialised view was not refreshed (or the refresh failed)",
+        "The index is missing",
+        "The partition was detached"
+      ],
+      "answer": 1,
+      "explanation": "A materialised view is a snapshot. A skipped or failed refresh leaves the old contents, so log the refresh and alert on failure."
+    }
+  ]
+}

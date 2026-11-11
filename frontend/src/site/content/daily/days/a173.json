@@ -1,0 +1,175 @@
+{
+  "id": "a173",
+  "time": {
+    "theory": 20,
+    "examples": 30,
+    "guided": 25,
+    "independent": 60,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-csv-json",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "customer-transaction-stats"
+    ],
+    "projects": [
+      "csv-to-postgres-etl",
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Read back with dates",
+      "kind": "python",
+      "prompt": "Read `texts[\"customers\"]` back with `pd.read_csv` using `parse_dates` for `signup_date`. Print `rows: <n>`, `signup dtype is datetime: <True/False>` and `round trip equal: <True/False>` (compare with `t[\"customers\"]` using `equals`, after `astype(back.dtypes.to_dict())` on the original, because integer widths differ between platforms).",
+      "starter": "import io\nimport numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\ntexts = {name: df.to_csv(index=False) for name, df in t.items()}\n# Your code here\n",
+      "solution": "import io\nimport numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\ntexts = {name: df.to_csv(index=False) for name, df in t.items()}\nback = pd.read_csv(io.StringIO(texts[\"customers\"]), parse_dates=[\"signup_date\"])\nprint(\"rows:\", len(back))\nprint(\"signup dtype is datetime:\", pd.api.types.is_datetime64_any_dtype(back[\"signup_date\"]))\nprint(\"round trip equal:\", back.equals(t[\"customers\"].astype(back.dtypes.to_dict())))\n",
+      "expected": "rows: 120\nsignup dtype is datetime: True\nround trip equal: True",
+      "hints": [
+        "`io.StringIO(text)` makes a text string readable like a file.",
+        "Pass `parse_dates=[\"signup_date\"]` to `read_csv`.",
+        "`pd.api.types.is_datetime64_any_dtype(series)` tells whether the column is a datetime."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Row count manifest",
+      "kind": "python",
+      "prompt": "Read every table back with `read_csv` (no date parsing needed). Compare each table's row count with this manifest `{'orders': 510, 'customers': 120, 'products': 20, 'campaigns': 4, 'returns': 62}`. Print one line per table in manifest order: `<table>: ok` or `<table>: expected <e>, got <g>`.",
+      "starter": "import io\nimport numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\ntexts = {name: df.to_csv(index=False) for name, df in t.items()}\nmanifest = {\"orders\": 510, \"customers\": 120, \"products\": 20, \"campaigns\": 4, \"returns\": 62}\n# Your code here\n",
+      "solution": "import io\nimport numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\ntexts = {name: df.to_csv(index=False) for name, df in t.items()}\nmanifest = {\"orders\": 510, \"customers\": 120, \"products\": 20, \"campaigns\": 4, \"returns\": 62}\nfor name, expected in manifest.items():\n    got = len(pd.read_csv(io.StringIO(texts[name])))\n    print(f\"{name}: ok\" if got == expected else f\"{name}: expected {expected}, got {got}\")\n",
+      "expected": "orders: ok\ncustomers: ok\nproducts: ok\ncampaigns: ok\nreturns: expected 62, got 63",
+      "hints": [
+        "Loop over `manifest.items()`.",
+        "`len(pd.read_csv(io.StringIO(texts[name])))` is the row count read back.",
+        "Print `ok` when equal, otherwise the message with both numbers."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Ignore rules",
+      "kind": "python",
+      "prompt": "Write a function `tracked(paths)` that returns the paths that Git would track given the ignore rules: a path is ignored if it starts with `data/`, contains `__pycache__/`, or ends with `.pyc`. Call it on `['README.md','data/orders.csv','src/store.py','src/__pycache__/store.cpython-313.pyc','tests/test_store.py','notes.pyc']` and print the result list.",
+      "starter": "def tracked(paths):\n    pass\n\n\nprint(tracked(['README.md','data/orders.csv','src/store.py','src/__pycache__/store.cpython-313.pyc','tests/test_store.py','notes.pyc']))\n",
+      "solution": "def tracked(paths):\n    return [p for p in paths if not (p.startswith(\"data/\") or \"__pycache__/\" in p or p.endswith(\".pyc\"))]\n\n\nprint(tracked(['README.md','data/orders.csv','src/store.py','src/__pycache__/store.cpython-313.pyc','tests/test_store.py','notes.pyc']))\n",
+      "expected": "['README.md', 'src/store.py', 'tests/test_store.py']",
+      "hints": [
+        "Use a list comprehension with a condition.",
+        "A path is kept when none of the three ignore conditions is true.",
+        "`not (a or b or c)` expresses that."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Ingest with typed check",
+      "kind": "python",
+      "prompt": "Write `ingest_orders(text)` that reads the orders CSV text with `order_date` parsed, then raises `ValueError` with the message `bad rows: <n>` where n is the number of rows whose `order_date` is missing (NaT) or outside 2025-01-01 to 2025-06-30. Call it on the good text and print `ok <rows>`. Then corrupt the text by replacing the first data line's date `2025` with `20x5` (use `text.replace(\"2025\", \"20x5\", 1)` on the whole text) and catch the error: the corrupted date makes `read_csv` keep the column as text, so convert with `pd.to_datetime(df[\"order_date\"], format=\"%Y-%m-%d\", errors=\"coerce\")` inside the function. Print the message.",
+      "starter": "import io\nimport numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\ntexts = {name: df.to_csv(index=False) for name, df in t.items()}\n# Your code here\n",
+      "solution": "import io\nimport numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\ntexts = {name: df.to_csv(index=False) for name, df in t.items()}\ndef ingest_orders(text):\n    df = pd.read_csv(io.StringIO(text))\n    df[\"order_date\"] = pd.to_datetime(df[\"order_date\"], format=\"%Y-%m-%d\", errors=\"coerce\")\n    bad = int((df[\"order_date\"].isna() | ~df[\"order_date\"].between(\"2025-01-01\", \"2025-06-30\")).sum())\n    if bad:\n        raise ValueError(f\"bad rows: {bad}\")\n    return df\n\n\nprint(\"ok\", len(ingest_orders(texts[\"orders\"])))\ntry:\n    ingest_orders(texts[\"orders\"].replace(\"2025\", \"20x5\", 1))\nexcept ValueError as e:\n    print(e)\n",
+      "expected": "ok 510\nbad rows: 1"
+    },
+    {
+      "id": "i2",
+      "title": "Seed comparison table",
+      "kind": "python",
+      "prompt": "Generate the data for seeds 7, 8 and 9. For each seed print `seed <s>: quantity sum <q>, returns <r>, campaign 2 orders <c>` using the raw tables (`q` is the sum of `quantity` in orders, `r` is the number of rows in returns, `c` is the number of orders with `campaign_id == 2`). Then print `distinct fingerprints: <k>` counting how many different (q, c) pairs occurred.",
+      "starter": "import io\nimport numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\ntexts = {name: df.to_csv(index=False) for name, df in t.items()}\n# Your code here\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nprints = []\nfor s in (7, 8, 9):\n    tt = generate(s)\n    o = tt[\"orders\"]\n    q, c = int(o[\"quantity\"].sum()), int((o[\"campaign_id\"] == 2).sum())\n    prints.append((q, c))\n    print(f\"seed {s}: quantity sum {q}, returns {len(tt['returns'])}, campaign 2 orders {c}\")\nprint(\"distinct fingerprints:\", len(set(prints)))\n",
+      "expected": "seed 7: quantity sum 1298, returns 63, campaign 2 orders 131\nseed 8: quantity sum 1228, returns 63, campaign 2 orders 143\nseed 9: quantity sum 1275, returns 63, campaign 2 orders 124\ndistinct fingerprints: 3"
+    },
+    {
+      "id": "i3",
+      "title": "Git workflow plan",
+      "kind": "written",
+      "prompt": "Write the commands and commit messages for the first three commits of the capstone (layout, ingestion, README skeleton). Explain what belongs in `.gitignore` and why generated data is not committed.",
+      "starter": "Commit 1:\nCommit 2:\nCommit 3:\n.gitignore:\n",
+      "solution": "Commit 1 `Set up project layout`: `git init -b main`, create folders and `.gitignore`, `git add -A`, `git commit -m \"Set up project layout\"`.\n\nCommit 2 `Add seeded generator and ingestion with manifest checks`: add `src/store.py`, then `git add src/store.py` and commit.\n\nCommit 3 `Add README skeleton`: add `README.md` with sections for question, data, how to run and results.\n\n`.gitignore` holds `data/`, `__pycache__/` and `.pytest_cache/`. Generated data is not committed because the seeded generator recreates it exactly, large files slow history, and the repository should show code and decisions, not artefacts. Ignore before the first `git add`: files already tracked stay tracked.",
+      "rubric": [
+        "Three commits with clear subject lines.",
+        "`.gitignore` lists data and caches.",
+        "Gives the reproducibility reason for not committing data."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [
+      "numpy",
+      "pandas"
+    ],
+    "note": "The Git example is a bash script that creates a throwaway repository, so it is shown read-only in the browser. Run it on your own computer with Git installed; it needs no network and no account. Use `git init -b main` so the branch is called main."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `pd.read_csv(io.StringIO(text))` do to a column `2025-03-04` with no `parse_dates`?",
+      "options": [
+        "Parses it as a datetime",
+        "Keeps it as text (object dtype)",
+        "Raises an error",
+        "Converts it to an integer"
+      ],
+      "answer": 1,
+      "explanation": "Without `parse_dates` the reader does not guess dates for you here. The column stays text, which sorts alphabetically and breaks month grouping."
+    },
+    {
+      "id": "c2",
+      "question": "Why should ingestion raise an error for a file with fewer rows than the manifest?",
+      "options": [
+        "Pandas cannot read short files",
+        "To continue with partial data and fix it in the report",
+        "Partial data would silently produce wrong totals later, so fail early with the table name",
+        "Row counts are always equal"
+      ],
+      "answer": 2,
+      "explanation": "A truncated file reads without error but produces wrong sums. A manifest check turns the silent failure into a loud one at the door."
+    },
+    {
+      "id": "c3",
+      "question": "`generate(7)` is called twice. What is true?",
+      "options": [
+        "The tables differ because random numbers change",
+        "The tables are identical, because each call builds a generator from the same seed",
+        "Only the orders differ",
+        "It raises a seed already used error"
+      ],
+      "answer": 1,
+      "explanation": "`np.random.default_rng(7)` starts the same stream each call, so every table is identical. A shared global generator would differ by call order."
+    },
+    {
+      "id": "c4",
+      "question": "Why is `data/` in `.gitignore`?",
+      "options": [
+        "Git cannot store CSV files",
+        "The generator recreates the data, and generated files make history heavy",
+        "So the README is hidden",
+        "Because data is secret"
+      ],
+      "answer": 1,
+      "explanation": "Generated artefacts do not belong in version control when code recreates them. Git can store CSV files, but it should not."
+    },
+    {
+      "id": "c5",
+      "question": "You add `data/` to `.gitignore` after committing `data/orders.csv`. What happens?",
+      "options": [
+        "The file is untracked automatically",
+        "The file stays tracked, because ignore rules apply only to untracked files",
+        "Git deletes the file",
+        "The commit is rewritten"
+      ],
+      "answer": 1,
+      "explanation": "Ignore rules do not remove files already tracked. You must untrack them with `git rm --cached`. Ignore before the first add."
+    }
+  ]
+}

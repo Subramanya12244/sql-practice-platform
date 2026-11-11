@@ -1,0 +1,191 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "etl-pipeline-monitoring"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "environment": {
+    "packages": [],
+    "note": "The bash examples need Git 2.28 or later (for git init -b main) and a configured identity (git config user.name and user.email) on your own computer. GitHub itself, pull requests, reviews, branch protection and GitHub Actions cannot run in the browser or in these tests: the workflow file is shown and linted by a rough text check only. To try it for real, push a repository to GitHub, add the file as .github/workflows/ci.yml and open a pull request. Action version numbers (checkout@v4, setup-python@v5) are current as written but check the Marketplace for newer ones."
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Check a branch name",
+      "kind": "python",
+      "prompt": "Write `valid_branch(name)` returning True when the name matches `<type>/<slug>`: the type is one of `feature`, `fix` or `chore`, followed by `/`, then a slug of lowercase letters, digits and hyphens only (at least one character). Use `re.fullmatch`. Print the result for each name in the list, one per line.",
+      "starter": "import re\n\nnames = ['fix/amount-parser', 'feature/new_source', 'chore/update-deps', 'main', 'fix/Amount', 'feature/api-2']\n\ndef valid_branch(name):\n    pass\n\nfor n in names:\n    print(n, valid_branch(n))\n",
+      "solution": "import re\n\nnames = ['fix/amount-parser', 'feature/new_source', 'chore/update-deps', 'main', 'fix/Amount', 'feature/api-2']\n\ndef valid_branch(name):\n    return re.fullmatch(r'(feature|fix|chore)/[a-z0-9-]+', name) is not None\n\nfor n in names:\n    print(n, valid_branch(n))\n",
+      "hints": [
+        "`re.fullmatch` requires the whole string to match, unlike `re.match`.",
+        "The type is the group `(feature|fix|chore)`; the slug is the character class `[a-z0-9-]+`.",
+        "Return `re.fullmatch(r'(feature|fix|chore)/[a-z0-9-]+', name) is not None`."
+      ],
+      "expected": "fix/amount-parser True\nfeature/new_source False\nchore/update-deps True\nmain False\nfix/Amount False\nfeature/api-2 True"
+    },
+    {
+      "id": "g2",
+      "title": "Can this PR merge?",
+      "kind": "python",
+      "prompt": "A pull request is a dictionary with `approvals` (int), `checks` (dict name to `pass` or `fail`) and `conflicts` (bool). Write `can_merge(pr)` returning True only when there is at least 1 approval, every check passes, and there are no conflicts. Print the result for the three PRs, one per line.",
+      "starter": "prs = [\n    {'approvals': 1, 'checks': {'test': 'pass', 'lint': 'pass'}, 'conflicts': False},\n    {'approvals': 2, 'checks': {'test': 'fail'}, 'conflicts': False},\n    {'approvals': 0, 'checks': {'test': 'pass'}, 'conflicts': False},\n]\n\ndef can_merge(pr):\n    pass\n\nfor pr in prs:\n    print(can_merge(pr))\n",
+      "solution": "prs = [\n    {'approvals': 1, 'checks': {'test': 'pass', 'lint': 'pass'}, 'conflicts': False},\n    {'approvals': 2, 'checks': {'test': 'fail'}, 'conflicts': False},\n    {'approvals': 0, 'checks': {'test': 'pass'}, 'conflicts': False},\n]\n\ndef can_merge(pr):\n    return pr['approvals'] >= 1 and all(v == 'pass' for v in pr['checks'].values()) and not pr['conflicts']\n\nfor pr in prs:\n    print(can_merge(pr))\n",
+      "hints": [
+        "Three conditions must all hold, so combine them with `and`.",
+        "`all(v == 'pass' for v in pr['checks'].values())` tests every check.",
+        "`return pr['approvals'] >= 1 and all(...) and not pr['conflicts']`."
+      ],
+      "expected": "True\nFalse\nFalse"
+    },
+    {
+      "id": "g3",
+      "title": "Run steps until one fails",
+      "kind": "python",
+      "prompt": "`steps` is a list of `(name, exit_code)` pairs for a CI job. Print `<name> ok` for each step until the first non-zero code, then print `<name> FAILED` for that step and stop (later steps are skipped and not printed). Finally print `job passed` or `job failed`.",
+      "starter": "steps = [('checkout', 0), ('install', 0), ('pytest', 1), ('report', 0)]\n\n# Your code here\n",
+      "solution": "steps = [('checkout', 0), ('install', 0), ('pytest', 1), ('report', 0)]\n\npassed = True\nfor name, code in steps:\n    if code != 0:\n        print(name, 'FAILED')\n        passed = False\n        break\n    print(name, 'ok')\nprint('job passed' if passed else 'job failed')\n",
+      "hints": [
+        "Loop over the pairs and stop early with `break`.",
+        "Track whether the job still passes in a variable set to `False` on the failing step.",
+        "Print `ok` only for exit code 0; on the failing step print `FAILED`, set the flag and `break`."
+      ],
+      "expected": "checkout ok\ninstall ok\npytest FAILED\njob failed"
+    },
+    {
+      "id": "g4",
+      "title": "Lint commit subjects",
+      "kind": "python",
+      "prompt": "Write `bad_subjects(subjects)` that returns the list of subjects that are longer than 50 characters or end with a period, in the original order. Print the returned list.",
+      "starter": "subjects = [\n    'Strip dollar sign in clean_amount',\n    'Fix.',\n    'Add retry with backoff to the orders extract so that rate limits are handled',\n    'Merge fix/dollar-sign',\n]\n\ndef bad_subjects(subjects):\n    pass\n\nprint(bad_subjects(subjects))\n",
+      "solution": "subjects = [\n    'Strip dollar sign in clean_amount',\n    'Fix.',\n    'Add retry with backoff to the orders extract so that rate limits are handled',\n    'Merge fix/dollar-sign',\n]\n\ndef bad_subjects(subjects):\n    return [s for s in subjects if len(s) > 50 or s.endswith('.')]\n\nprint(bad_subjects(subjects))\n",
+      "hints": [
+        "Each subject is bad if either condition is true.",
+        "Use `len(s) > 50` and `s.endswith('.')` joined with `or`.",
+        "Wrap them in a list comprehension that keeps the subjects satisfying the test."
+      ],
+      "expected": "['Fix.', 'Add retry with backoff to the orders extract so that rate limits are handled']"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Protected branch report",
+      "kind": "python",
+      "prompt": "Rules: at least 2 approvals when the PR touches a file under `pipelines/`, otherwise 1; the check `test` must have status `pass`; no `request_changes` review. For each PR in the starter, print `<name>: MERGE` or `<name>: BLOCKED (<reasons joined by ', '>)`, using the reason texts `approvals 1/2` style (`approvals <have>/<need>`), `test <status>` (status `missing` if absent) and `changes requested`, in that order. PRs are printed in the order given.",
+      "starter": "prs = {\n    'fix-parser': {'files': ['pipelines/clean.py'], 'reviews': ['approve'], 'checks': {'test': 'pass'}},\n    'docs-typo': {'files': ['README.md'], 'reviews': ['approve'], 'checks': {'test': 'pass'}},\n    'new-load': {'files': ['pipelines/load.py', 'tests/test_load.py'], 'reviews': ['approve', 'approve', 'request_changes'], 'checks': {}},\n    'lint-only': {'files': ['setup.cfg'], 'reviews': [], 'checks': {'test': 'fail'}},\n}\n\n# Your code here\n",
+      "solution": "prs = {\n    'fix-parser': {'files': ['pipelines/clean.py'], 'reviews': ['approve'], 'checks': {'test': 'pass'}},\n    'docs-typo': {'files': ['README.md'], 'reviews': ['approve'], 'checks': {'test': 'pass'}},\n    'new-load': {'files': ['pipelines/load.py', 'tests/test_load.py'], 'reviews': ['approve', 'approve', 'request_changes'], 'checks': {}},\n    'lint-only': {'files': ['setup.cfg'], 'reviews': [], 'checks': {'test': 'fail'}},\n}\n\nfor name, pr in prs.items():\n    need = 2 if any(f.startswith('pipelines/') for f in pr['files']) else 1\n    have = pr['reviews'].count('approve')\n    reasons = []\n    if have < need:\n        reasons.append(f'approvals {have}/{need}')\n    status = pr['checks'].get('test', 'missing')\n    if status != 'pass':\n        reasons.append(f'test {status}')\n    if 'request_changes' in pr['reviews']:\n        reasons.append('changes requested')\n    print(f\"{name}: MERGE\" if not reasons else f\"{name}: BLOCKED ({', '.join(reasons)})\")\n",
+      "expected": "fix-parser: BLOCKED (approvals 1/2)\ndocs-typo: MERGE\nnew-load: BLOCKED (test missing, changes requested)\nlint-only: BLOCKED (approvals 0/1, test fail)"
+    },
+    {
+      "id": "i2",
+      "title": "Write the CI workflow",
+      "kind": "written",
+      "prompt": "Write a GitHub Actions workflow file `.github/workflows/pipeline-ci.yml` for a pipeline repository. It must run on pull requests to `main` and on pushes to `main`, use Python 3.12 on `ubuntu-latest`, install `requirements.txt`, run the pytest suite quietly, and stay in one job called `test`. Then explain in two or three sentences how you would make this check required for merging.",
+      "starter": "# .github/workflows/pipeline-ci.yml\n",
+      "solution": "```yaml\nname: pipeline-ci\n\non:\n  pull_request:\n    branches: [main]\n  push:\n    branches: [main]\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: \"3.12\"\n      - run: pip install -r requirements.txt\n      - run: python -m pytest -q\n```\n\nTo make the check required, open the repository settings on GitHub, add a branch protection rule for `main` and tick the options that require a pull request, at least one approving review and passing status checks, then select the `test` job as a required check. Direct pushes to `main` are then blocked, so every change must pass the tests.",
+      "rubric": [
+        "Triggers cover pull requests to main and pushes to main.",
+        "One job named test on ubuntu-latest with checkout and a Python 3.12 setup step.",
+        "Installs requirements and runs python -m pytest -q.",
+        "Valid YAML indentation (steps is a list under the job).",
+        "Explains branch protection with a required status check and review."
+      ]
+    },
+    {
+      "id": "i3",
+      "title": "Write a pull request description",
+      "kind": "written",
+      "required": false,
+      "prompt": "You changed `clean_amount` so that amounts such as `$1,250.50` are parsed instead of becoming null; 14 orders on 2026-01-07 were loaded with a null amount because of it. You added a parametrized test and rerun is needed for that one day. Write the pull request title and description (what, why, how tested, risk, rollout).",
+      "starter": "Title:\n\nDescription:\n",
+      "solution": "**Title:** Parse `$` and thousands separators in clean_amount\n\n**What:** `clean_amount` now removes `$` and `,` before converting to cents.\n\n**Why:** 14 orders on 2026-01-07 had amounts like `$1,250.50` and were loaded with a null `amount_cents`, which lowered that day's revenue.\n\n**How tested:** added a parametrized test with six spellings and a test that text such as `abc` still raises `ValueError`; the full suite passes locally and in CI.\n\n**Risk:** low. The change only affects input that previously failed. No schema change.\n\n**Rollout:** after merge, rerun the 2026-01-07 partition (the load is idempotent) and compare the day's revenue with the ledger. To roll back, revert this PR; the rerun can be repeated.",
+      "rubric": [
+        "States what changed and why, with the 14 affected orders.",
+        "Names the tests added and that CI passes.",
+        "States the risk and that no schema changes.",
+        "Describes the rerun for 2026-01-07 and a rollback.",
+        "Short, specific and in plain sentences."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "You commit on a local branch but have not pushed. Where does the commit exist?",
+      "options": [
+        "On GitHub, because commits are shared immediately",
+        "Only in your local repository until you push",
+        "In every collaborator's repository",
+        "Nowhere until the pull request is merged"
+      ],
+      "answer": 1,
+      "explanation": "Git is local: a commit lives in your repository until you push it. GitHub only sees pushed commits, and a pull request needs a pushed branch."
+    },
+    {
+      "id": "c2",
+      "question": "A workflow runs `pip install -r requirements.txt` and `python -m pytest -q`. One test fails. What does GitHub show for the pull request check?",
+      "options": [
+        "Green, because the install succeeded",
+        "Red, because pytest exits non-zero and fails the job",
+        "Yellow, waiting for a reviewer",
+        "Nothing; the run is ignored"
+      ],
+      "answer": 1,
+      "explanation": "A step that exits with a non-zero status fails the job, and the failing job shows as a red check. The successful install does not change that."
+    },
+    {
+      "id": "c3",
+      "question": "Git reports `UU config.py` after a merge. What does it mean?",
+      "options": [
+        "The file was deleted on both branches",
+        "Both branches modified the file and the conflict is unresolved",
+        "The file is untracked",
+        "The merge finished successfully"
+      ],
+      "answer": 1,
+      "explanation": "`UU` marks a file with unmerged changes from both sides. You edit it to the correct content, `git add` it and commit, or abort the merge."
+    },
+    {
+      "id": "c4",
+      "question": "What does `blockers(pr)` from Example 3 report for a PR whose required `test` check never ran?",
+      "options": [
+        "Nothing; a missing check is ignored",
+        "`check test: missing`, and the PR is blocked",
+        "`check test: pass`",
+        "An exception"
+      ],
+      "answer": 1,
+      "explanation": "A required check that did not report is treated as not passed. This is why a required status check is stronger than a convention that someone runs the tests."
+    },
+    {
+      "id": "c5",
+      "question": "A 3,000-line pull request is approved within ten minutes. What is the most likely problem?",
+      "options": [
+        "The reviewer is very fast",
+        "The change is too large to review properly; split it into small focused PRs",
+        "CI is configured wrongly",
+        "Nothing; approvals prove correctness"
+      ],
+      "answer": 1,
+      "explanation": "Large changes are approved without being read. Small PRs that do one thing are reviewable. Green checks and an approval do not prove correctness."
+    }
+  ],
+  "id": "e140"
+}

@@ -1,0 +1,189 @@
+{
+  "id": "e178",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "airflow-dags",
+      "airflow-dependencies",
+      "airflow-retries",
+      "airflow-failure-handling",
+      "etl-pipeline-monitoring"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "airflow-etl-pipeline"
+    ],
+    "mindmaps": [
+      "airflow-track"
+    ],
+    "patterns": []
+  },
+  "environment": {
+    "packages": [
+      "pytest"
+    ],
+    "note": "Example 5 runs pytest in a throwaway folder (pip install pytest, then python -m pytest -q) and runs only on your own computer. The Airflow code of Example 4 is not run here: to try it, install Apache Airflow 2.x in a virtual environment following its documentation, put the file in the dags folder and start the scheduler and web server. The graded exercises use the pure-Python DAG model, which runs in the browser."
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Order the tasks",
+      "kind": "python",
+      "prompt": "`deps` maps each task to the tasks it needs. Write `order(deps)` returning a valid run order: repeatedly take, in alphabetical order, all tasks whose dependencies are already done. Print the list for the given dictionary.",
+      "starter": "deps = {\"report\": [\"model\", \"clean\"], \"clean\": [\"fetch\"], \"model\": [\"clean\"], \"fetch\": [], \"archive\": [\"fetch\"]}\n\ndef order(deps):\n    return []\n\nprint(order(deps))\n",
+      "solution": "deps = {\"report\": [\"model\", \"clean\"], \"clean\": [\"fetch\"], \"model\": [\"clean\"], \"fetch\": [], \"archive\": [\"fetch\"]}\n\ndef order(deps):\n    done, result = set(), []\n    while len(result) < len(deps):\n        ready = sorted(t for t in deps if t not in done and all(d in done for d in deps[t]))\n        result += ready\n        done.update(ready)\n    return result\n\nprint(order(deps))\n",
+      "hints": [
+        "A task is ready when every dependency is in the done set.",
+        "Loop until all tasks are placed; each round, collect the ready tasks sorted by name.",
+        "Add the ready tasks to the result and to `done` before the next round."
+      ],
+      "expected": "['fetch', 'archive', 'clean', 'model', 'report']"
+    },
+    {
+      "id": "g2",
+      "title": "Count the parallel groups",
+      "kind": "python",
+      "prompt": "Using the same `deps` dictionary, print one line per round of tasks that could run in parallel, as `round <n>: <task names joined by space>`, with rounds numbered from 1 and names sorted. Then print `longest chain: <number of rounds>`.",
+      "starter": "deps = {\"report\": [\"model\", \"clean\"], \"clean\": [\"fetch\"], \"model\": [\"clean\"], \"fetch\": [], \"archive\": [\"fetch\"]}\n",
+      "solution": "deps = {\"report\": [\"model\", \"clean\"], \"clean\": [\"fetch\"], \"model\": [\"clean\"], \"fetch\": [], \"archive\": [\"fetch\"]}\ndone, rounds = set(), []\nwhile len(done) < len(deps):\n    ready = sorted(t for t in deps if t not in done and all(d in done for d in deps[t]))\n    rounds.append(ready)\n    done.update(ready)\nfor n, group in enumerate(rounds, start=1):\n    print(f\"round {n}: \" + \" \".join(group))\nprint(\"longest chain: \" + str(len(rounds)))\n",
+      "hints": [
+        "Reuse the 'ready' rule: all dependencies done.",
+        "Keep each round as its own list instead of one flat result.",
+        "`enumerate(rounds, start=1)` numbers the rounds; the number of rounds is the longest chain."
+      ],
+      "expected": "round 1: fetch\nround 2: archive clean\nround 3: model\nround 4: report\nlongest chain: 4"
+    },
+    {
+      "id": "g3",
+      "title": "Retry a flaky call",
+      "kind": "python",
+      "prompt": "Write `with_retries(fn, retries)` that calls `fn()` up to `retries + 1` times, returning `(True, attempts)` as soon as a call succeeds and `(False, attempts)` when every call raised an exception. `flaky(n)` returns a function that fails the first `n` calls. Print the result for `flaky(2)` with 2 retries, `flaky(2)` with 1 retry and `flaky(0)` with 0 retries, one per line.",
+      "starter": "def flaky(n):\n    state = {\"calls\": 0}\n    def fn():\n        state[\"calls\"] += 1\n        if state[\"calls\"] <= n:\n            raise RuntimeError(\"fail\")\n    return fn\n\ndef with_retries(fn, retries):\n    return (False, 0)\n\nprint(with_retries(flaky(2), 2))\nprint(with_retries(flaky(2), 1))\nprint(with_retries(flaky(0), 0))\n",
+      "solution": "def flaky(n):\n    state = {\"calls\": 0}\n    def fn():\n        state[\"calls\"] += 1\n        if state[\"calls\"] <= n:\n            raise RuntimeError(\"fail\")\n    return fn\n\ndef with_retries(fn, retries):\n    attempts = 0\n    for _ in range(retries + 1):\n        attempts += 1\n        try:\n            fn()\n            return (True, attempts)\n        except Exception:\n            pass\n    return (False, attempts)\n\nprint(with_retries(flaky(2), 2))\nprint(with_retries(flaky(2), 1))\nprint(with_retries(flaky(0), 0))\n",
+      "hints": [
+        "There is one first try plus `retries` more, so `retries + 1` attempts in total.",
+        "Count each attempt, call `fn()` inside `try`, and return on success.",
+        "After the loop, return `(False, attempts)`; catch `Exception` and continue."
+      ],
+      "expected": "(True, 3)\n(False, 2)\n(True, 1)"
+    },
+    {
+      "id": "g4",
+      "title": "Task attempts in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the CTE `runs(task, attempt, state)` logs every attempt of each task (`failed` or `success`). Return `task`, `attempts` (number of rows) and `succeeded` (true when any attempt has state `success`, using `bool_or(state = 'success')`), ordered by task.",
+      "starter": "WITH runs(task, attempt, state) AS (VALUES ('clean',1,'success'),('ingest',1,'failed'),('ingest',2,'failed'),('ingest',3,'success'),('load',1,'failed'),('load',2,'failed'))\nSELECT task FROM runs ORDER BY task;\n",
+      "solution": "WITH runs(task, attempt, state) AS (VALUES ('clean',1,'success'),('ingest',1,'failed'),('ingest',2,'failed'),('ingest',3,'success'),('load',1,'failed'),('load',2,'failed'))\nSELECT task, count(*) AS attempts, bool_or(state = 'success') AS succeeded\nFROM runs GROUP BY task ORDER BY task;\n",
+      "ordered": true,
+      "hints": [
+        "One output row per task, so group by task.",
+        "`count(*)` counts the attempts.",
+        "`bool_or(state = 'success') AS succeeded` is true if any attempt succeeded."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Write the DAG runner",
+      "kind": "python",
+      "prompt": "Write `run(tasks, retries)` for a dictionary of tasks `{name: {\"deps\": [...], \"fn\": callable}}`. Process tasks in a valid dependency order (alphabetical among ready tasks, as `topo` below does). A task whose dependency is not `success` gets the state `upstream_failed` and is not called. Otherwise call `fn()` up to `retries + 1` times until it does not raise; the state is `success` or `failed`. Return a dictionary `name -> state`. Run the scenario below and print one line per task in alphabetical order as `<name>: <state> (<calls made>)`, where calls made counts actual calls of that task's function.",
+      "starter": "def topo(tasks):\n    \"\"\"Run order: repeatedly take every task whose dependencies are done (sorted for a stable order).\"\"\"\n    done, order = set(), []\n    while len(order) < len(tasks):\n        ready = sorted(n for n, t in tasks.items() if n not in done and all(d in done for d in t[\"deps\"]))\n        if not ready:\n            raise ValueError(\"cycle in the DAG\")\n        order += ready\n        done.update(ready)\n    return order\n\ndef levels(tasks):\n    \"\"\"Groups of tasks that could run in parallel: all dependencies are in earlier groups.\"\"\"\n    done, groups = set(), []\n    while len(done) < len(tasks):\n        ready = sorted(n for n, t in tasks.items() if n not in done and all(d in done for d in t[\"deps\"]))\n        if not ready:\n            raise ValueError(\"cycle in the DAG\")\n        groups.append(ready)\n        done.update(ready)\n    return groups\n\ncalls = {}\ndef make(name, fail_times):\n    def fn():\n        calls[name] = calls.get(name, 0) + 1\n        if calls[name] <= fail_times:\n            raise RuntimeError(name)\n    return fn\n\ntasks = {\n    \"extract\": {\"deps\": [], \"fn\": make(\"extract\", 1)},\n    \"transform\": {\"deps\": [\"extract\"], \"fn\": make(\"transform\", 5)},\n    \"load\": {\"deps\": [\"transform\"], \"fn\": make(\"load\", 0)},\n    \"audit\": {\"deps\": [\"extract\"], \"fn\": make(\"audit\", 0)},\n}\n\ndef run(tasks, retries):\n    return {}\n\nstates = run(tasks, 2)\nfor name in sorted(tasks):\n    print(f\"{name}: {states[name]} ({calls.get(name, 0)})\")\n",
+      "solution": "def topo(tasks):\n    \"\"\"Run order: repeatedly take every task whose dependencies are done (sorted for a stable order).\"\"\"\n    done, order = set(), []\n    while len(order) < len(tasks):\n        ready = sorted(n for n, t in tasks.items() if n not in done and all(d in done for d in t[\"deps\"]))\n        if not ready:\n            raise ValueError(\"cycle in the DAG\")\n        order += ready\n        done.update(ready)\n    return order\n\ndef levels(tasks):\n    \"\"\"Groups of tasks that could run in parallel: all dependencies are in earlier groups.\"\"\"\n    done, groups = set(), []\n    while len(done) < len(tasks):\n        ready = sorted(n for n, t in tasks.items() if n not in done and all(d in done for d in t[\"deps\"]))\n        if not ready:\n            raise ValueError(\"cycle in the DAG\")\n        groups.append(ready)\n        done.update(ready)\n    return groups\n\ncalls = {}\ndef make(name, fail_times):\n    def fn():\n        calls[name] = calls.get(name, 0) + 1\n        if calls[name] <= fail_times:\n            raise RuntimeError(name)\n    return fn\n\ntasks = {\n    \"extract\": {\"deps\": [], \"fn\": make(\"extract\", 1)},\n    \"transform\": {\"deps\": [\"extract\"], \"fn\": make(\"transform\", 5)},\n    \"load\": {\"deps\": [\"transform\"], \"fn\": make(\"load\", 0)},\n    \"audit\": {\"deps\": [\"extract\"], \"fn\": make(\"audit\", 0)},\n}\n\ndef run(tasks, retries):\n    states = {}\n    for name in topo(tasks):\n        if any(states[d] != \"success\" for d in tasks[name][\"deps\"]):\n            states[name] = \"upstream_failed\"\n            continue\n        states[name] = \"failed\"\n        for _ in range(retries + 1):\n            try:\n                tasks[name][\"fn\"]()\n                states[name] = \"success\"\n                break\n            except Exception:\n                pass\n    return states\n\nstates = run(tasks, 2)\nfor name in sorted(tasks):\n    print(f\"{name}: {states[name]} ({calls.get(name, 0)})\")\n",
+      "expected": "audit: success (1)\nextract: success (2)\nload: upstream_failed (0)\ntransform: failed (3)"
+    },
+    {
+      "id": "i2",
+      "title": "Alert rules on run history",
+      "kind": "python",
+      "prompt": "`history` lists the metrics of five daily runs. Write `alerts(run, previous)` returning a list of rule names that fire for a run, in this order: `no rows loaded` when `loaded == 0`; `quarantine above 5%` when `quarantined` is more than 5 percent of `read`; `fact table shrank` when `fact_total` is lower than the previous run's `fact_total` (never for the first run). Print `day <n>: <rules joined by '; '>` for each run, or `day <n>: ok` when none fire.",
+      "starter": "history = [\n    {\"read\": 120, \"loaded\": 91, \"quarantined\": 6, \"fact_total\": 91},\n    {\"read\": 130, \"loaded\": 8, \"quarantined\": 4, \"fact_total\": 99},\n    {\"read\": 125, \"loaded\": 0, \"quarantined\": 0, \"fact_total\": 99},\n    {\"read\": 140, \"loaded\": 9, \"quarantined\": 20, \"fact_total\": 108},\n    {\"read\": 100, \"loaded\": 5, \"quarantined\": 2, \"fact_total\": 100},\n]\n\ndef alerts(run, previous):\n    return []\n\nfor n, run in enumerate(history, start=1):\n    print(f\"day {n}: ok\")\n",
+      "solution": "history = [\n    {\"read\": 120, \"loaded\": 91, \"quarantined\": 6, \"fact_total\": 91},\n    {\"read\": 130, \"loaded\": 8, \"quarantined\": 4, \"fact_total\": 99},\n    {\"read\": 125, \"loaded\": 0, \"quarantined\": 0, \"fact_total\": 99},\n    {\"read\": 140, \"loaded\": 9, \"quarantined\": 20, \"fact_total\": 108},\n    {\"read\": 100, \"loaded\": 5, \"quarantined\": 2, \"fact_total\": 100},\n]\n\ndef alerts(run, previous):\n    out = []\n    if run[\"loaded\"] == 0:\n        out.append(\"no rows loaded\")\n    if run[\"quarantined\"] > 0.05 * run[\"read\"]:\n        out.append(\"quarantine above 5%\")\n    if previous is not None and run[\"fact_total\"] < previous[\"fact_total\"]:\n        out.append(\"fact table shrank\")\n    return out\n\nprevious = None\nfor n, run in enumerate(history, start=1):\n    fired = alerts(run, previous)\n    print(f\"day {n}: \" + (\"; \".join(fired) if fired else \"ok\"))\n    previous = run\n",
+      "expected": "day 1: ok\nday 2: ok\nday 3: no rows loaded\nday 4: quarantine above 5%\nday 5: fact table shrank"
+    },
+    {
+      "id": "i3",
+      "title": "Design the Airflow settings (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "For the capstone DAG, choose and justify the schedule, the retry count and delay, whether catch-up should be on, and what makes a backfill of the last 7 days safe. Name which tasks must be idempotent and how each of them achieves it in this project.",
+      "starter": "Schedule:\nRetries and delay:\nCatch-up:\nBackfill safety:\nIdempotent tasks:",
+      "solution": "Schedule: daily, after the source has finished the previous day, because the pipeline loads yesterday's and earlier orders. Retries: 2 with a delay of a few minutes, enough for a rate-limit window, not so many that a real outage is hidden for hours. Catch-up: off by default so that deploying the DAG does not start dozens of runs; turn it on deliberately for a backfill. Backfill safety: a backfill reruns tasks for past intervals, so every task must give the same result when it runs again, and the loads must not duplicate rows. Idempotent tasks: ingest replaces its batch (delete then insert in one transaction); clean rebuilds the clean set and replaces the quarantine; load_dims and load_fact use upserts on business keys and sale_id and move the watermark in the same transaction; analytics is only views, which store nothing. The row-count reconciliation after the load then shows that the backfill added no duplicates.",
+      "rubric": [
+        "Chooses a schedule and links it to when the data is available.",
+        "Retries are bounded and justified.",
+        "Explains catch-up and backfill risk.",
+        "Ties idempotency to the mechanism in each task (replace batch, upsert, same-transaction watermark)."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "In the capstone DAG `load_fact` depends on `clean` and `load_dims`. If `clean` fails after all retries, what happens to `load_fact` and `analytics`?",
+      "options": [
+        "They run on the previous data",
+        "Both are marked upstream_failed and do not run",
+        "load_fact runs, analytics does not",
+        "They run once more"
+      ],
+      "answer": 1,
+      "explanation": "A task whose dependency is not successful is not run; analytics depends on load_fact, so it is also upstream_failed. Running them would load or report from missing data."
+    },
+    {
+      "id": "c2",
+      "question": "Why are retries safe for the load tasks of this project?",
+      "options": [
+        "Retries are always safe",
+        "The tasks are idempotent: batches are replaced and facts are upserted, so a second attempt gives the same result",
+        "Because Airflow deduplicates rows",
+        "Because the tasks run in parallel"
+      ],
+      "answer": 1,
+      "explanation": "Retrying a task that appends rows would duplicate data after a half-finished first attempt. Replace-and-upsert makes a repeat harmless."
+    },
+    {
+      "id": "c3",
+      "question": "Which dependency list gives a cycle?",
+      "options": [
+        "a needs b, b needs c",
+        "a needs b, b needs a",
+        "a needs nothing, b needs a",
+        "a and b both need c"
+      ],
+      "answer": 1,
+      "explanation": "If a needs b and b needs a, neither can start first, so no run order exists. The orchestrator must reject the graph."
+    },
+    {
+      "id": "c4",
+      "question": "A test reads `assert first_problem(rec, set(), KNOWN) == \"bad amount\"` with a record of amount 0. The rule was changed to `< 0`. What happens?",
+      "options": [
+        "The test passes silently",
+        "The test fails and shows the old behaviour has changed",
+        "pytest skips it",
+        "The pipeline stops"
+      ],
+      "answer": 1,
+      "explanation": "With `< 0` a zero amount is valid, so the function returns None and the assertion fails. That is the purpose of the test: it makes a behavioural change visible immediately."
+    },
+    {
+      "id": "c5",
+      "question": "Why does the alert use 'quarantined more than 5 percent of rows read' and not 'quarantined more than 10'?",
+      "options": [
+        "Percentages are easier to compute",
+        "The meaning of a count depends on the volume; a rate stays meaningful when the source grows",
+        "Airflow only supports percentages",
+        "Counts cannot be monitored"
+      ],
+      "answer": 1,
+      "explanation": "Ten bad rows out of a hundred is a problem and out of a million is noise. A rate scales with the volume."
+    }
+  ]
+}

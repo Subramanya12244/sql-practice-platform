@@ -1,0 +1,190 @@
+{
+  "id": "e169",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "rank",
+      "lag",
+      "left-join"
+    ],
+    "questions": [
+      28,
+      24,
+      149,
+      147,
+      152
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "interview-patterns"
+    ],
+    "patterns": [
+      "top-n-per-group",
+      "anti-join",
+      "latest-record-per-group",
+      "month-over-month-growth"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Customers with no orders",
+      "kind": "sql",
+      "prompt": "Interview question: list the customers who never placed an order. Return `customer_id` and `company_name`, ordered by `customer_id`.",
+      "starter": "SELECT customer_id, company_name\nFROM customers\nLIMIT 5;\n",
+      "solution": "SELECT c.customer_id, c.company_name\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nWHERE o.order_id IS NULL\nORDER BY c.customer_id;\n",
+      "ordered": true,
+      "hints": [
+        "Start from customers and LEFT JOIN orders.",
+        "Customers without a match have NULL in the orders columns.",
+        "Filter WHERE o.order_id IS NULL and order by customer_id."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Most expensive product per category",
+      "kind": "sql",
+      "prompt": "For each category return the product with the highest current `unit_price`, breaking ties by the smaller `product_id`. Return `category_name`, `product_name` and `unit_price`, ordered by `category_name`.",
+      "starter": "SELECT category_id, MAX(unit_price) AS top_price\nFROM products\nGROUP BY category_id;\n",
+      "solution": "SELECT c.category_name, t.product_name, t.unit_price\nFROM (\n  SELECT category_id, product_name, unit_price,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_price DESC, product_id) AS rn\n  FROM products\n) t\nJOIN categories c ON c.category_id = t.category_id\nWHERE t.rn = 1\nORDER BY c.category_name;\n",
+      "ordered": true,
+      "hints": [
+        "Rank the products inside each category in a subquery.",
+        "ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_price DESC, product_id).",
+        "Keep rn = 1 and join categories for the name."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Late orders per customer",
+      "kind": "sql",
+      "prompt": "Return `customer_id`, `orders` and `late_orders` (orders shipped after the required date) for customers with at least 2 orders and at least 1 late order, ordered by `customer_id`.",
+      "starter": "SELECT customer_id, COUNT(*) AS orders\nFROM orders\nGROUP BY customer_id\nLIMIT 5;\n",
+      "solution": "SELECT customer_id,\n       COUNT(*) AS orders,\n       COUNT(*) FILTER (WHERE shipped_date > required_date) AS late_orders\nFROM orders\nGROUP BY customer_id\nHAVING COUNT(*) >= 2 AND COUNT(*) FILTER (WHERE shipped_date > required_date) >= 1\nORDER BY customer_id;\n",
+      "ordered": true,
+      "hints": [
+        "Group the orders by customer.",
+        "COUNT(*) FILTER (WHERE shipped_date > required_date) counts the late ones.",
+        "Put both conditions in HAVING."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Second highest distinct value",
+      "kind": "python",
+      "prompt": "Interview question in Python with `sqlite3`: the table `scores(v INTEGER)` holds the values `[50, 80, 80, 70, 60]`. Return the second highest distinct value with SQL `SELECT MAX(v) FROM scores WHERE v < (SELECT MAX(v) FROM scores)` and print `second highest: 70`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE scores (v INTEGER)')\nconn.executemany('INSERT INTO scores VALUES (?)', [(50,), (80,), (80,), (70,), (60,)])\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE scores (v INTEGER)')\nconn.executemany('INSERT INTO scores VALUES (?)', [(50,), (80,), (80,), (70,), (60,)])\nrow = conn.execute('SELECT MAX(v) FROM scores WHERE v < (SELECT MAX(v) FROM scores)').fetchone()\nprint('second highest:', row[0])\nconn.close()\n",
+      "hints": [
+        "The inner query finds the maximum.",
+        "The outer query takes the maximum of the values below it.",
+        "fetchone()[0] holds the value; print it with the label."
+      ],
+      "expected": "second highest: 70"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Running revenue by quarter",
+      "kind": "sql",
+      "prompt": "Interview question: show the quarterly revenue of 1997 and 1998 with the running total since 1996-Q1. Return `quarter` (first day of the quarter), `revenue` and `running_revenue` (both rounded to 0 decimals), ordered by `quarter`, only for quarters from 1997-01-01. Compute the running total over all quarters before filtering.",
+      "starter": "SELECT date_trunc('quarter', order_date)::date AS quarter\nFROM orders\nGROUP BY 1\nORDER BY 1;\n",
+      "solution": "WITH q AS (\n  SELECT date_trunc('quarter', o.order_date)::date AS quarter,\n         SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY 1\n), r AS (\n  SELECT quarter, revenue, SUM(revenue) OVER (ORDER BY quarter) AS running_revenue FROM q\n)\nSELECT quarter, ROUND(revenue::numeric, 0) AS revenue, ROUND(running_revenue::numeric, 0) AS running_revenue\nFROM r\nWHERE quarter >= DATE '1997-01-01'\nORDER BY quarter;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Customers acquired in 1997 who came back",
+      "kind": "sql",
+      "prompt": "Interview question: customers whose first order was placed in 1997 and who placed at least one more order afterwards. Return `customer_id`, `first_order` (date of the first order) and `orders` (total orders), ordered by `customer_id`.",
+      "starter": "SELECT customer_id, MIN(order_date) AS first_order\nFROM orders\nGROUP BY customer_id\nLIMIT 5;\n",
+      "solution": "SELECT customer_id, MIN(order_date) AS first_order, COUNT(*) AS orders\nFROM orders\nGROUP BY customer_id\nHAVING MIN(order_date) >= DATE '1997-01-01' AND MIN(order_date) < DATE '1998-01-01' AND COUNT(*) >= 2\nORDER BY customer_id;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Talk through a question",
+      "kind": "written",
+      "prompt": "The interviewer asks: \"Find the customers whose revenue in 1998 is above the average revenue per customer in 1998.\" You have 15 minutes. Write what you would say and do: the clarifying questions, the plan in steps, the SQL (any reasonable form), two edge cases you would test and one sentence explaining the result.",
+      "starter": "Clarify:\nPlan:\nSQL:\nEdge cases:\nExplanation:",
+      "solution": "Clarify: revenue means price x quantity x (1 - discount) from the order lines, per customer, for orders dated in 1998; the average is over customers who ordered in 1998 (not all customers, who would pull the average down); ties at exactly the average are excluded.\n\nPlan: (1) a CTE with revenue per customer for 1998, (2) compute the average of that column, (3) keep customers above it.\n\nSQL:\n```sql\nWITH c AS (\n  SELECT o.customer_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  WHERE o.order_date >= DATE '1998-01-01' AND o.order_date < DATE '1999-01-01'\n  GROUP BY o.customer_id\n)\nSELECT customer_id, ROUND(revenue::numeric, 0) AS revenue\nFROM c\nWHERE revenue > (SELECT AVG(revenue) FROM c)\nORDER BY revenue DESC;\n```\n\nEdge cases: a customer with no 1998 orders must not appear and must not change the average; two customers with identical revenue; NULL discounts (the column is NOT NULL here, but I would check). I would also check that the number of customers in the CTE equals the distinct customers with 1998 orders.\n\nExplanation: a minority of customers carry most of the revenue, so the average is high and only a few customers are above it; the filter on the date range is sargable.",
+      "rubric": [
+        "Asks about the definition of revenue and the population used for the average",
+        "Gives a clear plan in steps before the SQL",
+        "Writes a correct query that aggregates per customer before comparing with the average",
+        "Names at least two edge cases (customers without orders, ties, NULLs)",
+        "Explains the result in one sentence"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`SELECT * FROM a WHERE id NOT IN (SELECT id FROM b)` returns no rows, although `b` does not contain some ids of `a`. What is the likely cause?",
+      "options": [
+        "`b.id` contains a NULL",
+        "`a` is empty",
+        "NOT IN needs an index",
+        "`b` is too large"
+      ],
+      "answer": 0,
+      "explanation": "If the subquery returns a NULL, `id NOT IN (...)` evaluates to unknown for every row that is not matched, so nothing passes the filter. Use NOT EXISTS or a LEFT JOIN anti-join."
+    },
+    {
+      "id": "c2",
+      "question": "Which function can return more than 3 rows for 'top 3 per category' when values tie?",
+      "options": [
+        "RANK()",
+        "ROW_NUMBER()",
+        "COUNT()",
+        "LAG()"
+      ],
+      "answer": 0,
+      "explanation": "RANK gives tied rows the same rank, so filtering rank <= 3 can include more than 3 rows. ROW_NUMBER always gives distinct numbers, with the tie broken arbitrarily unless you add a tie-break."
+    },
+    {
+      "id": "c3",
+      "question": "Why is `WHERE order_date >= '1997-01-01' AND order_date < '1998-01-01'` preferred to `WHERE EXTRACT(year FROM order_date) = 1997`?",
+      "options": [
+        "The bare column can use an index; a function on the column usually prevents it",
+        "It returns different rows",
+        "EXTRACT is not allowed in WHERE",
+        "It is shorter"
+      ],
+      "answer": 0,
+      "explanation": "Both return the same rows, but wrapping the column in a function typically stops an index on that column from being used. Confirm with EXPLAIN."
+    },
+    {
+      "id": "c4",
+      "question": "You compute `LAG(revenue)` inside a CTE that already filters to 1998, then show 1998. What happens to the first quarter's change?",
+      "options": [
+        "It is NULL, because the previous quarter was filtered out first",
+        "It compares with 1997 correctly",
+        "It errors",
+        "It compares with itself"
+      ],
+      "answer": 0,
+      "explanation": "Window functions only see rows that reach them. Filter after the window so the earlier period is still available."
+    },
+    {
+      "id": "c5",
+      "question": "Joining orders to order lines and then `SUM(freight)` (an order-level column) gives a total that is too large. Why?",
+      "options": [
+        "Each order's freight is repeated once per line",
+        "Freight is NULL",
+        "SUM ignores joins",
+        "The join removed rows"
+      ],
+      "answer": 0,
+      "explanation": "The join creates one row per order line, so the order-level value is repeated for each line and summed several times. Aggregate to the order grain first or sum a line-level column."
+    }
+  ]
+}

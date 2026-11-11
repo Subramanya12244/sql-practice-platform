@@ -1,0 +1,189 @@
+{
+  "id": "e167",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "spark-dataframes",
+      "spark-partitioning",
+      "python-csv-json"
+    ],
+    "questions": [
+      159
+    ],
+    "pyExercises": [],
+    "projects": [
+      "pyspark-transformation"
+    ],
+    "mindmaps": [
+      "spark-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Count the bad values after a read",
+      "kind": "python",
+      "prompt": "The CSV text below has an `id` column and a `qty` column. Read it with pandas as text, convert `qty` with `pd.to_numeric(..., errors='coerce')` (the equivalent of a permissive typed read) and print `rows: 4` and `null qty: 2`, using the real counts.",
+      "starter": "import io\nimport pandas as pd\n\ntext = 'id,qty\\n1,5\\n2,x\\n3,\\n4,7\\n'\n",
+      "solution": "import io\nimport pandas as pd\n\ntext = 'id,qty\\n1,5\\n2,x\\n3,\\n4,7\\n'\ndf = pd.read_csv(io.StringIO(text), dtype=str)\ndf['qty'] = pd.to_numeric(df['qty'], errors='coerce')\nprint('rows:', len(df))\nprint('null qty:', int(df['qty'].isna().sum()))\n",
+      "hints": [
+        "Read with dtype=str so that nothing is converted early.",
+        "pd.to_numeric(df['qty'], errors='coerce') turns bad values into NaN.",
+        "Count them with df['qty'].isna().sum() and convert to int before printing."
+      ],
+      "expected": "rows: 4\nnull qty: 2"
+    },
+    {
+      "id": "g2",
+      "title": "Partition directories",
+      "kind": "python",
+      "prompt": "The list of order dates is `['2025-03-01', '2025-03-02', '2025-03-01', '2025-03-03', '2025-03-01']`. Print the directory name and the number of rows for each date in date order, in the form `order_date=2025-03-01/ 3`.",
+      "starter": "dates = ['2025-03-01', '2025-03-02', '2025-03-01', '2025-03-03', '2025-03-01']\n",
+      "solution": "from collections import Counter\n\ndates = ['2025-03-01', '2025-03-02', '2025-03-01', '2025-03-03', '2025-03-01']\nfor d, n in sorted(Counter(dates).items()):\n    print(f'order_date={d}/ {n}')\n",
+      "hints": [
+        "Counter(dates) counts the rows per date.",
+        "sorted(counter.items()) gives date order.",
+        "Print an f-string with order_date= before the date, a slash and a space before the count."
+      ],
+      "expected": "order_date=2025-03-01/ 3\norder_date=2025-03-02/ 1\norder_date=2025-03-03/ 1"
+    },
+    {
+      "id": "g3",
+      "title": "The aggregation a job prints",
+      "kind": "sql",
+      "prompt": "A job runs `orders.groupBy('ship_country').count()`. Write the SQL equivalent returning `ship_country` and `count` for the five countries with the most orders, ordered by `count` descending then `ship_country`.",
+      "starter": "SELECT ship_country\nFROM orders\nLIMIT 5;\n",
+      "solution": "SELECT ship_country, COUNT(*) AS count\nFROM orders\nGROUP BY ship_country\nORDER BY count DESC, ship_country\nLIMIT 5;\n",
+      "ordered": true,
+      "hints": [
+        "Group the orders by ship_country.",
+        "COUNT(*) AS count gives the number of orders.",
+        "ORDER BY count DESC, ship_country LIMIT 5."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Which save mode?",
+      "kind": "python",
+      "prompt": "A directory already holds the rows `['a', 'b']`. For each mode in `['overwrite', 'append', 'ignore']`, apply a second write of `['c']` using the rules (overwrite replaces, append adds, ignore keeps the old data) and print `mode: rows` as a list, for example `ignore: ['a', 'b']`.",
+      "starter": "existing = ['a', 'b']\nnew = ['c']\n",
+      "solution": "existing = ['a', 'b']\nnew = ['c']\nfor mode in ['overwrite', 'append', 'ignore']:\n    if mode == 'overwrite':\n        result = list(new)\n    elif mode == 'append':\n        result = existing + new\n    else:\n        result = list(existing)\n    print(f'{mode}: {result}')\n",
+      "hints": [
+        "Loop over the three modes.",
+        "Overwrite gives new, append gives existing + new, ignore gives existing.",
+        "Print an f-string with the mode and the list."
+      ],
+      "expected": "overwrite: ['c']\nappend: ['a', 'b', 'c']\nignore: ['a', 'b']"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Pruning and file counts",
+      "kind": "python",
+      "prompt": "There are 60 rows. Row `i` (0 to 59) has the date `2025-03-0` followed by `1 + i % 3` (so three dates), and is handled by task `i % 5` (five tasks). A write with `partitionBy('date')` produces one file for each pair of a date and a task that has rows. Print `files mixed: X` (the number of such pairs), `files by date: Y` (the number of files if the rows are first grouped by date, one per date) and `rows scanned for 2025-03-02: Z` when only that partition directory is read.",
+      "starter": "rows = [('2025-03-0' + str(1 + i % 3), i % 5) for i in range(60)]\n",
+      "solution": "rows = [('2025-03-0' + str(1 + i % 3), i % 5) for i in range(60)]\nprint('files mixed:', len(set(rows)))\nprint('files by date:', len({d for d, _ in rows}))\nprint('rows scanned for 2025-03-02:', sum(1 for d, _ in rows if d == '2025-03-02'))\n",
+      "expected": "files mixed: 15\nfiles by date: 3\nrows scanned for 2025-03-02: 20"
+    },
+    {
+      "id": "i2",
+      "title": "Equivalent of a grouped aggregation",
+      "kind": "sql",
+      "prompt": "A job runs `orders.groupBy('ship_country').agg(F.count('*').alias('orders'), F.round(F.avg('freight'), 2).alias('avg_freight'))`. Write the SQL equivalent returning `ship_country`, `orders` and `avg_freight` (rounded to 2 decimals) for the countries with at least 5 orders, ordered by `orders` descending then `ship_country`.",
+      "starter": "SELECT ship_country, COUNT(*) AS orders\nFROM orders\nGROUP BY ship_country\nLIMIT 5;\n",
+      "solution": "SELECT ship_country, COUNT(*) AS orders, ROUND(AVG(freight)::numeric, 2) AS avg_freight\nFROM orders\nGROUP BY ship_country\nHAVING COUNT(*) >= 5\nORDER BY orders DESC, ship_country;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Write the job",
+      "kind": "written",
+      "prompt": "Write the PySpark code (it is not run) for a job that reads `landing/orders/*.csv` with an explicit schema of `order_id` string, `customer_id` string, `amount` double and `order_date` date in FAILFAST mode, keeps rows with a non-null `order_date`, and writes Parquet to `curated/orders` partitioned by `order_date`, overwriting only the partitions present in the new data. Then explain in 3 to 5 sentences why you chose the write mode and partitioning and what you would check afterwards.",
+      "starter": "from pyspark.sql import SparkSession\n\nspark = SparkSession.builder.getOrCreate()\n# your code here\n",
+      "solution": "```python\nfrom pyspark.sql import SparkSession\nfrom pyspark.sql.types import StructType, StructField, StringType, DoubleType, DateType\n\nspark = SparkSession.builder.appName('orders').getOrCreate()\nspark.conf.set('spark.sql.sources.partitionOverwriteMode', 'dynamic')\n\nschema = StructType([\n    StructField('order_id', StringType(), False),\n    StructField('customer_id', StringType(), True),\n    StructField('amount', DoubleType(), True),\n    StructField('order_date', DateType(), True),\n])\n\norders = spark.read.csv('landing/orders/*.csv', header=True, schema=schema, mode='FAILFAST')\nclean = orders.filter(orders.order_date.isNotNull())\n(clean.repartition('order_date')\n      .write.mode('overwrite')\n      .partitionBy('order_date')\n      .parquet('curated/orders'))\n```\n\nFAILFAST makes a malformed file stop the job instead of silently producing nulls. Dynamic partition overwrite replaces only the dates that appear in the new data, so a re-run of one day is idempotent and the other days stay untouched, whereas append would duplicate rows on a retry. Partitioning by `order_date` lets queries for a period read only those directories, and repartitioning by the same column first gives one file per date instead of many small files. Afterwards I would compare the row count read from the landing files minus the filtered rows with the row count in the output, and check that the number of partition directories matches the number of distinct dates.",
+      "rubric": [
+        "Defines an explicit StructType and passes it with header and a bad-row mode",
+        "Filters the null order_date rows before writing",
+        "Uses partitionBy('order_date') with overwrite and dynamic partition overwrite (or an equivalent idempotent approach)",
+        "Explains the choice of mode and partitioning in terms of re-runs and pruning",
+        "Names a post-write check such as counts reconciling"
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "pyspark"
+    ],
+    "note": "PySpark code in this lesson is shown in plain code blocks and is not run: Spark needs Java 17 or later and `pip install pyspark`, which the browser and the automated checks do not have. To run it yourself, install Java and PySpark, create a SparkSession as shown and point the paths at your own folders. Every printed result in the lesson was verified through a pandas or SQL equivalent that runs here; file layout, task counts and speed on a real cluster are not reproduced."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A CSV is read in PySpark without `inferSchema` and without a schema. What are the column types?",
+      "options": [
+        "All strings",
+        "All inferred from the first row",
+        "Doubles",
+        "Integers where possible"
+      ],
+      "answer": 0,
+      "explanation": "Without inferSchema or a schema, every CSV column is read as a string. Inference needs the extra pass that inferSchema=True requests, and it is not done by default."
+    },
+    {
+      "id": "c2",
+      "question": "A permissive read meets the amount `abc` in a double column. What happens?",
+      "options": [
+        "The row is kept and the amount becomes null",
+        "The job fails",
+        "The row is dropped silently",
+        "The value becomes 0"
+      ],
+      "answer": 0,
+      "explanation": "PERMISSIVE keeps the row and sets fields that cannot be parsed to null. FAILFAST stops the job and DROPMALFORMED drops the row. This is why nulls must be counted after the read."
+    },
+    {
+      "id": "c3",
+      "question": "A job runs twice with `df.write.mode('append').parquet(path)` on the same data. What does the directory hold?",
+      "options": [
+        "Two copies of the data",
+        "One copy",
+        "An error",
+        "Nothing"
+      ],
+      "answer": 0,
+      "explanation": "Append adds new files next to the old ones, so the second run duplicates the rows. Overwrite (of the partition) is the idempotent choice."
+    },
+    {
+      "id": "c4",
+      "question": "Data is written with `partitionBy('order_date')`. A query filters `order_date = '2025-03-02'`. What does Spark do?",
+      "options": [
+        "Reads only the directory of that date",
+        "Reads everything and filters afterwards",
+        "Fails because the column is not in the files",
+        "Rewrites the partitions"
+      ],
+      "answer": 0,
+      "explanation": "Partition pruning lets Spark skip other directories, because the value is in the directory name. The column is reconstructed from the path when the data is read."
+    },
+    {
+      "id": "c5",
+      "question": "Why is partitioning by `customer_id` (millions of distinct values) usually a bad idea?",
+      "options": [
+        "It creates a huge number of tiny directories and files",
+        "Parquet cannot store ids",
+        "It makes the schema wrong",
+        "partitionBy accepts only dates"
+      ],
+      "answer": 0,
+      "explanation": "Each distinct value becomes a directory with at least one file, so high-cardinality columns cause the small-files problem. A date or another low-cardinality column is a better choice."
+    }
+  ]
+}

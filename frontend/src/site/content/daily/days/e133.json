@@ -1,0 +1,184 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "etl-error-handling",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "find-duplicates"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A row rule as a mask",
+      "kind": "python",
+      "prompt": "Write `status_ok(df)` returning a boolean Series that is `True` where `status` is in the set `{\"paid\", \"refunded\", \"failed\"}`. Print the list of `id` values of the failing rows (`~mask`). Expected output: `[2, 4]`.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\"id\": [1, 2, 3, 4], \"status\": [\"paid\", \"PAID\", \"failed\", \"shipped\"]})\n\ndef status_ok(df):\n    pass\n\nmask = status_ok(df)\nprint(df.loc[~mask, \"id\"].tolist())\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\"id\": [1, 2, 3, 4], \"status\": [\"paid\", \"PAID\", \"failed\", \"shipped\"]})\n\ndef status_ok(df):\n    return df[\"status\"].isin({\"paid\", \"refunded\", \"failed\"})\n\nmask = status_ok(df)\nprint(df.loc[~mask, \"id\"].tolist())\n",
+      "hints": [
+        "`Series.isin(values)` gives one boolean per row.",
+        "Return the Series; the caller inverts it with `~`.",
+        "`return df[\"status\"].isin({\"paid\", \"refunded\", \"failed\"})`"
+      ],
+      "expected": "[2, 4]"
+    },
+    {
+      "id": "g2",
+      "title": "A range rule that lets missing pass",
+      "kind": "python",
+      "prompt": "Write `amount_ok(df)` returning `True` where `amount` is missing or at least 0. Print the `id` values of the failing rows. Expected output: `[3]`.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\"id\": [1, 2, 3, 4], \"amount\": [10.0, None, -5.0, 0.0]})\n\ndef amount_ok(df):\n    pass\n\nprint(df.loc[~amount_ok(df), \"id\"].tolist())\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\"id\": [1, 2, 3, 4], \"amount\": [10.0, None, -5.0, 0.0]})\n\ndef amount_ok(df):\n    return df[\"amount\"].isna() | (df[\"amount\"] >= 0)\n\nprint(df.loc[~amount_ok(df), \"id\"].tolist())\n",
+      "hints": [
+        "`NaN >= 0` is False, so missing values would fail the comparison.",
+        "Combine two masks with `|`: missing or at least 0.",
+        "`return df[\"amount\"].isna() | (df[\"amount\"] >= 0)`"
+      ],
+      "expected": "[3]"
+    },
+    {
+      "id": "g3",
+      "title": "A dataset rule",
+      "kind": "python",
+      "prompt": "Write `min_rows(df, n)` returning the tuple `(passed, detail)` where `passed` is `len(df) >= n` and `detail` is `len(df)`. Print the result for the starter frame with `n = 3` and then for an empty frame with the same columns. Expected output: `(True, 4)` then `(False, 0)`.",
+      "starter": "import pandas as pd\n\ndef min_rows(df, n):\n    pass\n\ndf = pd.DataFrame({\"id\": [1, 2, 3, 4]})\nprint(min_rows(df, 3))\nprint(min_rows(df.iloc[0:0], 3))\n",
+      "solution": "import pandas as pd\n\ndef min_rows(df, n):\n    return len(df) >= n, len(df)\n\ndf = pd.DataFrame({\"id\": [1, 2, 3, 4]})\nprint(min_rows(df, 3))\nprint(min_rows(df.iloc[0:0], 3))\n",
+      "hints": [
+        "The rule returns a pair: the verdict and the measured value.",
+        "The verdict compares the row count with `n`.",
+        "`return len(df) >= n, len(df)`"
+      ],
+      "expected": "(True, 4)\n(False, 0)"
+    },
+    {
+      "id": "g4",
+      "title": "Report one rule",
+      "kind": "python",
+      "prompt": "Write `report_row(name, mask, ids)` returning a dict with `rule` (the name), `checked` (the mask length), `failing` (number of `False` values) and `sample` (the first two failing ids joined by commas). Print the dict for the starter data. Expected output: `{'rule': 'status', 'checked': 4, 'failing': 2, 'sample': '2,4'}`.",
+      "starter": "import pandas as pd\n\ndef report_row(name, mask, ids):\n    pass\n\nmask = pd.Series([True, False, True, False])\nids = pd.Series([\"1\", \"2\", \"3\", \"4\"])\nprint(report_row(\"status\", mask, ids))\n",
+      "solution": "import pandas as pd\n\ndef report_row(name, mask, ids):\n    failing = ids[~mask].tolist()\n    return {\"rule\": name, \"checked\": len(mask), \"failing\": len(failing), \"sample\": \",\".join(failing[:2])}\n\nmask = pd.Series([True, False, True, False])\nids = pd.Series([\"1\", \"2\", \"3\", \"4\"])\nprint(report_row(\"status\", mask, ids))\n",
+      "hints": [
+        "The failing ids are `ids[~mask]`.",
+        "Count them and join the first two with commas.",
+        "`{\"rule\": name, \"checked\": len(mask), \"failing\": len(failing), \"sample\": \",\".join(failing[:2])}`"
+      ],
+      "expected": "{'rule': 'status', 'checked': 4, 'failing': 2, 'sample': '2,4'}"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Rule runner with a report",
+      "kind": "python",
+      "prompt": "The starter has a `users` DataFrame and a list of rules (each a dict with `name`, `severity` and `ok`). Write `run(df, rules)` returning a DataFrame with the columns `rule`, `severity`, `failing`, `rate` (failing over rows, 2 decimals) and `result` (`PASS` when no row fails, else `FAIL`). Print it with `to_string(index=False)`.",
+      "starter": "import pandas as pd\n\nusers = pd.DataFrame({\"user_id\": [1, 2, 3, 4, 5], \"email\": [\"a@x.com\", \"bad\", None, \"d@x.com\", \"e@x.com\"], \"age\": [25, 130, 31, None, 40]})\nRULES = [\n    {\"name\": \"email present\", \"severity\": \"critical\", \"ok\": lambda d: d[\"email\"].notna()},\n    {\"name\": \"email format\", \"severity\": \"warning\", \"ok\": lambda d: d[\"email\"].isna() | d[\"email\"].str.contains(\"@\", na=False)},\n    {\"name\": \"age 0-120\", \"severity\": \"warning\", \"ok\": lambda d: d[\"age\"].isna() | d[\"age\"].between(0, 120)},\n]\n\ndef run(df, rules):\n    return pd.DataFrame()\n\nprint(run(users, RULES).to_string(index=False))\n",
+      "solution": "import pandas as pd\n\nusers = pd.DataFrame({\"user_id\": [1, 2, 3, 4, 5], \"email\": [\"a@x.com\", \"bad\", None, \"d@x.com\", \"e@x.com\"], \"age\": [25, 130, 31, None, 40]})\nRULES = [\n    {\"name\": \"email present\", \"severity\": \"critical\", \"ok\": lambda d: d[\"email\"].notna()},\n    {\"name\": \"email format\", \"severity\": \"warning\", \"ok\": lambda d: d[\"email\"].isna() | d[\"email\"].str.contains(\"@\", na=False)},\n    {\"name\": \"age 0-120\", \"severity\": \"warning\", \"ok\": lambda d: d[\"age\"].isna() | d[\"age\"].between(0, 120)},\n]\n\ndef run(df, rules):\n    records = []\n    for rule in rules:\n        failing = int((~rule[\"ok\"](df)).sum())\n        records.append({\"rule\": rule[\"name\"], \"severity\": rule[\"severity\"], \"failing\": failing, \"rate\": round(failing / len(df), 2), \"result\": \"PASS\" if failing == 0 else \"FAIL\"})\n    return pd.DataFrame(records)\n\nprint(run(users, RULES).to_string(index=False))\n",
+      "expected": "         rule severity  failing  rate result\nemail present critical        1   0.2   FAIL\n email format  warning        1   0.2   FAIL\n    age 0-120  warning        1   0.2   FAIL"
+    },
+    {
+      "id": "i2",
+      "title": "Enforce and quarantine",
+      "kind": "python",
+      "prompt": "Using the same `users` data and rules as in the starter, write `split(df, rules)` returning `(clean, quarantined_ids)` where a row is quarantined when it fails any critical rule, and `enforce(df, rules)` that raises `ValueError` listing the failed critical rule names when any critical rule fails. Print the quarantined ids, then call `enforce` on the raw frame inside `try` and print `stopped: <message>`, and finally print `enforce(clean, rules)` returning the clean row count. Expected output: three lines.",
+      "starter": "import pandas as pd\n\nusers = pd.DataFrame({\"user_id\": [1, 2, 3, 4, 5], \"email\": [\"a@x.com\", \"b@x.com\", None, \"d@x.com\", None], \"age\": [25, 130, 31, None, 40]})\nRULES = [\n    {\"name\": \"email present\", \"severity\": \"critical\", \"ok\": lambda d: d[\"email\"].notna()},\n    {\"name\": \"age 0-120\", \"severity\": \"warning\", \"ok\": lambda d: d[\"age\"].isna() | d[\"age\"].between(0, 120)},\n]\n\ndef split(df, rules):\n    return df, []\n\ndef enforce(df, rules):\n    return len(df)\n\nclean, bad = split(users, RULES)\nprint(bad)\ntry:\n    enforce(users, RULES)\nexcept ValueError as exc:\n    print(\"stopped:\", exc)\nprint(enforce(clean, RULES))\n",
+      "solution": "import pandas as pd\n\nusers = pd.DataFrame({\"user_id\": [1, 2, 3, 4, 5], \"email\": [\"a@x.com\", \"b@x.com\", None, \"d@x.com\", None], \"age\": [25, 130, 31, None, 40]})\nRULES = [\n    {\"name\": \"email present\", \"severity\": \"critical\", \"ok\": lambda d: d[\"email\"].notna()},\n    {\"name\": \"age 0-120\", \"severity\": \"warning\", \"ok\": lambda d: d[\"age\"].isna() | d[\"age\"].between(0, 120)},\n]\n\ndef split(df, rules):\n    keep = pd.Series(True, index=df.index)\n    for rule in rules:\n        if rule[\"severity\"] == \"critical\":\n            keep &= rule[\"ok\"](df)\n    return df[keep], df.loc[~keep, \"user_id\"].tolist()\n\ndef enforce(df, rules):\n    failed = [r[\"name\"] for r in rules if r[\"severity\"] == \"critical\" and not r[\"ok\"](df).all()]\n    if failed:\n        raise ValueError(\"critical rules failed: \" + \", \".join(failed))\n    return len(df)\n\nclean, bad = split(users, RULES)\nprint(bad)\ntry:\n    enforce(users, RULES)\nexcept ValueError as exc:\n    print(\"stopped:\", exc)\nprint(enforce(clean, RULES))\n",
+      "expected": "[3, 5]\nstopped: critical rules failed: email present\n3"
+    },
+    {
+      "id": "i3",
+      "title": "Design a rule set",
+      "kind": "written",
+      "prompt": "Design the validation rule list for a `payments(payment_id, order_id, amount, currency, paid_at, method)` table loaded nightly. Give at least six rules as `name, kind (row or dataset), severity, expectation`, including one rule that lets missing values pass so presence is reported once, one dataset rule against a control total, and one rule with a maximum failure rate and its justification. Then describe what the runner outputs and what the pipeline does on a critical and on a warning failure.",
+      "starter": "Rules:\nRunner output:\nOn critical:\nOn warning:\n",
+      "solution": "Rules: (1) payment_id present and unique, row and dataset, critical; (2) order_id present, row, critical; (3) amount present, row, critical; (4) amount > 0 where present (missing passes so presence is reported by rule 3), row, critical; (5) currency in the allowed set, row, critical; (6) paid_at not in the future relative to a passed-in now, row, warning with `max_fail_rate = 0.001` because a few clock-skewed rows are tolerated but a rise means a broken source; (7) method in the allowed set, row, warning; (8) row count at least 70 percent of the median of the last 14 runs, dataset, critical; (9) total amount within 0.5 percent of the control total from the payment provider's daily file, dataset, critical. Runner output: a report DataFrame with rule, kind, severity, checked, failing, rate, sample ids and result, plus a failing-rows table of payment id and rule. On critical: the pipeline raises, the run is marked failed, the failing rows go to quarantine, nothing is loaded and an alert carries the report. On warning: the run continues, the warning rows are counted and logged in the run record, and the daily summary shows the trend.",
+      "required": false,
+      "rubric": [
+        "Gives at least six named rules with kind and severity.",
+        "Includes a range or set rule that lets missing pass, with presence reported once elsewhere.",
+        "Includes a dataset rule against a control total or row-count baseline.",
+        "Gives a maximum failure rate with a justification.",
+        "Describes the report and failing-rows outputs and different behaviour for critical and warning failures."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "For a missing amount, what does `df[\"amount\"] >= 0` give?",
+      "options": [
+        "True",
+        "False, with no error",
+        "An error",
+        "NaN"
+      ],
+      "answer": 1,
+      "explanation": "Comparisons with NaN are False and raise nothing. So a range rule fails missing values unless it lets them pass with `isna() |`."
+    },
+    {
+      "id": "c2",
+      "question": "Which expectation needs a dataset-level rule?",
+      "options": [
+        "Every status is in the allowed set",
+        "The total amount is within 1 percent of the control total",
+        "Every id matches a pattern",
+        "No amount is negative"
+      ],
+      "answer": 1,
+      "explanation": "A total is a property of the whole table. The others give one verdict per row."
+    },
+    {
+      "id": "c3",
+      "question": "A table is empty. Which kind of rule set still passes completely?",
+      "options": [
+        "Dataset rules only",
+        "Row rules only, because there are no rows to fail",
+        "Both",
+        "Neither"
+      ],
+      "answer": 1,
+      "explanation": "An empty frame produces no failing rows, so every row rule passes. A row-count dataset rule is needed to catch it."
+    },
+    {
+      "id": "c4",
+      "question": "What should `enforce` do when a warning-severity rule fails?",
+      "options": [
+        "Raise an error",
+        "Report or log it and let the run continue",
+        "Delete the table",
+        "Ignore it silently"
+      ],
+      "answer": 1,
+      "explanation": "Warnings are tracked but do not justify stopping the load. Critical failures stop the run."
+    },
+    {
+      "id": "c5",
+      "question": "Why test the rules with a two-row frame (one pass, one fail)?",
+      "options": [
+        "It is faster than real data",
+        "A rule that cannot fail, or fails on the wrong rows, gives false trust; the test proves each verdict",
+        "pandas requires it",
+        "It lowers the failure rate"
+      ],
+      "answer": 1,
+      "explanation": "Tests on known rows show that the rule detects what it should and not more. Untested rules can hide defects."
+    }
+  ],
+  "id": "e133"
+}

@@ -1,0 +1,187 @@
+{
+  "id": "e171",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-architecture",
+      "etl-idempotency",
+      "dwh-star-schema",
+      "dwh-fact-tables"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "idempotent-upsert",
+      "checkpointed-incremental-load"
+    ],
+    "projects": [
+      "star-schema-warehouse",
+      "end-to-end-pipeline"
+    ],
+    "mindmaps": [
+      "interview-patterns",
+      "warehousing-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Size the data",
+      "kind": "python",
+      "prompt": "A system produces 2,000,000 events a day of 250 bytes each. Print `daily volume: 0.5 GB`, `per year: 182.5 GB` and `average rate: 23 events/s` (daily GB with 1 decimal, yearly GB with 1 decimal, rate rounded to the nearest integer; use 1 GB = 1e9 bytes and 86,400 seconds a day).",
+      "starter": "events, size = 2_000_000, 250\n",
+      "solution": "events, size = 2_000_000, 250\ngb = events * size / 1e9\nprint('daily volume:', round(gb, 1), 'GB')\nprint('per year:', round(gb * 365, 1), 'GB')\nprint('average rate:', round(events / 86400), 'events/s')\n",
+      "hints": [
+        "Daily bytes are events times size; divide by 1e9 for GB.",
+        "Multiply the daily GB by 365 for the year.",
+        "The average rate is events divided by 86,400."
+      ],
+      "expected": "daily volume: 0.5 GB\nper year: 182.5 GB\naverage rate: 23 events/s"
+    },
+    {
+      "id": "g2",
+      "title": "Duplicate deliveries",
+      "kind": "python",
+      "prompt": "Deliveries `[('a', 5), ('b', 7), ('a', 5), ('c', 1), ('b', 7)]` contain repeats. Print `appended total: 25` and `upserted total: 13` (sum of all deliveries and sum of the last value per key).",
+      "starter": "deliveries = [('a', 5), ('b', 7), ('a', 5), ('c', 1), ('b', 7)]\n",
+      "solution": "deliveries = [('a', 5), ('b', 7), ('a', 5), ('c', 1), ('b', 7)]\nlatest = {}\nfor k, v in deliveries:\n    latest[k] = v\nprint('appended total:', sum(v for _, v in deliveries))\nprint('upserted total:', sum(latest.values()))\n",
+      "hints": [
+        "The appended total sums every delivery.",
+        "A dictionary keeps one value per key, so assign latest[key] = value.",
+        "Sum latest.values() for the upserted total."
+      ],
+      "expected": "appended total: 25\nupserted total: 13"
+    },
+    {
+      "id": "g3",
+      "title": "A fact table with constraints",
+      "kind": "sql",
+      "prompt": "In one block, create temporary tables `d_prod(product_key int primary key, category text not null)` and `f_sale(sale_id int primary key, product_key int not null references d_prod(product_key), qty int not null check (qty > 0))`, insert products `(1,'tools'), (2,'toys')` and sales `(1,1,3), (2,1,2), (3,2,4)`, then return `category` and `units` (sum of qty), ordered by `category`. Start the block with `DROP TABLE IF EXISTS f_sale; DROP TABLE IF EXISTS d_prod;`.",
+      "starter": "DROP TABLE IF EXISTS f_sale;\nDROP TABLE IF EXISTS d_prod;\nSELECT 1 AS placeholder;\n",
+      "solution": "DROP TABLE IF EXISTS f_sale;\nDROP TABLE IF EXISTS d_prod;\nCREATE TEMP TABLE d_prod (product_key int PRIMARY KEY, category text NOT NULL);\nCREATE TEMP TABLE f_sale (sale_id int PRIMARY KEY, product_key int NOT NULL REFERENCES d_prod (product_key), qty int NOT NULL CHECK (qty > 0));\nINSERT INTO d_prod VALUES (1, 'tools'), (2, 'toys');\nINSERT INTO f_sale VALUES (1, 1, 3), (2, 1, 2), (3, 2, 4);\nSELECT d.category, SUM(f.qty) AS units\nFROM f_sale f JOIN d_prod d ON d.product_key = f.product_key\nGROUP BY d.category\nORDER BY d.category;\n",
+      "ordered": true,
+      "hints": [
+        "Create the dimension first, then the fact that references it.",
+        "Insert the dimension rows before the fact rows.",
+        "Join the fact to the dimension and GROUP BY category."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Reconcile a summary to the detail",
+      "kind": "sql",
+      "prompt": "On Northwind, build the check for a summary of revenue per year. Return one row with `detail_total` (the sum of `unit_price * quantity * (1 - discount)` over all order lines, rounded to 2 decimals), `summary_total` (the sum of the per-year revenues computed from the orders, rounded to 2 decimals) and `verdict` (`reconciled` when equal, otherwise `MISMATCH`).",
+      "starter": "SELECT 1 AS detail_total;\n",
+      "solution": "WITH s AS (\n  SELECT EXTRACT(year FROM o.order_date) AS yr, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY 1\n), d AS (\n  SELECT SUM(unit_price * quantity * (1 - discount)) AS total FROM order_details\n)\nSELECT ROUND(d.total::numeric, 2) AS detail_total,\n       ROUND((SELECT SUM(revenue) FROM s)::numeric, 2) AS summary_total,\n       CASE WHEN ROUND(d.total::numeric, 2) = ROUND((SELECT SUM(revenue) FROM s)::numeric, 2) THEN 'reconciled' ELSE 'MISMATCH' END AS verdict\nFROM d;\n",
+      "hints": [
+        "Compute revenue per year in one CTE and the line total in another.",
+        "Sum the yearly revenues to get the summary total.",
+        "Compare the two rounded totals in a CASE."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Checkpointed restart",
+      "kind": "python",
+      "prompt": "A job has 5 stages. Stage 3 fails the first time it runs and works afterwards. Simulate a restart loop twice: without a checkpoint the restart begins at stage 1, with a checkpoint it begins after the last completed stage. Print `without checkpoint: [..]` and `with checkpoint: [..]` as lists of the stage numbers in the order they were executed (each including the failed attempt), then `extra work saved: N` as the difference in the number of stage executions.",
+      "starter": "STAGES = 5\nFAIL_STAGE = 3\n",
+      "solution": "STAGES = 5\nFAIL_STAGE = 3\n\ndef run(checkpointed):\n    done, log, failed = 0, [], False\n    while done < STAGES:\n        start = done if checkpointed else 0\n        try:\n            for stage in range(start + 1, STAGES + 1):\n                log.append(stage)\n                if stage == FAIL_STAGE and not failed:\n                    failed = True\n                    raise RuntimeError('fail')\n                done = stage\n        except RuntimeError:\n            continue\n    return log\n\na, b = run(False), run(True)\nprint('without checkpoint:', a)\nprint('with checkpoint:', b)\nprint('extra work saved:', len(a) - len(b))\n",
+      "expected": "without checkpoint: [1, 2, 3, 1, 2, 3, 4, 5]\nwith checkpoint: [1, 2, 3, 3, 4, 5]\nextra work saved: 2"
+    },
+    {
+      "id": "i2",
+      "title": "Data quality checks as a query",
+      "kind": "sql",
+      "prompt": "Write the model checks for the Northwind order lines as one query that returns three rows with columns `check_name` and `violations`: `order_lines_without_order` (lines whose `order_id` has no row in `orders`), `negative_quantity` (lines with `quantity <= 0`) and `duplicate_line_keys` (the number of `(order_id, product_id)` pairs that occur more than once). Order by `check_name`. All three counts are numbers (zero is a valid result).",
+      "starter": "SELECT 'order_lines_without_order' AS check_name, 0 AS violations;\n",
+      "solution": "SELECT 'duplicate_line_keys' AS check_name,\n       (SELECT COUNT(*) FROM (SELECT order_id, product_id FROM order_details GROUP BY 1, 2 HAVING COUNT(*) > 1) x) AS violations\nUNION ALL\nSELECT 'negative_quantity', (SELECT COUNT(*) FROM order_details WHERE quantity <= 0)\nUNION ALL\nSELECT 'order_lines_without_order', (SELECT COUNT(*) FROM order_details od WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.order_id = od.order_id))\nORDER BY check_name;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Design a click-event pipeline",
+      "kind": "written",
+      "prompt": "Interview question: \"Design a pipeline that collects click events from a website (about 20 million a day) and makes daily and hourly reports available to analysts.\" Write your answer under the headings Requirements (questions and assumptions), Scale (a calculation), Architecture, Data model (grain, facts, dimensions), Failure handling, Monitoring, and Trade-offs. Aim for 12 to 20 lines.",
+      "starter": "Requirements:\nScale:\nArchitecture:\nData model:\nFailure handling:\nMonitoring:\nTrade-offs:",
+      "solution": "Requirements: Who reads the reports and how fresh must hourly numbers be (assume 15 minutes of delay is acceptable and the daily report is final by 06:00)? Can events arrive late (assume up to 24 hours)? Is personal data involved (assume pseudonymous user ids, retention 13 months)? Volume is assumed at 20 million events a day.\n\nScale: 20 million x 300 bytes is about 6 GB a day, about 2.2 TB a year raw; average rate 230 events/s and a peak of perhaps 5 times that. This fits a batch or micro-batch design on a managed warehouse or a small Spark cluster; no need for a heavy streaming platform.\n\nArchitecture: the site sends events to a message queue; a collector writes micro-batches every 5 to 10 minutes as files to a raw zone (kept unchanged, partitioned by event date and hour); a scheduled job (every 15 minutes) validates and deduplicates by event_id into a clean table; an hourly job and a nightly job build the curated aggregates; analysts read the warehouse and a dashboard.\n\nData model: grain of the fact table is one row per click event (event_id as key); dimensions are user (pseudonymous key), page, device and date/hour; aggregates `hourly_page_views` and `daily_users` are derived tables whose totals must reconcile to the events.\n\nFailure handling: the queue gives at-least-once delivery and the clean step upserts on event_id, so repeats are harmless; malformed events go to a quarantine location with the reason; each job overwrites its hour or day partition so re-runs are idempotent; checkpoints record the last processed batch; late events reprocess the affected partitions within the 24-hour window; backfills re-run partitions from the raw zone.\n\nMonitoring: events received, rejected and loaded per batch (rejected rate threshold, say 1 percent), freshness of the latest event against the clock, reconciliation of aggregates with clean events, schema-change detection on incoming fields, and alerts to the data on-call.\n\nTrade-offs: micro-batches are simpler and cheaper than true streaming but add up to 15 minutes of delay; keeping a raw zone costs storage and makes rebuilding possible; partition overwrite is simple but requires the input to contain the whole partition; approximate distinct counts would save compute at the cost of exactness.",
+      "rubric": [
+        "Asks about freshness, consumers, late data and privacy and states assumptions",
+        "Includes a sizing calculation and uses it to justify batch or micro-batch over heavy streaming",
+        "Describes an architecture with raw, clean and curated layers and a serving layer",
+        "States the grain and the main fact and dimension tables",
+        "Covers idempotent writes or upserts, quarantine, retries or checkpoints and late data",
+        "Names monitoring checks (counts, freshness, reconciliation) and at least two trade-offs"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A queue delivers each message at least once. What makes the consumer's result effectively once?",
+      "options": [
+        "An idempotent write keyed by a unique id",
+        "Reading faster",
+        "Deleting the queue",
+        "Using larger batches"
+      ],
+      "answer": 0,
+      "explanation": "Repeated deliveries are harmless when writing the same key twice has the same effect as writing it once. Speed and batch size do not change this."
+    },
+    {
+      "id": "c2",
+      "question": "5 million events a day at 400 bytes each is roughly how much storage per day (1 GB = 1e9 bytes)?",
+      "options": [
+        "2 GB",
+        "20 GB",
+        "200 MB",
+        "0.2 GB"
+      ],
+      "answer": 0,
+      "explanation": "5,000,000 x 400 = 2,000,000,000 bytes, which is 2 GB. Sizing like this decides whether a single database is enough."
+    },
+    {
+      "id": "c3",
+      "question": "What does stating the grain of a fact table mean?",
+      "options": [
+        "Saying what one row represents, such as one order line",
+        "Listing the column types",
+        "Naming the database",
+        "Choosing the partition size"
+      ],
+      "answer": 0,
+      "explanation": "The grain defines one row's meaning and drives the primary key and the valid measures. Mixing grains in one table creates double counting."
+    },
+    {
+      "id": "c4",
+      "question": "Why add a checkpoint to a multi-stage job?",
+      "options": [
+        "A restart resumes after the last completed stage instead of repeating everything",
+        "It makes each stage faster",
+        "It removes the need for idempotent writes",
+        "It prevents all failures"
+      ],
+      "answer": 0,
+      "explanation": "A checkpoint records progress, so a failure repeats only the failed work. The repeated stage still needs idempotent writes to be safe."
+    },
+    {
+      "id": "c5",
+      "question": "The interviewer says the report is needed once a day. Which design choice best fits?",
+      "options": [
+        "A daily batch pipeline",
+        "A true streaming platform",
+        "A real-time stream with exactly-once guarantees",
+        "A cluster sized for peak seconds"
+      ],
+      "answer": 0,
+      "explanation": "A daily freshness requirement is met by a simple batch job, which is cheaper and easier to repair. Streaming adds complexity that the requirement does not justify."
+    }
+  ]
+}

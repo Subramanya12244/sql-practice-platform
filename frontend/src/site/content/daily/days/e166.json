@@ -1,0 +1,192 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "spark-joins",
+      "spark-shuffling",
+      "spark-partitioning",
+      "spark-performance"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "pyspark-transformation"
+    ],
+    "mindmaps": [
+      "spark-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Left join with a tier",
+      "kind": "sql",
+      "prompt": "On the `orders` and `customers` views (the CTE is given), return `order_id`, `amount` and `tier` for every order, with `tier` NULL when the customer is unknown (left join), ordered by `order_id`.",
+      "starter": "WITH orders(order_id, customer_id, amount) AS (\n  VALUES (1, 10, 50), (2, 11, 30), (3, 12, 20), (4, 10, 70), (5, 99, 15), (6, 11, 25)\n), customers(customer_id, tier) AS (\n  VALUES (10, 'gold'), (11, 'basic'), (12, 'basic'), (13, 'gold')\n)\nSELECT order_id, amount, NULL AS tier\nFROM orders\nORDER BY order_id",
+      "solution": "WITH orders(order_id, customer_id, amount) AS (\n  VALUES (1, 10, 50), (2, 11, 30), (3, 12, 20), (4, 10, 70), (5, 99, 15), (6, 11, 25)\n), customers(customer_id, tier) AS (\n  VALUES (10, 'gold'), (11, 'basic'), (12, 'basic'), (13, 'gold')\n)\nSELECT o.order_id, o.amount, c.tier\nFROM orders o LEFT JOIN customers c ON c.customer_id = o.customer_id\nORDER BY o.order_id",
+      "ordered": true,
+      "hints": [
+        "Keep every order: LEFT JOIN from orders.",
+        "Join on customer_id.",
+        "Select the tier from customers."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Customers without orders",
+      "kind": "sql",
+      "prompt": "Return `customer_id` of customers that have no orders (a left anti join), ordered by `customer_id`.",
+      "starter": "WITH orders(order_id, customer_id, amount) AS (\n  VALUES (1, 10, 50), (2, 11, 30), (3, 12, 20), (4, 10, 70), (5, 99, 15), (6, 11, 25)\n), customers(customer_id, tier) AS (\n  VALUES (10, 'gold'), (11, 'basic'), (12, 'basic'), (13, 'gold')\n)\nSELECT customer_id\nFROM customers\nORDER BY customer_id",
+      "solution": "WITH orders(order_id, customer_id, amount) AS (\n  VALUES (1, 10, 50), (2, 11, 30), (3, 12, 20), (4, 10, 70), (5, 99, 15), (6, 11, 25)\n), customers(customer_id, tier) AS (\n  VALUES (10, 'gold'), (11, 'basic'), (12, 'basic'), (13, 'gold')\n)\nSELECT c.customer_id\nFROM customers c\nWHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)\nORDER BY c.customer_id",
+      "ordered": true,
+      "hints": [
+        "An anti join keeps rows with no match.",
+        "Use NOT EXISTS with a correlated subquery.",
+        "Compare the customer_id of both tables."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Rows that move",
+      "kind": "python",
+      "prompt": "With the data below and `N = 4`, count how many order rows and how many customer rows are on a partition other than their key's target (`target(key, N)`) when each table is split into 4 contiguous parts, and print the two counts and their sum on one line separated by spaces.",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\nn = 200\nkeys = np.where(rng.random(n) < 0.5, 1, rng.integers(1, 21, n))\norders = pd.DataFrame({\"order_id\": np.arange(1, n + 1), \"customer_id\": keys, \"amount\": rng.integers(5, 100, n)})\ncustomers = pd.DataFrame({\"customer_id\": np.arange(1, 21), \"tier\": np.where(np.arange(1, 21) % 3 == 0, \"gold\", \"basic\")})\nN = 4\n# count the rows that move\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\nn = 200\nkeys = np.where(rng.random(n) < 0.5, 1, rng.integers(1, 21, n))\norders = pd.DataFrame({\"order_id\": np.arange(1, n + 1), \"customer_id\": keys, \"amount\": rng.integers(5, 100, n)})\ncustomers = pd.DataFrame({\"customer_id\": np.arange(1, 21), \"tier\": np.where(np.arange(1, 21) % 3 == 0, \"gold\", \"basic\")})\nN = 4\n\ndef split(df, parts):\n    size = -(-len(df) // parts)\n    return [df.iloc[i * size:(i + 1) * size] for i in range(parts)]\n\ndef moved(df):\n    return sum(int(target(k, N) != i) for i, p in enumerate(split(df, N)) for k in p[\"customer_id\"])\n\nprint(moved(orders), moved(customers), moved(orders) + moved(customers))\n",
+      "hints": [
+        "Split each table into 4 contiguous parts first.",
+        "A row moves when target(key, N) differs from its part index.",
+        "Sum over both tables and print the three numbers."
+      ],
+      "expected": "151 15 166"
+    },
+    {
+      "id": "g4",
+      "title": "Pick the join strategy (written)",
+      "kind": "written",
+      "prompt": "For each case choose the join strategy and justify it: (a) a 2 TB fact table joined to a 5 MB dimension table on an id; (b) two 500 GB tables joined on an id; (c) a join on `a.ts BETWEEN b.start AND b.end`; (d) the join in (b) where 40% of the rows have a null or default key. Give the PySpark you would write for (a) and the first thing you would check for (d).",
+      "starter": "(a) ...\n(b) ...\n(c) ...\n(d) ...",
+      "solution": "(a) A broadcast hash join: the 5 MB dimension is below the default broadcast threshold (10 MB), so it is copied to every executor and the 2 TB table is not shuffled. In PySpark: `facts.join(F.broadcast(dim), \"id\")`, and `explain()` should show `BroadcastHashJoin`. (b) A sort-merge join, the default for two large tables with an equality key: both sides are shuffled by the key, sorted and merged; reduce the cost by filtering and selecting only the needed columns before the join. (c) There is no equality key, so Spark falls back to a broadcast nested loop join or a cartesian product; this is slow, so rewrite it if possible (for example bucket the timestamps into intervals and join on the bucket, then filter) or make sure one side is small. (d) Skew: check the number of rows per key and per partition, find the hot key (nulls never match in an inner join, so filter them out or handle them separately), and then use AQE skew handling or salting if one key still dominates.",
+      "rubric": [
+        "Broadcast for the small dimension, with F.broadcast.",
+        "Sort-merge for two large equality joins, with early filtering.",
+        "Recognises the non-equi join as a nested loop or cartesian risk.",
+        "Names skew and checks key counts for the hot key."
+      ],
+      "hints": [
+        "How big is the smaller side?",
+        "Which join needs an equality key?",
+        "What happens when one key has most of the rows?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Revenue by tier including unknown",
+      "kind": "sql",
+      "prompt": "Return `tier` and `revenue` (sum of `amount`) per tier, where orders whose customer is unknown count under the tier `unknown` (`COALESCE`), ordered by `tier`.",
+      "starter": "WITH orders(order_id, customer_id, amount) AS (\n  VALUES (1, 10, 50), (2, 11, 30), (3, 12, 20), (4, 10, 70), (5, 99, 15), (6, 11, 25)\n), customers(customer_id, tier) AS (\n  VALUES (10, 'gold'), (11, 'basic'), (12, 'basic'), (13, 'gold')\n)\nSELECT tier, SUM(amount) AS revenue\nFROM (SELECT 'x' AS tier, amount FROM orders) t\nGROUP BY tier\nORDER BY tier",
+      "solution": "WITH orders(order_id, customer_id, amount) AS (\n  VALUES (1, 10, 50), (2, 11, 30), (3, 12, 20), (4, 10, 70), (5, 99, 15), (6, 11, 25)\n), customers(customer_id, tier) AS (\n  VALUES (10, 'gold'), (11, 'basic'), (12, 'basic'), (13, 'gold')\n)\nSELECT COALESCE(c.tier, 'unknown') AS tier, SUM(o.amount) AS revenue\nFROM orders o LEFT JOIN customers c ON c.customer_id = o.customer_id\nGROUP BY 1\nORDER BY 1",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Skew report and salting",
+      "kind": "python",
+      "prompt": "With the data below and `N = 4` partitions, compute the rows per partition after hashing `customer_id` with `target`, and the ratio of the largest to the average (2 decimals). Then salt with `K = 4`: use `salt = np.random.default_rng(3).integers(0, K, len(orders))` and the key `f\"{customer_id}_{salt}\"` and compute the same loads and ratio. Print `load <list> <ratio>` for each case (two lines).",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\nn = 200\nkeys = np.where(rng.random(n) < 0.5, 1, rng.integers(1, 21, n))\norders = pd.DataFrame({\"order_id\": np.arange(1, n + 1), \"customer_id\": keys, \"amount\": rng.integers(5, 100, n)})\ncustomers = pd.DataFrame({\"customer_id\": np.arange(1, 21), \"tier\": np.where(np.arange(1, 21) % 3 == 0, \"gold\", \"basic\")})\nN, K = 4, 4\n# loads before and after salting\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\nn = 200\nkeys = np.where(rng.random(n) < 0.5, 1, rng.integers(1, 21, n))\norders = pd.DataFrame({\"order_id\": np.arange(1, n + 1), \"customer_id\": keys, \"amount\": rng.integers(5, 100, n)})\ncustomers = pd.DataFrame({\"customer_id\": np.arange(1, 21), \"tier\": np.where(np.arange(1, 21) % 3 == 0, \"gold\", \"basic\")})\nN, K = 4, 4\n\ndef loads(key_values):\n    out = [0] * N\n    for k in key_values:\n        out[target(k, N)] += 1\n    return out\n\nplain = loads(orders[\"customer_id\"])\nsalt = np.random.default_rng(3).integers(0, K, len(orders))\nsalted = loads([f\"{k}_{s}\" for k, s in zip(orders[\"customer_id\"], salt)])\nfor l in (plain, salted):\n    print(\"load\", l, round(max(l) / (len(orders) / N), 2))\n",
+      "expected": "load [24, 26, 26, 124] 2.48\nload [71, 22, 71, 36] 1.42"
+    },
+    {
+      "id": "i3",
+      "title": "Tune a slow job (written, stretch)",
+      "kind": "written",
+      "prompt": "A nightly Spark job joins 800 GB of events to a 2 GB customer table and aggregates by country. It takes six hours; the Spark UI shows 199 tasks of the join stage finishing in two minutes and one task running for five hours. `spark.sql.shuffle.partitions` is 200 and the cluster has 100 cores. Diagnose the problem and describe your fixes in order, with how you would check each one.",
+      "starter": "Diagnosis: ...\nFixes: ...\nChecks: ...",
+      "solution": "Diagnosis: data skew. One key (probably a null or default customer id, or one very large customer) has most of the rows, so after the shuffle one partition is huge and its task decides the run time while 99 cores sit idle. Check by counting rows per customer id and finding the largest keys, and by looking at the stage's task size distribution. Fixes in order: first filter or handle the null and default keys separately, since nulls do not join anyway; select only the columns needed before the join so fewer bytes are shuffled; try a broadcast join if the 2 GB table fits in executor memory (raise the threshold or use `F.broadcast`), which removes the shuffle of the 800 GB table entirely; otherwise turn on adaptive execution and skew-join handling or salt the hot keys with K copies of the customer rows; tune `spark.sql.shuffle.partitions` to the data size (about 800 GB would need thousands of partitions of reasonable size). Checks: compare the largest task with the median in the UI after each change, and confirm with `explain()` that the join is a `BroadcastHashJoin` or that the skew handling applies; check that the result row counts and totals are unchanged.",
+      "rubric": [
+        "Diagnoses skew from one long task and the idle cores.",
+        "Looks at key counts and handles nulls or default keys first.",
+        "Proposes broadcast, AQE skew handling or salting with trade-offs.",
+        "Verifies with task times, explain() and unchanged results."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "pyspark"
+    ],
+    "note": "Spark needs Java 17 or newer; then pip install pyspark and run the join and explain() code with python. Spark cannot run in the course tests or the browser. Join results were verified through pandas and SQL (PGlite) equivalents, and shuffle, broadcast, skew and partition counts through pure-Python simulations that use a CRC32 hash instead of Spark's Murmur3, so the exact partition numbers differ from a real cluster."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which join strategy avoids shuffling the large table?",
+      "options": [
+        "Sort-merge join",
+        "Broadcast hash join of the small side",
+        "Cartesian product",
+        "Shuffled hash join"
+      ],
+      "answer": 1,
+      "explanation": "A broadcast hash join copies the small table to every executor, so the large table stays where it is. The others shuffle one or both sides or are much slower."
+    },
+    {
+      "id": "c2",
+      "question": "Roughly what fraction of rows change partition in a hash shuffle into N partitions?",
+      "options": [
+        "1/N",
+        "(N - 1)/N",
+        "All of them",
+        "None"
+      ],
+      "answer": 1,
+      "explanation": "A row stays only if its key's hash maps to its current partition, one chance in N, so about (N - 1)/N rows move."
+    },
+    {
+      "id": "c3",
+      "question": "What is the difference between repartition(n) and coalesce(n)?",
+      "options": [
+        "No difference",
+        "repartition does a full shuffle and can increase partitions; coalesce only reduces by merging neighbours",
+        "coalesce is a wide transformation",
+        "repartition cannot be used with columns"
+      ],
+      "answer": 1,
+      "explanation": "repartition shuffles all data into n partitions; coalesce merges existing partitions without a full shuffle and can only reduce the number."
+    },
+    {
+      "id": "c4",
+      "question": "One task of a join stage runs for hours while the rest finish in minutes. The most likely cause is:",
+      "options": [
+        "Too many executors",
+        "Data skew on the join key",
+        "A missing import",
+        "Lazy evaluation"
+      ],
+      "answer": 1,
+      "explanation": "One hot key concentrates its rows in one partition, so one task has far more work. The job ends when the slowest task ends."
+    },
+    {
+      "id": "c5",
+      "question": "What does salting a join key do?",
+      "options": [
+        "Encrypts the key",
+        "Spreads one hot key over several partitions at the cost of replicating the other side",
+        "Removes null keys",
+        "Turns a join into a broadcast"
+      ],
+      "answer": 1,
+      "explanation": "Random salt values split a hot key into K sub-keys; the other table is replicated K times so every salted key still finds its match."
+    }
+  ],
+  "id": "e166"
+}

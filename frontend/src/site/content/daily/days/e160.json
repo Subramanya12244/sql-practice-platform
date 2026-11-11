@@ -1,0 +1,191 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "airflow-retries",
+      "airflow-backfilling",
+      "airflow-failure-handling",
+      "airflow-scheduling"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "airflow-etl-pipeline"
+    ],
+    "mindmaps": [
+      "airflow-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Run order of a DAG",
+      "kind": "python",
+      "prompt": "Using `topo_order` (given), print the run order of this DAG as a Python list: `ingest` has no upstream, `validate` and `enrich` both depend on `ingest`, `publish` depends on `validate` and `enrich`.",
+      "starter": "def topo_order(deps):\n    remaining = {t: set(u) for t, u in deps.items()}\n    order = []\n    while remaining:\n        ready = sorted(t for t, u in remaining.items() if not u)\n        if not ready:\n            raise ValueError(\"cycle\")\n        t = ready[0]\n        order.append(t)\n        del remaining[t]\n        for u in remaining.values():\n            u.discard(t)\n    return order\n\ndeps = {}\nprint(topo_order(deps))\n",
+      "solution": "def topo_order(deps):\n    remaining = {t: set(u) for t, u in deps.items()}\n    order = []\n    while remaining:\n        ready = sorted(t for t, u in remaining.items() if not u)\n        if not ready:\n            raise ValueError(\"cycle\")\n        t = ready[0]\n        order.append(t)\n        del remaining[t]\n        for u in remaining.values():\n            u.discard(t)\n    return order\n\ndeps = {\"ingest\": [], \"validate\": [\"ingest\"], \"enrich\": [\"ingest\"], \"publish\": [\"validate\", \"enrich\"]}\nprint(topo_order(deps))\n",
+      "hints": [
+        "Write the dictionary task -> list of upstream tasks.",
+        "Ties are broken alphabetically by the function.",
+        "enrich comes before validate alphabetically."
+      ],
+      "expected": "['ingest', 'enrich', 'validate', 'publish']"
+    },
+    {
+      "id": "g2",
+      "title": "Backoff delays",
+      "kind": "python",
+      "prompt": "Write `backoff_delays(retries, base, factor=2, cap=None)` returning the list of waits between attempts: wait `i` (starting at 0) is `base * factor**i`, limited to `cap` when given. Print `backoff_delays(4, 60)`, `backoff_delays(4, 60, cap=200)` and `backoff_delays(3, 30, factor=3)`, one list per line.",
+      "starter": "def backoff_delays(retries, base, factor=2, cap=None):\n    return []\n\nprint(backoff_delays(4, 60))\nprint(backoff_delays(4, 60, cap=200))\nprint(backoff_delays(3, 30, factor=3))\n",
+      "solution": "def backoff_delays(retries, base, factor=2, cap=None):\n    out = []\n    for i in range(retries):\n        wait = base * factor ** i\n        out.append(min(wait, cap) if cap is not None else wait)\n    return out\n\nprint(backoff_delays(4, 60))\nprint(backoff_delays(4, 60, cap=200))\nprint(backoff_delays(3, 30, factor=3))\n",
+      "hints": [
+        "There is one wait per retry.",
+        "Wait i is base * factor ** i.",
+        "Apply min(wait, cap) only when cap is not None."
+      ],
+      "expected": "[60, 120, 240, 480]\n[60, 120, 200, 200]\n[30, 90, 270]"
+    },
+    {
+      "id": "g3",
+      "title": "Backfill dates",
+      "kind": "python",
+      "prompt": "Write `backfill_dates(start, end)` returning the list of dates from `start` to `end` inclusive. Print the number of runs for 2025-02-01 to 2025-02-28, and the first and last date of the range 2025-12-30 to 2026-01-03 (as `YYYY-MM-DD` on separate lines after the count).",
+      "starter": "from datetime import date, timedelta\n\ndef backfill_dates(start, end):\n    return []\n\nprint(len(backfill_dates(date(2025, 2, 1), date(2025, 2, 28))))\nr = backfill_dates(date(2025, 12, 30), date(2026, 1, 3))\nprint(r[0].isoformat())\nprint(r[-1].isoformat())\n",
+      "solution": "from datetime import date, timedelta\n\ndef backfill_dates(start, end):\n    return [start + timedelta(days=i) for i in range((end - start).days + 1)]\n\nprint(len(backfill_dates(date(2025, 2, 1), date(2025, 2, 28))))\nr = backfill_dates(date(2025, 12, 30), date(2026, 1, 3))\nprint(r[0].isoformat())\nprint(r[-1].isoformat())\n",
+      "hints": [
+        "The number of days between the dates plus one is the count.",
+        "Add timedelta(days=i) to start.",
+        "Print r[0] and r[-1] with isoformat()."
+      ],
+      "expected": "28\n2025-12-30\n2026-01-03"
+    },
+    {
+      "id": "g4",
+      "title": "Write a resilient DAG (written)",
+      "kind": "written",
+      "prompt": "Write the Airflow code (TaskFlow style) for a daily DAG `orders_daily` that extracts the day's orders, loads them into a table and has sensible failure handling: three retries with exponential backoff, no catchup, one active run, and an idempotent load keyed on the logical date. Explain each choice in one sentence.",
+      "starter": "@dag(...)\ndef orders_daily():\n    ...",
+      "solution": "```python\nfrom datetime import datetime, timedelta\nfrom airflow.decorators import dag, task\n\n@dag(\n    schedule=\"@daily\",\n    start_date=datetime(2025, 1, 1),\n    catchup=False,\n    max_active_runs=1,\n    default_args={\"retries\": 3, \"retry_delay\": timedelta(minutes=5), \"retry_exponential_backoff\": True, \"max_retry_delay\": timedelta(minutes=30)},\n)\ndef orders_daily():\n    @task\n    def extract(ds=None):\n        return fetch_orders(ds)\n\n    @task\n    def load(rows, ds=None):\n        delete_partition(\"orders\", ds)\n        insert_rows(\"orders\", rows, ds)\n\n    load(extract())\n\norders_daily()\n```\n\nThree retries with exponential backoff absorb transient failures without hammering the source. `catchup=False` avoids a flood of runs when the DAG is enabled, and a deliberate backfill is done instead. `max_active_runs=1` stops overlapping runs from writing at once. The load deletes the partition of the logical date `ds` before inserting, so a retry or rerun replaces the day and never duplicates it. The helper functions (`fetch_orders`, `delete_partition`, `insert_rows`) stand for project code.",
+      "rubric": [
+        "Uses retries, retry_delay and exponential backoff in default_args.",
+        "Sets catchup=False and max_active_runs.",
+        "Uses the logical date (ds) in extract and load.",
+        "Load deletes or overwrites the date's partition so it is idempotent."
+      ],
+      "hints": [
+        "Put the retry settings in default_args.",
+        "Pass ds into both tasks.",
+        "Delete the day before inserting it."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Run a DAG with retries",
+      "kind": "python",
+      "prompt": "Write `run_dag(deps, fail_counts, retries, delay)`: tasks run in `topo_order`; a task with `fail_counts[t] = k` fails its first `k` attempts, then succeeds, unless `k > retries`, in which case it ends `failed` after `retries + 1` attempts. Each failed attempt that will be retried adds `delay` to a shared clock. A task whose upstream is not `success` gets `upstream_failed`. Print the states dict and then `clock <seconds>` for `deps` = extract -> transform -> load, `fail_counts` = {\"extract\": 2, \"transform\": 5}, `retries` = 3, `delay` = 60.",
+      "starter": "def topo_order(deps):\n    remaining = {t: set(u) for t, u in deps.items()}\n    order = []\n    while remaining:\n        ready = sorted(t for t, u in remaining.items() if not u)\n        if not ready:\n            raise ValueError(\"cycle\")\n        t = ready[0]\n        order.append(t)\n        del remaining[t]\n        for u in remaining.values():\n            u.discard(t)\n    return order\n\ndef run_dag(deps, fail_counts, retries, delay):\n    return {}, 0\n\ndeps = {\"extract\": [], \"transform\": [\"extract\"], \"load\": [\"transform\"]}\nstates, clock = run_dag(deps, {\"extract\": 2, \"transform\": 5}, 3, 60)\nprint(states)\nprint(\"clock\", clock)\n",
+      "solution": "def topo_order(deps):\n    remaining = {t: set(u) for t, u in deps.items()}\n    order = []\n    while remaining:\n        ready = sorted(t for t, u in remaining.items() if not u)\n        if not ready:\n            raise ValueError(\"cycle\")\n        t = ready[0]\n        order.append(t)\n        del remaining[t]\n        for u in remaining.values():\n            u.discard(t)\n    return order\n\ndef run_dag(deps, fail_counts, retries, delay):\n    states, clock = {}, 0\n    for t in topo_order(deps):\n        if any(states[u] != \"success\" for u in deps[t]):\n            states[t] = \"upstream_failed\"\n            continue\n        k = fail_counts.get(t, 0)\n        if k > retries:\n            states[t] = \"failed\"\n            clock += delay * retries\n        else:\n            states[t] = \"success\"\n            clock += delay * k\n    return states, clock\n\ndeps = {\"extract\": [], \"transform\": [\"extract\"], \"load\": [\"transform\"]}\nstates, clock = run_dag(deps, {\"extract\": 2, \"transform\": 5}, 3, 60)\nprint(states)\nprint(\"clock\", clock)\n",
+      "expected": "{'extract': 'success', 'transform': 'failed', 'load': 'upstream_failed'}\nclock 300"
+    },
+    {
+      "id": "i2",
+      "title": "Idempotent upsert",
+      "kind": "python",
+      "prompt": "Create an in-memory sqlite3 table `orders(order_id INTEGER PRIMARY KEY, amount INTEGER)`. Write `load(db, rows)` that upserts rows with `INSERT OR REPLACE`. Load the batch [(1, 100), (2, 50)], then the batch [(2, 70), (3, 30)], then the first batch again. Print the rows ordered by order_id as a list of tuples, then the total amount, then close the connection.",
+      "starter": "import sqlite3\n\ndef load(db, rows):\n    pass\n\ndb = sqlite3.connect(\":memory:\")\ndb.execute(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, amount INTEGER)\")\nload(db, [(1, 100), (2, 50)])\nload(db, [(2, 70), (3, 30)])\nload(db, [(1, 100), (2, 50)])\nprint(db.execute(\"SELECT * FROM orders ORDER BY order_id\").fetchall())\nprint(db.execute(\"SELECT SUM(amount) FROM orders\").fetchone()[0])\ndb.close()\n",
+      "solution": "import sqlite3\n\ndef load(db, rows):\n    db.executemany(\"INSERT OR REPLACE INTO orders VALUES (?, ?)\", rows)\n\ndb = sqlite3.connect(\":memory:\")\ndb.execute(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, amount INTEGER)\")\nload(db, [(1, 100), (2, 50)])\nload(db, [(2, 70), (3, 30)])\nload(db, [(1, 100), (2, 50)])\nprint(db.execute(\"SELECT * FROM orders ORDER BY order_id\").fetchall())\nprint(db.execute(\"SELECT SUM(amount) FROM orders\").fetchone()[0])\ndb.close()\n",
+      "expected": "[(1, 100), (2, 50), (3, 30)]\n180"
+    },
+    {
+      "id": "i3",
+      "title": "Plan a backfill (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A bug in the transform step has loaded wrong amounts for 1 to 20 March into a warehouse table. The DAG is daily with an idempotent partition-replacing load and `max_active_runs=3`. Describe how you fix the data: the order of steps, what you set to protect the system, how you check the result and what would go wrong if the load were not idempotent.",
+      "starter": "Steps: ...\nProtection: ...\nChecks: ...\nIf not idempotent: ...",
+      "solution": "Fix the transform and deploy it first, so that the reruns use the new code. Then either clear the March 1 to 20 runs in the UI or start a backfill for those dates (in Airflow 2.x `airflow dags backfill -s 2025-03-01 -e 2025-03-20 orders_daily`), keeping `max_active_runs=3` so only three days run at once and the source and warehouse are not overloaded; run a single day first as a test. Because the load replaces the partition of the logical date, each rerun overwrites that day's wrong rows with the corrected ones. Check by comparing the daily totals for the 20 days with the source system before and after, confirming that the row counts per day are unchanged and that no day appears twice, and that the days outside the range were not touched. If the load appended, every rerun would add a second copy of each day on top of the wrong rows, so the table would contain both the wrong and the corrected data and the totals would be wrong in a new way; the bad rows would have to be deleted by hand first.",
+      "rubric": [
+        "Fixes and deploys the code before rerunning.",
+        "Uses clear or backfill for the date range with a limit on concurrency.",
+        "Verifies totals per day against the source and that other days are untouched.",
+        "Explains the duplicate problem of a non-idempotent load."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Airflow cannot run in the course tests or the browser. To run the Airflow code yourself, install it in a virtual environment using the official constraints file for your Airflow and Python versions (pip install apache-airflow with --constraint), or use the official Docker Compose setup, then put the DAG file in the dags folder. Retry behaviour, backfills and idempotent loads were verified here through pure-Python and sqlite3 equivalents with a fake clock, and the graded exercises use the same equivalents."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A task has retries=3. What is the maximum number of times it can run for one DAG run?",
+      "options": [
+        "3",
+        "4",
+        "1",
+        "6"
+      ],
+      "answer": 1,
+      "explanation": "The first attempt plus three retries is four attempts. Retries are extra attempts after the first failure."
+    },
+    {
+      "id": "c2",
+      "question": "A daily DAG run has logical date 2025-01-03. When does it normally start?",
+      "options": [
+        "At 00:00 on 3 January",
+        "Just after the data interval ends, at the start of 4 January",
+        "At the start of 2 January",
+        "Only when triggered manually"
+      ],
+      "answer": 1,
+      "explanation": "A run is scheduled after its data interval (3 January 00:00 to 4 January 00:00) has ended, so it starts just after midnight on 4 January. The logical date marks the start of the interval."
+    },
+    {
+      "id": "c3",
+      "question": "A load task appends the day's rows. It fails after inserting half of them and is retried. What happens?",
+      "options": [
+        "Nothing, Airflow rolls back",
+        "The half-loaded rows stay and the retry adds all rows again, so duplicates appear",
+        "The retry skips the inserted rows",
+        "The task is marked success"
+      ],
+      "answer": 1,
+      "explanation": "Airflow does not undo side effects. A non-idempotent append produces duplicates. Replacing the partition or using an upsert makes the retry safe."
+    },
+    {
+      "id": "c4",
+      "question": "What does the `upstream_failed` state mean?",
+      "options": [
+        "The task itself failed",
+        "A task upstream of it failed, so it did not run",
+        "The task was skipped on purpose",
+        "The task timed out"
+      ],
+      "answer": 1,
+      "explanation": "A task whose upstream task failed after its retries is not run and is marked upstream_failed. The task to investigate is the one marked failed."
+    },
+    {
+      "id": "c5",
+      "question": "Why use max_active_runs when backfilling 90 days?",
+      "options": [
+        "To change the logical dates",
+        "To limit how many runs execute at once so systems are not overloaded",
+        "To skip weekends",
+        "To disable retries"
+      ],
+      "answer": 1,
+      "explanation": "Without a limit the scheduler may start many runs together. max_active_runs bounds the concurrency of DAG runs."
+    }
+  ],
+  "id": "e160"
+}

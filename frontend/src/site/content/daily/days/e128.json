@@ -1,0 +1,183 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-incremental-load",
+      "etl-idempotency",
+      "etl-full-load"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "incremental-loading",
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Days in a range",
+      "kind": "python",
+      "prompt": "Write `days(start, end)` returning the ISO date strings of a half-open range, `start` included and `end` excluded, using `datetime.date` and `timedelta(days=1)`. Print the list for 2025-03-01 up to 2025-03-04. Expected output: `['2025-03-01', '2025-03-02', '2025-03-03']`.",
+      "starter": "from datetime import date, timedelta\n\ndef days(start, end):\n    pass\n\nprint(days(date(2025, 3, 1), date(2025, 3, 4)))\n",
+      "solution": "from datetime import date, timedelta\n\ndef days(start, end):\n    out = []\n    current = start\n    while current < end:\n        out.append(current.isoformat())\n        current += timedelta(days=1)\n    return out\n\nprint(days(date(2025, 3, 1), date(2025, 3, 4)))\n",
+      "hints": [
+        "Start at `start` and stop before `end`.",
+        "A `while current < end` loop with `current += timedelta(days=1)` does it.",
+        "Append `current.isoformat()` in the loop and return the list."
+      ],
+      "expected": "['2025-03-01', '2025-03-02', '2025-03-03']"
+    },
+    {
+      "id": "g2",
+      "title": "Rewrite one partition",
+      "kind": "python",
+      "prompt": "The table `t(id INTEGER PRIMARY KEY, day TEXT)` holds rows for three days. Write `rewrite(conn, day, ids)` that, in one `with conn:` block, deletes the rows of that day and inserts the new ids for it. Rewrite `\"2025-03-02\"` with the ids `[20, 21]` twice and print `SELECT day, COUNT(*) FROM t GROUP BY day ORDER BY day` as a list. Expected output: `[('2025-03-01', 1), ('2025-03-02', 2), ('2025-03-03', 1)]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE t (id INTEGER PRIMARY KEY, day TEXT)\")\nconn.executemany(\"INSERT INTO t VALUES (?, ?)\", [(1, \"2025-03-01\"), (2, \"2025-03-02\"), (3, \"2025-03-02\"), (5, \"2025-03-02\"), (4, \"2025-03-03\")])\n\ndef rewrite(conn, day, ids):\n    pass\n\nrewrite(conn, \"2025-03-02\", [20, 21])\nrewrite(conn, \"2025-03-02\", [20, 21])\nprint(conn.execute(\"SELECT day, COUNT(*) FROM t GROUP BY day ORDER BY day\").fetchall())\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE t (id INTEGER PRIMARY KEY, day TEXT)\")\nconn.executemany(\"INSERT INTO t VALUES (?, ?)\", [(1, \"2025-03-01\"), (2, \"2025-03-02\"), (3, \"2025-03-02\"), (5, \"2025-03-02\"), (4, \"2025-03-03\")])\n\ndef rewrite(conn, day, ids):\n    with conn:\n        conn.execute(\"DELETE FROM t WHERE day = ?\", (day,))\n        conn.executemany(\"INSERT INTO t VALUES (?, ?)\", [(i, day) for i in ids])\n\nrewrite(conn, \"2025-03-02\", [20, 21])\nrewrite(conn, \"2025-03-02\", [20, 21])\nprint(conn.execute(\"SELECT day, COUNT(*) FROM t GROUP BY day ORDER BY day\").fetchall())\n",
+      "hints": [
+        "Delete only the rows of that day, then insert.",
+        "Both statements go inside `with conn:`.",
+        "`conn.executemany(\"INSERT INTO t VALUES (?, ?)\", [(i, day) for i in ids])` after the delete."
+      ],
+      "expected": "[('2025-03-01', 1), ('2025-03-02', 2), ('2025-03-03', 1)]"
+    },
+    {
+      "id": "g3",
+      "title": "Skip finished partitions",
+      "kind": "python",
+      "prompt": "Write `pending(all_days, done)` returning the days of `all_days` that are not in the set `done`, in the original order. Print the result for the starter lists. Expected output: `['2025-03-03', '2025-03-05']`.",
+      "starter": "def pending(all_days, done):\n    pass\n\nall_days = [\"2025-03-01\", \"2025-03-02\", \"2025-03-03\", \"2025-03-04\", \"2025-03-05\"]\ndone = {\"2025-03-01\", \"2025-03-02\", \"2025-03-04\"}\nprint(pending(all_days, done))\n",
+      "solution": "def pending(all_days, done):\n    return [d for d in all_days if d not in done]\n\nall_days = [\"2025-03-01\", \"2025-03-02\", \"2025-03-03\", \"2025-03-04\", \"2025-03-05\"]\ndone = {\"2025-03-01\", \"2025-03-02\", \"2025-03-04\"}\nprint(pending(all_days, done))\n",
+      "hints": [
+        "Keep the days that are not in `done`.",
+        "A list comprehension keeps the order.",
+        "`[d for d in all_days if d not in done]`"
+      ],
+      "expected": "['2025-03-03', '2025-03-05']"
+    },
+    {
+      "id": "g4",
+      "title": "Counts per partition in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the table `ev(event_id, day date, cents)` is created for you. Return `day`, `n` (rows) and `cents` (the sum) for each day from `2025-03-01` up to but not including `2025-03-03`, ordered by `day`.",
+      "starter": "CREATE TABLE ev (event_id int, day date, cents int);\nINSERT INTO ev VALUES (1,'2025-03-01',100),(2,'2025-03-01',200),(3,'2025-03-02',300),(4,'2025-03-03',400);\nSELECT event_id FROM ev ORDER BY event_id LIMIT 4;\n",
+      "solution": "CREATE TABLE ev (event_id int, day date, cents int);\nINSERT INTO ev VALUES (1,'2025-03-01',100),(2,'2025-03-01',200),(3,'2025-03-02',300),(4,'2025-03-03',400);\nSELECT day, COUNT(*) AS n, SUM(cents) AS cents\nFROM ev\nWHERE day >= '2025-03-01' AND day < '2025-03-03'\nGROUP BY day\nORDER BY day;\n",
+      "hints": [
+        "Use a half-open range in WHERE, then group by day.",
+        "`WHERE day >= '2025-03-01' AND day < '2025-03-03' GROUP BY day`.",
+        "Select `day, COUNT(*) AS n, SUM(cents) AS cents` and order by `day`."
+      ],
+      "ordered": true
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A resumable backfill",
+      "kind": "python",
+      "prompt": "Complete `backfill(conn, source, days)` for the starter tables. For each day in order: skip it if it is in `partition_log`; otherwise call `source(day)`; if that raises `ConnectionError`, stop and return; else rewrite that day's rows (`DELETE` then insert) and record `(day, row count)` in `partition_log`, all in one `with conn:` block. The source in the starter fails for `2025-03-03` the first time. Call `backfill` twice and print `SELECT * FROM partition_log ORDER BY day` as a list after each call.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE t (id INTEGER PRIMARY KEY, day TEXT)\")\nconn.execute(\"CREATE TABLE partition_log (day TEXT PRIMARY KEY, n INTEGER)\")\nfail = {\"2025-03-03\"}\ndata = {\"2025-03-01\": [1], \"2025-03-02\": [2, 3], \"2025-03-03\": [4], \"2025-03-04\": [5, 6, 7]}\n\ndef source(day):\n    if day in fail:\n        fail.discard(day)\n        raise ConnectionError(day)\n    return data[day]\n\ndef backfill(conn, source, days):\n    pass\n\ndays = [\"2025-03-01\", \"2025-03-02\", \"2025-03-03\", \"2025-03-04\"]\nbackfill(conn, source, days)\nprint(conn.execute(\"SELECT * FROM partition_log ORDER BY day\").fetchall())\nbackfill(conn, source, days)\nprint(conn.execute(\"SELECT * FROM partition_log ORDER BY day\").fetchall())\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE t (id INTEGER PRIMARY KEY, day TEXT)\")\nconn.execute(\"CREATE TABLE partition_log (day TEXT PRIMARY KEY, n INTEGER)\")\nfail = {\"2025-03-03\"}\ndata = {\"2025-03-01\": [1], \"2025-03-02\": [2, 3], \"2025-03-03\": [4], \"2025-03-04\": [5, 6, 7]}\n\ndef source(day):\n    if day in fail:\n        fail.discard(day)\n        raise ConnectionError(day)\n    return data[day]\n\ndef backfill(conn, source, days):\n    for day in days:\n        if conn.execute(\"SELECT 1 FROM partition_log WHERE day = ?\", (day,)).fetchone():\n            continue\n        try:\n            ids = source(day)\n        except ConnectionError:\n            return\n        with conn:\n            conn.execute(\"DELETE FROM t WHERE day = ?\", (day,))\n            conn.executemany(\"INSERT INTO t VALUES (?, ?)\", [(i, day) for i in ids])\n            conn.execute(\"INSERT OR REPLACE INTO partition_log VALUES (?, ?)\", (day, len(ids)))\n\ndays = [\"2025-03-01\", \"2025-03-02\", \"2025-03-03\", \"2025-03-04\"]\nbackfill(conn, source, days)\nprint(conn.execute(\"SELECT * FROM partition_log ORDER BY day\").fetchall())\nbackfill(conn, source, days)\nprint(conn.execute(\"SELECT * FROM partition_log ORDER BY day\").fetchall())\n",
+      "expected": "[('2025-03-01', 1), ('2025-03-02', 2)]\n[('2025-03-01', 1), ('2025-03-02', 2), ('2025-03-03', 1), ('2025-03-04', 3)]"
+    },
+    {
+      "id": "i2",
+      "title": "Before and after a rule change",
+      "kind": "python",
+      "prompt": "The starter has raw rows `(day, amount_text)`. Write `totals(rows, clean)` returning a dict day -> total cents for the rows whose cleaned value is not `None`, with `clean` being a function. Use `clean_v1` (`float(text) * 100` rounded, `None` on error) and `clean_v2` (the same after removing a leading `$`). Print the two dicts (with sorted items as lists) and the list of days whose total changed. Expected output: three lines.",
+      "starter": "rows = [(\"2025-03-01\", \"10.00\"), (\"2025-03-01\", \"$5.00\"), (\"2025-03-02\", \"7.50\"), (\"2025-03-03\", \"$2.00\"), (\"2025-03-03\", \"3.00\")]\n\ndef clean_v1(text):\n    try:\n        return round(float(text) * 100)\n    except ValueError:\n        return None\n\ndef clean_v2(text):\n    return clean_v1(text.lstrip(\"$\"))\n\ndef totals(rows, clean):\n    return {}\n\nold, new = totals(rows, clean_v1), totals(rows, clean_v2)\nprint(sorted(old.items()))\nprint(sorted(new.items()))\nprint([d for d in sorted(new) if old.get(d) != new[d]])\n",
+      "solution": "rows = [(\"2025-03-01\", \"10.00\"), (\"2025-03-01\", \"$5.00\"), (\"2025-03-02\", \"7.50\"), (\"2025-03-03\", \"$2.00\"), (\"2025-03-03\", \"3.00\")]\n\ndef clean_v1(text):\n    try:\n        return round(float(text) * 100)\n    except ValueError:\n        return None\n\ndef clean_v2(text):\n    return clean_v1(text.lstrip(\"$\"))\n\ndef totals(rows, clean):\n    result = {}\n    for day, text in rows:\n        cents = clean(text)\n        if cents is not None:\n            result[day] = result.get(day, 0) + cents\n    return result\n\nold, new = totals(rows, clean_v1), totals(rows, clean_v2)\nprint(sorted(old.items()))\nprint(sorted(new.items()))\nprint([d for d in sorted(new) if old.get(d) != new[d]])\n",
+      "expected": "[('2025-03-01', 1000), ('2025-03-02', 750), ('2025-03-03', 300)]\n[('2025-03-01', 1500), ('2025-03-02', 750), ('2025-03-03', 500)]\n['2025-03-01', '2025-03-03']"
+    },
+    {
+      "id": "i3",
+      "title": "Plan a backfill",
+      "kind": "written",
+      "prompt": "The cleaning rule for refunds was wrong from 2025-01-15 to 2025-03-10 (56 days) and the raw layer holds all of those days. Write the backfill plan: the partition definition, what runs for each day and in which order, how the run records progress and how it resumes, how you protect the API and the database, how you avoid overwriting data that the daily run is writing today, and how you verify the result and report the impact.",
+      "starter": "Partitions:\nPer-day step:\nProgress and resume:\nPace and safety:\nVerification and report:\n",
+      "solution": "Partitions: one day each, the half-open window `day <= t < day + 1`, from 2025-01-15 up to but not including 2025-03-11. Per-day step: read that day's rows from the raw layer (not from the source API), apply the corrected rule, then in one transaction delete that day's rows from `orders_clean` and insert the new rows; days are processed oldest first. Progress and resume: a `partition_log` table records each finished day with its row count, a rerun skips finished days and a flag forces a redo. Pace and safety: run one day at a time or a small pool, since the data comes from raw tables and not from the API there is no rate limit to hit, but the database load still needs a limit; only closed days are rewritten, and today's partition is left to the daily run so the two never write the same rows. Verification and report: compare the row count of each rebuilt day with the raw count minus rejects, compare daily totals before and after, list the days and amounts that changed, and send that table to the business with the date range, the rule change and the totals moved.",
+      "required": false,
+      "rubric": [
+        "Defines half-open daily partitions and rebuilds each by delete plus insert in one transaction.",
+        "Rebuilds from raw instead of the source API.",
+        "Uses a progress log so the run can resume and skips finished days.",
+        "Avoids touching today's partition, or uses a guarded upsert.",
+        "Verifies counts and compares totals before and after, and reports the impact."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why does a backfill rewrite a partition with delete plus insert instead of plain insert?",
+      "options": [
+        "It is faster",
+        "A plain insert would add the day's rows a second time, doubling data that was already loaded",
+        "SQL requires delete first",
+        "It saves disk"
+      ],
+      "answer": 1,
+      "explanation": "A rerun of a day must replace the day. Delete and insert in one transaction leaves the same rows however many times it runs."
+    },
+    {
+      "id": "c2",
+      "question": "A daily job computes 'yesterday' from the system clock. What is the backfill problem?",
+      "options": [
+        "None",
+        "It cannot be pointed at an old date; the day must be a parameter",
+        "The clock is slow",
+        "It loads too much"
+      ],
+      "answer": 1,
+      "explanation": "A job that reads the clock cannot reprocess 2 March on 20 March. Parameterise the run by the partition."
+    },
+    {
+      "id": "c3",
+      "question": "An order for 2 March arrives on 5 March. Which policy loads it automatically?",
+      "options": [
+        "A daily run that rebuilds only today's partition",
+        "A daily run that also rebuilds the last three days",
+        "A weekly full backup",
+        "A bigger batch size"
+      ],
+      "answer": 1,
+      "explanation": "A reprocessing window rereads and rebuilds recent partitions, so late rows within the window are picked up. A run for today alone never looks at 2 March."
+    },
+    {
+      "id": "c4",
+      "question": "After a rule change, why rebuild from the raw layer?",
+      "options": [
+        "Raw is faster than any other source",
+        "The source may be rate-limited, changed or no longer hold the old days, while raw keeps what arrived",
+        "Raw has cleaner data",
+        "It avoids a transaction"
+      ],
+      "answer": 1,
+      "explanation": "Raw is the stable record of what was received. Re-extracting depends on a source that may not be able to answer."
+    },
+    {
+      "id": "c5",
+      "question": "What is the purpose of the `partition_log` table in a backfill?",
+      "options": [
+        "To store the data",
+        "To record finished partitions so a rerun skips them and can resume after a failure",
+        "To speed up queries",
+        "To hold the watermark"
+      ],
+      "answer": 1,
+      "explanation": "The log makes the run resumable: after a crash the finished days are skipped and only the remainder is processed."
+    }
+  ],
+  "id": "e128"
+}

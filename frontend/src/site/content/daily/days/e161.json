@@ -1,0 +1,191 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "airflow-sensors",
+      "airflow-monitoring",
+      "airflow-failure-handling",
+      "airflow-operators"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "airflow-etl-pipeline"
+    ],
+    "mindmaps": [
+      "airflow-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "How many pokes?",
+      "kind": "python",
+      "prompt": "Write `pokes_needed(appears_at, poke_interval)` returning how many checks a sensor makes until it finds the file, when checks happen at seconds 0, interval, 2*interval and so on and succeed once the second is at least `appears_at`. Print the result for (0, 60), (59, 60), (60, 60) and (601, 60), one per line.",
+      "starter": "def pokes_needed(appears_at, poke_interval):\n    return 0\n\nfor a in [0, 59, 60, 601]:\n    print(pokes_needed(a, 60))\n",
+      "solution": "def pokes_needed(appears_at, poke_interval):\n    t, n = 0, 0\n    while True:\n        n += 1\n        if t >= appears_at:\n            return n\n        t += poke_interval\n\nfor a in [0, 59, 60, 601]:\n    print(pokes_needed(a, 60))\n",
+      "hints": [
+        "The first check is at second 0.",
+        "Count the check, then test whether the time has reached appears_at.",
+        "Otherwise advance the clock by the interval and repeat."
+      ],
+      "expected": "1\n2\n2\n12"
+    },
+    {
+      "id": "g2",
+      "title": "Build the alert message",
+      "kind": "python",
+      "prompt": "Write `alert_message(context)` returning `<dag>.<task> failed on try <n> for <ds>: <error>` from a dict with keys `dag_id`, `task_id`, `try_number`, `ds` and `exception` (a string). Print it for dag `sales`, task `load`, try 3, ds `2025-03-04`, error `connection refused`.",
+      "starter": "def alert_message(context):\n    return \"\"\n\nprint(alert_message({\"dag_id\": \"sales\", \"task_id\": \"load\", \"try_number\": 3, \"ds\": \"2025-03-04\", \"exception\": \"connection refused\"}))\n",
+      "solution": "def alert_message(context):\n    return f\"{context['dag_id']}.{context['task_id']} failed on try {context['try_number']} for {context['ds']}: {context['exception']}\"\n\nprint(alert_message({\"dag_id\": \"sales\", \"task_id\": \"load\", \"try_number\": 3, \"ds\": \"2025-03-04\", \"exception\": \"connection refused\"}))\n",
+      "hints": [
+        "Use an f-string and index the dictionary.",
+        "The order is dag.task, try, ds, error.",
+        "Use single quotes inside the f-string for the keys."
+      ],
+      "expected": "sales.load failed on try 3 for 2025-03-04: connection refused"
+    },
+    {
+      "id": "g3",
+      "title": "Count log levels",
+      "kind": "python",
+      "prompt": "Given the log lines below, print a dictionary of counts per level (the first word of the line) with keys sorted alphabetically, e.g. `{'A': 1}` style, then the first ERROR line.",
+      "starter": "lines = [\"INFO start\", \"INFO reading 120 rows\", \"WARNING source slow\", \"ERROR timeout\", \"INFO retrying\", \"ERROR timeout again\"]\n# counts per level and the first ERROR line\n",
+      "solution": "lines = [\"INFO start\", \"INFO reading 120 rows\", \"WARNING source slow\", \"ERROR timeout\", \"INFO retrying\", \"ERROR timeout again\"]\ncounts = {}\nfor l in lines:\n    level = l.split()[0]\n    counts[level] = counts.get(level, 0) + 1\nprint(dict(sorted(counts.items())))\nprint(next(l for l in lines if l.startswith(\"ERROR\")))\n",
+      "hints": [
+        "The level is the first word: l.split()[0].",
+        "Count with a dictionary and dict.get.",
+        "Print dict(sorted(counts.items())) and the first line starting with ERROR."
+      ],
+      "expected": "{'ERROR': 2, 'INFO': 3, 'WARNING': 1}\nERROR timeout"
+    },
+    {
+      "id": "g4",
+      "title": "Design a sensor (written)",
+      "kind": "written",
+      "prompt": "A partner delivers `orders_YYYYMMDD.csv` to a folder between 02:00 and 05:00 most days, and sometimes not at all. The DAG runs daily at 02:00 and the business needs the report by 07:00. Write the sensor configuration (as Airflow code) and explain the choice of mode, interval, timeout and soft_fail, and what alert is raised.",
+      "starter": "FileSensor(...)\nReasons: ...",
+      "solution": "```python\nwait = FileSensor(\n    task_id=\"wait_for_orders\",\n    filepath=\"/data/in/orders_{{ ds_nodash }}.csv\",\n    poke_interval=300,\n    timeout=4 * 60 * 60,\n    mode=\"reschedule\",\n    soft_fail=False,\n)\n```\n\nThe wait can last three hours, so `mode=\"reschedule\"` frees the worker slot between checks. A five-minute interval finds the file soon after it arrives without polling constantly. The timeout of four hours (until about 06:00) leaves an hour to run the rest of the pipeline before 07:00, so the failure alert arrives while there is still time to react. `soft_fail=False` because the report is mandatory: a missing file must fail the sensor, make downstream tasks `upstream_failed` and trigger the failure callback, which posts the DAG, task, date and the exception to the team channel. The filename uses the logical date through a template so that reruns look for the right day.",
+      "rubric": [
+        "Chooses reschedule (or deferrable) for a multi-hour wait.",
+        "Sets a timeout related to the 07:00 deadline.",
+        "Uses soft_fail=False for mandatory data and explains the alert.",
+        "Uses the logical date in the file path."
+      ],
+      "hints": [
+        "How long may the wait be?",
+        "When must the sensor give up so someone can react?",
+        "Is the file optional?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Alerts with recovery",
+      "kind": "python",
+      "prompt": "Process `events` (given) in order. Keep a set `down`. For a `failed` event of a task not in `down`, print `ALERT <day> <task>` and add it; for a `failed` event of a task already down, print nothing; for a `success` event of a task in `down`, print `RECOVERED <day> <task>` and remove it; other successes print nothing.",
+      "starter": "events = [\n    (\"2025-03-04\", \"extract\", \"failed\"), (\"2025-03-04\", \"load\", \"success\"),\n    (\"2025-03-05\", \"extract\", \"failed\"), (\"2025-03-05\", \"load\", \"failed\"),\n    (\"2025-03-06\", \"extract\", \"success\"), (\"2025-03-06\", \"load\", \"failed\"),\n    (\"2025-03-07\", \"extract\", \"success\"), (\"2025-03-07\", \"load\", \"success\"),\n]\ndown = set()\n# print ALERT and RECOVERED lines\n",
+      "solution": "events = [\n    (\"2025-03-04\", \"extract\", \"failed\"), (\"2025-03-04\", \"load\", \"success\"),\n    (\"2025-03-05\", \"extract\", \"failed\"), (\"2025-03-05\", \"load\", \"failed\"),\n    (\"2025-03-06\", \"extract\", \"success\"), (\"2025-03-06\", \"load\", \"failed\"),\n    (\"2025-03-07\", \"extract\", \"success\"), (\"2025-03-07\", \"load\", \"success\"),\n]\ndown = set()\nfor day, task, state in events:\n    if state == \"failed\" and task not in down:\n        print(\"ALERT\", day, task)\n        down.add(task)\n    elif state == \"success\" and task in down:\n        print(\"RECOVERED\", day, task)\n        down.discard(task)\n",
+      "expected": "ALERT 2025-03-04 extract\nALERT 2025-03-05 load\nRECOVERED 2025-03-06 extract\nRECOVERED 2025-03-07 load"
+    },
+    {
+      "id": "i2",
+      "title": "Freshness check",
+      "kind": "python",
+      "prompt": "Tables and their last load time in hours since midnight of day 0 are `loaded = {\"orders\": 30, \"customers\": 5, \"returns\": 20}`; `now` is 36 hours and the allowed ages in hours are `limits = {\"orders\": 12, \"customers\": 48, \"returns\": 24}`. Print for each table in alphabetical order `<table> age <age> <STALE|ok>` where age is now minus the load time and the status is STALE when the age exceeds the limit.",
+      "starter": "loaded = {\"orders\": 30, \"customers\": 5, \"returns\": 20}\nlimits = {\"orders\": 12, \"customers\": 48, \"returns\": 24}\nnow = 36\n# freshness per table\n",
+      "solution": "loaded = {\"orders\": 30, \"customers\": 5, \"returns\": 20}\nlimits = {\"orders\": 12, \"customers\": 48, \"returns\": 24}\nnow = 36\nfor table in sorted(loaded):\n    age = now - loaded[table]\n    print(table, \"age\", age, \"STALE\" if age > limits[table] else \"ok\")\n",
+      "expected": "customers age 31 ok\norders age 6 ok\nreturns age 16 ok"
+    },
+    {
+      "id": "i3",
+      "title": "Cross-DAG dependency (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A reporting DAG must run only after the `orders_daily` DAG has loaded the same day. Describe how you would implement this with a sensor, which settings you would choose, what can go wrong with logical dates and schedules that differ, and which alert you would raise if the load never finishes.",
+      "starter": "Sensor: ...\nSettings: ...\nPitfalls: ...\nAlert: ...",
+      "solution": "Use an `ExternalTaskSensor` in the reporting DAG that waits for the final `load` task (or the whole DAG run) of `orders_daily` for the same logical date, in reschedule mode with a poke interval of a few minutes and a timeout tied to the report deadline; `soft_fail` stays off because the report needs the data. The pitfall is the logical date: the sensor matches runs by logical date, so if the two DAGs have different schedules or start at different times, the dates do not line up and the sensor waits until timeout, so an offset or a function that maps the date must be set, or a dataset or asset based dependency used instead where the version supports it. Also decide what to do if the upstream task is retried or cleared. If the load never finishes, the sensor times out and fails, the reporting tasks become `upstream_failed`, and the failure callback sends a message that names the upstream DAG, the logical date and the sensor's timeout, so the on-call engineer looks at the load first.",
+      "rubric": [
+        "Uses ExternalTaskSensor with the same logical date and reschedule mode.",
+        "Explains the logical date or schedule mismatch pitfall.",
+        "Sets the timeout from the report deadline and keeps soft_fail off.",
+        "Alert names the upstream DAG and date."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Airflow cannot run in the course tests or the browser. To run the Airflow code yourself, install it in a virtual environment with the official constraints file for your Airflow and Python versions, or use the official Docker Compose setup; the sensor import paths differ between Airflow 2 and 3 (Airflow 3 moves several sensors to the standard provider package), so check the documentation of your version. Sensor timing, callbacks, per-attempt logs and alert rules were verified here through pure-Python equivalents with a fake clock, and the graded exercises use the same equivalents."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A sensor with poke_interval=60 and timeout=600 never finds its file. What is its final state (soft_fail=False)?",
+      "options": [
+        "success",
+        "skipped",
+        "failed",
+        "up_for_retry forever"
+      ],
+      "answer": 2,
+      "explanation": "After the timeout the sensor fails (and is retried only if retries are configured). With soft_fail=True it would be skipped."
+    },
+    {
+      "id": "c2",
+      "question": "Why use mode='reschedule' for a three-hour wait?",
+      "options": [
+        "It checks more often",
+        "It frees the worker slot between checks",
+        "It avoids the timeout",
+        "It sends alerts"
+      ],
+      "answer": 1,
+      "explanation": "In poke mode the sensor holds a worker slot for the whole wait. Reschedule releases it between checks so other tasks can run."
+    },
+    {
+      "id": "c3",
+      "question": "What does a callback such as on_failure_callback receive?",
+      "options": [
+        "The DAG file",
+        "A context dictionary with the task instance, logical date and exception",
+        "Nothing",
+        "The log file"
+      ],
+      "answer": 1,
+      "explanation": "Airflow passes one argument, the context, which holds the task instance, ds, the DAG and, on failure, the exception."
+    },
+    {
+      "id": "c4",
+      "question": "Which alert policy is best for a task that often succeeds on its second attempt?",
+      "options": [
+        "Alert on every failed attempt",
+        "Alert once after the final failure",
+        "Never alert",
+        "Alert only on success"
+      ],
+      "answer": 1,
+      "explanation": "Alerts should mark outcomes that need action. A task that recovers on retry needs no human; alerting on each attempt trains people to ignore the channel."
+    },
+    {
+      "id": "c5",
+      "question": "Why check data freshness in addition to failure alerts?",
+      "options": [
+        "Failures are always reported",
+        "A pipeline that silently stops produces no failure",
+        "Freshness is faster",
+        "It replaces logs"
+      ],
+      "answer": 1,
+      "explanation": "If the scheduler is down or the DAG is paused, no task fails and no failure alert fires. Comparing the age of the newest data with a limit catches the silence."
+    }
+  ],
+  "id": "e161"
+}

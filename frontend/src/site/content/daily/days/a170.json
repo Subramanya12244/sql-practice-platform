@@ -1,0 +1,195 @@
+{
+  "id": "a170",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-comprehensions"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-clean-dataframe",
+      "pandas-groupby-agg",
+      "pandas-merge-anti-join",
+      "bounded-top-k-per-category",
+      "first-repeated-order-id"
+    ],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "interview-patterns",
+      "python-track"
+    ],
+    "patterns": [
+      "top-n-per-group",
+      "find-duplicates",
+      "anti-join"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Clean and count",
+      "kind": "python",
+      "prompt": "Using `orders`, drop exact duplicates, strip and lowercase `customer`, convert `amount` with `pd.to_numeric(errors=\"coerce\")`, and print `rows: <n>`, `missing amounts: <m>` and `customers: <sorted list>`.",
+      "starter": "import pandas as pd\n\norders = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 3, 4, 5, 6, 7, 8],\n    \"customer\": [\" ana \", \"BEN\", \"cho\", \"cho\", \"Ana\", \"ben \", \"Dev\", \"cho\", \"Ana\"],\n    \"amount\": [\"120.5\", \"80\", \"n/a\", \"n/a\", \"45.25\", \"60\", \"\", \"300\", \"90.75\"],\n    \"order_date\": [\"2025-01-05\", \"2025-01-09\", \"2025-02-11\", \"2025-02-11\", \"2025-02-14\", \"2025-03-01\", \"2025-03-03\", \"2025-03-09\", \"2025-03-20\"],\n})\ncustomers = pd.DataFrame({\"customer\": [\"ana\", \"ben\", \"cho\", \"eli\"], \"city\": [\"Leeds\", \"York\", \"Hull\", \"Bath\"]})\n\n# clean and print\n",
+      "solution": "import pandas as pd\n\norders = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 3, 4, 5, 6, 7, 8],\n    \"customer\": [\" ana \", \"BEN\", \"cho\", \"cho\", \"Ana\", \"ben \", \"Dev\", \"cho\", \"Ana\"],\n    \"amount\": [\"120.5\", \"80\", \"n/a\", \"n/a\", \"45.25\", \"60\", \"\", \"300\", \"90.75\"],\n    \"order_date\": [\"2025-01-05\", \"2025-01-09\", \"2025-02-11\", \"2025-02-11\", \"2025-02-14\", \"2025-03-01\", \"2025-03-03\", \"2025-03-09\", \"2025-03-20\"],\n})\ncustomers = pd.DataFrame({\"customer\": [\"ana\", \"ben\", \"cho\", \"eli\"], \"city\": [\"Leeds\", \"York\", \"Hull\", \"Bath\"]})\n\ndf = orders.drop_duplicates().copy()\ndf[\"customer\"] = df[\"customer\"].str.strip().str.lower()\ndf[\"amount\"] = pd.to_numeric(df[\"amount\"], errors=\"coerce\")\nprint(\"rows:\", len(df))\nprint(\"missing amounts:\", int(df[\"amount\"].isna().sum()))\nprint(\"customers:\", sorted(df[\"customer\"].unique()))\n",
+      "expected": "rows: 8\nmissing amounts: 2\ncustomers: ['ana', 'ben', 'cho', 'dev']",
+      "hints": [
+        "Chain `drop_duplicates()` then fix the text columns.",
+        "`errors=\"coerce\"` turns `n/a` and empty strings into NaN.",
+        "`isna().sum()` counts the missing values."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Top order per customer",
+      "kind": "python",
+      "prompt": "With the cleaned `df`, print for each customer (alphabetical) the largest order as `<customer>: order <order_id> <amount>` using sort and `groupby(...).head(1)`. Customers whose amounts are all missing are skipped (drop missing amounts first).",
+      "starter": "import pandas as pd\n\norders = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 3, 4, 5, 6, 7, 8],\n    \"customer\": [\" ana \", \"BEN\", \"cho\", \"cho\", \"Ana\", \"ben \", \"Dev\", \"cho\", \"Ana\"],\n    \"amount\": [\"120.5\", \"80\", \"n/a\", \"n/a\", \"45.25\", \"60\", \"\", \"300\", \"90.75\"],\n    \"order_date\": [\"2025-01-05\", \"2025-01-09\", \"2025-02-11\", \"2025-02-11\", \"2025-02-14\", \"2025-03-01\", \"2025-03-03\", \"2025-03-09\", \"2025-03-20\"],\n})\ncustomers = pd.DataFrame({\"customer\": [\"ana\", \"ben\", \"cho\", \"eli\"], \"city\": [\"Leeds\", \"York\", \"Hull\", \"Bath\"]})\n\ndef clean(df):\n    out = df.drop_duplicates().copy()\n    out[\"customer\"] = out[\"customer\"].str.strip().str.lower()\n    out[\"amount\"] = pd.to_numeric(out[\"amount\"], errors=\"coerce\")\n    out[\"order_date\"] = pd.to_datetime(out[\"order_date\"], format=\"%Y-%m-%d\")\n    return out.reset_index(drop=True)\n\ndf = clean(orders)\n# largest order per customer\n",
+      "solution": "import pandas as pd\n\norders = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 3, 4, 5, 6, 7, 8],\n    \"customer\": [\" ana \", \"BEN\", \"cho\", \"cho\", \"Ana\", \"ben \", \"Dev\", \"cho\", \"Ana\"],\n    \"amount\": [\"120.5\", \"80\", \"n/a\", \"n/a\", \"45.25\", \"60\", \"\", \"300\", \"90.75\"],\n    \"order_date\": [\"2025-01-05\", \"2025-01-09\", \"2025-02-11\", \"2025-02-11\", \"2025-02-14\", \"2025-03-01\", \"2025-03-03\", \"2025-03-09\", \"2025-03-20\"],\n})\ncustomers = pd.DataFrame({\"customer\": [\"ana\", \"ben\", \"cho\", \"eli\"], \"city\": [\"Leeds\", \"York\", \"Hull\", \"Bath\"]})\n\ndef clean(df):\n    out = df.drop_duplicates().copy()\n    out[\"customer\"] = out[\"customer\"].str.strip().str.lower()\n    out[\"amount\"] = pd.to_numeric(out[\"amount\"], errors=\"coerce\")\n    out[\"order_date\"] = pd.to_datetime(out[\"order_date\"], format=\"%Y-%m-%d\")\n    return out.reset_index(drop=True)\n\ndf = clean(orders)\ntop = df.dropna(subset=[\"amount\"]).sort_values(\"amount\", ascending=False).groupby(\"customer\").head(1).sort_values(\"customer\")\nfor _, row in top.iterrows():\n    print(f\"{row['customer']}: order {row['order_id']} {row['amount']}\")\n",
+      "expected": "ana: order 1 120.5\nben: order 2 80.0\ncho: order 7 300.0",
+      "hints": [
+        "Drop rows with missing amounts first.",
+        "Sort by amount descending, then `groupby(\"customer\").head(1)`.",
+        "Sort by customer for the output order and loop over `iterrows()`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Anti-join",
+      "kind": "python",
+      "prompt": "Print the customers in `customers` that have no orders in the cleaned `df` as a list, and the customers in `df` missing from `customers` as a sorted list, one list per line.",
+      "starter": "import pandas as pd\n\norders = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 3, 4, 5, 6, 7, 8],\n    \"customer\": [\" ana \", \"BEN\", \"cho\", \"cho\", \"Ana\", \"ben \", \"Dev\", \"cho\", \"Ana\"],\n    \"amount\": [\"120.5\", \"80\", \"n/a\", \"n/a\", \"45.25\", \"60\", \"\", \"300\", \"90.75\"],\n    \"order_date\": [\"2025-01-05\", \"2025-01-09\", \"2025-02-11\", \"2025-02-11\", \"2025-02-14\", \"2025-03-01\", \"2025-03-03\", \"2025-03-09\", \"2025-03-20\"],\n})\ncustomers = pd.DataFrame({\"customer\": [\"ana\", \"ben\", \"cho\", \"eli\"], \"city\": [\"Leeds\", \"York\", \"Hull\", \"Bath\"]})\n\ndef clean(df):\n    out = df.drop_duplicates().copy()\n    out[\"customer\"] = out[\"customer\"].str.strip().str.lower()\n    out[\"amount\"] = pd.to_numeric(out[\"amount\"], errors=\"coerce\")\n    out[\"order_date\"] = pd.to_datetime(out[\"order_date\"], format=\"%Y-%m-%d\")\n    return out.reset_index(drop=True)\n\ndf = clean(orders)\n# anti-joins in both directions\n",
+      "solution": "import pandas as pd\n\norders = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 3, 4, 5, 6, 7, 8],\n    \"customer\": [\" ana \", \"BEN\", \"cho\", \"cho\", \"Ana\", \"ben \", \"Dev\", \"cho\", \"Ana\"],\n    \"amount\": [\"120.5\", \"80\", \"n/a\", \"n/a\", \"45.25\", \"60\", \"\", \"300\", \"90.75\"],\n    \"order_date\": [\"2025-01-05\", \"2025-01-09\", \"2025-02-11\", \"2025-02-11\", \"2025-02-14\", \"2025-03-01\", \"2025-03-03\", \"2025-03-09\", \"2025-03-20\"],\n})\ncustomers = pd.DataFrame({\"customer\": [\"ana\", \"ben\", \"cho\", \"eli\"], \"city\": [\"Leeds\", \"York\", \"Hull\", \"Bath\"]})\n\ndef clean(df):\n    out = df.drop_duplicates().copy()\n    out[\"customer\"] = out[\"customer\"].str.strip().str.lower()\n    out[\"amount\"] = pd.to_numeric(out[\"amount\"], errors=\"coerce\")\n    out[\"order_date\"] = pd.to_datetime(out[\"order_date\"], format=\"%Y-%m-%d\")\n    return out.reset_index(drop=True)\n\ndf = clean(orders)\nprint(customers.loc[~customers[\"customer\"].isin(df[\"customer\"]), \"customer\"].tolist())\nprint(sorted(set(df[\"customer\"]) - set(customers[\"customer\"])))\n",
+      "expected": "['eli']\n['dev']",
+      "hints": [
+        "`isin` tests membership; `~` negates it.",
+        "Use the customer table for the first list.",
+        "Set difference works for the second list; sort it."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Explain a surprising row count",
+      "kind": "written",
+      "prompt": "After `orders.merge(customers, on='customer', how='left')` the table has more rows than `orders`. Give three possible causes, how you would find which applies, and the guard you would add so it cannot happen silently.",
+      "starter": "Causes:\nHow to check:\nGuard:",
+      "solution": "Causes: (1) the right table has duplicate keys, so each left row matches several right rows; (2) the key is not normalised in one table (whitespace or case), which does not add rows in a left join but hides matches, and a duplicate key can appear after normalising; (3) a many-to-many relationship, where duplicates exist on both sides. How to check: compare `len` before and after, test `customers['customer'].is_unique`, and list the duplicated keys with `customers[customers.duplicated('customer', keep=False)]`. Guard: use `validate='m:1'` in the merge so pandas raises a `MergeError` on a duplicate right key, and assert that the row count is unchanged after a left merge.",
+      "hints": [
+        "Which side must be unique?",
+        "How do you list duplicate keys?",
+        "pandas can raise an error for you."
+      ],
+      "rubric": [
+        "Names duplicate keys in the right table as the main cause.",
+        "Describes a check using is_unique or duplicated and row counts.",
+        "Uses validate='m:1' or an assertion as the guard."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Latest order per customer",
+      "kind": "python",
+      "prompt": "From the cleaned `df`, print for each customer (alphabetical) their latest order date and the number of orders as `<customer>: <YYYY-MM-DD> <n> orders`. Use `groupby` with named aggregation, and format the date with `strftime`.",
+      "starter": "import pandas as pd\n\norders = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 3, 4, 5, 6, 7, 8],\n    \"customer\": [\" ana \", \"BEN\", \"cho\", \"cho\", \"Ana\", \"ben \", \"Dev\", \"cho\", \"Ana\"],\n    \"amount\": [\"120.5\", \"80\", \"n/a\", \"n/a\", \"45.25\", \"60\", \"\", \"300\", \"90.75\"],\n    \"order_date\": [\"2025-01-05\", \"2025-01-09\", \"2025-02-11\", \"2025-02-11\", \"2025-02-14\", \"2025-03-01\", \"2025-03-03\", \"2025-03-09\", \"2025-03-20\"],\n})\ncustomers = pd.DataFrame({\"customer\": [\"ana\", \"ben\", \"cho\", \"eli\"], \"city\": [\"Leeds\", \"York\", \"Hull\", \"Bath\"]})\n\ndef clean(df):\n    out = df.drop_duplicates().copy()\n    out[\"customer\"] = out[\"customer\"].str.strip().str.lower()\n    out[\"amount\"] = pd.to_numeric(out[\"amount\"], errors=\"coerce\")\n    out[\"order_date\"] = pd.to_datetime(out[\"order_date\"], format=\"%Y-%m-%d\")\n    return out.reset_index(drop=True)\n\ndf = clean(orders)\n# latest order and count per customer\n",
+      "solution": "import pandas as pd\n\norders = pd.DataFrame({\n    \"order_id\": [1, 2, 3, 3, 4, 5, 6, 7, 8],\n    \"customer\": [\" ana \", \"BEN\", \"cho\", \"cho\", \"Ana\", \"ben \", \"Dev\", \"cho\", \"Ana\"],\n    \"amount\": [\"120.5\", \"80\", \"n/a\", \"n/a\", \"45.25\", \"60\", \"\", \"300\", \"90.75\"],\n    \"order_date\": [\"2025-01-05\", \"2025-01-09\", \"2025-02-11\", \"2025-02-11\", \"2025-02-14\", \"2025-03-01\", \"2025-03-03\", \"2025-03-09\", \"2025-03-20\"],\n})\ncustomers = pd.DataFrame({\"customer\": [\"ana\", \"ben\", \"cho\", \"eli\"], \"city\": [\"Leeds\", \"York\", \"Hull\", \"Bath\"]})\n\ndef clean(df):\n    out = df.drop_duplicates().copy()\n    out[\"customer\"] = out[\"customer\"].str.strip().str.lower()\n    out[\"amount\"] = pd.to_numeric(out[\"amount\"], errors=\"coerce\")\n    out[\"order_date\"] = pd.to_datetime(out[\"order_date\"], format=\"%Y-%m-%d\")\n    return out.reset_index(drop=True)\n\ndf = clean(orders)\ng = df.groupby(\"customer\").agg(latest=(\"order_date\", \"max\"), n=(\"order_id\", \"count\"))\nfor name, row in g.iterrows():\n    print(f\"{name}: {row['latest'].strftime('%Y-%m-%d')} {row['n']} orders\")\n",
+      "expected": "ana: 2025-03-20 3 orders\nben: 2025-03-01 2 orders\ncho: 2025-03-09 2 orders\ndev: 2025-03-03 1 orders"
+    },
+    {
+      "id": "i2",
+      "title": "Group anagrams and first unique",
+      "kind": "python",
+      "prompt": "Write `group_anagrams(words)` returning a sorted list of sorted groups (each group is a sorted list of words that are anagrams of each other, key is the sorted letters) for `['listen', 'silent', 'enlist', 'google', 'gogole', 'cat', 'act']`, and print it. Then print the first non-repeating character of `'statistics'` using `collections.Counter`.",
+      "starter": "from collections import Counter\n\n\ndef group_anagrams(words):\n    pass\n\n\nprint(group_anagrams([\"listen\", \"silent\", \"enlist\", \"google\", \"gogole\", \"cat\", \"act\"]))\n",
+      "solution": "from collections import Counter\n\n\ndef group_anagrams(words):\n    groups = {}\n    for w in words:\n        groups.setdefault(\"\".join(sorted(w)), []).append(w)\n    return sorted(sorted(g) for g in groups.values())\n\n\nprint(group_anagrams([\"listen\", \"silent\", \"enlist\", \"google\", \"gogole\", \"cat\", \"act\"]))\ncounts = Counter(\"statistics\")\nprint(next(ch for ch in \"statistics\" if counts[ch] == 1))\n",
+      "expected": "[['act', 'cat'], ['enlist', 'listen', 'silent'], ['gogole', 'google']]\na"
+    },
+    {
+      "id": "i3",
+      "title": "Read this code",
+      "kind": "written",
+      "prompt": "Read this code and say what it prints and what the bug is, then fix it.\n\n```python\ndef collect(row, seen=set()):\n    seen.add(row)\n    return len(seen)\n\nprint(collect(1), collect(2), collect(1))\n```\n\nThen explain how you would find this kind of bug in a long notebook.",
+      "starter": "Prints:\nBug:\nFix:",
+      "solution": "It prints `1 2 2`. The default `seen=set()` is created once when the function is defined and is shared by every call, so each call adds to the same set (the third call adds 1 again, which is already there, so the length stays 2). The fix is `def collect(row, seen=None): seen = set() if seen is None else seen` (or pass a new set explicitly), which creates a fresh set per call. In a long notebook I would look for mutable default arguments in function signatures, for global variables that functions modify, and for results that differ depending on how many times a cell has been run, and I would rerun the notebook top to bottom in a fresh kernel to confirm it is reproducible.",
+      "rubric": [
+        "States the output 1 2 2.",
+        "Names the shared mutable default argument.",
+        "Gives the None-default fix.",
+        "Mentions a restart-and-run-all or similar check."
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which order of cleaning steps is safest?",
+      "options": [
+        "Drop exact duplicates, normalise text, convert types, parse dates with a format",
+        "Parse dates first without a format",
+        "Group first, clean later",
+        "Convert types, then never check missing values"
+      ],
+      "answer": 0,
+      "explanation": "Duplicates inflate counts; text must be normalised before comparing; types and explicit date formats avoid silent errors."
+    },
+    {
+      "id": "c2",
+      "question": "What does `df.groupby('customer')['amount'].transform('sum')` return?",
+      "options": [
+        "A Series with the group total repeated on every row",
+        "One row per customer",
+        "A DataFrame of totals",
+        "The grand total only"
+      ],
+      "answer": 0,
+      "explanation": "transform keeps the original number of rows, which is what you need for a share of the group."
+    },
+    {
+      "id": "c3",
+      "question": "After a left merge the table has more rows. What is the likeliest cause?",
+      "options": [
+        "Duplicate keys in the right table",
+        "A missing index",
+        "Too few columns",
+        "The left table was sorted"
+      ],
+      "answer": 0,
+      "explanation": "Each left row matches every right row with the same key. validate='m:1' raises an error in that case."
+    },
+    {
+      "id": "c4",
+      "question": "What does `print(add(1), add(2))` show for `def add(x, items=[]): items.append(x); return items`?",
+      "options": [
+        "[1, 2] [1, 2]",
+        "[1] [2]",
+        "[1] [1, 2]",
+        "An error"
+      ],
+      "answer": 0,
+      "explanation": "Both calls return the same shared list object, which holds both values by the time print runs."
+    },
+    {
+      "id": "c5",
+      "question": "`df.sort_values('x')` is called on its own line. What happens to df?",
+      "options": [
+        "Nothing, it returns a new object that was discarded",
+        "It is sorted in place",
+        "It raises an error",
+        "It is copied to disk"
+      ],
+      "answer": 0,
+      "explanation": "Most pandas methods return a new object; assign it back (or use inplace, which is discouraged)."
+    }
+  ]
+}

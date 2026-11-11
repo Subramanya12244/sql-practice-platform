@@ -1,0 +1,184 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-error-handling",
+      "etl-retries",
+      "python-logging",
+      "python-exceptions"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl",
+      "incremental-loading"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Backoff delays",
+      "kind": "python",
+      "prompt": "Write `delays(retries, base, cap)` returning the list of waits before each retry: `min(base * 2 ** (n - 1), cap)` for n from 1 to `retries`. Print `delays(5, 1.0, 8.0)`. Expected output: `[1.0, 2.0, 4.0, 8.0, 8.0]`.",
+      "starter": "def delays(retries, base, cap):\n    pass\n\nprint(delays(5, 1.0, 8.0))\n",
+      "solution": "def delays(retries, base, cap):\n    return [min(base * 2 ** (n - 1), cap) for n in range(1, retries + 1)]\n\nprint(delays(5, 1.0, 8.0))\n",
+      "hints": [
+        "Retry number n waits `base * 2 ** (n - 1)` seconds.",
+        "`min(..., cap)` stops the growth.",
+        "`[min(base * 2 ** (n - 1), cap) for n in range(1, retries + 1)]`"
+      ],
+      "expected": "[1.0, 2.0, 4.0, 8.0, 8.0]"
+    },
+    {
+      "id": "g2",
+      "title": "Classify the failure",
+      "kind": "python",
+      "prompt": "Write `classify(status)` returning `\"transient\"` for the HTTP statuses 429, 500, 502, 503 and 504, `\"permanent\"` for other statuses of 400 or more, and `\"ok\"` below 400. Print the result for 200, 429, 401 and 503, one per line. Expected output: `ok`, `transient`, `permanent`, `transient`.",
+      "starter": "def classify(status):\n    pass\n\nfor s in (200, 429, 401, 503):\n    print(classify(s))\n",
+      "solution": "def classify(status):\n    if status < 400:\n        return \"ok\"\n    return \"transient\" if status in {429, 500, 502, 503, 504} else \"permanent\"\n\nfor s in (200, 429, 401, 503):\n    print(classify(s))\n",
+      "hints": [
+        "Check the success case first.",
+        "Keep the transient statuses in a set.",
+        "`return \"transient\" if status in {429, 500, 502, 503, 504} else \"permanent\"` after the `< 400` test."
+      ],
+      "expected": "ok\ntransient\npermanent\ntransient"
+    },
+    {
+      "id": "g3",
+      "title": "Retry with a fake clock",
+      "kind": "python",
+      "prompt": "Write `with_retries(fn, max_attempts, sleep)` that calls `fn`; on `ConnectionError` it calls `sleep(2 ** (attempt - 1))` (attempt starts at 1) and tries again, and after the last attempt it re-raises. The starter `fn` fails twice and then returns `\"ok\"`. Print the result, then the recorded waits. Expected output: `ok` then `[1, 2]`.",
+      "starter": "def with_retries(fn, max_attempts, sleep):\n    pass\n\ncalls = {\"n\": 0}\ndef fn():\n    calls[\"n\"] += 1\n    if calls[\"n\"] <= 2:\n        raise ConnectionError(\"down\")\n    return \"ok\"\n\nwaits = []\nprint(with_retries(fn, 5, waits.append))\nprint(waits)\n",
+      "solution": "def with_retries(fn, max_attempts, sleep):\n    for attempt in range(1, max_attempts + 1):\n        try:\n            return fn()\n        except ConnectionError:\n            if attempt == max_attempts:\n                raise\n            sleep(2 ** (attempt - 1))\n\ncalls = {\"n\": 0}\ndef fn():\n    calls[\"n\"] += 1\n    if calls[\"n\"] <= 2:\n        raise ConnectionError(\"down\")\n    return \"ok\"\n\nwaits = []\nprint(with_retries(fn, 5, waits.append))\nprint(waits)\n",
+      "hints": [
+        "Loop over the attempts and `return fn()` inside `try`.",
+        "On the last attempt re-raise instead of sleeping.",
+        "`except ConnectionError: if attempt == max_attempts: raise` then `sleep(2 ** (attempt - 1))`."
+      ],
+      "expected": "ok\n[1, 2]"
+    },
+    {
+      "id": "g4",
+      "title": "A structured log line",
+      "kind": "python",
+      "prompt": "Write `log_line(level, event, **fields)` returning one JSON string with the keys `level`, `event` and the extra fields, sorted by key (`json.dumps(..., sort_keys=True)`). Print `log_line(\"INFO\", \"run_finished\", read=7, loaded=5)`. Expected output: `{\"event\": \"run_finished\", \"level\": \"INFO\", \"loaded\": 5, \"read\": 7}`.",
+      "starter": "import json\n\ndef log_line(level, event, **fields):\n    pass\n\nprint(log_line(\"INFO\", \"run_finished\", read=7, loaded=5))\n",
+      "solution": "import json\n\ndef log_line(level, event, **fields):\n    return json.dumps({\"level\": level, \"event\": event, **fields}, sort_keys=True)\n\nprint(log_line(\"INFO\", \"run_finished\", read=7, loaded=5))\n",
+      "hints": [
+        "Build one dict with all the fields.",
+        "`{\"level\": level, \"event\": event, **fields}` merges the extras.",
+        "`json.dumps(that_dict, sort_keys=True)`"
+      ],
+      "expected": "{\"event\": \"run_finished\", \"level\": \"INFO\", \"loaded\": 5, \"read\": 7}"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Quarantine splitter with a threshold",
+      "kind": "python",
+      "prompt": "Write `split(rows, max_rate)` for rows of `(id, amount_text)`: rows whose amount converts with `float` and is not negative are good as `(id, cents)`, the others go to a quarantine list as `(id, reason)` with the reason `not a number` or `negative`. Return `(good, quarantine, status)` where status is `FAIL` when `len(quarantine) / len(rows) > max_rate`, else `OK`. Print the counts line `read=<n> good=<n> quarantined=<n> status=<status>` and the quarantine list for the starter rows with `max_rate=0.3`.",
+      "starter": "def split(rows, max_rate):\n    return [], [], \"OK\"\n\nrows = [(1, \"10.00\"), (2, \"abc\"), (3, \"-4.00\"), (4, \"2.50\"), (5, \"7.25\"), (6, \"1.00\"), (7, \"\"), (8, \"3.00\"), (9, \"4.00\"), (10, \"5.00\")]\ngood, quarantine, status = split(rows, 0.3)\nprint(f\"read={len(rows)} good={len(good)} quarantined={len(quarantine)} status={status}\")\nprint(quarantine)\n",
+      "solution": "def split(rows, max_rate):\n    good, quarantine = [], []\n    for row_id, text in rows:\n        try:\n            value = float(text)\n        except ValueError:\n            quarantine.append((row_id, \"not a number\"))\n            continue\n        if value < 0:\n            quarantine.append((row_id, \"negative\"))\n        else:\n            good.append((row_id, round(value * 100)))\n    status = \"FAIL\" if len(quarantine) / len(rows) > max_rate else \"OK\"\n    return good, quarantine, status\n\nrows = [(1, \"10.00\"), (2, \"abc\"), (3, \"-4.00\"), (4, \"2.50\"), (5, \"7.25\"), (6, \"1.00\"), (7, \"\"), (8, \"3.00\"), (9, \"4.00\"), (10, \"5.00\")]\ngood, quarantine, status = split(rows, 0.3)\nprint(f\"read={len(rows)} good={len(good)} quarantined={len(quarantine)} status={status}\")\nprint(quarantine)\n",
+      "expected": "read=10 good=7 quarantined=3 status=OK\n[(2, 'not a number'), (3, 'negative'), (7, 'not a number')]"
+    },
+    {
+      "id": "i2",
+      "title": "Retry only what is transient",
+      "kind": "python",
+      "prompt": "Extend the retry function so that `TransientError` is retried with delays 1, 2, 4 (doubling) up to `max_attempts` and `PermanentError` is raised at once. Write `run_case(fn)` that calls `with_retries(fn, 4, waits.append)` and returns a string: `ok after <calls> calls, waits <list>` on success, `gave up after <calls> calls, waits <list>` when the transient error is raised at the end, or `permanent after <calls> calls, waits <list>`. Print the strings for the three starter functions.",
+      "starter": "class TransientError(Exception):\n    pass\n\nclass PermanentError(Exception):\n    pass\n\ndef with_retries(fn, max_attempts, sleep):\n    return fn()\n\ndef make(failures, error):\n    state = {\"calls\": 0}\n    def fn():\n        state[\"calls\"] += 1\n        if state[\"calls\"] <= failures:\n            raise error(\"x\")\n        return \"ok\"\n    return fn, state\n\ndef run_case(fn, state):\n    return \"\"\n\nfor failures, error in [(2, TransientError), (9, TransientError), (1, PermanentError)]:\n    fn, state = make(failures, error)\n    print(run_case(fn, state))\n",
+      "solution": "class TransientError(Exception):\n    pass\n\nclass PermanentError(Exception):\n    pass\n\ndef with_retries(fn, max_attempts, sleep):\n    for attempt in range(1, max_attempts + 1):\n        try:\n            return fn()\n        except TransientError:\n            if attempt == max_attempts:\n                raise\n            sleep(2 ** (attempt - 1))\n\ndef make(failures, error):\n    state = {\"calls\": 0}\n    def fn():\n        state[\"calls\"] += 1\n        if state[\"calls\"] <= failures:\n            raise error(\"x\")\n        return \"ok\"\n    return fn, state\n\ndef run_case(fn, state):\n    waits = []\n    try:\n        with_retries(fn, 4, waits.append)\n        outcome = \"ok\"\n    except TransientError:\n        outcome = \"gave up\"\n    except PermanentError:\n        outcome = \"permanent\"\n    return f\"{outcome} after {state['calls']} calls, waits {waits}\"\n\nfor failures, error in [(2, TransientError), (9, TransientError), (1, PermanentError)]:\n    fn, state = make(failures, error)\n    print(run_case(fn, state))\n",
+      "expected": "ok after 3 calls, waits [1, 2]\ngave up after 4 calls, waits [1, 2, 4]\npermanent after 1 calls, waits []"
+    },
+    {
+      "id": "i3",
+      "title": "Design the failure policy",
+      "kind": "written",
+      "prompt": "A nightly job calls an orders API (100 requests per minute, sends 429 with `Retry-After`), loads into PostgreSQL and processes about 200,000 rows, of which a few hundred are normally malformed. Write the policy: which errors are transient and which permanent, the retry settings (attempts, delays, cap, jitter, `Retry-After`), what must be true of the load for retries to be safe, the log events and fields you would emit, the quarantine contents and the threshold at which the whole run fails.",
+      "starter": "Transient and permanent:\nRetry settings:\nSafe retries:\nLog events:\nQuarantine and threshold:\n",
+      "solution": "Transient: timeouts, connection resets, 429, 500, 502, 503 and 504; permanent: 400, 401, 403, 404 and unknown exceptions. Retry settings: at most 5 attempts, delays 1, 2, 4, 8 seconds with a cap of 30 and a little random jitter, and for a 429 wait the `Retry-After` value instead of the computed delay; after the last attempt raise so the scheduler marks the run failed. Safe retries: the load must be idempotent (replace the partition or a guarded upsert) so a retry after a timeout that actually succeeded cannot duplicate rows. Log events as one JSON line each to standard output with `run_id`: run_started, request_retry (attempt, wait, status), rows_extracted, row_quarantined summary counts, load_finished (read, loaded, quarantined), run_finished; never log secrets and do not log each row. Quarantine: the raw record, the reason, the run id and the source line or key, in a table for the data owner; fail the whole run when more than about 1 percent of rows are quarantined, because a few hundred of 200,000 is normal and a sudden jump means a broken source or rule.",
+      "required": false,
+      "rubric": [
+        "Separates transient from permanent errors and treats unknown ones as permanent.",
+        "Gives exponential backoff with a cap, a maximum, jitter and Retry-After.",
+        "States that the load must be idempotent for retries to be safe.",
+        "Names structured log events with a run id and says not to log secrets or each row.",
+        "Defines quarantine contents and a failure threshold with a reason."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which failure should NOT be retried?",
+      "options": [
+        "A 503 from the API",
+        "A connection timeout",
+        "A 401 caused by a wrong API key",
+        "A 429 with Retry-After"
+      ],
+      "answer": 2,
+      "explanation": "A wrong key will fail identically on every attempt, so retrying wastes time and may lock the account. The others may clear up."
+    },
+    {
+      "id": "c2",
+      "question": "`with_retries(fn, 5, waits.append)` is called with a function that always raises a transient error. What are `waits`?",
+      "options": [
+        "Empty",
+        "[1, 2, 4, 8]",
+        "[1, 2, 4, 8, 16]",
+        "[1, 1, 1, 1]"
+      ],
+      "answer": 1,
+      "explanation": "Five attempts give four waits between them; after the fifth failure the error is raised without another wait. The fake sleep records them without waiting."
+    },
+    {
+      "id": "c3",
+      "question": "Why does a pipeline log to standard output with its own handler?",
+      "options": [
+        "Files are not allowed",
+        "The platform collects the stream, and an explicit stdout handler keeps the output on one stream, not in standard error",
+        "It is faster",
+        "JSON requires it"
+      ],
+      "answer": 1,
+      "explanation": "With no handler Python's last-resort handler writes warnings to standard error. A configured stdout handler gives a predictable single stream for the collector."
+    },
+    {
+      "id": "c4",
+      "question": "A load that appends rows is wrapped in a retry. The first attempt succeeded but timed out before returning. What happens?",
+      "options": [
+        "Nothing",
+        "The retry appends the rows again, creating duplicates",
+        "The retry deletes them",
+        "The retry fails with a permanent error"
+      ],
+      "answer": 1,
+      "explanation": "Retries are only safe for idempotent operations. Replace the partition or upsert by key first."
+    },
+    {
+      "id": "c5",
+      "question": "Why fail the whole run when 40 percent of rows are quarantined?",
+      "options": [
+        "Quarantine is full",
+        "So many bad rows means the source or the rule is broken, not a few bad records, and loading the rest would hide it",
+        "It saves time",
+        "The log is too long"
+      ],
+      "answer": 1,
+      "explanation": "A small number of bad rows is normal. A large rate signals a systemic problem that must be seen and fixed."
+    }
+  ],
+  "id": "e129"
+}

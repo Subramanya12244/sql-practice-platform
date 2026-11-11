@@ -1,0 +1,175 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-pipeline-monitoring",
+      "etl-data-validation",
+      "etl-error-handling"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Null and duplicate rates",
+      "kind": "python",
+      "prompt": "For the DataFrame in the starter, print `null_rate=<x> duplicate_rate=<y>` where each value is a fraction rounded to 2 decimals (`null_rate` over the `amount` column, `duplicate_rate` over `order_id`, where a repeated id counts every occurrence after the first).",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({'order_id': [1, 2, 2, 3, 4, 4, 4, 5], 'amount': [5.0, None, 7.0, 8.0, None, None, 3.0, 9.0]})\n\n# Your code here\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({'order_id': [1, 2, 2, 3, 4, 4, 4, 5], 'amount': [5.0, None, 7.0, 8.0, None, None, 3.0, 9.0]})\n\nnull_rate = float(df['amount'].isna().mean())\ndup_rate = float(df['order_id'].duplicated().mean())\nprint(f'null_rate={null_rate:.2f} duplicate_rate={dup_rate:.2f}')\n",
+      "hints": [
+        "`isna()` gives True for nulls, and the mean of booleans is their share.",
+        "`df['order_id'].duplicated()` marks every repeat after the first occurrence.",
+        "Format both with `:.2f` inside one f-string."
+      ],
+      "expected": "null_rate=0.38 duplicate_rate=0.38"
+    },
+    {
+      "id": "g2",
+      "title": "Status from two thresholds",
+      "kind": "python",
+      "prompt": "Write `status(value, warn, crit)` returning `'CRITICAL'` when the value is above `crit`, `'WARN'` when above `warn` and `'OK'` otherwise. Print the status for the values 0.004, 0.02 and 0.09 with `warn=0.01` and `crit=0.05`, one per line.",
+      "starter": "def status(value, warn, crit):\n    pass\n\nfor v in [0.004, 0.02, 0.09]:\n    print(status(v, 0.01, 0.05))\n",
+      "solution": "def status(value, warn, crit):\n    if value > crit:\n        return 'CRITICAL'\n    if value > warn:\n        return 'WARN'\n    return 'OK'\n\nfor v in [0.004, 0.02, 0.09]:\n    print(status(v, 0.01, 0.05))\n",
+      "hints": [
+        "Check the more severe limit first.",
+        "A value above `crit` is also above `warn`, so order matters.",
+        "Use two `if` tests with `return`, then `return 'OK'`."
+      ],
+      "expected": "OK\nWARN\nCRITICAL"
+    },
+    {
+      "id": "g3",
+      "title": "Format an alert message",
+      "kind": "python",
+      "prompt": "Write `alert(name, value, limit, status)` returning the text `<STATUS> <name> <value as percent with 1 decimal> > <limit as percent with 1 decimal>`, for example `CRITICAL null_rate 6.2% > 5.0%`. Print the message for `('null_rate', 0.062, 0.05, 'CRITICAL')` and for `('dup_rate', 0.013, 0.01, 'WARN')`.",
+      "starter": "def alert(name, value, limit, status):\n    pass\n\nprint(alert('null_rate', 0.062, 0.05, 'CRITICAL'))\nprint(alert('dup_rate', 0.013, 0.01, 'WARN'))\n",
+      "solution": "def alert(name, value, limit, status):\n    return f'{status} {name} {value:.1%} > {limit:.1%}'\n\nprint(alert('null_rate', 0.062, 0.05, 'CRITICAL'))\nprint(alert('dup_rate', 0.013, 0.01, 'WARN'))\n",
+      "hints": [
+        "The `%` format spec multiplies by 100 and adds the percent sign.",
+        "`f'{value:.1%}'` prints 0.062 as `6.2%`.",
+        "Return `f'{status} {name} {value:.1%} > {limit:.1%}'`."
+      ],
+      "expected": "CRITICAL null_rate 6.2% > 5.0%\nWARN dup_rate 1.3% > 1.0%"
+    },
+    {
+      "id": "g4",
+      "title": "Latest value per metric in SQL",
+      "kind": "sql",
+      "prompt": "The table `quality_run(run_date, metric, value)` holds history. Return `metric`, `run_date` and `value` for the most recent run of each metric, ordered by metric.",
+      "starter": "CREATE TABLE quality_run (run_date date, metric text, value numeric(6,3));\nINSERT INTO quality_run VALUES ('2026-01-01', 'null_rate', 0.010), ('2026-01-02', 'null_rate', 0.020), ('2026-01-01', 'dup_rate', 0.000), ('2026-01-03', 'dup_rate', 0.004), ('2026-01-02', 'dup_rate', 0.001);\n\nSELECT metric, run_date, value FROM quality_run ORDER BY metric, run_date LIMIT 10;\n",
+      "solution": "CREATE TABLE quality_run (run_date date, metric text, value numeric(6,3));\nINSERT INTO quality_run VALUES ('2026-01-01', 'null_rate', 0.010), ('2026-01-02', 'null_rate', 0.020), ('2026-01-01', 'dup_rate', 0.000), ('2026-01-03', 'dup_rate', 0.004), ('2026-01-02', 'dup_rate', 0.001);\n\nSELECT DISTINCT ON (metric) metric, run_date, value\nFROM quality_run\nORDER BY metric, run_date DESC;\n",
+      "hints": [
+        "You need one row per metric: the newest by date.",
+        "`DISTINCT ON (metric)` keeps the first row per metric under the `ORDER BY`.",
+        "Order by `metric, run_date DESC` so the newest row comes first for each metric."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Evaluate and group alerts",
+      "kind": "python",
+      "prompt": "Given `metrics` and `THRESHOLDS` (`name: (warn, crit)`, all bad when high) in the starter, evaluate each metric. Print one line per metric that is not OK in the form `<STATUS> <name> <value>` (value as written in the dictionary), sorted by severity (CRITICAL first) then by name. Then print one summary line `summary: <n_critical> critical, <n_warn> warn`.",
+      "starter": "metrics = {'null_rate': 0.07, 'dup_rate': 0.015, 'failed_share': 0.05, 'reject_rate': 0.4, 'late_rate': 0.02}\nTHRESHOLDS = {'null_rate': (0.01, 0.05), 'dup_rate': (0.01, 0.05), 'failed_share': (0.10, 0.30), 'reject_rate': (0.10, 0.30), 'late_rate': (0.01, 0.05)}\n\n# Your code here\n",
+      "solution": "metrics = {'null_rate': 0.07, 'dup_rate': 0.015, 'failed_share': 0.05, 'reject_rate': 0.4, 'late_rate': 0.02}\nTHRESHOLDS = {'null_rate': (0.01, 0.05), 'dup_rate': (0.01, 0.05), 'failed_share': (0.10, 0.30), 'reject_rate': (0.10, 0.30), 'late_rate': (0.01, 0.05)}\n\nRANK = {'CRITICAL': 0, 'WARN': 1}\nbad = []\nfor name, (warn, crit) in THRESHOLDS.items():\n    v = metrics[name]\n    status = 'CRITICAL' if v > crit else 'WARN' if v > warn else 'OK'\n    if status != 'OK':\n        bad.append((RANK[status], name, status, v))\nfor _, name, status, v in sorted(bad):\n    print(status, name, v)\nprint(f\"summary: {sum(b[2] == 'CRITICAL' for b in bad)} critical, {sum(b[2] == 'WARN' for b in bad)} warn\")\n",
+      "expected": "CRITICAL null_rate 0.07\nCRITICAL reject_rate 0.4\nWARN dup_rate 0.015\nWARN late_rate 0.02\nsummary: 2 critical, 2 warn"
+    },
+    {
+      "id": "i2",
+      "title": "Spike detection in SQL",
+      "kind": "sql",
+      "prompt": "Table `quality_run(run_date, metric, value)` holds daily null rates for one metric. Return `run_date`, `value` and `previous_avg` (the average of the previous two runs, rounded to 4 decimals) only for the runs where `value` is more than 1.5 times `previous_avg`, ordered by `run_date`. Runs without a previous average are excluded.",
+      "starter": "CREATE TABLE quality_run (run_date date, metric text, value numeric(6,3));\nINSERT INTO quality_run VALUES ('2026-01-01', 'null_rate', 0.010), ('2026-01-02', 'null_rate', 0.012), ('2026-01-03', 'null_rate', 0.011), ('2026-01-04', 'null_rate', 0.030), ('2026-01-05', 'null_rate', 0.020), ('2026-01-06', 'null_rate', 0.012);\n\nSELECT run_date, value FROM quality_run ORDER BY run_date LIMIT 10;\n",
+      "solution": "CREATE TABLE quality_run (run_date date, metric text, value numeric(6,3));\nINSERT INTO quality_run VALUES ('2026-01-01', 'null_rate', 0.010), ('2026-01-02', 'null_rate', 0.012), ('2026-01-03', 'null_rate', 0.011), ('2026-01-04', 'null_rate', 0.030), ('2026-01-05', 'null_rate', 0.020), ('2026-01-06', 'null_rate', 0.012);\n\nWITH t AS (\n  SELECT run_date, value,\n         ROUND(AVG(value) OVER (ORDER BY run_date ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING), 4) AS previous_avg\n  FROM quality_run\n  WHERE metric = 'null_rate'\n)\nSELECT run_date, value, previous_avg\nFROM t\nWHERE previous_avg IS NOT NULL AND value > 1.5 * previous_avg\nORDER BY run_date;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Alert only on changes",
+      "kind": "python",
+      "required": false,
+      "prompt": "Implement `new_alerts(history)`: `history` is a list of dictionaries `{metric: status}`, one per run in time order. For each run after the first, print `run <i>: <metric> <before> -> <now>` for every metric whose status worsened (OK < WARN < CRITICAL) and `run <i>: <metric> recovered` for every metric that improved, sorted by metric. If a run has no changes, print `run <i>: no alerts`. The first run is index 0 and is only the baseline, so print nothing for it.",
+      "starter": "history = [\n    {'a': 'OK', 'b': 'WARN', 'c': 'OK'},\n    {'a': 'WARN', 'b': 'WARN', 'c': 'OK'},\n    {'a': 'WARN', 'b': 'WARN', 'c': 'OK'},\n    {'a': 'CRITICAL', 'b': 'OK', 'c': 'OK'},\n]\n\n# Your code here\n",
+      "solution": "history = [\n    {'a': 'OK', 'b': 'WARN', 'c': 'OK'},\n    {'a': 'WARN', 'b': 'WARN', 'c': 'OK'},\n    {'a': 'WARN', 'b': 'WARN', 'c': 'OK'},\n    {'a': 'CRITICAL', 'b': 'OK', 'c': 'OK'},\n]\n\nRANK = {'OK': 0, 'WARN': 1, 'CRITICAL': 2}\nfor i in range(1, len(history)):\n    lines = []\n    for m in sorted(history[i]):\n        before, now = history[i - 1][m], history[i][m]\n        if RANK[now] > RANK[before]:\n            lines.append(f'run {i}: {m} {before} -> {now}')\n        elif RANK[now] < RANK[before]:\n            lines.append(f'run {i}: {m} recovered')\n    print('\\n'.join(lines) if lines else f'run {i}: no alerts')\n",
+      "expected": "run 1: a OK -> WARN\nrun 2: no alerts\nrun 3: a WARN -> CRITICAL\nrun 3: b recovered"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A null check reports 30 null amounts on Monday (500 rows) and 30 on Tuesday (50,000 rows). Which statement is right?",
+      "options": [
+        "Both days have the same quality",
+        "Monday is far worse: the null rate is 6 percent against 0.06 percent",
+        "Tuesday is worse because the load is larger",
+        "Counts cannot be compared at all"
+      ],
+      "answer": 1,
+      "explanation": "Rates compare days of different sizes: 30/500 is 6 percent and 30/50,000 is 0.06 percent. The same count is a far bigger problem on the small day."
+    },
+    {
+      "id": "c2",
+      "question": "Why is `notify(severity, text)` kept as a separate function from the check logic?",
+      "options": [
+        "Python requires it",
+        "The logic can be tested without a network by swapping the delivery function",
+        "It makes alerts faster",
+        "It stops alerts from being sent"
+      ],
+      "answer": 1,
+      "explanation": "Separating decision from delivery lets tests record messages in a list and lets you change from chat to email without touching the checks. It does not change speed, and it does not suppress alerts."
+    },
+    {
+      "id": "c3",
+      "question": "A metric stays in WARN for five days. With alerts on state changes only, how many warning alerts are sent for it?",
+      "options": [
+        "Five",
+        "One, when it changed from OK to WARN",
+        "None",
+        "Five, plus one when it recovers"
+      ],
+      "answer": 1,
+      "explanation": "A state-change alert fires when the status changes. The first day produces one alert, the next four days no new alert, and a separate message is sent only on escalation or recovery. The standing problem remains visible in the daily report."
+    },
+    {
+      "id": "c4",
+      "question": "What does `f\"{0.062:.1%}\"` return?",
+      "options": [
+        "'0.1%'",
+        "'6.2%'",
+        "'0.062%'",
+        "'62.0%'"
+      ],
+      "answer": 1,
+      "explanation": "The `%` format multiplies by 100 and appends a percent sign: 0.062 becomes 6.2%. `.1` is one decimal place."
+    },
+    {
+      "id": "c5",
+      "question": "For a row-volume check, zero rows loaded should be critical. Which threshold direction does the check need?",
+      "options": [
+        "Bad when the value is high",
+        "Bad when the value is low",
+        "Equality with the previous run",
+        "No direction is needed"
+      ],
+      "answer": 1,
+      "explanation": "Volume is bad when it is too low, so the comparison is reversed relative to null rate. Storing the direction beside the limits lets one table hold both kinds of metric."
+    }
+  ],
+  "id": "e139"
+}

@@ -1,0 +1,188 @@
+{
+  "id": "e174",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-api-integration",
+      "etl-retries",
+      "etl-extraction",
+      "etl-idempotency"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "environment": {
+    "packages": [
+      "requests"
+    ],
+    "note": "Example 4 starts a throwaway http.server on 127.0.0.1 and calls it with requests, so it needs sockets and the requests package (pip install requests) and runs only on your own computer. The browser examples use a stand-in function instead of the network. No real API is called; on a real API you would set the key with export DATAFORGE_API_KEY=... before running."
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Count the calls",
+      "kind": "python",
+      "prompt": "The stand-in API below has no rate limit (`every=0`). Use `fetch_all` with page size 40 and print `records=<n> calls=<n>` for the generated orders, where calls is read from the `state` dictionary.",
+      "starter": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nclass RateLimited(Exception):\n    def __init__(self, retry_after):\n        super().__init__(\"429 too many requests\")\n        self.retry_after = retry_after\n\nclass Unauthorized(Exception):\n    pass\n\ndef make_api(orders, api_key=\"secret-key\", every=3):\n    \"\"\"Stand-in for GET /orders?page=N&page_size=P: no network, same answers (200, 401, 429).\"\"\"\n    state = {\"calls\": 0, \"limited\": 0}\n    def get_orders(page, page_size, headers):\n        state[\"calls\"] += 1\n        if headers.get(\"X-Api-Key\") != api_key:\n            raise Unauthorized(\"401 invalid API key\")\n        if every and state[\"calls\"] % every == 0:\n            state[\"limited\"] += 1\n            raise RateLimited(2)\n        total = -(-len(orders) // page_size)\n        start = (page - 1) * page_size\n        return {\"data\": orders[start:start + page_size], \"page\": page, \"total_pages\": total}\n    return get_orders, state\n\ndef fetch_page(api, page, size, headers, sleep, max_tries=5):\n    for attempt in range(max_tries):\n        try:\n            return api(page, size, headers)\n        except RateLimited as e:\n            sleep(e.retry_after * 2 ** attempt)\n    raise RuntimeError(f\"page {page} still rate limited after {max_tries} tries\")\n\ndef fetch_all(api, headers, sleep, size=25):\n    records, page, total = [], 1, 1\n    while page <= total:\n        body = fetch_page(api, page, size, headers, sleep)\n        records.extend(body[\"data\"])\n        total = body[\"total_pages\"]\n        page += 1\n    return records\n\ncustomers, products, orders = generate()\napi, state = make_api(orders, every=0)\n",
+      "solution": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nclass RateLimited(Exception):\n    def __init__(self, retry_after):\n        super().__init__(\"429 too many requests\")\n        self.retry_after = retry_after\n\nclass Unauthorized(Exception):\n    pass\n\ndef make_api(orders, api_key=\"secret-key\", every=3):\n    \"\"\"Stand-in for GET /orders?page=N&page_size=P: no network, same answers (200, 401, 429).\"\"\"\n    state = {\"calls\": 0, \"limited\": 0}\n    def get_orders(page, page_size, headers):\n        state[\"calls\"] += 1\n        if headers.get(\"X-Api-Key\") != api_key:\n            raise Unauthorized(\"401 invalid API key\")\n        if every and state[\"calls\"] % every == 0:\n            state[\"limited\"] += 1\n            raise RateLimited(2)\n        total = -(-len(orders) // page_size)\n        start = (page - 1) * page_size\n        return {\"data\": orders[start:start + page_size], \"page\": page, \"total_pages\": total}\n    return get_orders, state\n\ndef fetch_page(api, page, size, headers, sleep, max_tries=5):\n    for attempt in range(max_tries):\n        try:\n            return api(page, size, headers)\n        except RateLimited as e:\n            sleep(e.retry_after * 2 ** attempt)\n    raise RuntimeError(f\"page {page} still rate limited after {max_tries} tries\")\n\ndef fetch_all(api, headers, sleep, size=25):\n    records, page, total = [], 1, 1\n    while page <= total:\n        body = fetch_page(api, page, size, headers, sleep)\n        records.extend(body[\"data\"])\n        total = body[\"total_pages\"]\n        page += 1\n    return records\n\ncustomers, products, orders = generate()\napi, state = make_api(orders, every=0)\nrecords = fetch_all(api, {\"X-Api-Key\": \"secret-key\"}, lambda s: None, size=40)\nprint(f\"records={len(records)} calls={state['calls']}\")\n",
+      "hints": [
+        "`fetch_all(api, headers, sleep, size=...)` returns the list of records.",
+        "The headers are `{\"X-Api-Key\": \"secret-key\"}` and the sleep function can be `lambda s: None`.",
+        "`state[\"calls\"]` counts the calls; 120 records at 40 per page is 3 calls."
+      ],
+      "expected": "records=120 calls=3"
+    },
+    {
+      "id": "g2",
+      "title": "The back-off schedule",
+      "kind": "python",
+      "prompt": "Write `schedule(retry_after, tries)` that returns the list of waits for consecutive retries of one request, where retry number `k` (starting at 0) waits `retry_after * 2 ** k` seconds. Print `schedule(2, 4)` and `schedule(1, 3)`, one list per line.",
+      "starter": "def schedule(retry_after, tries):\n    return []\n\nprint(schedule(2, 4))\nprint(schedule(1, 3))\n",
+      "solution": "def schedule(retry_after, tries):\n    return [retry_after * 2 ** k for k in range(tries)]\n\nprint(schedule(2, 4))\nprint(schedule(1, 3))\n",
+      "hints": [
+        "Each wait doubles the previous one.",
+        "Use a list comprehension over `range(tries)`.",
+        "`[retry_after * 2 ** k for k in range(tries)]`."
+      ],
+      "expected": "[2, 4, 8, 16]\n[1, 2, 4]"
+    },
+    {
+      "id": "g3",
+      "title": "Rows per landed batch in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the CTE `raw(batch_id, order_id)` simulates a raw table in which batch `b1` was landed twice by mistake. Return `batch_id`, `row_count` (count of rows) and `distinct_orders` (count of distinct order_id), ordered by batch_id.",
+      "starter": "WITH raw(batch_id, order_id) AS (VALUES ('b1','O1'),('b1','O2'),('b1','O1'),('b1','O2'),('b2','O1'),('b2','O2'),('b2','O3'))\nSELECT batch_id FROM raw ORDER BY batch_id;\n",
+      "solution": "WITH raw(batch_id, order_id) AS (VALUES ('b1','O1'),('b1','O2'),('b1','O1'),('b1','O2'),('b2','O1'),('b2','O2'),('b2','O3'))\nSELECT batch_id, count(*) AS row_count, count(DISTINCT order_id) AS distinct_orders\nFROM raw GROUP BY batch_id ORDER BY batch_id;\n",
+      "ordered": true,
+      "hints": [
+        "Group by the batch.",
+        "`count(*)` counts rows and `count(DISTINCT order_id)` counts different orders.",
+        "`SELECT batch_id, count(*) AS row_count, count(DISTINCT order_id) AS distinct_orders FROM raw GROUP BY batch_id ORDER BY batch_id`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Mask the key",
+      "kind": "python",
+      "prompt": "Write `mask(key)` that keeps the first 3 characters and replaces every other character with `*`. Print `mask(\"abcd-1234\")` and `mask(\"xyz\")`, one per line.",
+      "starter": "def mask(key):\n    return key\n\nprint(mask(\"abcd-1234\"))\nprint(mask(\"xyz\"))\n",
+      "solution": "def mask(key):\n    return key[:3] + \"*\" * (len(key) - 3)\n\nprint(mask(\"abcd-1234\"))\nprint(mask(\"xyz\"))\n",
+      "hints": [
+        "Slice the first three characters.",
+        "The number of stars is the length minus three.",
+        "`key[:3] + \"*\" * (len(key) - 3)`; a three-character key has zero stars."
+      ],
+      "expected": "abc******\nxyz"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Ingest with a fault report",
+      "kind": "python",
+      "prompt": "Using `make_api` with `every=4` (every fourth call is rate limited) and `fetch_all` with page size 30, ingest the generated orders, recording waits in a list. Print four lines: `records=<n>`, `calls=<n>`, `rate_limited=<n>` and `waits=<list>`. Then run the same ingestion with the wrong key `bad` and print `error: ` followed by the exception message.",
+      "starter": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nclass RateLimited(Exception):\n    def __init__(self, retry_after):\n        super().__init__(\"429 too many requests\")\n        self.retry_after = retry_after\n\nclass Unauthorized(Exception):\n    pass\n\ndef make_api(orders, api_key=\"secret-key\", every=3):\n    \"\"\"Stand-in for GET /orders?page=N&page_size=P: no network, same answers (200, 401, 429).\"\"\"\n    state = {\"calls\": 0, \"limited\": 0}\n    def get_orders(page, page_size, headers):\n        state[\"calls\"] += 1\n        if headers.get(\"X-Api-Key\") != api_key:\n            raise Unauthorized(\"401 invalid API key\")\n        if every and state[\"calls\"] % every == 0:\n            state[\"limited\"] += 1\n            raise RateLimited(2)\n        total = -(-len(orders) // page_size)\n        start = (page - 1) * page_size\n        return {\"data\": orders[start:start + page_size], \"page\": page, \"total_pages\": total}\n    return get_orders, state\n\ndef fetch_page(api, page, size, headers, sleep, max_tries=5):\n    for attempt in range(max_tries):\n        try:\n            return api(page, size, headers)\n        except RateLimited as e:\n            sleep(e.retry_after * 2 ** attempt)\n    raise RuntimeError(f\"page {page} still rate limited after {max_tries} tries\")\n\ndef fetch_all(api, headers, sleep, size=25):\n    records, page, total = [], 1, 1\n    while page <= total:\n        body = fetch_page(api, page, size, headers, sleep)\n        records.extend(body[\"data\"])\n        total = body[\"total_pages\"]\n        page += 1\n    return records\n\ncustomers, products, orders = generate()\n",
+      "solution": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nclass RateLimited(Exception):\n    def __init__(self, retry_after):\n        super().__init__(\"429 too many requests\")\n        self.retry_after = retry_after\n\nclass Unauthorized(Exception):\n    pass\n\ndef make_api(orders, api_key=\"secret-key\", every=3):\n    \"\"\"Stand-in for GET /orders?page=N&page_size=P: no network, same answers (200, 401, 429).\"\"\"\n    state = {\"calls\": 0, \"limited\": 0}\n    def get_orders(page, page_size, headers):\n        state[\"calls\"] += 1\n        if headers.get(\"X-Api-Key\") != api_key:\n            raise Unauthorized(\"401 invalid API key\")\n        if every and state[\"calls\"] % every == 0:\n            state[\"limited\"] += 1\n            raise RateLimited(2)\n        total = -(-len(orders) // page_size)\n        start = (page - 1) * page_size\n        return {\"data\": orders[start:start + page_size], \"page\": page, \"total_pages\": total}\n    return get_orders, state\n\ndef fetch_page(api, page, size, headers, sleep, max_tries=5):\n    for attempt in range(max_tries):\n        try:\n            return api(page, size, headers)\n        except RateLimited as e:\n            sleep(e.retry_after * 2 ** attempt)\n    raise RuntimeError(f\"page {page} still rate limited after {max_tries} tries\")\n\ndef fetch_all(api, headers, sleep, size=25):\n    records, page, total = [], 1, 1\n    while page <= total:\n        body = fetch_page(api, page, size, headers, sleep)\n        records.extend(body[\"data\"])\n        total = body[\"total_pages\"]\n        page += 1\n    return records\n\ncustomers, products, orders = generate()\napi, state = make_api(orders, every=4)\nwaits = []\nrecords = fetch_all(api, {\"X-Api-Key\": \"secret-key\"}, waits.append, size=30)\nprint(\"records=\" + str(len(records)))\nprint(\"calls=\" + str(state[\"calls\"]))\nprint(\"rate_limited=\" + str(state[\"limited\"]))\nprint(\"waits=\" + str(waits))\napi2, _ = make_api(orders, every=4)\ntry:\n    fetch_all(api2, {\"X-Api-Key\": \"bad\"}, waits.append, size=30)\nexcept Unauthorized as e:\n    print(\"error: \" + str(e))\n",
+      "expected": "records=120\ncalls=5\nrate_limited=1\nwaits=[2]\nerror: 401 invalid API key"
+    },
+    {
+      "id": "i2",
+      "title": "Idempotent landing report",
+      "kind": "python",
+      "prompt": "Ingest the generated orders (stand-in API with `every=0`, page size 25), then with `land` write batch `a`, then batch `b`, then batch `a` again, in an in-memory `sqlite3` database. Print `rows=<total rows in raw_orders>` and then one line per batch `<batch>=<rows>` sorted by batch. Then print `distinct payloads in a: <n>` for the number of distinct payload strings in batch a (the duplicate order record makes it differ from the row count).",
+      "starter": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nclass RateLimited(Exception):\n    def __init__(self, retry_after):\n        super().__init__(\"429 too many requests\")\n        self.retry_after = retry_after\n\nclass Unauthorized(Exception):\n    pass\n\ndef make_api(orders, api_key=\"secret-key\", every=3):\n    \"\"\"Stand-in for GET /orders?page=N&page_size=P: no network, same answers (200, 401, 429).\"\"\"\n    state = {\"calls\": 0, \"limited\": 0}\n    def get_orders(page, page_size, headers):\n        state[\"calls\"] += 1\n        if headers.get(\"X-Api-Key\") != api_key:\n            raise Unauthorized(\"401 invalid API key\")\n        if every and state[\"calls\"] % every == 0:\n            state[\"limited\"] += 1\n            raise RateLimited(2)\n        total = -(-len(orders) // page_size)\n        start = (page - 1) * page_size\n        return {\"data\": orders[start:start + page_size], \"page\": page, \"total_pages\": total}\n    return get_orders, state\n\ndef fetch_page(api, page, size, headers, sleep, max_tries=5):\n    for attempt in range(max_tries):\n        try:\n            return api(page, size, headers)\n        except RateLimited as e:\n            sleep(e.retry_after * 2 ** attempt)\n    raise RuntimeError(f\"page {page} still rate limited after {max_tries} tries\")\n\ndef fetch_all(api, headers, sleep, size=25):\n    records, page, total = [], 1, 1\n    while page <= total:\n        body = fetch_page(api, page, size, headers, sleep)\n        records.extend(body[\"data\"])\n        total = body[\"total_pages\"]\n        page += 1\n    return records\n\nimport json\nimport sqlite3\n\ndef land(conn, batch_id, records):\n    \"\"\"Land raw records unchanged; a batch is replaced as a whole, so re-running it adds nothing.\"\"\"\n    conn.execute(\"CREATE TABLE IF NOT EXISTS raw_orders (batch_id TEXT, seq INTEGER, payload TEXT, PRIMARY KEY (batch_id, seq))\")\n    with conn:\n        conn.execute(\"DELETE FROM raw_orders WHERE batch_id = ?\", (batch_id,))\n        conn.executemany(\"INSERT INTO raw_orders VALUES (?, ?, ?)\",\n                         [(batch_id, i, json.dumps(r, sort_keys=True)) for i, r in enumerate(records)])\n\ncustomers, products, orders = generate()\n",
+      "solution": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nclass RateLimited(Exception):\n    def __init__(self, retry_after):\n        super().__init__(\"429 too many requests\")\n        self.retry_after = retry_after\n\nclass Unauthorized(Exception):\n    pass\n\ndef make_api(orders, api_key=\"secret-key\", every=3):\n    \"\"\"Stand-in for GET /orders?page=N&page_size=P: no network, same answers (200, 401, 429).\"\"\"\n    state = {\"calls\": 0, \"limited\": 0}\n    def get_orders(page, page_size, headers):\n        state[\"calls\"] += 1\n        if headers.get(\"X-Api-Key\") != api_key:\n            raise Unauthorized(\"401 invalid API key\")\n        if every and state[\"calls\"] % every == 0:\n            state[\"limited\"] += 1\n            raise RateLimited(2)\n        total = -(-len(orders) // page_size)\n        start = (page - 1) * page_size\n        return {\"data\": orders[start:start + page_size], \"page\": page, \"total_pages\": total}\n    return get_orders, state\n\ndef fetch_page(api, page, size, headers, sleep, max_tries=5):\n    for attempt in range(max_tries):\n        try:\n            return api(page, size, headers)\n        except RateLimited as e:\n            sleep(e.retry_after * 2 ** attempt)\n    raise RuntimeError(f\"page {page} still rate limited after {max_tries} tries\")\n\ndef fetch_all(api, headers, sleep, size=25):\n    records, page, total = [], 1, 1\n    while page <= total:\n        body = fetch_page(api, page, size, headers, sleep)\n        records.extend(body[\"data\"])\n        total = body[\"total_pages\"]\n        page += 1\n    return records\n\nimport json\nimport sqlite3\n\ndef land(conn, batch_id, records):\n    \"\"\"Land raw records unchanged; a batch is replaced as a whole, so re-running it adds nothing.\"\"\"\n    conn.execute(\"CREATE TABLE IF NOT EXISTS raw_orders (batch_id TEXT, seq INTEGER, payload TEXT, PRIMARY KEY (batch_id, seq))\")\n    with conn:\n        conn.execute(\"DELETE FROM raw_orders WHERE batch_id = ?\", (batch_id,))\n        conn.executemany(\"INSERT INTO raw_orders VALUES (?, ?, ?)\",\n                         [(batch_id, i, json.dumps(r, sort_keys=True)) for i, r in enumerate(records)])\n\ncustomers, products, orders = generate()\napi, state = make_api(orders, every=0)\nrecords = fetch_all(api, {\"X-Api-Key\": \"secret-key\"}, lambda s: None)\nconn = sqlite3.connect(\":memory:\")\nland(conn, \"a\", records)\nland(conn, \"b\", records)\nland(conn, \"a\", records)\nprint(\"rows=\" + str(conn.execute(\"SELECT COUNT(*) FROM raw_orders\").fetchone()[0]))\nfor batch, n in conn.execute(\"SELECT batch_id, COUNT(*) FROM raw_orders GROUP BY batch_id ORDER BY batch_id\"):\n    print(f\"{batch}={n}\")\nprint(\"distinct payloads in a: \" + str(conn.execute(\"SELECT COUNT(DISTINCT payload) FROM raw_orders WHERE batch_id = 'a'\").fetchone()[0]))\n",
+      "expected": "rows=240\na=120\nb=120\ndistinct payloads in a: 119"
+    },
+    {
+      "id": "i3",
+      "title": "Failure policy for page 3 (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Page 3 of 5 still answers 429 after the retry limit. Decide and justify what the ingestion stage should do with pages 1 and 2 (keep or discard), what it should record, and how the next run should behave, in terms of the raw layer and idempotency.",
+      "starter": "Decision:\nWhat is recorded:\nNext run:",
+      "solution": "Discard the partial batch: write nothing to raw_orders for this batch (or write it inside a transaction that is rolled back), mark the batch as failed with the page number and the reason in a log or state table, and exit with an error so the scheduler can alert and retry. Keeping pages 1 and 2 would leave a batch that looks complete but misses 50 records, and the later stages would build reports on it. The next run uses the same batch id, so it replaces whatever exists and, because landing is idempotent, a retry after a partial failure is safe. If the source supports it, a smaller improvement is to checkpoint the last good page and resume from it, with the batch only marked complete after the last page.",
+      "rubric": [
+        "States a clear keep or discard decision with a reason.",
+        "Records the failed page and reason so someone can act.",
+        "Explains why the retry is safe (same batch id, idempotent landing).",
+        "Mentions that a partial batch must not look complete."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "120 records are served 25 per page. A client stops the loop when a page has fewer than 25 records. What goes wrong if the source had 125 records instead?",
+      "options": [
+        "Nothing, it stops after page 5",
+        "It reads page 6, which is empty, and works only because an empty page is shorter than 25",
+        "It stops one page early",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "With 125 records page 5 is exactly full, so the 'short page' test does not trigger until the empty page 6 is read; with a source that returns an error for page 6 the loop would fail. Using total_pages avoids the guess."
+    },
+    {
+      "id": "c2",
+      "question": "The stand-in rate limits every third call. For 5 pages, how many calls does `fetch_all` make?",
+      "options": [
+        "5",
+        "7",
+        "6",
+        "10"
+      ],
+      "answer": 1,
+      "explanation": "Calls 3 and 6 are limited and are repeated: pages 3 and 5 each need two calls, so 5 + 2 = 7."
+    },
+    {
+      "id": "c3",
+      "question": "Which error should a retry loop NOT retry?",
+      "options": [
+        "429 Too Many Requests",
+        "A temporary 503",
+        "401 Unauthorized caused by a wrong key",
+        "A connection timeout"
+      ],
+      "answer": 2,
+      "explanation": "A wrong key stays wrong however often you retry; the others can recover. Retrying a 401 only delays the real fix."
+    },
+    {
+      "id": "c4",
+      "question": "`land` deletes the batch and inserts it again inside one transaction. Why?",
+      "options": [
+        "It is faster than updating",
+        "A re-run gives the same rows, and a crash in the middle leaves the old batch rather than a half-written one",
+        "SQLite requires it",
+        "To count the rows"
+      ],
+      "answer": 1,
+      "explanation": "Delete plus insert in one transaction is atomic and repeatable, which is what idempotent means. Appending would double the rows on every run."
+    },
+    {
+      "id": "c5",
+      "question": "Where should the API key live?",
+      "options": [
+        "In a constant at the top of the script",
+        "In an environment variable read at start, with a masked value in logs",
+        "In the raw table next to the data",
+        "In the page URL"
+      ],
+      "answer": 1,
+      "explanation": "Keys in source code end up in Git history. An environment variable keeps the secret outside the code, and masking keeps it out of the logs."
+    }
+  ]
+}

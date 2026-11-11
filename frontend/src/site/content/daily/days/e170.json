@@ -1,0 +1,188 @@
+{
+  "id": "e170",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-collections",
+      "python-csv-json",
+      "python-exceptions"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "dedupe-preserve-order",
+      "chunk-generator",
+      "retry-with-backoff",
+      "count-event-types"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "interview-patterns",
+      "python-track"
+    ],
+    "patterns": [
+      "remove-duplicates"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Group anagrams",
+      "kind": "python",
+      "prompt": "Group the words `['tar', 'rat', 'art', 'dog', 'god', 'cat']` into anagram groups. Print the groups as a list of sorted lists, with the list of groups sorted too: `[['art', 'rat', 'tar'], ['cat'], ['dog', 'god']]`.",
+      "starter": "words = ['tar', 'rat', 'art', 'dog', 'god', 'cat']\n",
+      "solution": "from collections import defaultdict\n\nwords = ['tar', 'rat', 'art', 'dog', 'god', 'cat']\ngroups = defaultdict(list)\nfor w in words:\n    groups[''.join(sorted(w))].append(w)\nprint(sorted(sorted(g) for g in groups.values()))\n",
+      "hints": [
+        "Use the sorted letters of a word as the dictionary key.",
+        "defaultdict(list) lets you append without checking for the key.",
+        "Sort each group and then the list of groups before printing."
+      ],
+      "expected": "[['art', 'rat', 'tar'], ['cat'], ['dog', 'god']]"
+    },
+    {
+      "id": "g2",
+      "title": "A batching generator",
+      "kind": "python",
+      "prompt": "Write a generator `batches(items, n)` that yields lists of up to `n` items. Print `list(batches(range(7), 3))`, which must show `[[0, 1, 2], [3, 4, 5], [6]]`.",
+      "starter": "def batches(items, n):\n    pass\n",
+      "solution": "def batches(items, n):\n    batch = []\n    for x in items:\n        batch.append(x)\n        if len(batch) == n:\n            yield batch\n            batch = []\n    if batch:\n        yield batch\n\nprint(list(batches(range(7), 3)))\n",
+      "hints": [
+        "Keep a list called batch and append each item.",
+        "When the list reaches n items, yield it and start a new list.",
+        "After the loop, yield the remainder if it is not empty."
+      ],
+      "expected": "[[0, 1, 2], [3, 4, 5], [6]]"
+    },
+    {
+      "id": "g3",
+      "title": "Totals from a CSV with bad rows",
+      "kind": "python",
+      "prompt": "The CSV text has columns `region,amount`. Using `csv.DictReader`, sum `amount` per region for the rows whose amount is a number and count the bad rows. Print `totals: {'east': 15.0, 'west': 7.5}` (a dictionary with regions in the order they first appear) and `bad: 2`.",
+      "starter": "import csv\nimport io\n\ntext = 'region,amount\\neast,10\\nwest,7.5\\neast,5\\nwest,x\\neast,\\n'\n",
+      "solution": "import csv\nimport io\n\ntext = 'region,amount\\neast,10\\nwest,7.5\\neast,5\\nwest,x\\neast,\\n'\ntotals, bad = {}, 0\nfor row in csv.DictReader(io.StringIO(text)):\n    try:\n        value = float(row['amount'])\n    except ValueError:\n        bad += 1\n        continue\n    totals[row['region']] = totals.get(row['region'], 0.0) + value\nprint('totals:', totals)\nprint('bad:', bad)\n",
+      "hints": [
+        "csv.DictReader(io.StringIO(text)) gives a dict per row.",
+        "float() raises ValueError for 'x' and for an empty string.",
+        "Count the bad rows in the except branch and add good values with totals.get(key, 0.0)."
+      ],
+      "expected": "totals: {'east': 15.0, 'west': 7.5}\nbad: 2"
+    },
+    {
+      "id": "g4",
+      "title": "Retry with a limit",
+      "kind": "python",
+      "prompt": "The function `call` fails with `ConnectionError` on its first two calls and succeeds on the third. Write `retry(fn, attempts)` that calls `fn` up to `attempts` times, catching only `ConnectionError`, and re-raises the last error if all attempts fail. Print `result: ok` and `calls: 3` for `retry(call, 5)`.",
+      "starter": "state = {'n': 0}\n\ndef call():\n    state['n'] += 1\n    if state['n'] < 3:\n        raise ConnectionError('temporary')\n    return 'ok'\n",
+      "solution": "state = {'n': 0}\n\ndef call():\n    state['n'] += 1\n    if state['n'] < 3:\n        raise ConnectionError('temporary')\n    return 'ok'\n\ndef retry(fn, attempts):\n    last = None\n    for _ in range(attempts):\n        try:\n            return fn()\n        except ConnectionError as e:\n            last = e\n    raise last\n\nprint('result:', retry(call, 5))\nprint('calls:', state['n'])\n",
+      "hints": [
+        "Loop attempts times and try calling fn().",
+        "Catch ConnectionError, remember it and continue.",
+        "After the loop, raise the remembered error."
+      ],
+      "expected": "result: ok\ncalls: 3"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Top customers and a merged feed",
+      "kind": "python",
+      "prompt": "Two lists of `(customer, amount)` records come from two systems: `a = [('ana', 10), ('ben', 5), ('cy', 7)]` and `b = [('ana', 4), ('cy', 1), ('dee', 9)]`. Merge them by summing amounts per customer, then print the three customers with the largest totals as `customer: total`, one per line, largest first (ties broken alphabetically), then `customers: 4`.",
+      "starter": "a = [('ana', 10), ('ben', 5), ('cy', 7)]\nb = [('ana', 4), ('cy', 1), ('dee', 9)]\n",
+      "solution": "from collections import Counter\n\na = [('ana', 10), ('ben', 5), ('cy', 7)]\nb = [('ana', 4), ('cy', 1), ('dee', 9)]\ntotals = Counter()\nfor name, amount in a + b:\n    totals[name] += amount\nranked = sorted(totals.items(), key=lambda kv: (-kv[1], kv[0]))\nfor name, total in ranked[:3]:\n    print(f'{name}: {total}')\nprint('customers:', len(totals))\n",
+      "expected": "ana: 14\ndee: 9\ncy: 8\ncustomers: 4"
+    },
+    {
+      "id": "i2",
+      "title": "A lazy pipeline",
+      "kind": "python",
+      "prompt": "Given the lines `['1,5', '2,x', '3,12', '4,', '5,8', '6,20']` (`id,value`), write generators that (1) parse each line into `(id, value)` skipping lines whose value is not an integer, (2) keep records with value at least 8, and (3) group the kept records into batches of 2 ids. Print each batch as a list of ids, then `skipped: 2` using a counter that your parser increments.",
+      "starter": "lines = ['1,5', '2,x', '3,12', '4,', '5,8', '6,20']\nskipped = 0\n",
+      "solution": "lines = ['1,5', '2,x', '3,12', '4,', '5,8', '6,20']\nskipped = 0\n\ndef parse(it):\n    global skipped\n    for line in it:\n        i, v = line.split(',')\n        try:\n            yield int(i), int(v)\n        except ValueError:\n            skipped += 1\n\ndef big(it):\n    return (r for r in it if r[1] >= 8)\n\ndef batches(it, n):\n    batch = []\n    for r in it:\n        batch.append(r[0])\n        if len(batch) == n:\n            yield batch\n            batch = []\n    if batch:\n        yield batch\n\nfor b in batches(big(parse(lines)), 2):\n    print(b)\nprint('skipped:', skipped)\n",
+      "expected": "[3, 5]\n[6]\nskipped: 2"
+    },
+    {
+      "id": "i3",
+      "title": "Talk through a pipeline function",
+      "kind": "written",
+      "required": false,
+      "prompt": "The interviewer asks: \"Write a function that reads a 50 GB CSV of events and returns the number of distinct users per day.\" Explain in 5 to 8 sentences: the structure you would use, why you would not load the file into a list, the memory cost in terms of the number of distinct users, how you would handle bad rows, and what you would do if the distinct users did not fit in memory.",
+      "starter": "Write your answer here.",
+      "solution": "I would iterate over the file object line by line (or with csv.reader), so only one row is in memory at a time. For each valid row I would add the user id to a set stored in a dictionary keyed by the day, `days[day].add(user)`, because a set gives constant-time membership and discards repeats. Memory is then proportional to the number of distinct (day, user) pairs, not to the number of rows, which matters because 50 GB of events usually contains many repeats. Bad rows (missing day or user, malformed fields) would be counted and written to a quarantine file with the line number, and I would report the count at the end so that nothing disappears silently. If the distinct pairs did not fit in memory, I would process the data in partitions, for example one day at a time by splitting the file on the day or sorting it externally, or use a database or an approximate method such as a HyperLogLog sketch and state the error margin. I would test the function on a ten-line input with a repeated user and a bad row before running it on the large file.",
+      "rubric": [
+        "Streams the file line by line instead of loading it",
+        "Uses a dictionary of sets (or equivalent) and explains the constant-time membership",
+        "States memory in terms of distinct users per day",
+        "Handles bad rows with counting or quarantine",
+        "Offers a plan for data that does not fit in memory"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Two-sum is solved with a loop inside a loop in `O(n^2)`. Which change gives `O(n)`?",
+      "options": [
+        "Store the values already seen in a dict or set and look up the complement",
+        "Sort the list first and use two loops",
+        "Use recursion",
+        "Use a list for membership tests"
+      ],
+      "answer": 0,
+      "explanation": "A dict or set lookup is constant on average, so one pass suffices. `x in list` is itself linear, so a list would not help."
+    },
+    {
+      "id": "c2",
+      "question": "What does `gen = (x * 2 for x in range(3)); list(gen); list(gen)` return for the second `list(gen)`?",
+      "options": [
+        "[]",
+        "[0, 2, 4]",
+        "An error",
+        "[0]"
+      ],
+      "answer": 0,
+      "explanation": "A generator can be consumed only once. After the first list() it is exhausted, so the second call returns an empty list."
+    },
+    {
+      "id": "c3",
+      "question": "Why is `def add(x, seen=[])` risky?",
+      "options": [
+        "The default list is created once and shared across calls",
+        "Lists cannot be default arguments",
+        "It is slower",
+        "It raises a SyntaxError"
+      ],
+      "answer": 0,
+      "explanation": "Default values are evaluated once when the function is defined, so every call that uses the default mutates the same list. Use None and create a new list inside."
+    },
+    {
+      "id": "c4",
+      "question": "A job must read a file larger than memory and count rows per country. Which approach is right?",
+      "options": [
+        "Iterate the file line by line and update a dictionary of counts",
+        "Call `f.read().split('\\n')`",
+        "Use `readlines()` and then count",
+        "Convert the file into a list of dicts first"
+      ],
+      "answer": 0,
+      "explanation": "Iterating the file object is lazy and keeps one line in memory, and the counts dictionary is as large as the number of countries. The other options load the whole file."
+    },
+    {
+      "id": "c5",
+      "question": "In a retry helper, why catch `ConnectionError` rather than `Exception`?",
+      "options": [
+        "Programming errors should surface immediately instead of being retried",
+        "Exception cannot be caught",
+        "ConnectionError is faster",
+        "Retrying is only valid for exceptions"
+      ],
+      "answer": 0,
+      "explanation": "Retrying a bug such as a KeyError wastes time and hides the problem. Retry only the failures that are plausibly temporary."
+    }
+  ]
+}

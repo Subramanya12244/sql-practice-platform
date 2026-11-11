@@ -1,0 +1,174 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "etl-pipeline-monitoring"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "warehousing-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Absolute tolerance verdict",
+      "kind": "python",
+      "prompt": "Write `within(source, target, tol)` that returns True when the absolute difference is at most `tol`. Use it to print `True` or `False` for each of the three pairs given, one per line, with tolerance 0.05.",
+      "starter": "pairs = [(100.00, 100.04), (100.00, 100.06), (250.50, 250.50)]\n\ndef within(source, target, tol):\n    pass\n\n# Your code here\n",
+      "solution": "pairs = [(100.00, 100.04), (100.00, 100.06), (250.50, 250.50)]\n\ndef within(source, target, tol):\n    return abs(source - target) <= tol\n\nfor s, t in pairs:\n    print(within(s, t, 0.05))\n",
+      "hints": [
+        "The sign of the difference does not matter, so take its absolute value.",
+        "`abs(source - target) <= tol` is the whole function.",
+        "Loop over `pairs`, unpack each into `s, t` and print `within(s, t, 0.05)`. Beware: 100.06 - 100.00 is just above 0.05, so one line is False."
+      ],
+      "expected": "True\nFalse\nTrue"
+    },
+    {
+      "id": "g2",
+      "title": "Exact money with Decimal",
+      "kind": "python",
+      "prompt": "Sum the price strings `'19.99'`, `'5.01'` and `'0.10'` as `Decimal` values and print the total. Then print the float sum of the same values converted with `float()`, rounded to 2 places, and finally print whether the Decimal total equals `Decimal('25.10')`. Three lines.",
+      "starter": "from decimal import Decimal\n\nprices = ['19.99', '5.01', '0.10']\n\n# Your code here\n",
+      "solution": "from decimal import Decimal\n\nprices = ['19.99', '5.01', '0.10']\n\ntotal = sum(Decimal(p) for p in prices)\nprint(total)\nprint(round(sum(float(p) for p in prices), 2))\nprint(total == Decimal('25.10'))\n",
+      "hints": [
+        "Build each `Decimal` from the string, never from a float.",
+        "`sum(Decimal(p) for p in prices)` gives an exact `Decimal` total.",
+        "Print the total, then `round(sum(float(p) for p in prices), 2)`, then the comparison with `Decimal('25.10')`."
+      ],
+      "expected": "25.10\n25.1\nTrue"
+    },
+    {
+      "id": "g3",
+      "title": "Per-group differences in PostgreSQL",
+      "kind": "sql",
+      "prompt": "Tables `a` and `b` hold `(grp, amount)`. Return columns `grp`, `a_total`, `b_total` and `diff` (a minus b) for every group that appears in either table, treating a missing group as 0, ordered by `grp`.",
+      "starter": "CREATE TABLE a (grp text, amount int);\nCREATE TABLE b (grp text, amount int);\nINSERT INTO a VALUES ('x', 10), ('x', 5), ('y', 20), ('z', 7);\nINSERT INTO b VALUES ('x', 15), ('y', 18), ('w', 3);\n\nSELECT grp, SUM(amount) AS a_total FROM a GROUP BY grp ORDER BY grp;\n",
+      "solution": "CREATE TABLE a (grp text, amount int);\nCREATE TABLE b (grp text, amount int);\nINSERT INTO a VALUES ('x', 10), ('x', 5), ('y', 20), ('z', 7);\nINSERT INTO b VALUES ('x', 15), ('y', 18), ('w', 3);\n\nSELECT COALESCE(a.grp, b.grp) AS grp,\n       COALESCE(a.total, 0) AS a_total,\n       COALESCE(b.total, 0) AS b_total,\n       COALESCE(a.total, 0) - COALESCE(b.total, 0) AS diff\nFROM (SELECT grp, SUM(amount) AS total FROM a GROUP BY grp) a\nFULL OUTER JOIN (SELECT grp, SUM(amount) AS total FROM b GROUP BY grp) b ON b.grp = a.grp\nORDER BY grp;\n",
+      "hints": [
+        "Aggregate each table by group in a subquery first, then join the two results.",
+        "A `FULL OUTER JOIN` keeps groups that exist on only one side; `COALESCE(x, 0)` replaces the missing total.",
+        "Take the key with `COALESCE(a.grp, b.grp)` and compute `diff` from the two `COALESCE`d totals."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "A two-line waterfall",
+      "kind": "python",
+      "prompt": "A ledger total of 10000 cents is reconciled with a warehouse total of 8700. Failed orders worth 600 are excluded by rule and late orders worth 500 are timing. Print three lines in this form: `expected 8900`, `actual 8700`, `unexplained -200` (compute all three numbers).",
+      "starter": "ledger_total = 10000\nwarehouse_total = 8700\nfailed = 600\nlate = 500\n\n# Your code here\n",
+      "solution": "ledger_total = 10000\nwarehouse_total = 8700\nfailed = 600\nlate = 500\n\nexpected = ledger_total - failed - late\nprint('expected', expected)\nprint('actual', warehouse_total)\nprint('unexplained', warehouse_total - expected)\n",
+      "hints": [
+        "The expected warehouse total is the ledger total after removing the explained items.",
+        "`expected = ledger_total - failed - late`.",
+        "The unexplained part is `warehouse_total - expected`, negative when the warehouse is short."
+      ],
+      "expected": "expected 8900\nactual 8700\nunexplained -200"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Reconcile by currency",
+      "kind": "python",
+      "prompt": "For the dictionaries of totals in cents given in the starter, print one line per currency in alphabetical order. A currency with diff (target minus source) equal to 0 prints `<CUR> match`. Otherwise, if `abs(diff)` is within that currency's tolerance, print `<CUR> within tolerance <diff>`, else print `<CUR> FAIL <diff>`, where `<diff>` is written with an explicit sign (for example `+30` or `-500`). After the lines print `overall FAIL` if any currency failed, else `overall OK`.",
+      "starter": "source = {'USD': 5000, 'EUR': 3000, 'GBP': 800, 'JPY': 120000}\ntarget = {'USD': 5000, 'EUR': 3030, 'GBP': 300, 'JPY': 120000}\ntolerance = {'USD': 0, 'EUR': 50, 'GBP': 10, 'JPY': 0}\n\n# Your code here\n",
+      "solution": "source = {'USD': 5000, 'EUR': 3000, 'GBP': 800, 'JPY': 120000}\ntarget = {'USD': 5000, 'EUR': 3030, 'GBP': 300, 'JPY': 120000}\ntolerance = {'USD': 0, 'EUR': 50, 'GBP': 10, 'JPY': 0}\n\nfailed = False\nfor cur in sorted(source):\n    diff = target[cur] - source[cur]\n    if diff == 0:\n        print(f\"{cur} match\")\n    elif abs(diff) <= tolerance[cur]:\n        print(f\"{cur} within tolerance {diff:+}\")\n    else:\n        failed = True\n        print(f\"{cur} FAIL {diff:+}\")\nprint('overall FAIL' if failed else 'overall OK')\n",
+      "expected": "EUR within tolerance +30\nGBP FAIL -500\nJPY match\nUSD match\noverall FAIL"
+    },
+    {
+      "id": "i2",
+      "title": "Daily reconciliation with a tolerance in SQL",
+      "kind": "sql",
+      "prompt": "Tables `ledger` and `wh` hold `(day, amount)` with `numeric` amounts. Return `day`, `diff` (ledger total minus warehouse total per day, a missing side counts as 0) and `status`, which is `ok` when the absolute diff is at most 0.05 and `check` otherwise. Return only the days with status `check`, ordered by day.",
+      "starter": "CREATE TABLE ledger (day date, amount numeric(12,2));\nCREATE TABLE wh (day date, amount numeric(12,2));\nINSERT INTO ledger VALUES ('2026-01-05', 10.00), ('2026-01-05', 20.00), ('2026-01-06', 5.00), ('2026-01-07', 8.00);\nINSERT INTO wh VALUES ('2026-01-05', 30.03), ('2026-01-06', 4.00);\n\nSELECT day FROM ledger ORDER BY day;\n",
+      "solution": "CREATE TABLE ledger (day date, amount numeric(12,2));\nCREATE TABLE wh (day date, amount numeric(12,2));\nINSERT INTO ledger VALUES ('2026-01-05', 10.00), ('2026-01-05', 20.00), ('2026-01-06', 5.00), ('2026-01-07', 8.00);\nINSERT INTO wh VALUES ('2026-01-05', 30.03), ('2026-01-06', 4.00);\n\nWITH d AS (\n  SELECT COALESCE(s.day, t.day) AS day,\n         COALESCE(s.total, 0) - COALESCE(t.total, 0) AS diff\n  FROM (SELECT day, SUM(amount) AS total FROM ledger GROUP BY day) s\n  FULL OUTER JOIN (SELECT day, SUM(amount) AS total FROM wh GROUP BY day) t ON t.day = s.day\n)\nSELECT day, diff, CASE WHEN abs(diff) <= 0.05 THEN 'ok' ELSE 'check' END AS status\nFROM d\nWHERE abs(diff) > 0.05\nORDER BY day;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Waterfall by reason",
+      "kind": "python",
+      "required": false,
+      "prompt": "Given the ledger rows `(id, cents, status, posted)` and the warehouse dictionary `id -> cents`, with cutoff `'2026-02-03'`, print four lines: `excluded failed <n>`, `timing <n>`, `rounding <n>`, `unexplained <n>`. Failed orders and orders posted after the cutoff are explained by their amounts. `rounding` is the sum over in-scope orders (not failed, posted on or before the cutoff) of the absolute difference when it is at most 2 cents; `unexplained` is the remaining signed total difference after removing the failed, timing and signed rounding parts (warehouse total minus expected total).",
+      "starter": "ledger = [(1, 1000, 'paid', '2026-02-01'), (2, 500, 'failed', '2026-02-01'), (3, 750, 'paid', '2026-02-04'), (4, 1999, 'paid', '2026-02-02'), (5, 2500, 'paid', '2026-02-03')]\nwarehouse = {1: 1000, 4: 2000, 5: 2300}\nCUTOFF = '2026-02-03'\n\n# Your code here\n",
+      "solution": "ledger = [(1, 1000, 'paid', '2026-02-01'), (2, 500, 'failed', '2026-02-01'), (3, 750, 'paid', '2026-02-04'), (4, 1999, 'paid', '2026-02-02'), (5, 2500, 'paid', '2026-02-03')]\nwarehouse = {1: 1000, 4: 2000, 5: 2300}\nCUTOFF = '2026-02-03'\n\nfailed = sum(r[1] for r in ledger if r[2] == 'failed')\ntiming = sum(r[1] for r in ledger if r[2] != 'failed' and r[3] > CUTOFF)\nin_scope = [r for r in ledger if r[2] != 'failed' and r[3] <= CUTOFF]\nsmall = [warehouse[r[0]] - r[1] for r in in_scope if abs(warehouse[r[0]] - r[1]) <= 2]\nrounding = sum(abs(d) for d in small)\nunexplained = sum(warehouse.values()) - (sum(r[1] for r in in_scope) + sum(small))\nprint('excluded failed', failed)\nprint('timing', timing)\nprint('rounding', rounding)\nprint('unexplained', unexplained)\n",
+      "expected": "excluded failed 500\ntiming 750\nrounding 1\nunexplained -200"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A reconciliation of order counts shows source 500 and target 499. Which tolerance is appropriate?",
+      "options": [
+        "Relative tolerance of 1 percent",
+        "Absolute tolerance of 1",
+        "Zero tolerance: a count cannot be off by rounding",
+        "No check is needed for one row"
+      ],
+      "answer": 2,
+      "explanation": "Counts are integers and rounding cannot change them, so a difference of one is a lost or extra row. A 1 percent tolerance would hide it."
+    },
+    {
+      "id": "c2",
+      "question": "A loop does `t = 0.0` then `t += 0.1` ten times. What does `t == 1.0` evaluate to?",
+      "options": [
+        "True",
+        "False",
+        "It raises an error",
+        "None"
+      ],
+      "answer": 1,
+      "explanation": "Binary floating point cannot store 0.1 exactly, and the ten additions in a loop accumulate to 0.9999999999999999. Use Decimal, integer cents or math.isclose."
+    },
+    {
+      "id": "c3",
+      "question": "Per-day differences are +50, -50 and 0, so the grand total difference is 0. What should a reconciliation conclude?",
+      "options": [
+        "The systems agree",
+        "Two days disagree and the grand total hid it",
+        "The tolerance is too small",
+        "Only the zero day needs checking"
+      ],
+      "answer": 1,
+      "explanation": "Opposite errors cancel in a total. Reconciling by group exposes both days, so the verdict must come from the groups and not only the grand total."
+    },
+    {
+      "id": "c4",
+      "question": "A waterfall starts from a ledger total of 1000, removes failed orders 100 and late orders 50 and expects 850. The warehouse holds 830. What is the unexplained difference?",
+      "options": [
+        "-20",
+        "+20",
+        "-170",
+        "0"
+      ],
+      "answer": 0,
+      "explanation": "Unexplained is actual minus expected: 830 - 850 = -20. The 150 from failed and late orders is explained by rules and is not part of it."
+    },
+    {
+      "id": "c5",
+      "question": "`math.isclose(0.0, 1e-12, rel_tol=1e-9)` is evaluated. What is the result and why?",
+      "options": [
+        "True, since 1e-12 is tiny",
+        "False, because the relative tolerance is measured against the larger value and 0 versus 1e-12 is 100 percent apart",
+        "It raises a ZeroDivisionError",
+        "True, since the defaults include abs_tol"
+      ],
+      "answer": 1,
+      "explanation": "With only rel_tol, the allowed gap is rel_tol times the larger magnitude, which is 1e-21 here, smaller than the 1e-12 difference. The default abs_tol is 0, so add an abs_tol for totals near zero."
+    }
+  ],
+  "id": "e137"
+}

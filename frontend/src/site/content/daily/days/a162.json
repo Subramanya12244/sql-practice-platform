@@ -1,0 +1,180 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "reconcile-sources",
+      "column-level-diff-report"
+    ],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "anti-join"
+    ]
+  },
+  "id": "a162",
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Count and total",
+      "kind": "python",
+      "prompt": "Using the DataFrames `src` and `tgt`, print `count: 5 5` (row counts) and `total: 150.0 173.0` (sums of `amount`, as floats), each on its own line.",
+      "starter": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6], \"amount\": [10.0, 20.0, 33.0, 50.0, 60.0]})\n\n",
+      "solution": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6], \"amount\": [10.0, 20.0, 33.0, 50.0, 60.0]})\n\nprint('count:', len(src), len(tgt))\nprint('total:', float(src['amount'].sum()), float(tgt['amount'].sum()))\n",
+      "hints": [
+        "len(df) gives the row count.",
+        "df['amount'].sum() gives the total; convert with float().",
+        "print('count:', len(src), len(tgt)) and the same for totals."
+      ],
+      "expected": "count: 5 5\ntotal: 150.0 173.0"
+    },
+    {
+      "id": "g2",
+      "title": "Missing and extra keys",
+      "kind": "python",
+      "prompt": "Find the ids in `src` that are not in `tgt` and the ids in `tgt` that are not in `src`. Print `missing: [4]` and `extra: [6]` (sorted lists of plain Python ints, using `set` differences and `int` conversion).",
+      "starter": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6], \"amount\": [10.0, 20.0, 33.0, 50.0, 60.0]})\n\n",
+      "solution": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6], \"amount\": [10.0, 20.0, 33.0, 50.0, 60.0]})\n\nmissing = sorted(int(i) for i in set(src['id']) - set(tgt['id']))\nextra = sorted(int(i) for i in set(tgt['id']) - set(src['id']))\nprint('missing:', missing)\nprint('extra:', extra)\n",
+      "hints": [
+        "set(src['id']) - set(tgt['id']) gives keys only in the source.",
+        "Reverse the order of the sets for the extra keys.",
+        "Sort the result and convert each id with int() so the list prints as [4]."
+      ],
+      "expected": "missing: [4]\nextra: [6]"
+    },
+    {
+      "id": "g3",
+      "title": "Outer merge with indicator",
+      "kind": "python",
+      "prompt": "Merge `src` and `tgt` on `id` with an outer merge, suffixes `_src` and `_tgt`, and `indicator=True`. Print the counts of the `_merge` column as a dict sorted by key: `{'both': 4, 'left_only': 1, 'right_only': 1}`.",
+      "starter": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6], \"amount\": [10.0, 20.0, 33.0, 50.0, 60.0]})\n\n",
+      "solution": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6], \"amount\": [10.0, 20.0, 33.0, 50.0, 60.0]})\n\nm = src.merge(tgt, on='id', how='outer', suffixes=('_src', '_tgt'), indicator=True)\nprint(m['_merge'].value_counts().sort_index().to_dict())\n",
+      "hints": [
+        "Use src.merge(tgt, on='id', how='outer', indicator=True).",
+        "Add suffixes=('_src', '_tgt').",
+        "value_counts().sort_index().to_dict() prints the dict."
+      ],
+      "expected": "{'left_only': 1, 'right_only': 1, 'both': 4}"
+    },
+    {
+      "id": "g4",
+      "title": "Changed values with a tolerance",
+      "kind": "python",
+      "prompt": "Inner-merge `src` and `tgt` on `id` (suffixes `_src`, `_tgt`), compute the absolute difference of the amounts and print the ids whose difference is greater than 0.005 as a list of ints: `[3]`.",
+      "starter": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6], \"amount\": [10.0, 20.0, 33.0, 50.0, 60.0]})\n\n",
+      "solution": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6], \"amount\": [10.0, 20.0, 33.0, 50.0, 60.0]})\n\nboth = src.merge(tgt, on='id', suffixes=('_src', '_tgt'))\ndiff = (both['amount_tgt'] - both['amount_src']).abs()\nprint([int(i) for i in both.loc[diff > 0.005, 'id']])\n",
+      "hints": [
+        "An inner merge keeps only the keys present on both sides.",
+        "diff = (both['amount_tgt'] - both['amount_src']).abs()",
+        "both.loc[diff > 0.005, 'id'] selects the ids; convert each to int."
+      ],
+      "expected": "[3]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A reconciliation function",
+      "kind": "python",
+      "prompt": "Write `reconcile(src, tgt, rejected)` returning a dict with the sorted lists of plain Python ints `missing` (in the source, not in the target, and not in `rejected`), `extra` (in the target only) and `changed` (keys on both sides whose `amount` differs by more than 0.005). Call it on the DataFrames below and print the dict. Then print `status: FAIL` if any list is non-empty, otherwise `status: PASS`.",
+      "starter": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5, 6], \"region\": [\"N\", \"N\", \"S\", \"S\", \"W\", \"W\"], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6, 7], \"region\": [\"N\", \"N\", \"S\", \"W\", \"W\", \"W\"], \"amount\": [10.0, 20.0, 30.0, 50.0, 61.0, 70.0]})\nrejected = {4}\n\ndef reconcile(src, tgt, rejected):\n    pass\n",
+      "solution": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5, 6], \"region\": [\"N\", \"N\", \"S\", \"S\", \"W\", \"W\"], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6, 7], \"region\": [\"N\", \"N\", \"S\", \"W\", \"W\", \"W\"], \"amount\": [10.0, 20.0, 30.0, 50.0, 61.0, 70.0]})\nrejected = {4}\n\ndef reconcile(src, tgt, rejected):\n    missing = sorted(int(i) for i in set(src['id']) - set(tgt['id']) - rejected)\n    extra = sorted(int(i) for i in set(tgt['id']) - set(src['id']))\n    both = src.merge(tgt, on='id', suffixes=('_s', '_t'))\n    diff = (both['amount_t'] - both['amount_s']).abs()\n    changed = sorted(int(i) for i in both.loc[diff > 0.005, 'id'])\n    return {'missing': missing, 'extra': extra, 'changed': changed}\n\nresult = reconcile(src, tgt, rejected)\nprint(result)\nprint('status:', 'FAIL' if any(result.values()) else 'PASS')\n",
+      "expected": "{'missing': [], 'extra': [7], 'changed': [6]}\nstatus: FAIL"
+    },
+    {
+      "id": "i2",
+      "title": "Locate the difference by region",
+      "kind": "python",
+      "prompt": "Using the DataFrames below, compute the total `amount` per `region` for the source and for the target, outer-join the two results on region, fill missing totals with 0, and print for each region (sorted by region) one line `region: source -> target (difference)`, for example `N: 30.0 -> 30.0 (0.0)`. Use floats rounded to 2 decimals.",
+      "starter": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5, 6], \"region\": [\"N\", \"N\", \"S\", \"S\", \"W\", \"W\"], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6, 7], \"region\": [\"N\", \"N\", \"S\", \"W\", \"W\", \"W\"], \"amount\": [10.0, 20.0, 30.0, 50.0, 61.0, 70.0]})\nrejected = {4}\n\n",
+      "solution": "import pandas as pd\n\nsrc = pd.DataFrame({\"id\": [1, 2, 3, 4, 5, 6], \"region\": [\"N\", \"N\", \"S\", \"S\", \"W\", \"W\"], \"amount\": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]})\ntgt = pd.DataFrame({\"id\": [1, 2, 3, 5, 6, 7], \"region\": [\"N\", \"N\", \"S\", \"W\", \"W\", \"W\"], \"amount\": [10.0, 20.0, 30.0, 50.0, 61.0, 70.0]})\nrejected = {4}\n\na = src.groupby('region')['amount'].sum().rename('s')\nb = tgt.groupby('region')['amount'].sum().rename('t')\nt = pd.concat([a, b], axis=1).fillna(0).sort_index()\nfor region, row in t.iterrows():\n    print(f\"{region}: {round(float(row['s']), 2)} -> {round(float(row['t']), 2)} ({round(float(row['t'] - row['s']), 2)})\")\n",
+      "expected": "N: 30.0 -> 30.0 (0.0)\nS: 70.0 -> 30.0 (-40.0)\nW: 110.0 -> 181.0 (71.0)"
+    },
+    {
+      "id": "i3",
+      "title": "SQL comparison",
+      "kind": "sql",
+      "prompt": "On the browser database, create `rc_a(id integer, v integer)` with rows `(1, 10), (2, 20), (3, 30)` and `rc_b(id integer, v integer)` with rows `(2, 20), (3, 35), (4, 40)` (drop both first if they exist). Return `id` and `problem` for every id that is missing in `rc_b`, extra in `rc_b` or has a different `v`, using a `FULL OUTER JOIN` and `IS DISTINCT FROM`. `problem` is `'missing'`, `'extra'` or `'changed'`. Order by `id`.",
+      "starter": "SELECT 1 AS id, 'missing' AS problem;\n",
+      "solution": "DROP TABLE IF EXISTS rc_a;\nDROP TABLE IF EXISTS rc_b;\nCREATE TABLE rc_a (id integer, v integer);\nCREATE TABLE rc_b (id integer, v integer);\nINSERT INTO rc_a VALUES (1, 10), (2, 20), (3, 30);\nINSERT INTO rc_b VALUES (2, 20), (3, 35), (4, 40);\nSELECT COALESCE(a.id, b.id) AS id,\n       CASE WHEN b.id IS NULL THEN 'missing' WHEN a.id IS NULL THEN 'extra' ELSE 'changed' END AS problem\nFROM rc_a a FULL OUTER JOIN rc_b b ON b.id = a.id\nWHERE a.id IS NULL OR b.id IS NULL OR a.v IS DISTINCT FROM b.v\nORDER BY 1;\n",
+      "ordered": true,
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A source and a target both have 1,000 rows. What can you conclude?",
+      "options": [
+        "Nothing about the contents: rows may be missing and others extra, or values may differ",
+        "The tables are identical",
+        "Every key is present in both",
+        "No rows were duplicated"
+      ],
+      "answer": 0,
+      "explanation": "A count only says how many rows there are. A lost row and a test row cancel out, and values may differ. Compare keys and values to say more."
+    },
+    {
+      "id": "c2",
+      "question": "In `src.merge(tgt, on='id', how='outer', indicator=True)`, what does `_merge == 'left_only'` mean?",
+      "options": [
+        "The key exists in src only, so it is missing in the target",
+        "The key exists in tgt only",
+        "The key exists on both sides with equal values",
+        "The key appears twice"
+      ],
+      "answer": 0,
+      "explanation": "left_only marks keys from the left DataFrame (the source here) with no match on the right. right_only marks the reverse, both marks matches. Equality of values is not part of the indicator."
+    },
+    {
+      "id": "c3",
+      "question": "Why compare two-decimal amounts with `abs(a - b) <= 0.005` and not `a == b`?",
+      "options": [
+        "Floating-point arithmetic leaves tiny errors, so equal amounts can differ in the last digits",
+        "Because == is not defined for floats",
+        "To ignore all differences below 1",
+        "Because tolerance makes the query faster"
+      ],
+      "answer": 0,
+      "explanation": "Values such as 0.1 + 0.2 are stored as binary approximations, so an exact comparison can fail for numbers that are equal for business purposes. A half-cent tolerance accepts noise and still catches a cent."
+    },
+    {
+      "id": "c4",
+      "question": "The total of the target is 9.0 lower than the source and the keys are identical. What is the most likely cause?",
+      "options": [
+        "At least one value differs, or several differ by amounts that add up to 9.0",
+        "A row is missing in the target",
+        "A key is duplicated",
+        "The tables are fine, totals can differ"
+      ],
+      "answer": 0,
+      "explanation": "With identical keys, a total difference must come from changed values. Group totals or a value comparison per key will locate them."
+    },
+    {
+      "id": "c5",
+      "question": "What is a legitimate reason to remove keys from the 'missing in target' list in a report?",
+      "options": [
+        "The loader rejected them on purpose and logged them in a reject list",
+        "They are probably test data",
+        "The report would be too long",
+        "The keys have small amounts"
+      ],
+      "answer": 0,
+      "explanation": "A difference is acceptable only when a named, counted reason explains it, such as a logged reject. Unexplained differences must stay in the report as failures."
+    }
+  ]
+}
