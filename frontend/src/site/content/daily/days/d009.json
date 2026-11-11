@@ -1,0 +1,172 @@
+{
+  "id": "d009",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-collections",
+      "python-fundamentals"
+    ],
+    "questions": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Unpack a record",
+      "prompt": "The tuple `row` is `(\"Ada\", 36, \"London\")`. Unpack it into `name`, `age` and `city`, then print `city`, `name` and `age` in that order on one line separated by spaces.",
+      "starter": "row = (\"Ada\", 36, \"London\")\n",
+      "solution": "row = (\"Ada\", 36, \"London\")\nname, age, city = row\nprint(city, name, age)\n",
+      "hints": [
+        "Put three names on the left of `=` and the tuple on the right.",
+        "`name, age, city = row` matches names to items by position.",
+        "Then `print(city, name, age)`."
+      ],
+      "kind": "python",
+      "expected": "London Ada 36"
+    },
+    {
+      "id": "g2",
+      "title": "Swap two values",
+      "prompt": "The variables `low = 90` and `high = 10` are the wrong way round. Swap them without a third variable, then print `low` and `high` on one line.",
+      "starter": "low = 90\nhigh = 10\n",
+      "solution": "low = 90\nhigh = 10\nlow, high = high, low\nprint(low, high)\n",
+      "hints": [
+        "The right side of an assignment is evaluated completely before any name changes.",
+        "Write both names on each side, in opposite order.",
+        "`low, high = high, low`."
+      ],
+      "kind": "python",
+      "expected": "10 90"
+    },
+    {
+      "id": "g3",
+      "title": "Count the distinct values",
+      "prompt": "`orders` is `[\"A1\", \"B2\", \"A1\", \"C3\", \"B2\", \"A1\"]`. Print the number of distinct order codes, then the distinct codes as a sorted list.",
+      "starter": "orders = [\"A1\", \"B2\", \"A1\", \"C3\", \"B2\", \"A1\"]\n",
+      "solution": "orders = [\"A1\", \"B2\", \"A1\", \"C3\", \"B2\", \"A1\"]\nunique = set(orders)\nprint(len(unique))\nprint(sorted(unique))\n",
+      "hints": [
+        "A set keeps each value once.",
+        "`set(orders)` removes the duplicates; `len()` counts them.",
+        "`sorted(unique)` gives a list, which has a reliable order for printing."
+      ],
+      "kind": "python",
+      "expected": "3\n['A1', 'B2', 'C3']"
+    },
+    {
+      "id": "g4",
+      "title": "Two lists, three questions",
+      "prompt": "`a = [1, 2, 3, 4]` and `b = [3, 4, 5]`. Print, as sorted lists on three lines: the values in both, the values only in `a`, and all values in either.",
+      "starter": "a = [1, 2, 3, 4]\nb = [3, 4, 5]\n",
+      "solution": "a = [1, 2, 3, 4]\nb = [3, 4, 5]\nsa, sb = set(a), set(b)\nprint(sorted(sa & sb))\nprint(sorted(sa - sb))\nprint(sorted(sa | sb))\n",
+      "hints": [
+        "Turn both lists into sets first.",
+        "Intersection is `&`, difference is `-`, union is `|`.",
+        "Wrap each result in `sorted()` before printing."
+      ],
+      "kind": "python",
+      "expected": "[3, 4]\n[1, 2]\n[1, 2, 3, 4, 5]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Who is new, who left",
+      "prompt": "`last_week` is `[\"ann\", \"bo\", \"cy\", \"ann\", \"di\"]` and `this_week` is `[\"bo\", \"ed\", \"di\", \"fay\", \"ed\"]`. Print three lines: `Returning: ` and the sorted list of people in both weeks; `New: ` and the sorted list present only this week; `Left: ` and the sorted list present only last week. Example format: `Left: ['x']`.",
+      "starter": "last_week = [\"ann\", \"bo\", \"cy\", \"ann\", \"di\"]\nthis_week = [\"bo\", \"ed\", \"di\", \"fay\", \"ed\"]\n",
+      "solution": "last_week = [\"ann\", \"bo\", \"cy\", \"ann\", \"di\"]\nthis_week = [\"bo\", \"ed\", \"di\", \"fay\", \"ed\"]\nlast, this = set(last_week), set(this_week)\nprint(\"Returning:\", sorted(last & this))\nprint(\"New:\", sorted(this - last))\nprint(\"Left:\", sorted(last - this))\n",
+      "kind": "python",
+      "expected": "Returning: ['bo', 'di']\nNew: ['ed', 'fay']\nLeft: ['ann', 'cy']"
+    },
+    {
+      "id": "i2",
+      "title": "Distinct records",
+      "prompt": "`rows` is the list `[(\"Ada\", 36), (\"Bo\", 29), (\"Cy\", 41), (\"Bo\", 29)]` of tuples. Print on separate lines: the number of rows; the number of distinct rows (put the tuples in a set); the distinct rows as a sorted list; and then, unpacking the last row of the list into `name` and `age`, the text `name is age` built with `print(name, \"is\", age)`.",
+      "starter": "rows = [(\"Ada\", 36), (\"Bo\", 29), (\"Cy\", 41), (\"Bo\", 29)]\n",
+      "solution": "rows = [(\"Ada\", 36), (\"Bo\", 29), (\"Cy\", 41), (\"Bo\", 29)]\nprint(len(rows))\nunique = set(rows)\nprint(len(unique))\nprint(sorted(unique))\nname, age = rows[-1]\nprint(name, \"is\", age)\n",
+      "kind": "python",
+      "expected": "4\n3\n[('Ada', 36), ('Bo', 29), ('Cy', 41)]\nBo is 29"
+    },
+    {
+      "id": "i3",
+      "title": "Head, middle and tail (stretch)",
+      "prompt": "`values` is `[7, 3, 9, 3, 7, 1]`. Use starred unpacking to put the first value in `head`, the last in `tail` and the middle values in `middle`. Print `head`, `tail`, `middle`, then the middle values without duplicates as a sorted list, and finally whether `head` appears among the middle values (a boolean).",
+      "starter": "values = [7, 3, 9, 3, 7, 1]\n",
+      "solution": "values = [7, 3, 9, 3, 7, 1]\nhead, *middle, tail = values\nprint(head)\nprint(tail)\nprint(middle)\nprint(sorted(set(middle)))\nprint(head in set(middle))\n",
+      "kind": "python",
+      "expected": "7\n1\n[3, 9, 3, 7]\n[3, 7, 9]\nTrue",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `type((5))` return?",
+      "options": [
+        "`tuple`",
+        "`int`",
+        "`list`",
+        "`set`"
+      ],
+      "answer": 1,
+      "explanation": "Round brackets alone only group; `(5)` is the integer 5. A one-item tuple needs a trailing comma: `(5,)`."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\nitems = [3, 1, 3, 2, 1]\nprint(len(set(items)))\n```",
+      "options": [
+        "`5`",
+        "`3`",
+        "`2`",
+        "`[1, 2, 3]`"
+      ],
+      "answer": 1,
+      "explanation": "The set holds 1, 2 and 3 once each, so its length is 3. The length of the original list would be 5, and `len` returns a number, not a list."
+    },
+    {
+      "id": "c3",
+      "question": "Which line creates an empty set?",
+      "options": [
+        "`s = {}`",
+        "`s = set()`",
+        "`s = ()`",
+        "`s = []`"
+      ],
+      "answer": 1,
+      "explanation": "`{}` is an empty dictionary, `()` an empty tuple and `[]` an empty list. Only `set()` makes an empty set."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\na, *b = (1, 2, 3)\nprint(b)\n```",
+      "options": [
+        "`2`",
+        "`(2, 3)`",
+        "`[2, 3]`",
+        "An error"
+      ],
+      "answer": 2,
+      "explanation": "A starred name collects the remaining items into a list, so `b` is `[2, 3]`, not a tuple."
+    },
+    {
+      "id": "c5",
+      "question": "What does `sorted({1, 2, 3} - {2})` return?",
+      "options": [
+        "`[1, 3]`",
+        "`[2]`",
+        "`[1, 2, 3]`",
+        "`{1, 3}`"
+      ],
+      "answer": 0,
+      "explanation": "The difference keeps the items of the left set that are not in the right set: 1 and 3. `sorted` returns a list, so the result is a list rather than a set."
+    }
+  ]
+}

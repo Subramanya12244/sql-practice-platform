@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from "react";
 import { track } from "./activity";
-import { RULES, nextRevision } from "./revision";
-import { mergeSessions, noteHint, type SolveSession } from "./solveSessions";
+import { RULES, nextRevision, type Outcome } from "./revision";
+import { activeTiming, mergeSessions, noteHint, type SolveSession } from "./solveSessions";
+import { applyMistake, applySolved, applyUnderstood, type MistakeInput } from "./mistakes";
 
 /** Per-visitor progress, kept in localStorage. Every access is guarded: storage may be unavailable. */
 
@@ -36,7 +37,7 @@ export interface Progress {
   /** Flashcard Leitner box per question number (1 = review soon … 5 = mastered). */
   cards: Record<string, { box: number; due: string }>;
   /** Finished mock interviews, newest last. */
-  mocks?: { date: string; solved: number; total: number; usedSec: number; durationMin: number }[];
+  mocks?: { date: string; solved: number; total: number; usedSec: number; durationMin: number; topics?: { topic: string; label: string; solved: number; total: number }[] }[];
   /** Learning-path exercises passed, keyed "lesson-slug#index" → ISO time. */
   lessons?: Record<string, string>;
   /** Saved items, keyed "note:<slug>", "pattern:<slug>", "map:<slug>", "q:<number>". */
@@ -67,6 +68,10 @@ export interface Progress {
   revisionMarks?: string[];
   /** Finished solve sessions (timer, attempts, hints, outcome), oldest first. See lib/solveSessions.ts. */
   sessions?: import("./solveSessions").SolveSession[];
+  /** Mistake notebook, one record per challenge (categories and counts only). See lib/mistakes.ts. */
+  mistakes?: Record<string, import("./mistakes").Mistake>;
+  /** Daily Learning: chosen path and one record per day id. See lib/dailyProgress.ts. */
+  daily?: import("./dailyProgress").DailyState;
 }
 
 /** Receives every change so a signed-in account can mirror it; null when anonymous. */
@@ -159,11 +164,23 @@ export function recordAttempt(num: number, sql: string, correct: boolean, errorK
     ...(correct ? bump(p) : { activeDays: p.activeDays }),
     // A wrong submit schedules a revision tomorrow; the first solve is scheduled by speed.
     // Later correct submits outside the review queue don't move an existing schedule.
-    ...(!correct || firstSolve ? { revision: { ...p.revision, [`sql:${num}`]: nextRevision(p.revision?.[`sql:${num}`], { correct, slow: firstSolve && (q.solveSec ?? 0) > RULES.slowMinutes * 60 }) } } : {}),
+    ...(!correct || firstSolve ? { revision: { ...p.revision, [`sql:${num}`]: nextRevision(p.revision?.[`sql:${num}`], sqlOutcome(num, correct, firstSolve, q.solveSec, prev.hintLevel, prev.attempts + 1)) } } : {}),
   });
+  if (correct) markMistakeSolved(`sql:${num}`);
   sink?.question(num, q, correct && !prev.solvedAt);
   // Every submit, not only correct ones: the account keeps the latest query text (qmeta.lastSql).
   sink?.state(current);
+}
+
+/** What the revision schedule needs to know about a SQL answer: help used, attempts, and time. */
+function sqlOutcome(num: number, correct: boolean, firstSolve: boolean, solveSec: number | undefined, hintLevel: number | undefined, attempts: number): Outcome {
+  const t = activeTiming(`sql:${num}`);
+  const sec = t?.sec ?? solveSec ?? 0;
+  return {
+    correct, hints: Math.max(hintLevel ?? 0, t?.hints ?? 0), attempts,
+    slow: correct && firstSolve && sec > RULES.slowMinutes * 60,
+    fast: correct && t ? t.sec <= t.targetSec * RULES.fastShare : false,
+  };
 }
 
 export function saveDraft(num: number, sql: string) {
@@ -181,6 +198,31 @@ export function recordHint(num: number, level: number) {
   const q = { ...prev, hintLevel: level, startedAt: prev.startedAt ?? new Date().toISOString(), revealed: prev.revealed || level >= 5 || undefined };
   write({ ...p, questions: { ...p.questions, [num]: q } });
   sink?.question(num, q, false);
+  sink?.state(current);
+}
+
+/** Record a failed attempt or an error run in the mistake notebook. Counts and a category only. */
+export function recordMistake(input: MistakeInput) {
+  const p = read();
+  const now = new Date().toISOString();
+  write({ ...p, mistakes: { ...p.mistakes, [input.ref]: applyMistake(p.mistakes?.[input.ref], input, now) } });
+  if (input.graded) sink?.state(current);
+}
+
+/** A challenge with notebook entries was solved. */
+export function markMistakeSolved(ref: string) {
+  const p = read();
+  const m = applySolved(p.mistakes?.[ref], new Date().toISOString());
+  if (!m || m === p.mistakes?.[ref] || p.mistakes?.[ref]?.solved) return;
+  write({ ...p, mistakes: { ...p.mistakes, [ref]: m } });
+  sink?.state(current);
+}
+
+export function setMistakeUnderstood(ref: string, on: boolean) {
+  const p = read();
+  const m = applyUnderstood(p.mistakes?.[ref], on, new Date().toISOString());
+  if (!m) return;
+  write({ ...p, mistakes: { ...p.mistakes, [ref]: m } });
   sink?.state(current);
 }
 
@@ -235,7 +277,7 @@ export function reviewQuestion(num: number, correct: boolean) {
   sink?.question(num, q, false);
 }
 
-export function recordMock(entry: { solved: number; total: number; usedSec: number; durationMin: number }) {
+export function recordMock(entry: { solved: number; total: number; usedSec: number; durationMin: number; topics?: { topic: string; label: string; solved: number; total: number }[] }) {
   track("assessment_completed", "mock", { solved: entry.solved, total: entry.total, usedSec: entry.usedSec });
   const p = read();
   const mock = { date: new Date().toISOString(), ...entry };
@@ -314,6 +356,7 @@ export function completeExercise(key: string) {
   const p = read();
   if (p.lessons?.[key]) return;
   write({ ...p, lessons: { ...p.lessons, [key]: new Date().toISOString() }, ...bump(p) });
+  markMistakeSolved(key);
   sink?.state(current);
 }
 
@@ -383,7 +426,47 @@ export function useProgress(): Progress {
 export function schedulePython(slug: string, ok: boolean, failedBefore: number) {
   const p = read();
   const key = `py:${slug}`;
-  write({ ...p, revision: { ...p.revision, [key]: nextRevision(p.revision?.[key], { correct: ok, slow: ok && failedBefore >= RULES.slowFailedChecks }) } });
+  const t = activeTiming(key);
+  const outcome: Outcome = {
+    correct: ok, hints: t?.hints, attempts: failedBefore + 1,
+    slow: ok && (failedBefore >= RULES.slowFailedChecks || (t ? t.sec > RULES.slowMinutes * 60 : false)),
+    fast: ok && t ? t.sec <= t.targetSec * RULES.fastShare : false,
+  };
+  write({ ...p, revision: { ...p.revision, [key]: nextRevision(p.revision?.[key], outcome) } });
+  sink?.state(current);
+}
+
+// ── Daily Learning ───────────────────────────────────────────────────────
+/**
+ * Change one day's record. Sets startedAt, lastVisit and the programme start date. `counts` is true for real work
+ * (a passed exercise, a check, a completion), which also counts toward the daily goal and the site-wide streak.
+ */
+export function updateDay(id: string, fn: (r: import("./dailyProgress").DayRecord) => import("./dailyProgress").DayRecord, counts = false) {
+  const p = read();
+  const now = new Date().toISOString();
+  const daily = p.daily ?? { days: {} };
+  const prev = daily.days[id] ?? {};
+  const next = { ...fn(prev), startedAt: prev.startedAt ?? now, lastVisit: now };
+  write({
+    ...p,
+    daily: { ...daily, startedOn: daily.startedOn ?? today(), days: { ...daily.days, [id]: next } },
+    ...(counts ? bump(p) : {}),
+  });
+  sink?.state(current);
+}
+
+export function setDailyPath(path: import("./daily").BranchId | undefined) {
+  const p = read();
+  const daily = p.daily ?? { days: {} };
+  write({ ...p, daily: { ...daily, path, startedOn: daily.startedOn ?? today() } });
+  sink?.state(current);
+}
+
+/** Schedule the next review of a day (key "day:<id>" in the shared revision map; the SQL/Python queue ignores it). */
+export function scheduleDayReview(id: string, score: number) {
+  const p = read();
+  const key = `day:${id}`;
+  write({ ...p, revision: { ...p.revision, [key]: nextRevision(p.revision?.[key], { correct: score >= 0.8 }, new Date()) } });
   sink?.state(current);
 }
 

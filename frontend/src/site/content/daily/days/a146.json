@@ -1,0 +1,182 @@
+{
+  "id": "a146",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "count-case-when",
+      "filter-clause"
+    ],
+    "questions": [
+      167,
+      168,
+      193
+    ],
+    "pyExercises": [
+      "percent-change",
+      "safe-divide"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "inactive-customers"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Retention percentages",
+      "kind": "python",
+      "prompt": "A cohort starts with 200 customers. The number still active at ages 0 to 4 is `[200, 150, 120, 108, 100]`. Print the retention percentage at each age, rounded to 1 decimal, one per line.",
+      "starter": "active = [200, 150, 120, 108, 100]\n",
+      "solution": "active = [200, 150, 120, 108, 100]\nfor a in active:\n    print(round(a / active[0] * 100, 1))\n",
+      "hints": [
+        "Divide each count by the first one.",
+        "Multiply by 100.",
+        "round(a / active[0] * 100, 1) inside a loop that prints."
+      ],
+      "expected": "100.0\n75.0\n60.0\n54.0\n50.0"
+    },
+    {
+      "id": "g2",
+      "title": "Churn rate and lifetime",
+      "kind": "python",
+      "prompt": "A month starts with 500 active customers and 25 are lost during it. Print `churn rate: 5.0%` (percent with 1 decimal) and `expected lifetime: 20.0 months` (1 divided by the rate, 1 decimal).",
+      "starter": "start, lost = 500, 25\n",
+      "solution": "start, lost = 500, 25\nrate = lost / start\nprint('churn rate: ' + str(round(rate * 100, 1)) + '%')\nprint('expected lifetime: ' + str(round(1 / rate, 1)) + ' months')\n",
+      "hints": [
+        "The rate is lost divided by the starting customers.",
+        "Lifetime is 1 divided by the rate as a fraction.",
+        "Build both strings with round(..., 1)."
+      ],
+      "expected": "churn rate: 5.0%\nexpected lifetime: 20.0 months"
+    },
+    {
+      "id": "g3",
+      "title": "Inactive customers in Northwind",
+      "kind": "sql",
+      "prompt": "Count customers by the 180-day rule using the as-of date 1999-01-01. Return one row with `customers` (customers with at least one order), `inactive` (customers whose latest order is more than 180 days before the as-of date) and `inactive_pct` (rounded to 1 decimal).",
+      "starter": "SELECT COUNT(DISTINCT customer_id) AS customers\nFROM orders;\n",
+      "solution": "WITH last AS (SELECT customer_id, MAX(order_date) AS last_order FROM orders GROUP BY customer_id)\nSELECT COUNT(*) AS customers,\n       COUNT(*) FILTER (WHERE DATE '1999-01-01' - last_order > 180) AS inactive,\n       ROUND((100.0 * COUNT(*) FILTER (WHERE DATE '1999-01-01' - last_order > 180) / COUNT(*))::numeric, 1) AS inactive_pct\nFROM last;\n",
+      "hints": [
+        "Find each customer's latest order date first.",
+        "DATE '1999-01-01' - last_order is a number of days.",
+        "COUNT(*) FILTER (WHERE ... > 180) counts the inactive ones."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Years active",
+      "kind": "sql",
+      "prompt": "For each customer count the distinct order years, then return `years_active` and `customers` (how many customers have that number of active years), ordered by `years_active`.",
+      "starter": "SELECT customer_id\nFROM orders\nGROUP BY customer_id\nLIMIT 5;\n",
+      "solution": "WITH y AS (\n  SELECT customer_id, COUNT(DISTINCT EXTRACT(year FROM order_date)) AS years_active\n  FROM orders GROUP BY customer_id\n)\nSELECT years_active, COUNT(*) AS customers\nFROM y\nGROUP BY years_active\nORDER BY years_active;\n",
+      "ordered": true,
+      "hints": [
+        "COUNT(DISTINCT EXTRACT(year FROM order_date)) per customer.",
+        "Put that in a CTE.",
+        "Group the CTE by years_active and count."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Churn rate by plan",
+      "kind": "python",
+      "prompt": "The table below has customers, churn events and customer-months of exposure for two plans. Build a DataFrame, compute `monthly_churn_pct` as events over exposure times 100, and print for each plan (alphabetical order) a line such as `basic: 4.0` with the rate rounded to 1 decimal. Then print `highest: NAME` for the plan with the highest rate.\n\nplan basic: customers 120, events 30, exposure 750; plan pro: customers 80, events 12, exposure 600; plan team: customers 50, events 20, exposure 400.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({'plan': ['basic', 'pro', 'team'], 'customers': [120, 80, 50], 'events': [30, 12, 20], 'exposure': [750, 600, 400]})\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({'plan': ['basic', 'pro', 'team'], 'customers': [120, 80, 50], 'events': [30, 12, 20], 'exposure': [750, 600, 400]})\ndf['monthly_churn_pct'] = df['events'] / df['exposure'] * 100\nfor _, r in df.sort_values('plan').iterrows():\n    print(r['plan'] + ': ' + str(round(float(r['monthly_churn_pct']), 1)))\nprint('highest: ' + df.loc[df['monthly_churn_pct'].idxmax(), 'plan'])\n",
+      "expected": "basic: 4.0\npro: 2.0\nteam: 5.0\nhighest: team"
+    },
+    {
+      "id": "i2",
+      "title": "Year-to-year retention",
+      "kind": "sql",
+      "prompt": "Customers who placed an order in 1997 are the base. Return one row with `customers_1997` (the base), `retained_1998` (base customers who also ordered in 1998) and `retention_pct` (rounded to 1 decimal).",
+      "starter": "SELECT COUNT(DISTINCT customer_id) AS customers_1997\nFROM orders\nWHERE EXTRACT(year FROM order_date) = 1997;\n",
+      "solution": "WITH b AS (SELECT DISTINCT customer_id FROM orders WHERE EXTRACT(year FROM order_date) = 1997),\n r AS (SELECT DISTINCT customer_id FROM orders WHERE EXTRACT(year FROM order_date) = 1998)\nSELECT COUNT(*) AS customers_1997,\n       COUNT(r.customer_id) AS retained_1998,\n       ROUND((100.0 * COUNT(r.customer_id) / COUNT(*))::numeric, 1) AS retention_pct\nFROM b LEFT JOIN r ON r.customer_id = b.customer_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Judge a retention claim",
+      "kind": "written",
+      "required": false,
+      "prompt": "A colleague says: \"Our 6-month retention is 40 percent\" and shows the number of customers still active divided by all customers who ever signed up, including some who signed up last month. List three problems with the claim and say how you would restate it.",
+      "starter": "Write your answer here.",
+      "solution": "First, the denominator includes customers who signed up less than 6 months ago, who cannot yet have been observed at 6 months; they are censored and drag the number down, so the base must be limited to customers who signed up at least 6 months before the end of the data. Second, the claim does not say what counts as active (a login, an order, a paid subscription) or which customers are included, so it cannot be reproduced or compared. Third, a single blended figure mixes cohorts and plans that behave differently, so it can hide that recent cohorts retain worse. I would restate it as: among customers who signed up from month A to month B, N were eligible at 6 months and K were still active (an order in month 6), so retention is K over N, shown by signup cohort with the sizes.",
+      "rubric": [
+        "Identifies censoring of recent signups in the denominator",
+        "Notes that the definition of active and the population are missing",
+        "Suggests cohort-level reporting or a restated claim with eligible count"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A cohort of 1,000 customers loses 80 customers in month 3 out of 640 customers active at the start of month 3. What is the churn rate for month 3?",
+      "options": [
+        "12.5%",
+        "8%",
+        "64%",
+        "36%"
+      ],
+      "answer": 0,
+      "explanation": "Churn is lost divided by customers at risk at the start of the period: 80 / 640 = 12.5%. 8% divides by the original cohort, which ignores those already gone."
+    },
+    {
+      "id": "c2",
+      "question": "Why must recent signups be left out of the age-6 point of a retention curve?",
+      "options": [
+        "They cannot yet have been observed for 6 months",
+        "They always churn",
+        "They are not real customers",
+        "Their plans differ"
+      ],
+      "answer": 0,
+      "explanation": "They are censored: still active, but too young to be observed at age 6. Including them in the denominator understates retention."
+    },
+    {
+      "id": "c3",
+      "question": "The average tenure of customers who have churned is 4 months, while many customers are still active. What is wrong with using 4 months as the average lifetime?",
+      "options": [
+        "It ignores the long-lived customers who are still active",
+        "Tenure cannot be averaged",
+        "It should be a median",
+        "Churned customers have negative tenure"
+      ],
+      "answer": 0,
+      "explanation": "Only short-lived customers have finished their lifetime, so the average of churned customers is biased downward. Events over exposure uses the still-active customers' time too."
+    },
+    {
+      "id": "c3b",
+      "question": "Monthly churn is 4%. What is the rough expected lifetime, assuming churn is constant?",
+      "options": [
+        "25 months",
+        "4 months",
+        "96 months",
+        "12 months"
+      ],
+      "answer": 0,
+      "explanation": "Expected lifetime is about 1 / 0.04 = 25 months. It is only an approximation, and it fails when early churn is much higher than later churn."
+    },
+    {
+      "id": "c4",
+      "question": "Free-plan customers churn at 9% a month and paid customers at 4%. What can you conclude?",
+      "options": [
+        "Free customers churn faster, but the plan itself may not be the cause",
+        "The free plan causes churn",
+        "Paid customers are more profitable",
+        "Churn is not related to the plan"
+      ],
+      "answer": 0,
+      "explanation": "The rates differ, which is a lead. Free users may be less committed for other reasons, so cause needs an experiment. Profit is not shown at all."
+    }
+  ]
+}

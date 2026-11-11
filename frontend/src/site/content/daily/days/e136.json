@@ -1,0 +1,174 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "dwh-data-modelling"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "warehousing-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Counts with expected loss",
+      "kind": "python",
+      "prompt": "The list `source` holds orders as `(order_id, status)`. The documented rule drops orders whose status is `failed`. The list `target` is what the load produced. Print one line in exactly this form: `source=<n> expected=<n> target=<n> lost_by_mistake=<n>`, where `lost_by_mistake` is the expected count minus the target count.",
+      "starter": "source = [(1, 'paid'), (2, 'failed'), (3, 'paid'), (4, 'refunded'), (5, 'paid')]\ntarget = [(1, 'paid'), (3, 'paid'), (5, 'paid')]\n\n# Your code here\n",
+      "solution": "source = [(1, 'paid'), (2, 'failed'), (3, 'paid'), (4, 'refunded'), (5, 'paid')]\ntarget = [(1, 'paid'), (3, 'paid'), (5, 'paid')]\n\nexpected = [r for r in source if r[1] != 'failed']\nprint(f\"source={len(source)} expected={len(expected)} target={len(target)} lost_by_mistake={len(expected) - len(target)}\")\n",
+      "hints": [
+        "The expected rows are the source rows that survive the documented rule, not the whole source.",
+        "Build `expected` with a list comprehension that keeps rows whose status is not `failed`.",
+        "`lost_by_mistake` is `len(expected) - len(target)`; print all four numbers in one f-string."
+      ],
+      "expected": "source=5 expected=4 target=3 lost_by_mistake=1"
+    },
+    {
+      "id": "g2",
+      "title": "Find changed keys with hashes",
+      "kind": "python",
+      "prompt": "Write `row_hash(values)` that joins the values with `|` after converting each with `str`, encodes the text as UTF-8 and returns the SHA-256 hex digest. Then, for the dictionaries `exp` and `tgt` (key to tuple of business values), print the sorted list of keys present in both whose hashes differ. Expected output is a Python list.",
+      "starter": "import hashlib\n\nexp = {1: (10, 500), 2: (11, 700), 3: (12, 900)}\ntgt = {1: (10, 500), 2: (11, 770), 3: (12, 900), 4: (13, 5)}\n\ndef row_hash(values):\n    pass\n\n# Your code here\n",
+      "solution": "import hashlib\n\nexp = {1: (10, 500), 2: (11, 700), 3: (12, 900)}\ntgt = {1: (10, 500), 2: (11, 770), 3: (12, 900), 4: (13, 5)}\n\ndef row_hash(values):\n    text = '|'.join(str(v) for v in values)\n    return hashlib.sha256(text.encode('utf-8')).hexdigest()\n\nprint(sorted(k for k in set(exp) & set(tgt) if row_hash(exp[k]) != row_hash(tgt[k])))\n",
+      "hints": [
+        "Build the text first with `'|'.join(str(v) for v in values)`, then encode it to bytes.",
+        "`hashlib.sha256(text.encode('utf-8')).hexdigest()` returns the fingerprint.",
+        "Only keys in both dictionaries can be changed: loop over `set(exp) & set(tgt)` and compare the two hashes."
+      ],
+      "expected": "[2]"
+    },
+    {
+      "id": "g3",
+      "title": "Classify keys in PostgreSQL",
+      "kind": "sql",
+      "prompt": "Tables `src` and `tgt` hold `(id, amount)`. Write one query with a full outer join that returns columns `id` and `problem` for every key that is missing from the target (`missing`), only in the target (`extra`) or present in both with a different amount (`changed`), ordered by `id`.",
+      "starter": "CREATE TABLE src (id int PRIMARY KEY, amount int);\nCREATE TABLE tgt (id int PRIMARY KEY, amount int);\nINSERT INTO src VALUES (1, 10), (2, 20), (3, 30);\nINSERT INTO tgt VALUES (1, 10), (2, 25), (4, 40);\n\nSELECT s.id\nFROM src s\nORDER BY s.id;\n",
+      "solution": "CREATE TABLE src (id int PRIMARY KEY, amount int);\nCREATE TABLE tgt (id int PRIMARY KEY, amount int);\nINSERT INTO src VALUES (1, 10), (2, 20), (3, 30);\nINSERT INTO tgt VALUES (1, 10), (2, 25), (4, 40);\n\nSELECT COALESCE(s.id, t.id) AS id,\n       CASE WHEN t.id IS NULL THEN 'missing' WHEN s.id IS NULL THEN 'extra' ELSE 'changed' END AS problem\nFROM src s FULL OUTER JOIN tgt t ON t.id = s.id\nWHERE s.id IS NULL OR t.id IS NULL OR s.amount IS DISTINCT FROM t.amount\nORDER BY id;\n",
+      "hints": [
+        "A full outer join keeps unmatched rows from both tables, with NULLs on the missing side.",
+        "A key is missing when `t.id IS NULL`, extra when `s.id IS NULL`; filter out rows that match completely with `IS DISTINCT FROM`.",
+        "`COALESCE(s.id, t.id)` gives the key whichever side has it; build `problem` with a `CASE` in the order missing, extra, changed."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Column-level diff lines",
+      "kind": "python",
+      "prompt": "For the dictionaries `exp` and `tgt` (key to dictionary of columns), print one line per differing column for keys present in both, in key order and then column order `amount`, `currency`, in exactly this form: `key 2 column amount: expected 700 got 770`.",
+      "starter": "exp = {1: {'amount': 500, 'currency': 'USD'}, 2: {'amount': 700, 'currency': 'USD'}, 3: {'amount': 900, 'currency': 'EUR'}}\ntgt = {1: {'amount': 500, 'currency': 'USD'}, 2: {'amount': 770, 'currency': 'USD'}, 3: {'amount': 900, 'currency': 'GBP'}}\n\n# Your code here\n",
+      "solution": "exp = {1: {'amount': 500, 'currency': 'USD'}, 2: {'amount': 700, 'currency': 'USD'}, 3: {'amount': 900, 'currency': 'EUR'}}\ntgt = {1: {'amount': 500, 'currency': 'USD'}, 2: {'amount': 770, 'currency': 'USD'}, 3: {'amount': 900, 'currency': 'GBP'}}\n\nfor k in sorted(set(exp) & set(tgt)):\n    for c in ['amount', 'currency']:\n        if exp[k][c] != tgt[k][c]:\n            print(f\"key {k} column {c}: expected {exp[k][c]} got {tgt[k][c]}\")\n",
+      "hints": [
+        "Loop over the sorted shared keys, then over the two column names.",
+        "Print only when `exp[k][c] != tgt[k][c]`.",
+        "Use `print(f\"key {k} column {c}: expected {exp[k][c]} got {tgt[k][c]}\")` inside both loops."
+      ],
+      "expected": "key 2 column amount: expected 700 got 770\nkey 3 column currency: expected EUR got GBP"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Validation report",
+      "kind": "python",
+      "prompt": "Write `validate(expected, target)` for dictionaries mapping `order_id` to `amount_cents`. It returns a list of strings, in this order: `count expected E got G` when the sizes differ, `sum expected E got G` when the sums differ, then `missing K` for each key only in `expected` (sorted), `extra K` for each key only in `target` (sorted), then `changed K` for each shared key with different amounts (sorted). Print the list for the data given, one item per line, then print `OK` if `validate(expected, dict(expected))` is empty.",
+      "starter": "expected = {1: 100, 2: 250, 3: 75, 4: 900}\ntarget = {1: 100, 2: 205, 4: 900, 7: 30}\n\ndef validate(expected, target):\n    return []\n\nfor line in validate(expected, target):\n    print(line)\n",
+      "solution": "expected = {1: 100, 2: 250, 3: 75, 4: 900}\ntarget = {1: 100, 2: 205, 4: 900, 7: 30}\n\ndef validate(expected, target):\n    problems = []\n    if len(expected) != len(target):\n        problems.append(f\"count expected {len(expected)} got {len(target)}\")\n    se, st = sum(expected.values()), sum(target.values())\n    if se != st:\n        problems.append(f\"sum expected {se} got {st}\")\n    problems += [f\"missing {k}\" for k in sorted(set(expected) - set(target))]\n    problems += [f\"extra {k}\" for k in sorted(set(target) - set(expected))]\n    problems += [f\"changed {k}\" for k in sorted(set(expected) & set(target)) if expected[k] != target[k]]\n    return problems\n\nfor line in validate(expected, target):\n    print(line)\nif not validate(expected, dict(expected)):\n    print('OK')\n",
+      "expected": "sum expected 1325 got 1235\nmissing 3\nextra 7\nchanged 2\nOK"
+    },
+    {
+      "id": "i2",
+      "title": "Control totals side by side",
+      "kind": "sql",
+      "prompt": "Tables `src` and `tgt` hold `(id, amount)`. Return one row per table with columns `side` (`source` or `target`), `n` (row count), `total` (sum of amount) and `max_amount`, ordered by `side` ascending, so `source` comes before `target`.",
+      "starter": "CREATE TABLE src (id int, amount int);\nCREATE TABLE tgt (id int, amount int);\nINSERT INTO src VALUES (1, 10), (2, 20), (3, 30);\nINSERT INTO tgt VALUES (1, 10), (2, 20);\n\nSELECT COUNT(*) AS n FROM src;\n",
+      "solution": "CREATE TABLE src (id int, amount int);\nCREATE TABLE tgt (id int, amount int);\nINSERT INTO src VALUES (1, 10), (2, 20), (3, 30);\nINSERT INTO tgt VALUES (1, 10), (2, 20);\n\nSELECT 'source' AS side, COUNT(*) AS n, SUM(amount) AS total, MAX(amount) AS max_amount FROM src\nUNION ALL\nSELECT 'target', COUNT(*), SUM(amount), MAX(amount) FROM tgt\nORDER BY side;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Hash a canonical form",
+      "kind": "python",
+      "required": false,
+      "prompt": "The source formats amounts as strings (`'12.5'`, `'3'`) and the target as floats (`12.5`, `3.0`). Write `canon(row)` that turns `(id, amount, currency)` into the canonical tuple `(id, amount_in_cents_as_int, currency_upper)` (use `round(float(amount) * 100)` and `.strip().upper()`), hash each canonical tuple with SHA-256 over `'|'.join(map(str, ...))`, and print `True` or `False` for whether the two sides agree on each of the three ids, one per line in id order.",
+      "starter": "import hashlib\n\nsource = [(1, '12.5', ' usd'), (2, '3', 'EUR'), (3, '8.25', 'usd')]\ntarget = [(1, 12.5, 'USD'), (2, 3.0, 'EUR'), (3, 8.3, 'USD')]\n\ndef canon(row):\n    return row\n\nfor s, t in zip(source, target):\n    print(s == t)\n",
+      "solution": "import hashlib\n\nsource = [(1, '12.5', ' usd'), (2, '3', 'EUR'), (3, '8.25', 'usd')]\ntarget = [(1, 12.5, 'USD'), (2, 3.0, 'EUR'), (3, 8.3, 'USD')]\n\ndef canon(row):\n    i, amount, cur = row\n    return (i, round(float(amount) * 100), cur.strip().upper())\n\ndef h(row):\n    return hashlib.sha256('|'.join(map(str, canon(row))).encode('utf-8')).hexdigest()\n\nfor s, t in zip(source, target):\n    print(h(s) == h(t))\n",
+      "expected": "True\nTrue\nFalse"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "The source has 100 rows, the documented rule drops 6 failed rows, and the target has 94 rows. What does the count check conclude?",
+      "options": [
+        "The load failed because 94 is not 100",
+        "The count agrees with the expected 94 rows; sums and hashes are still needed",
+        "The load is correct and no further check is needed",
+        "The check is meaningless because rows were dropped"
+      ],
+      "answer": 1,
+      "explanation": "The expectation is the source after the documented rules (94). The count matches it, but counts cannot detect changed values or one lost row offset by a duplicate, so sums and hashes still run."
+    },
+    {
+      "id": "c2",
+      "question": "Two hashes of the same row differ only because the source writes the amount as 12.5 and the target as 12.50. What is the cause?",
+      "options": [
+        "SHA-256 is not deterministic",
+        "The canonical text differs, so the hashes differ",
+        "The row has been corrupted in the target",
+        "Hash collisions are common for decimals"
+      ],
+      "answer": 1,
+      "explanation": "A hash is deterministic, but it hashes text. Different formatting is different text. Normalise both sides to one canonical form before hashing; the data may be perfectly fine."
+    },
+    {
+      "id": "c3",
+      "question": "In SQL, `s.status <> t.status` is evaluated where s.status is 'refunded' and t.status is NULL. In a WHERE clause, what happens to that row?",
+      "options": [
+        "It is kept because the values differ",
+        "It is dropped because the result is NULL",
+        "It raises an error",
+        "It is kept because NULL equals NULL"
+      ],
+      "answer": 1,
+      "explanation": "Comparing with NULL yields NULL, which WHERE treats as not true, so the difference is silently missed. `s.status IS DISTINCT FROM t.status` returns true here."
+    },
+    {
+      "id": "c4",
+      "question": "A load keeps the same row count and the same sum, yet one amount is 180 too high and another 180 too low. Which check finds it?",
+      "options": [
+        "Row count",
+        "Sum of amount_cents",
+        "Row hash or column-level diff by key",
+        "None can find it"
+      ],
+      "answer": 2,
+      "explanation": "Offsetting errors leave counts and sums unchanged. Comparing content per key, through hashes and then a column diff, reveals both rows."
+    },
+    {
+      "id": "c5",
+      "question": "What does `df_a.merge(df_b, on='k', how='outer', indicator=True)['_merge']` hold for a key that only appears in `df_b`?",
+      "options": [
+        "left_only",
+        "right_only",
+        "both",
+        "NaN"
+      ],
+      "answer": 1,
+      "explanation": "`_merge` is `left_only` for keys only in the left frame, `right_only` for keys only in the right frame and `both` for keys in both. A key only in `df_b` is `right_only`, an extra row if `df_b` is the target."
+    }
+  ],
+  "id": "e136"
+}

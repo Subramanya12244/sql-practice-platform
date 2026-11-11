@@ -1,0 +1,166 @@
+{
+  "id": "a180",
+  "time": {
+    "theory": 15,
+    "examples": 20,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "sales-analytics-pipeline",
+      "end-to-end-pipeline"
+    ],
+    "mindmaps": [
+      "interview-patterns",
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Time budget",
+      "kind": "python",
+      "prompt": "Using the `slides` list, print `total minutes: <n>` and `over budget by: <n>` where the budget is 9 minutes (print `over budget by: 0` when the total is within budget).",
+      "starter": "slides = [\n    {'title': 'Which channels should the store act on?', 'number': None, 'minutes': 1},\n    {'title': '489 of 510 raw order rows are valid', 'number': 489, 'minutes': 2},\n    {'title': 'Email returns 13.68 net revenue per unit of spend', 'number': 13.68, 'minutes': 3},\n    {'title': 'Home has the highest return rate at 14.5%', 'number': 14.5, 'minutes': 2},\n    {'title': 'Move a test share of budget to email for a month and then check the numbers again with new data', 'number': None, 'minutes': 2},\n]\n# Your code here\n",
+      "solution": "slides = [\n    {'title': 'Which channels should the store act on?', 'number': None, 'minutes': 1},\n    {'title': '489 of 510 raw order rows are valid', 'number': 489, 'minutes': 2},\n    {'title': 'Email returns 13.68 net revenue per unit of spend', 'number': 13.68, 'minutes': 3},\n    {'title': 'Home has the highest return rate at 14.5%', 'number': 14.5, 'minutes': 2},\n    {'title': 'Move a test share of budget to email for a month and then check the numbers again with new data', 'number': None, 'minutes': 2},\n]\ntotal = sum(s['minutes'] for s in slides)\nprint('total minutes:', total)\nprint('over budget by:', max(0, total - 9))\n",
+      "expected": "total minutes: 10\nover budget by: 1",
+      "hints": [
+        "Add the `minutes` values with `sum` and a generator.",
+        "The excess is the total minus 9.",
+        "`max(0, total - 9)` avoids a negative number."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Average the feedback",
+      "kind": "python",
+      "prompt": "Three reviewers scored `clarity` as [5, 4, 4], `evidence` as [3, 4, 3] and `caveats` as [5, 5, 4]. Print one line per criterion in that order: `<criterion>: <mean>` with the mean rounded to 2 decimals, then `lowest: <criterion>`.",
+      "starter": "scores = {'clarity': [5, 4, 4], 'evidence': [3, 4, 3], 'caveats': [5, 5, 4]}\n# Your code here\n",
+      "solution": "scores = {'clarity': [5, 4, 4], 'evidence': [3, 4, 3], 'caveats': [5, 5, 4]}\nmeans = {k: round(sum(v) / len(v), 2) for k, v in scores.items()}\nfor k, v in means.items():\n    print(f'{k}: {v}')\nprint('lowest:', min(means, key=means.get))\n",
+      "expected": "clarity: 4.33\nevidence: 3.33\ncaveats: 4.67\nlowest: evidence",
+      "hints": [
+        "Build a dict of means with a comprehension.",
+        "Loop to print `name: mean`.",
+        "`min(means, key=means.get)` gives the key with the smallest mean."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Skill gaps",
+      "kind": "python",
+      "prompt": "Ratings are `{'SQL': 4, 'Statistics': 3, 'Power BI': 2, 'Git': 3}`. Compute each gap to 5 and print the areas ordered by gap descending (ties alphabetical) as `<area>: gap <n>`.",
+      "starter": "ratings = {'SQL': 4, 'Statistics': 3, 'Power BI': 2, 'Git': 3}\n# Your code here\n",
+      "solution": "ratings = {'SQL': 4, 'Statistics': 3, 'Power BI': 2, 'Git': 3}\ngaps = {k: 5 - v for k, v in ratings.items()}\nfor k, gap in sorted(gaps.items(), key=lambda kv: (-kv[1], kv[0])):\n    print(f'{k}: gap {gap}')\n",
+      "expected": "Power BI: gap 3\nGit: gap 2\nStatistics: gap 2\nSQL: gap 1",
+      "hints": [
+        "Gap is `5 - rating`.",
+        "Sort with a key that puts larger gaps first.",
+        "`key=lambda kv: (-kv[1], kv[0])` sorts by gap descending, then by name."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Presentation checker",
+      "kind": "python",
+      "prompt": "Write `check_slides(slides, budget)` returning a list of problems in slide order: `slide <i>: too long` when the title has more than 12 words, `slide <i>: no number` for content slides (not the first, not the last) with `number` None; then `over budget by <n> min` when the total minutes exceed the budget. Print the result for the `slides` list with budget 9, then `ready: <True/False>` (True when the list is empty).",
+      "starter": "slides = [\n    {'title': 'Which channels should the store act on?', 'number': None, 'minutes': 1},\n    {'title': '489 of 510 raw order rows are valid', 'number': 489, 'minutes': 2},\n    {'title': 'Email returns 13.68 net revenue per unit of spend', 'number': 13.68, 'minutes': 3},\n    {'title': 'Home has the highest return rate at 14.5%', 'number': 14.5, 'minutes': 2},\n    {'title': 'Move a test share of budget to email for a month and then check the numbers again with new data', 'number': None, 'minutes': 2},\n]\ndef check_slides(slides, budget):\n    return []\n\n\nproblems = check_slides(slides, 9)\n# Your code here\n",
+      "solution": "slides = [\n    {'title': 'Which channels should the store act on?', 'number': None, 'minutes': 1},\n    {'title': '489 of 510 raw order rows are valid', 'number': 489, 'minutes': 2},\n    {'title': 'Email returns 13.68 net revenue per unit of spend', 'number': 13.68, 'minutes': 3},\n    {'title': 'Home has the highest return rate at 14.5%', 'number': 14.5, 'minutes': 2},\n    {'title': 'Move a test share of budget to email for a month and then check the numbers again with new data', 'number': None, 'minutes': 2},\n]\ndef check_slides(slides, budget):\n    out = []\n    for i, s in enumerate(slides, 1):\n        if len(s['title'].split()) > 12:\n            out.append(f'slide {i}: too long')\n        if 1 < i < len(slides) and s['number'] is None:\n            out.append(f'slide {i}: no number')\n    total = sum(s['minutes'] for s in slides)\n    if total > budget:\n        out.append(f'over budget by {total - budget} min')\n    return out\n\n\nproblems = check_slides(slides, 9)\nprint(problems)\nprint('ready:', not problems)\n",
+      "expected": "['slide 5: too long', 'over budget by 1 min']\nready: False"
+    },
+    {
+      "id": "i2",
+      "title": "Study plan",
+      "kind": "python",
+      "prompt": "Ratings are `{'Python and pandas': 4, 'Statistics': 3, 'SQL': 4, 'DAX and Power BI': 2, 'Git and testing': 3, 'Interview practice': 2}`. Gap is `5 - rating`. Allocate 24 hours in proportion to the gaps (`24 * gap / total gap`, printed with 1 decimal) and print the plan for areas with a gap of at least 2, ordered by gap descending then name, as `<area>: <hours> h`. Finish with `areas planned: <n>` and `hours planned: <sum of the printed hours rounded to 1 decimal>`.",
+      "starter": "ratings = {'Python and pandas': 4, 'Statistics': 3, 'SQL': 4, 'DAX and Power BI': 2, 'Git and testing': 3, 'Interview practice': 2}\n# Your code here\n",
+      "solution": "ratings = {'Python and pandas': 4, 'Statistics': 3, 'SQL': 4, 'DAX and Power BI': 2, 'Git and testing': 3, 'Interview practice': 2}\ngaps = {k: 5 - v for k, v in ratings.items()}\ntotal = sum(gaps.values())\nplanned = [(k, 24 * g / total) for k, g in sorted(gaps.items(), key=lambda kv: (-kv[1], kv[0])) if g >= 2]\nfor k, h in planned:\n    print(f'{k}: {h:.1f} h')\nprint('areas planned:', len(planned))\nprint('hours planned:', round(sum(round(h, 1) for _, h in planned), 1))\n",
+      "expected": "DAX and Power BI: 6.0 h\nInterview practice: 6.0 h\nGit and testing: 4.0 h\nStatistics: 4.0 h\nareas planned: 4\nhours planned: 20.0"
+    },
+    {
+      "id": "i3",
+      "title": "Capstone retrospective",
+      "kind": "written",
+      "prompt": "Write a retrospective of about 200 words: three things that worked, three that did not or that you would change, and the one next project you will do with its deliverable and date. Tie each point to evidence from the capstone days (a number, a check, a mistake caught).",
+      "starter": "Worked:\n1.\n2.\n3.\nChange:\n1.\n2.\n3.\nNext project:\n",
+      "solution": "Worked: (1) Scoping first on Day 172: the five questions and six rules meant every later stage had a testable output. (2) The cleaning log with row counts 510, 500, 495, 489 made the revenue reconciliation end at a difference of zero. (3) Generating narrative numbers from code and checking them caught a mistyped 14.9 before it reached the text.\n\nChange: (1) I would add a test for the SQL queries earlier, because a join at the wrong grain would have multiplied campaign spend. (2) I would store figures with their data so a chart can be regenerated by one command. (3) I would ask for feedback after the findings draft, not after the presentation.\n\nNext project: a different domain (public transport delays) with the same stages, tests and README, published by the end of next month.",
+      "rubric": [
+        "Each point cites evidence from the capstone.",
+        "Separates what worked from what to change.",
+        "Names a next project with deliverable and date."
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which slide title is best?",
+      "options": [
+        "Channels",
+        "Email returns 13.68 net revenue per unit of spend",
+        "Analysis of campaign data",
+        "Results"
+      ],
+      "answer": 1,
+      "explanation": "A sentence title states the point and carries the number. The others only name a topic, so the audience must work out the message."
+    },
+    {
+      "id": "c2",
+      "question": "A ten-minute slot with questions should be planned as...",
+      "options": [
+        "A ten-minute talk",
+        "About nine minutes of talk plus one for questions",
+        "Twenty minutes",
+        "Whatever fits"
+      ],
+      "answer": 1,
+      "explanation": "Questions need time. A talk planned to fill the whole slot overruns or squeezes out the recommendation."
+    },
+    {
+      "id": "c3",
+      "question": "Reviewers score caveats 3.33, evidence 3.67, clarity 4.67. Where should the next hour go?",
+      "options": [
+        "Clarity, it is the most important",
+        "Caveats, the lowest score",
+        "Evidence, because it is in the middle",
+        "Nowhere"
+      ],
+      "answer": 1,
+      "explanation": "The lowest-scored criterion has the most to gain. Read the comments for the reason, since a low evidence score may be a missing base."
+    },
+    {
+      "id": "c4",
+      "question": "Which retrospective statement is most useful?",
+      "options": [
+        "It went well",
+        "The cleaning log with row counts made reconciliation end at zero, so I will keep logging",
+        "I learned a lot",
+        "The project was hard"
+      ],
+      "answer": 1,
+      "explanation": "A specific statement tied to evidence tells you what to repeat. The others cannot be acted on."
+    },
+    {
+      "id": "c5",
+      "question": "Why rate a skill with evidence such as 'needed the notes for every merge'?",
+      "options": [
+        "It is required by the curriculum",
+        "A bare number is a feeling, while evidence tells you what to practise",
+        "Evidence raises the rating",
+        "Ratings must be averages"
+      ],
+      "answer": 1,
+      "explanation": "Evidence turns a rating into a plan: you know which operation to practise, not just that the area is weak."
+    }
+  ]
+}

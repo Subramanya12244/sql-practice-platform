@@ -1,0 +1,185 @@
+{
+  "id": "a153",
+  "time": {
+    "theory": 30,
+    "examples": 35,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "conditional-aggregation",
+      "filter-clause"
+    ],
+    "questions": [
+      166,
+      160,
+      152
+    ],
+    "pyExercises": [
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "year-over-year-growth",
+      "pivot-report"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Confirm the drop",
+      "kind": "sql",
+      "prompt": "Return `quarter` (text such as `1998-Q2`, made with `to_char(date_trunc('quarter', order_date), 'YYYY-\"Q\"Q')`), `orders` (distinct orders) and `revenue` (rounded to 0 decimals) for the four quarters of 1998, ordered by quarter.",
+      "starter": "SELECT COUNT(*) AS orders\nFROM orders\nWHERE order_date >= DATE '1998-01-01';\n",
+      "solution": "SELECT to_char(date_trunc('quarter', o.order_date), 'YYYY-\"Q\"Q') AS quarter,\n       COUNT(DISTINCT o.order_id) AS orders,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 0) AS revenue\nFROM orders o JOIN order_details od ON od.order_id = o.order_id\nWHERE o.order_date >= DATE '1998-01-01' AND o.order_date < DATE '1999-01-01'\nGROUP BY date_trunc('quarter', o.order_date)\nORDER BY 1;\n",
+      "ordered": true,
+      "hints": [
+        "Join orders to order_details and filter the dates to 1998.",
+        "Group by date_trunc('quarter', order_date).",
+        "COUNT(DISTINCT o.order_id) for orders and ROUND(SUM(...)::numeric, 0) for revenue."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Basket size by quarter",
+      "kind": "sql",
+      "prompt": "For the quarters of 1998 return `quarter` (text like `1998-Q1`), `lines_per_order` and `units_per_order`, both rounded to 1 decimal, ordered by quarter.",
+      "starter": "SELECT COUNT(*) AS lines\nFROM order_details;\n",
+      "solution": "SELECT to_char(date_trunc('quarter', o.order_date), 'YYYY-\"Q\"Q') AS quarter,\n       ROUND(COUNT(*)::numeric / COUNT(DISTINCT o.order_id), 1) AS lines_per_order,\n       ROUND(SUM(od.quantity)::numeric / COUNT(DISTINCT o.order_id), 1) AS units_per_order\nFROM orders o JOIN order_details od ON od.order_id = o.order_id\nWHERE o.order_date >= DATE '1998-01-01' AND o.order_date < DATE '1999-01-01'\nGROUP BY date_trunc('quarter', o.order_date)\nORDER BY 1;\n",
+      "ordered": true,
+      "hints": [
+        "After the join, COUNT(*) counts lines.",
+        "Divide lines and units by COUNT(DISTINCT o.order_id).",
+        "Cast to numeric before ROUND(..., 1)."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Orders effect and AOV effect",
+      "kind": "python",
+      "prompt": "Period 0 had 50 orders and revenue 10000. Period 1 had 40 orders and revenue 9600. Print `orders effect: -2000`, `aov effect: 1600` and `total: -400` using orders effect = (o1 - o0) x aov0 and aov effect = (aov1 - aov0) x o1. Print the values as plain numbers rounded to the nearest integer.",
+      "starter": "o0, r0 = 50, 10000\no1, r1 = 40, 9600\n",
+      "solution": "o0, r0 = 50, 10000\no1, r1 = 40, 9600\naov0, aov1 = r0 / o0, r1 / o1\norders_effect = (o1 - o0) * aov0\naov_effect = (aov1 - aov0) * o1\nprint('orders effect:', round(orders_effect))\nprint('aov effect:', round(aov_effect))\nprint('total:', round(orders_effect + aov_effect))\n",
+      "hints": [
+        "aov is revenue divided by orders for each period.",
+        "The orders effect uses the old aov, the aov effect uses the new order count.",
+        "Print the three values with round()."
+      ],
+      "expected": "orders effect: -2000\naov effect: 1600\ntotal: -400"
+    },
+    {
+      "id": "g4",
+      "title": "Verdicts with a decision rule",
+      "kind": "python",
+      "prompt": "Observed changes (percent) for four hypotheses: `{'fewer orders': 0, 'lower price': -9, 'higher discount': 18, 'fewer lines per order': -75}`. The drop to explain is 60 percent, and a hypothesis is `supported` when the absolute change is at least 25, otherwise `rejected`. Print one line per hypothesis in the given order as `name: verdict`.",
+      "starter": "changes = {'fewer orders': 0, 'lower price': -9, 'higher discount': 18, 'fewer lines per order': -75}\n",
+      "solution": "changes = {'fewer orders': 0, 'lower price': -9, 'higher discount': 18, 'fewer lines per order': -75}\nfor name, pct in changes.items():\n    print(name + ': ' + ('supported' if abs(pct) >= 25 else 'rejected'))\n",
+      "hints": [
+        "Loop over changes.items().",
+        "abs(pct) >= 25 decides the verdict.",
+        "Print the name, a colon and the verdict."
+      ],
+      "expected": "fewer orders: rejected\nlower price: rejected\nhigher discount: rejected\nfewer lines per order: supported"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Category change between two third quarters",
+      "kind": "sql",
+      "prompt": "Return `category_name`, `q3_1997`, `q3_1998` (net revenue of that quarter, rounded to 0 decimals, 0 when the category had no sales) and `change` (the difference, rounded to 0 decimals), ordered by `change`, then `category_name`.",
+      "starter": "SELECT category_name\nFROM categories\nORDER BY category_name;\n",
+      "solution": "SELECT c.category_name,\n       ROUND(COALESCE(SUM(od.unit_price * od.quantity * (1 - od.discount)) FILTER (WHERE date_trunc('quarter', o.order_date) = DATE '1997-07-01'), 0)::numeric, 0) AS q3_1997,\n       ROUND(COALESCE(SUM(od.unit_price * od.quantity * (1 - od.discount)) FILTER (WHERE date_trunc('quarter', o.order_date) = DATE '1998-07-01'), 0)::numeric, 0) AS q3_1998,\n       ROUND((COALESCE(SUM(od.unit_price * od.quantity * (1 - od.discount)) FILTER (WHERE date_trunc('quarter', o.order_date) = DATE '1998-07-01'), 0)\n            - COALESCE(SUM(od.unit_price * od.quantity * (1 - od.discount)) FILTER (WHERE date_trunc('quarter', o.order_date) = DATE '1997-07-01'), 0))::numeric, 0) AS change\nFROM orders o\nJOIN order_details od ON od.order_id = o.order_id\nJOIN products p ON p.product_id = od.product_id\nJOIN categories c ON c.category_id = p.category_id\nGROUP BY c.category_name\nORDER BY change, c.category_name;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Three-factor decomposition",
+      "kind": "python",
+      "prompt": "Period 0: 20 orders, 60 lines, revenue 9000. Period 1: 22 orders, 44 lines, revenue 6600. Compute the effect of orders `(o1 - o0) * lpo0 * rpl0`... precisely: orders effect = (o1 - o0) x lpo0 x rpl0, lines per order effect = o1 x (lpo1 - lpo0) x rpl0, revenue per line effect = o1 x lpo1 x (rpl1 - rpl0), where lpo is lines per order and rpl is revenue per line. Print `orders: X`, `lines per order: X`, `revenue per line: X`, `sum: X` (nearest integer) and then `largest: NAME` with the name of the effect of largest absolute size.",
+      "starter": "o0, l0, r0 = 20, 60, 9000\no1, l1, r1 = 22, 44, 6600\n",
+      "solution": "o0, l0, r0 = 20, 60, 9000\no1, l1, r1 = 22, 44, 6600\nlpo0, lpo1 = l0 / o0, l1 / o1\nrpl0, rpl1 = r0 / l0, r1 / l1\neff = {\n    'orders': (o1 - o0) * lpo0 * rpl0,\n    'lines per order': o1 * (lpo1 - lpo0) * rpl0,\n    'revenue per line': o1 * lpo1 * (rpl1 - rpl0),\n}\nfor k, v in eff.items():\n    print(k + ':', round(v))\nprint('sum:', round(sum(eff.values())))\nprint('largest: ' + max(eff, key=lambda k: abs(eff[k])))\n",
+      "expected": "orders: 900\nlines per order: -3300\nrevenue per line: 0\nsum: -2400\nlargest: lines per order"
+    },
+    {
+      "id": "i3",
+      "title": "Write the recommendation",
+      "kind": "written",
+      "prompt": "Using the findings of this lesson (third-quarter 1998 revenue down 81 percent from the third quarter of 1997; orders unchanged at 8; lines per order down from 4.0 to 1.0; price and discount changes small; meat and poultry accounting for about a third of the loss; eight orders per quarter), write a recommendation of 5 to 8 sentences with finding, evidence, confidence, recommendation and next step.",
+      "starter": "Finding:\nEvidence:\nConfidence:\nRecommendation:\nNext step:",
+      "solution": "Finding: revenue in the third quarter of 1998 fell 81 percent from the same quarter of 1997 because orders became much smaller, not because there were fewer of them. Evidence: orders were 8 in both quarters, but lines per order fell from 4.0 to 1.0 and average order value from about 2,225 to about 415; price per unit and discount rate each moved by less than 25 percent, and meat and poultry, which sold about 5,100 in 1997, sold nothing in 1998. Confidence: moderate for where the drop came from, low for why, because each quarter has only eight orders and one large order can swing a quarter. Recommendation: do not change prices or discounts, since the data does not point to them; instead treat the loss of multi-line orders from a few large customers as the main issue. Next step: list the customers who placed the large orders in 1997, check whether they ordered in 1998, and ask the account owners whether those customers changed supplier or order pattern.",
+      "rubric": [
+        "States a finding that separates orders (unchanged) from order size (fallen)",
+        "Cites at least two numbers as evidence",
+        "States the confidence and the sample-size limit",
+        "Recommends an action that follows from the evidence rather than a price cut",
+        "Names a concrete next step to find the reason"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Orders are unchanged but revenue fell 60%. Which branch of the hypothesis tree is already unlikely?",
+      "options": [
+        "Fewer orders",
+        "Lower average order value",
+        "Fewer lines per order",
+        "Lower price per unit"
+      ],
+      "answer": 0,
+      "explanation": "Revenue is orders x AOV. With the same number of orders, the fall must come from the order value. The other branches remain possible."
+    },
+    {
+      "id": "c2",
+      "question": "Why is a hypothesis tree written before running queries?",
+      "options": [
+        "So that all causes are tested, not just the first plausible one",
+        "Because SQL requires it",
+        "To make the analysis longer",
+        "To avoid comparing periods"
+      ],
+      "answer": 0,
+      "explanation": "A tree that is mutually exclusive and collectively exhaustive prevents confirmation bias: every branch gets a test and a verdict."
+    },
+    {
+      "id": "c3",
+      "question": "In a join of orders to order_details, which expression counts orders?",
+      "options": [
+        "COUNT(DISTINCT o.order_id)",
+        "COUNT(*)",
+        "COUNT(od.product_id)",
+        "SUM(od.quantity)"
+      ],
+      "answer": 0,
+      "explanation": "After the join there is one row per order line, so COUNT(*) and COUNT(od.product_id) count lines, and SUM(quantity) counts units."
+    },
+    {
+      "id": "c4",
+      "question": "A category lost most of the revenue, and the analysis shows nothing else. Which recommendation is best supported?",
+      "options": [
+        "Investigate customers and orders behind that category before deciding on any action",
+        "Cut prices on all products",
+        "Drop the category",
+        "No action, it is seasonal"
+      ],
+      "answer": 0,
+      "explanation": "The data shows where the money went, not why. Acting on prices or the category before the cause is known risks fixing the wrong thing."
+    },
+    {
+      "id": "c5",
+      "question": "Revenue changes by -500: the orders effect is -200 and the AOV effect is computed with the new order count. What is the AOV effect?",
+      "options": [
+        "-300",
+        "-700",
+        "300",
+        "-500"
+      ],
+      "answer": 0,
+      "explanation": "The two effects must add up to the total change: -200 + x = -500, so x = -300. This is the check for a correct decomposition."
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "id": "e110",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-loading",
+      "etl-idempotency",
+      "transactions",
+      "constraints"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres",
+      "incremental-loading"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A basic upsert",
+      "kind": "python",
+      "prompt": "The table `orders` holds orders 1 and 2. Load `incoming` with one `executemany` of `INSERT INTO orders VALUES (?, ?) ON CONFLICT (order_id) DO UPDATE SET status = excluded.status`, then print all rows ordered by `order_id`. Expected output: `[(1, 'paid'), (2, 'refunded'), (3, 'failed')]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, status TEXT NOT NULL)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?)\", [(1, \"paid\"), (2, \"paid\")])\nincoming = [(2, \"refunded\"), (3, \"failed\")]\n# upsert incoming\nprint(conn.execute(\"SELECT order_id, status FROM orders ORDER BY order_id\").fetchall())\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, status TEXT NOT NULL)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?)\", [(1, \"paid\"), (2, \"paid\")])\nincoming = [(2, \"refunded\"), (3, \"failed\")]\nconn.executemany(\"INSERT INTO orders VALUES (?, ?) ON CONFLICT (order_id) DO UPDATE SET status = excluded.status\", incoming)\nprint(conn.execute(\"SELECT order_id, status FROM orders ORDER BY order_id\").fetchall())\n",
+      "expected": "[(1, 'paid'), (2, 'refunded'), (3, 'failed')]",
+      "hints": [
+        "The conflict target is the primary key column.",
+        "`excluded.status` is the value of the row you tried to insert.",
+        "`INSERT INTO orders VALUES (?, ?) ON CONFLICT (order_id) DO UPDATE SET status = excluded.status`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "DO NOTHING keeps the old row",
+      "kind": "python",
+      "prompt": "Use the same data, but load `incoming` with `ON CONFLICT (order_id) DO NOTHING`. Print the rows ordered by `order_id`. Expected output: `[(1, 'paid'), (2, 'paid'), (3, 'failed')]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, status TEXT NOT NULL)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?)\", [(1, \"paid\"), (2, \"paid\")])\nincoming = [(2, \"refunded\"), (3, \"failed\")]\nprint(conn.execute(\"SELECT order_id, status FROM orders ORDER BY order_id\").fetchall())\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, status TEXT NOT NULL)\")\nconn.executemany(\"INSERT INTO orders VALUES (?, ?)\", [(1, \"paid\"), (2, \"paid\")])\nincoming = [(2, \"refunded\"), (3, \"failed\")]\nconn.executemany(\"INSERT INTO orders VALUES (?, ?) ON CONFLICT (order_id) DO NOTHING\", incoming)\nprint(conn.execute(\"SELECT order_id, status FROM orders ORDER BY order_id\").fetchall())\n",
+      "expected": "[(1, 'paid'), (2, 'paid'), (3, 'failed')]",
+      "hints": [
+        "`DO NOTHING` skips rows whose key already exists.",
+        "Order 2 keeps its old status and order 3 is inserted.",
+        "Replace the update clause with `ON CONFLICT (order_id) DO NOTHING`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Count new, changed, unchanged",
+      "kind": "python",
+      "prompt": "`existing` maps order ids to statuses. Write `classify(existing, incoming)` that returns the tuple `(new, changed, unchanged)` for the list of `(order_id, status)` pairs in `incoming`. Print the result for the data in the starter. Expected output: `(1, 1, 2)`.",
+      "starter": "def classify(existing, incoming):\n    return (0, 0, 0)\n\nexisting = {1: \"paid\", 2: \"paid\", 3: \"failed\"}\nincoming = [(1, \"paid\"), (2, \"refunded\"), (3, \"failed\"), (4, \"paid\")]\nprint(classify(existing, incoming))\n",
+      "solution": "def classify(existing, incoming):\n    new = changed = unchanged = 0\n    for order_id, status in incoming:\n        if order_id not in existing:\n            new += 1\n        elif existing[order_id] != status:\n            changed += 1\n        else:\n            unchanged += 1\n    return new, changed, unchanged\n\nexisting = {1: \"paid\", 2: \"paid\", 3: \"failed\"}\nincoming = [(1, \"paid\"), (2, \"refunded\"), (3, \"failed\"), (4, \"paid\")]\nprint(classify(existing, incoming))\n",
+      "expected": "(1, 1, 2)",
+      "hints": [
+        "Each incoming row is one of three kinds.",
+        "Test for a missing key first, then for a different value.",
+        "`elif existing[order_id] != status` is the changed case."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Roll back on a bad row",
+      "kind": "python",
+      "prompt": "`orders` has a `CHECK (amount >= 0)`. Insert the three rows in the starter inside one `with conn:` block, catch `sqlite3.IntegrityError`, print `rolled back` and then the number of rows in `orders`. Expected output: `rolled back` then `1`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, amount INTEGER CHECK (amount >= 0))\")\nconn.execute(\"INSERT INTO orders VALUES (1, 10)\")\nconn.commit()\nrows = [(2, 20), (3, -5), (4, 40)]\nprint(conn.execute(\"SELECT COUNT(*) FROM orders\").fetchone()[0])\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, amount INTEGER CHECK (amount >= 0))\")\nconn.execute(\"INSERT INTO orders VALUES (1, 10)\")\nconn.commit()\nrows = [(2, 20), (3, -5), (4, 40)]\ntry:\n    with conn:\n        conn.executemany(\"INSERT INTO orders VALUES (?, ?)\", rows)\nexcept sqlite3.IntegrityError:\n    print(\"rolled back\")\nprint(conn.execute(\"SELECT COUNT(*) FROM orders\").fetchone()[0])\n",
+      "expected": "rolled back\n1",
+      "hints": [
+        "`with conn:` commits on success and rolls back when an exception leaves the block.",
+        "Wrap the whole `with` block in `try/except sqlite3.IntegrityError`.",
+        "Row 2 was inserted before the failure but is rolled back with it, so the count stays 1."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A load_run with a log",
+      "kind": "python",
+      "prompt": "The tables are created for you. Write `load_run(conn, rows)` that, in one transaction, empties `stg_orders`, inserts the rows, counts how many staged rows are new (not in `orders`) and how many are changed (in `orders` with a different `amount_cents` or `status`, compared with `IS NOT`), upserts only new or changed rows (`ON CONFLICT (order_id) DO UPDATE ... WHERE` a difference; remember `WHERE true` after the `SELECT`), and then inserts a `load_log` row with `staged`, `inserted`, `updated`, `unchanged` and status `ok`. Run the three loads in `runs` and print all `load_log` rows `(staged, inserted, updated, unchanged)` ordered by `run_id`, then the count of `orders`. Expected output: `[(3, 3, 0, 0), (3, 1, 1, 1), (3, 0, 0, 3)]` then `4`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.executescript(\"\"\"\nCREATE TABLE orders (order_id INTEGER PRIMARY KEY, amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0), status TEXT NOT NULL);\nCREATE TABLE stg_orders (order_id INTEGER, amount_cents INTEGER, status TEXT);\nCREATE TABLE load_log (run_id INTEGER PRIMARY KEY AUTOINCREMENT, staged INTEGER, inserted INTEGER, updated INTEGER, unchanged INTEGER, status TEXT);\n\"\"\")\nruns = [\n    [(1, 100, \"paid\"), (2, 200, \"paid\"), (3, 300, \"failed\")],\n    [(2, 200, \"refunded\"), (3, 300, \"failed\"), (4, 400, \"paid\")],\n    [(2, 200, \"refunded\"), (3, 300, \"failed\"), (4, 400, \"paid\")],\n]\n\ndef load_run(conn, rows):\n    pass\n\nfor rows in runs:\n    load_run(conn, rows)\nprint(conn.execute(\"SELECT staged, inserted, updated, unchanged FROM load_log ORDER BY run_id\").fetchall())\nprint(conn.execute(\"SELECT COUNT(*) FROM orders\").fetchone()[0])\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.executescript(\"\"\"\nCREATE TABLE orders (order_id INTEGER PRIMARY KEY, amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0), status TEXT NOT NULL);\nCREATE TABLE stg_orders (order_id INTEGER, amount_cents INTEGER, status TEXT);\nCREATE TABLE load_log (run_id INTEGER PRIMARY KEY AUTOINCREMENT, staged INTEGER, inserted INTEGER, updated INTEGER, unchanged INTEGER, status TEXT);\n\"\"\")\nruns = [\n    [(1, 100, \"paid\"), (2, 200, \"paid\"), (3, 300, \"failed\")],\n    [(2, 200, \"refunded\"), (3, 300, \"failed\"), (4, 400, \"paid\")],\n    [(2, 200, \"refunded\"), (3, 300, \"failed\"), (4, 400, \"paid\")],\n]\n\ndef load_run(conn, rows):\n    with conn:\n        conn.execute(\"DELETE FROM stg_orders\")\n        conn.executemany(\"INSERT INTO stg_orders VALUES (?, ?, ?)\", rows)\n        staged = conn.execute(\"SELECT COUNT(*) FROM stg_orders\").fetchone()[0]\n        new = conn.execute(\"SELECT COUNT(*) FROM stg_orders s WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.order_id = s.order_id)\").fetchone()[0]\n        changed = conn.execute(\"SELECT COUNT(*) FROM stg_orders s JOIN orders o ON o.order_id = s.order_id WHERE s.amount_cents IS NOT o.amount_cents OR s.status IS NOT o.status\").fetchone()[0]\n        conn.execute(\"INSERT INTO orders SELECT order_id, amount_cents, status FROM stg_orders WHERE true ON CONFLICT (order_id) DO UPDATE SET amount_cents = excluded.amount_cents, status = excluded.status WHERE orders.amount_cents IS NOT excluded.amount_cents OR orders.status IS NOT excluded.status\")\n        conn.execute(\"INSERT INTO load_log (staged, inserted, updated, unchanged, status) VALUES (?, ?, ?, ?, 'ok')\", (staged, new, changed, staged - new - changed))\n\nfor rows in runs:\n    load_run(conn, rows)\nprint(conn.execute(\"SELECT staged, inserted, updated, unchanged FROM load_log ORDER BY run_id\").fetchall())\nprint(conn.execute(\"SELECT COUNT(*) FROM orders\").fetchone()[0])\n",
+      "expected": "[(3, 3, 0, 0), (3, 1, 1, 1), (3, 0, 0, 3)]\n4"
+    },
+    {
+      "id": "i2",
+      "title": "Upsert on PostgreSQL syntax",
+      "kind": "sql",
+      "prompt": "The block creates `api_orders` (two rows) and a staging table `stg_api_orders` (one changed row, one unchanged, one new). Replace the final query so that, after running an upsert from `stg_api_orders` into `api_orders` that updates `status` only when it differs (`IS DISTINCT FROM`), it returns the columns `order_id`, `status` of all api_orders ordered by `order_id`.",
+      "starter": "CREATE TABLE api_orders (order_id integer PRIMARY KEY, status text NOT NULL);\nCREATE TABLE stg_api_orders (order_id integer, status text);\nINSERT INTO api_orders VALUES (1, 'paid'), (2, 'paid');\nINSERT INTO stg_api_orders VALUES (1, 'paid'), (2, 'refunded'), (3, 'failed');\nSELECT order_id, status FROM api_orders ORDER BY order_id;\n",
+      "solution": "CREATE TABLE api_orders (order_id integer PRIMARY KEY, status text NOT NULL);\nCREATE TABLE stg_api_orders (order_id integer, status text);\nINSERT INTO api_orders VALUES (1, 'paid'), (2, 'paid');\nINSERT INTO stg_api_orders VALUES (1, 'paid'), (2, 'refunded'), (3, 'failed');\nINSERT INTO api_orders SELECT order_id, status FROM stg_api_orders\nON CONFLICT (order_id) DO UPDATE SET status = EXCLUDED.status\nWHERE api_orders.status IS DISTINCT FROM EXCLUDED.status;\nSELECT order_id, status FROM api_orders ORDER BY order_id;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Why the log sits outside the transaction",
+      "kind": "written",
+      "prompt": "A colleague puts the `INSERT INTO load_log` inside the same transaction as the upsert. Explain what the log shows after a failed run, what it should show, and how you would restructure the code. Also say what you would add to the log to help an engineer at 03:00.",
+      "starter": "Write your explanation here.",
+      "solution": "If the log row is inside the transaction, a failed run rolls back the log row together with the data: the log shows nothing for that run, so the failure leaves no trace and the engineer sees only a missing night. The log should show a row for every attempt with status `failed` and the error text. Restructure: insert a `running` row and commit it before the main transaction starts; run the staging fill and the upsert in one transaction; after success update the row to `ok` with the counts, and after a failure update it to `failed` with the error message (in a separate small transaction). Useful additions: start and end timestamps, the source's own count for the run, the name of the extract window (such as the date), and the number of dead-letter rows, so that the log row can be compared with the API's totals without opening any other table.",
+      "rubric": [
+        "Explains that a rollback erases an in-transaction log row",
+        "Describes the running then ok or failed update outside the main transaction",
+        "Adds useful fields such as timestamps, source count and window"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `INSERT ... ON CONFLICT (order_id) DO UPDATE SET status = EXCLUDED.status` do for a row whose `order_id` already exists?",
+      "options": [
+        "Raises a duplicate key error",
+        "Replaces the `status` of the existing row with the proposed one",
+        "Skips the row",
+        "Inserts a second row"
+      ],
+      "answer": 1,
+      "explanation": "The conflict clause turns the insert into an update of the existing row, using `EXCLUDED` for the proposed values. `DO NOTHING` would skip it, and without a conflict clause a duplicate key error is raised."
+    },
+    {
+      "id": "c2",
+      "question": "Why add `WHERE orders.status IS DISTINCT FROM EXCLUDED.status` to the upsert?",
+      "options": [
+        "It is required syntax",
+        "It skips rows that did not change, so they are not rewritten on every run",
+        "It deletes unchanged rows",
+        "It makes the update faster than an insert"
+      ],
+      "answer": 1,
+      "explanation": "Without it every existing row is updated on every run, even when nothing changed, which writes new row versions for no reason. `IS DISTINCT FROM` also treats two NULLs as equal."
+    },
+    {
+      "id": "c3",
+      "question": "The staging table contains `order_id` 7 twice and you run the PostgreSQL upsert from it. What happens?",
+      "options": [
+        "Both rows are merged",
+        "PostgreSQL raises an error: ON CONFLICT DO UPDATE cannot affect a row a second time",
+        "The first row wins silently",
+        "The second row is ignored"
+      ],
+      "answer": 1,
+      "explanation": "One statement may not propose the same key twice for update. This is why duplicates are removed (Day 109) before staging."
+    },
+    {
+      "id": "c4",
+      "question": "A load fails on a CHECK constraint half-way through. Where should the failure record be written?",
+      "options": [
+        "Inside the same transaction as the load",
+        "Outside it, in a separate committed statement",
+        "Nowhere, the exception is enough",
+        "Into the target table"
+      ],
+      "answer": 1,
+      "explanation": "A rollback undoes everything in the transaction, including a log row inside it. The log update must be committed separately so that the failure is recorded."
+    },
+    {
+      "id": "c5",
+      "question": "After running the same extract twice, what should the second run's log row show?",
+      "options": [
+        "`inserted` equal to the staged rows",
+        "`inserted` 0, `updated` 0, `unchanged` equal to the staged rows",
+        "`updated` equal to the staged rows",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "The data is identical, so nothing is new or changed. That is what an idempotent load looks like in the log."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "sqlalchemy"
+    ],
+    "note": "Example 5 uses SQLAlchemy with an in-memory `sqlite://` engine, so it runs locally after `pip install sqlalchemy` and is shown read-only in the browser. All other Python examples use the standard-library sqlite3 module as a stand-in for PostgreSQL: placeholders are `?` instead of `%s`, `IS NOT` replaces `IS DISTINCT FROM`, and SQLite needs `WHERE true` before `ON CONFLICT` in `INSERT ... SELECT`. The PostgreSQL-specific upsert, `IS DISTINCT FROM`, `RETURNING` and timestamptz run on PGlite in the SQL example and exercise. The psycopg code in the untagged blocks needs `pip install \"psycopg[binary]\"` and a PostgreSQL server with the connection string in the DATABASE_URL environment variable."
+  }
+}

@@ -1,0 +1,175 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-groupby-agg"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track",
+      "window-functions"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Three summaries per group",
+      "prompt": "Group `sales` by `rep` and use named aggregation to produce columns `total` (sum of `amount`), `best` (maximum `amount`) and `deals` (number of rows). Print `print(out.to_string())`.",
+      "starter": "import pandas as pd\nsales = pd.DataFrame({\"rep\": [\"Ana\", \"Ben\", \"Ana\", \"Ben\"], \"amount\": [10, 30, 25, 5]})\nprint(sales.to_string())\n",
+      "solution": "import pandas as pd\nsales = pd.DataFrame({\"rep\": [\"Ana\", \"Ben\", \"Ana\", \"Ben\"], \"amount\": [10, 30, 25, 5]})\nout = sales.groupby(\"rep\").agg(total=(\"amount\", \"sum\"), best=(\"amount\", \"max\"), deals=(\"amount\", \"size\"))\nprint(out.to_string())\n",
+      "hints": [
+        "Use `agg` with one keyword argument per output column.",
+        "Each keyword takes `(column, function name)`; row counts come from `\"size\"`.",
+        "`agg(total=(\"amount\", \"sum\"), best=(\"amount\", \"max\"), deals=(\"amount\", \"size\"))`."
+      ],
+      "kind": "python",
+      "expected": "     total  best  deals\nrep                    \nAna     35    25      2\nBen     35    30      2"
+    },
+    {
+      "id": "g2",
+      "title": "Share of group total",
+      "prompt": "Add a column `share` to `sales`: each row's `amount` divided by the total of its `rep`, rounded to 2 places. Print `print(sales.to_string())`; the table must keep all four rows.",
+      "starter": "import pandas as pd\nsales = pd.DataFrame({\"rep\": [\"Ana\", \"Ben\", \"Ana\", \"Ben\"], \"amount\": [10, 30, 30, 10]})\nprint(sales.to_string())\n",
+      "solution": "import pandas as pd\nsales = pd.DataFrame({\"rep\": [\"Ana\", \"Ben\", \"Ana\", \"Ben\"], \"amount\": [10, 30, 30, 10]})\nsales[\"share\"] = (sales[\"amount\"] / sales.groupby(\"rep\")[\"amount\"].transform(\"sum\")).round(2)\nprint(sales.to_string())\n",
+      "hints": [
+        "You need the group total on every row, so the result must keep the table's length.",
+        "`transform(\"sum\")` repeats each group's total on all of its rows.",
+        "Divide `sales[\"amount\"]` by `sales.groupby(\"rep\")[\"amount\"].transform(\"sum\")` and round."
+      ],
+      "kind": "python",
+      "expected": "   rep  amount  share\n0  Ana      10   0.25\n1  Ben      30   0.75\n2  Ana      30   0.75\n3  Ben      10   0.25"
+    },
+    {
+      "id": "g3",
+      "title": "Keep big groups",
+      "prompt": "Keep only the rows of customers that have at least 3 rows in `lines`, using `groupby(...).filter(...)`. Print the remaining rows with `print(kept.to_string())`.",
+      "starter": "import pandas as pd\nlines = pd.DataFrame({\"customer\": [\"a\", \"b\", \"a\", \"c\", \"a\", \"b\"], \"amount\": [1, 2, 3, 4, 5, 6]})\nprint(lines.to_string())\n",
+      "solution": "import pandas as pd\nlines = pd.DataFrame({\"customer\": [\"a\", \"b\", \"a\", \"c\", \"a\", \"b\"], \"amount\": [1, 2, 3, 4, 5, 6]})\nkept = lines.groupby(\"customer\").filter(lambda grp: len(grp) >= 3)\nprint(kept.to_string())\n",
+      "hints": [
+        "`filter` receives each group as a small table and must return one True or False.",
+        "The number of rows in a group is `len(grp)`.",
+        "`lines.groupby(\"customer\").filter(lambda grp: len(grp) >= 3)`."
+      ],
+      "kind": "python",
+      "expected": "  customer  amount\n0        a       1\n2        a       3\n4        a       5"
+    },
+    {
+      "id": "g4",
+      "title": "Best sale per rep",
+      "prompt": "Rank rows within each `rep` by `amount` (largest first, ties by order of appearance) and print the rows with rank 1 only, sorted by `rep`, with `print(best.to_string(index=False))`. The columns must be `rep` and `amount`.",
+      "starter": "import pandas as pd\nsales = pd.DataFrame({\"rep\": [\"Ben\", \"Ana\", \"Ben\", \"Ana\", \"Cal\"], \"amount\": [40, 15, 90, 15, 5]})\nprint(sales.to_string())\n",
+      "solution": "import pandas as pd\nsales = pd.DataFrame({\"rep\": [\"Ben\", \"Ana\", \"Ben\", \"Ana\", \"Cal\"], \"amount\": [40, 15, 90, 15, 5]})\nrank = sales.groupby(\"rep\")[\"amount\"].rank(ascending=False, method=\"first\")\nbest = sales[rank == 1].sort_values(\"rep\")\nprint(best.to_string(index=False))\n",
+      "hints": [
+        "`rank` works inside each group when called on a groupby.",
+        "Use `ascending=False` so the largest amount gets rank 1, and `method=\"first\"` to break ties.",
+        "Keep rows where `rank == 1` and sort by `rep`."
+      ],
+      "kind": "python",
+      "expected": "rep  amount\nAna      15\nBen      90\nCal       5"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Deviation report",
+      "prompt": "The table `d` has `team` and `score`. Add `avg` (the team's mean score), `dev` (score minus avg, rounded to 1 place) and flag `high` (True when `dev > 0`). Print the rows where `high` is True with `print(d[d[\"high\"]][[\"team\", \"score\", \"dev\"]].to_string(index=False))`, then print the number of high rows on the last line.",
+      "starter": "import pandas as pd\nd = pd.DataFrame({\"team\": [\"x\", \"x\", \"x\", \"y\", \"y\"], \"score\": [10, 20, 30, 5, 9]})\nprint(d.to_string())\n",
+      "solution": "import pandas as pd\nd = pd.DataFrame({\"team\": [\"x\", \"x\", \"x\", \"y\", \"y\"], \"score\": [10, 20, 30, 5, 9]})\nd[\"avg\"] = d.groupby(\"team\")[\"score\"].transform(\"mean\")\nd[\"dev\"] = (d[\"score\"] - d[\"avg\"]).round(1)\nd[\"high\"] = d[\"dev\"] > 0\nprint(d[d[\"high\"]][[\"team\", \"score\", \"dev\"]].to_string(index=False))\nprint(d[\"high\"].sum())\n",
+      "kind": "python",
+      "expected": "team  score  dev\n   x     30 10.0\n   y      9  2.0\n2"
+    },
+    {
+      "id": "i2",
+      "title": "Top two products per region",
+      "prompt": "The `sales` table has `region`, `product` and `amount`. First total the amount per region and product (flat table). Then rank products inside each region by total (largest first, `method=\"first\"`) and print the rows with rank at most 2, ordered by region then rank, as `region`, `product`, `amount` using `to_string(index=False)`.",
+      "starter": "import pandas as pd\nsales = pd.DataFrame({\"region\": [\"N\", \"N\", \"N\", \"S\", \"S\", \"N\", \"S\"], \"product\": [\"pen\", \"ink\", \"pad\", \"pen\", \"ink\", \"pen\", \"pad\"], \"amount\": [10, 50, 20, 5, 15, 30, 25]})\nprint(sales.to_string())\n",
+      "solution": "import pandas as pd\nsales = pd.DataFrame({\"region\": [\"N\", \"N\", \"N\", \"S\", \"S\", \"N\", \"S\"], \"product\": [\"pen\", \"ink\", \"pad\", \"pen\", \"ink\", \"pen\", \"pad\"], \"amount\": [10, 50, 20, 5, 15, 30, 25]})\ntot = sales.groupby([\"region\", \"product\"], as_index=False)[\"amount\"].sum()\ntot[\"rank\"] = tot.groupby(\"region\")[\"amount\"].rank(ascending=False, method=\"first\")\ntop = tot[tot[\"rank\"] <= 2].sort_values([\"region\", \"rank\"])\nprint(top[[\"region\", \"product\", \"amount\"]].to_string(index=False))\n",
+      "kind": "python",
+      "expected": "region product  amount\n     N     ink      50\n     N     pen      40\n     S     pad      25\n     S     ink      15"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: group-aware cleaning",
+      "required": false,
+      "prompt": "Sensor readings have missing `temp` values. For each station, fill missing values with the station's mean, then keep only stations whose filled mean is at least 20. Print the kept rows as `station`, `temp` with `to_string(index=False)`, then on the last line the number of values that were filled.",
+      "starter": "import numpy as np\nimport pandas as pd\nr = pd.DataFrame({\"station\": [\"A\", \"A\", \"B\", \"B\", \"B\", \"C\"], \"temp\": [20.0, np.nan, 10.0, np.nan, 14.0, 30.0]})\nprint(r.to_string())\n",
+      "solution": "import numpy as np\nimport pandas as pd\nr = pd.DataFrame({\"station\": [\"A\", \"A\", \"B\", \"B\", \"B\", \"C\"], \"temp\": [20.0, np.nan, 10.0, np.nan, 14.0, 30.0]})\nmissing = r[\"temp\"].isna().sum()\nr[\"temp\"] = r[\"temp\"].fillna(r.groupby(\"station\")[\"temp\"].transform(\"mean\"))\nkept = r.groupby(\"station\").filter(lambda g: g[\"temp\"].mean() >= 20)\nprint(kept.to_string(index=False))\nprint(missing)\n",
+      "kind": "python",
+      "expected": "station  temp\n      A  20.0\n      A  20.0\n      C  30.0\n2"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`df` has 100 rows and 8 customers. What length does `df.groupby('customer')['amount'].transform('sum')` have?",
+      "options": [
+        "8",
+        "100",
+        "1",
+        "It depends on the largest group"
+      ],
+      "answer": 1,
+      "explanation": "`transform` returns one value per original row, repeating the group result, so the length is 100. An `agg` would return 8. The result is not reduced to a single value."
+    },
+    {
+      "id": "c2",
+      "question": "Amounts for rep Ana are 100, 60 and 20. What does `rank(ascending=False, method='first')` give them, in that order?",
+      "options": [
+        "1, 2, 3",
+        "3, 2, 1",
+        "1, 1, 1",
+        "0, 1, 2"
+      ],
+      "answer": 0,
+      "explanation": "With `ascending=False` the largest value gets rank 1, so 100 is 1, 60 is 2 and 20 is 3. Ranks start at 1, not 0 (that would be `cumcount`), and are reset for each group."
+    },
+    {
+      "id": "c3",
+      "question": "What does `g.filter(lambda grp: len(grp) >= 2)` return?",
+      "options": [
+        "One row per group with at least 2 rows",
+        "All original rows of groups with at least 2 rows",
+        "The groups' row counts",
+        "All groups, with a True/False column"
+      ],
+      "answer": 1,
+      "explanation": "`filter` keeps or drops whole groups and returns the original rows of the groups kept. SQL `HAVING` would give one row per group. It does not add a flag column."
+    },
+    {
+      "id": "c4",
+      "question": "Why does `sales['amount'] / sales.groupby('rep')['amount'].sum()` give mostly NaN?",
+      "options": [
+        "Division by a series is not allowed",
+        "The group result is indexed by rep, which does not align with the row index",
+        "sum returns strings",
+        "groupby sorts the rows"
+      ],
+      "answer": 1,
+      "explanation": "Pandas aligns on index labels. The grouped sum is indexed by rep names, the table by row numbers, so nothing matches. `transform(\"sum\")` returns the result with the original index and divides correctly."
+    },
+    {
+      "id": "c5",
+      "question": "A team has scores 10, NaN, 30. What does `s.fillna(s.groupby(team).transform('mean'))` put in place of NaN when the whole table's mean is 25 and the team's own mean is 20?",
+      "options": [
+        "25",
+        "20",
+        "0",
+        "NaN stays"
+      ],
+      "answer": 1,
+      "explanation": "The `transform` mean is computed per team ignoring NaN, so the team's own mean of 20 is used. The table-wide mean of 25 would only be used by `fillna(s.mean())`."
+    }
+  ],
+  "id": "d080"
+}

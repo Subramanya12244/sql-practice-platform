@@ -1,0 +1,180 @@
+{
+  "id": "a102",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-numpy",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "customer-transaction-stats"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Slope and intercept from correlation",
+      "kind": "python",
+      "prompt": "Compute the least squares slope as `r * std_y / std_x` (sample standard deviations, `ddof=1`) and the intercept as `mean_y - slope * mean_x`. Print the slope and then the intercept, each rounded to 4 decimals, on two lines.",
+      "starter": "import numpy as np\nimport statsmodels.api as sm\n\nx = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=float)\ny = np.array([12, 15, 14, 20, 22, 21, 29, 30], dtype=float)\n\n# slope and intercept from r and the standard deviations\n",
+      "solution": "import numpy as np\nimport statsmodels.api as sm\n\nx = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=float)\ny = np.array([12, 15, 14, 20, 22, 21, 29, 30], dtype=float)\n\nr = np.corrcoef(x, y)[0, 1]\nslope = r * y.std(ddof=1) / x.std(ddof=1)\nintercept = y.mean() - slope * x.mean()\nprint(round(float(slope), 4))\nprint(round(float(intercept), 4))\n",
+      "hints": [
+        "np.corrcoef(x, y)[0, 1] is r.",
+        "The slope scales r by the ratio of the standard deviations.",
+        "intercept = y.mean() - slope * x.mean()."
+      ],
+      "expected": "2.6071\n8.6429"
+    },
+    {
+      "id": "g2",
+      "title": "Fit with statsmodels",
+      "kind": "python",
+      "prompt": "Fit `y` on `x` with `statsmodels` OLS (remember the constant). Print the parameters rounded to 4 decimals as a list (intercept first), then R-squared rounded to 4 decimals, then the prediction for `x = 9` rounded to 2 decimals, on three lines.",
+      "starter": "import numpy as np\nimport statsmodels.api as sm\n\nx = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=float)\ny = np.array([12, 15, 14, 20, 22, 21, 29, 30], dtype=float)\n\n# fit the model and print three lines\n",
+      "solution": "import numpy as np\nimport statsmodels.api as sm\n\nx = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=float)\ny = np.array([12, 15, 14, 20, 22, 21, 29, 30], dtype=float)\n\nmodel = sm.OLS(y, sm.add_constant(x)).fit()\nprint(model.params.round(4).tolist())\nprint(round(float(model.rsquared), 4))\nprint(round(float(model.predict([[1.0, 9.0]])[0]), 2))\n",
+      "hints": [
+        "sm.OLS takes y first, then X made with sm.add_constant.",
+        "params lists the intercept before the slope.",
+        "Predict with a row [1.0, 9.0]: the first value is the constant."
+      ],
+      "expected": "[8.6429, 2.6071]\n0.9213\n32.11"
+    },
+    {
+      "id": "g3",
+      "title": "Residuals and R-squared",
+      "kind": "python",
+      "prompt": "Using the fitted model, print the residuals rounded to 2 decimals as a list, then the absolute value of their sum rounded to 6 decimals, then `1 - SSE/SST` rounded to 4 decimals, on three lines.",
+      "starter": "import numpy as np\nimport statsmodels.api as sm\n\nx = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=float)\ny = np.array([12, 15, 14, 20, 22, 21, 29, 30], dtype=float)\nmodel = sm.OLS(y, sm.add_constant(x)).fit()\n# residuals, their sum, 1 - SSE/SST\n",
+      "solution": "import numpy as np\nimport statsmodels.api as sm\n\nx = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=float)\ny = np.array([12, 15, 14, 20, 22, 21, 29, 30], dtype=float)\nmodel = sm.OLS(y, sm.add_constant(x)).fit()\nres = model.resid\nprint(res.round(2).tolist())\nprint(round(abs(float(res.sum())), 6))\nprint(round(1 - float((res ** 2).sum()) / float(((y - y.mean()) ** 2).sum()), 4))\n",
+      "hints": [
+        "model.resid holds actual minus predicted.",
+        "With an intercept, residuals sum to 0 apart from rounding error.",
+        "SSE is the sum of squared residuals; SST is the sum of squared distances of y from its mean."
+      ],
+      "expected": "[0.75, 1.14, -2.46, 0.93, 0.32, -3.29, 2.11, 0.5]\n0.0\n0.9213"
+    },
+    {
+      "id": "g4",
+      "title": "Interpret a regression (written)",
+      "kind": "written",
+      "prompt": "A model of weekly sales (units) on advertising spend (in thousands) gives intercept 120, slope 8.5 and R-squared 0.62, based on spend between 5 and 25. Explain in plain language the slope, the intercept, the R-squared, what a prediction at a spend of 80 would mean, and two residual checks.",
+      "starter": "Slope: ...\nIntercept: ...\nR-squared: ...\nSpend of 80: ...\nResidual checks: ...",
+      "solution": "Slope: in this data, each extra thousand of advertising goes with about 8.5 more units sold per week on average; this is an association, not proof of a causal effect. Intercept: the model predicts 120 units at zero spend, but since no week had a spend near 0 (the data ranges from 5 to 25) this is only the line's starting point, not a reliable prediction. R-squared of 0.62: the line accounts for about 62% of the variation in weekly sales; the rest is due to other factors or noise, and it does not show that the model is correct. A spend of 80 is far outside the observed range of 5 to 25, so a prediction of 800 units is an extrapolation that assumes the line continues. Residual checks: plot the residuals against the fitted values, or compare the mean residual in the low, middle and high thirds of spend, to see a curve; and check that the spread of residuals is similar at low and high fitted values, to detect a funnel.",
+      "hints": [
+        "The slope is per unit of x, in the units of y.",
+        "Is x = 0 inside the data?",
+        "Look for curves and funnels in the residuals."
+      ],
+      "rubric": [
+        "Slope explained per thousand of spend and not as proof of causation.",
+        "Intercept described as outside the observed range.",
+        "R-squared described as share of variation accounted for, not correctness.",
+        "Names extrapolation and at least two residual checks."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Fit, predict and report",
+      "kind": "python",
+      "prompt": "Fit `y` on `x` with `np.polyfit`. Print on separate lines: `Slope` and the slope rounded to 3 decimals, `Intercept` and the intercept rounded to 3 decimals, `R2` and R-squared (computed as the squared Pearson correlation) rounded to 3 decimals, `Largest miss at x =` and the x value where the absolute residual is largest as an integer, and `Pred 10` followed by the prediction for x = 10 rounded to 1 decimal. Example line format: `Slope 1.234`.",
+      "starter": "import numpy as np\nimport statsmodels.api as sm\n\nx = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=float)\ny = np.array([12, 15, 14, 20, 22, 21, 29, 30], dtype=float)\n\n# fit and print five lines\n",
+      "solution": "import numpy as np\nimport statsmodels.api as sm\n\nx = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=float)\ny = np.array([12, 15, 14, 20, 22, 21, 29, 30], dtype=float)\n\nslope, intercept = np.polyfit(x, y, 1)\nres = y - (intercept + slope * x)\nprint(\"Slope\", round(float(slope), 3))\nprint(\"Intercept\", round(float(intercept), 3))\nprint(\"R2\", round(float(np.corrcoef(x, y)[0, 1]) ** 2, 3))\nprint(\"Largest miss at x =\", int(x[np.argmax(np.abs(res))]))\nprint(\"Pred 10\", round(float(intercept + slope * 10), 1))\n",
+      "expected": "Slope 2.607\nIntercept 8.643\nR2 0.921\nLargest miss at x = 6\nPred 10 34.7"
+    },
+    {
+      "id": "i2",
+      "title": "Does adding a predictor change the slope?",
+      "kind": "python",
+      "prompt": "Use `rng = np.random.default_rng(7)`. Create `size = rng.random(80) * 50 + 50` and `rooms = size / 25 + rng.normal(0, 0.5, 80)`, then `price = 20 + 2 * size + 15 * rooms + rng.normal(0, 10, 80)`. Fit price on size alone, and on size and rooms together (with a constant). Print the size slope from each model rounded to 2 decimals (`alone` first), then the R-squared of each rounded to 3 decimals, as two lines.",
+      "starter": "import numpy as np\nimport statsmodels.api as sm\n\nrng = np.random.default_rng(7)\n# simulate size, rooms, price, fit two models, print two lines\n",
+      "solution": "import numpy as np\nimport statsmodels.api as sm\n\nrng = np.random.default_rng(7)\nsize = rng.random(80) * 50 + 50\nrooms = size / 25 + rng.normal(0, 0.5, 80)\nprice = 20 + 2 * size + 15 * rooms + rng.normal(0, 10, 80)\nalone = sm.OLS(price, sm.add_constant(size)).fit()\nboth = sm.OLS(price, sm.add_constant(np.column_stack([size, rooms]))).fit()\nprint(round(float(alone.params[1]), 2), round(float(both.params[1]), 2))\nprint(round(float(alone.rsquared), 3), round(float(both.rsquared), 3))\n",
+      "expected": "2.44 2.08\n0.921 0.939"
+    },
+    {
+      "id": "i3",
+      "title": "Residual pattern by thirds (stretch)",
+      "kind": "python",
+      "required": false,
+      "prompt": "Fit a straight line to `y = x ** 2 + 5` for `x = np.linspace(0, 6, 31)`. Print R-squared rounded to 3 decimals, then the mean residual in each third of the data (`np.array_split`) rounded to 2 decimals as a list, then `Curve` if the middle third's mean residual has the opposite sign to the first and last thirds, otherwise `No curve`.",
+      "starter": "import numpy as np\nimport statsmodels.api as sm\n\nx = np.linspace(0, 6, 31)\ny = x ** 2 + 5\n# fit, print R2, thirds, verdict\n",
+      "solution": "import numpy as np\nimport statsmodels.api as sm\n\nx = np.linspace(0, 6, 31)\ny = x ** 2 + 5\nmodel = sm.OLS(y, sm.add_constant(x)).fit()\nprint(round(float(model.rsquared), 3))\nm = [float(t.mean()) for t in np.array_split(model.resid, 3)]\nprint([round(v, 2) for v in m])\nprint(\"Curve\" if m[1] * m[0] < 0 and m[1] * m[2] < 0 else \"No curve\")\n",
+      "expected": "0.934\n[1.2, -2.86, 1.54]\nCurve"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does a least squares line minimise?",
+      "options": [
+        "The sum of the residuals",
+        "The sum of the squared residuals",
+        "The largest residual",
+        "The number of points above the line"
+      ],
+      "answer": 1,
+      "explanation": "Least squares minimises the sum of squared residuals. The plain sum of residuals is always 0 for a line with an intercept, so it cannot choose between lines."
+    },
+    {
+      "id": "c2",
+      "question": "R-squared is 0.80 for a line of y on x. What is true?",
+      "options": [
+        "The model is correct",
+        "80% of the variation in y is accounted for by the line",
+        "A one-unit rise in x raises y by 0.8",
+        "x causes 80% of y"
+      ],
+      "answer": 1,
+      "explanation": "R-squared is the share of variation accounted for by the model. It says nothing about correctness or causation and is not the slope."
+    },
+    {
+      "id": "c3",
+      "question": "A line fitted on x from 10 to 30 is used to predict at x = 100. What is the problem?",
+      "options": [
+        "The intercept is wrong",
+        "It is extrapolation beyond the data",
+        "R-squared is too high",
+        "The residuals are positive"
+      ],
+      "answer": 1,
+      "explanation": "Outside the observed range there is no evidence that the relationship stays linear, so predictions can be impossible, such as negative units."
+    },
+    {
+      "id": "c4",
+      "question": "Residuals are positive at low and high fitted values and negative in the middle. What does this suggest?",
+      "options": [
+        "A curved relationship",
+        "Perfect fit",
+        "Outliers only",
+        "Constant spread"
+      ],
+      "answer": 0,
+      "explanation": "A U-shaped residual pattern means the straight line is systematically too low at the ends and too high in the middle, so a curve is needed."
+    },
+    {
+      "id": "c5",
+      "question": "Why can the slope for price change when advertising is added to the model?",
+      "options": [
+        "Advertising and price are related, so the first slope mixed both effects",
+        "Adding variables always shrinks coefficients",
+        "statsmodels changes the data",
+        "R-squared must fall"
+      ],
+      "answer": 0,
+      "explanation": "If predictors are related, the simple slope absorbs part of the other variable's effect. With both in the model each slope is read holding the other constant."
+    }
+  ]
+}

@@ -1,0 +1,180 @@
+{
+  "id": "d054",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "recursive-cte",
+      "cte"
+    ],
+    "questions": [
+      61,
+      62,
+      63
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "subqueries-ctes"
+    ],
+    "patterns": [
+      "hierarchical-queries",
+      "self-referencing"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Squares of 1 to 8",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "With a recursive CTE return `n` (1 to 8) and `square` (`n * n`), ordered by `n`.",
+      "starter": "SELECT 1 AS n, 1 AS square;\n",
+      "solution": "WITH RECURSIVE nums (n) AS (\n  SELECT 1\n  UNION ALL\n  SELECT n + 1 FROM nums WHERE n < 8\n)\nSELECT n, n * n AS square\nFROM nums\nORDER BY n;\n",
+      "hints": [
+        "The anchor member is SELECT 1; the recursive member adds 1 to the previous n.",
+        "Stop the recursion with WHERE n < 8 in the recursive member. Compute n * n in the final SELECT.",
+        "WITH RECURSIVE nums (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM nums WHERE n < 8) SELECT n, n * n AS square FROM nums ORDER BY n."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Quarter starts of 1997",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Generate the first day of each quarter of 1997 with a recursive CTE: `quarter_start` for 1997-01-01, 1997-04-01, 1997-07-01 and 1997-10-01, ordered ascending. Step by `INTERVAL '3 months'` and cast the result back to `date`.",
+      "starter": "SELECT DATE '1997-01-01' AS quarter_start;\n",
+      "solution": "WITH RECURSIVE q (quarter_start) AS (\n  SELECT DATE '1997-01-01'\n  UNION ALL\n  SELECT (quarter_start + INTERVAL '3 months')::date FROM q WHERE quarter_start < DATE '1997-10-01'\n)\nSELECT quarter_start FROM q ORDER BY quarter_start;\n",
+      "hints": [
+        "The anchor is the date 1997-01-01. Each round adds three months.",
+        "Stop when quarter_start is 1997-10-01: the recursive member should only run while quarter_start < DATE '1997-10-01'.",
+        "SELECT (quarter_start + INTERVAL '3 months')::date FROM q WHERE quarter_start < DATE '1997-10-01'."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Buchanan's team with levels",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Walk down from employee 5 (Buchanan) with a recursive CTE. Return `employee_id`, `last_name` and `level` (Buchanan is level 1, direct reports level 2), ordered by `level`, `employee_id`.",
+      "starter": "SELECT employee_id, last_name, 1 AS level\nFROM employees\nWHERE employee_id = 5;\n",
+      "solution": "WITH RECURSIVE team AS (\n  SELECT employee_id, last_name, 1 AS level\n  FROM employees\n  WHERE employee_id = 5\n  UNION ALL\n  SELECT e.employee_id, e.last_name, t.level + 1\n  FROM employees AS e\n  JOIN team AS t ON e.reports_to = t.employee_id\n)\nSELECT employee_id, last_name, level\nFROM team\nORDER BY level, employee_id;\n",
+      "hints": [
+        "The anchor is the row of employee 5. The recursive member joins employees to the CTE on reports_to = employee_id.",
+        "Carry a level column: 1 in the anchor and t.level + 1 in the recursive member.",
+        "Recursive member: SELECT e.employee_id, e.last_name, t.level + 1 FROM employees AS e JOIN team AS t ON e.reports_to = t.employee_id."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Headcount per level",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Walk the whole organisation starting from the employee whose `reports_to` is NULL. Return `level` (top is 1) and `employees` (how many employees are on that level), ordered by `level`.",
+      "starter": "SELECT 1 AS level, COUNT(*) AS employees\nFROM employees\nWHERE reports_to IS NULL;\n",
+      "solution": "WITH RECURSIVE org AS (\n  SELECT employee_id, 1 AS level\n  FROM employees\n  WHERE reports_to IS NULL\n  UNION ALL\n  SELECT e.employee_id, o.level + 1\n  FROM employees AS e\n  JOIN org AS o ON e.reports_to = o.employee_id\n)\nSELECT level, COUNT(*) AS employees\nFROM org\nGROUP BY level\nORDER BY level;\n",
+      "hints": [
+        "First build the tree with employee_id and level, as in the lesson's Example 3.",
+        "After the CTE, group by level and count the rows.",
+        "SELECT level, COUNT(*) AS employees FROM org GROUP BY level ORDER BY level."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Every month of 1997 with orders and freight",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Generate the 12 months of 1997 (`month` as the first day, as a date) with a recursive CTE and left join the `orders` table on the order's month. Return `month`, `orders` (number of orders) and `freight_total` (sum of `freight`, 0 for a month without orders), ordered by `month`.",
+      "starter": "SELECT date_trunc('month', order_date)::date AS month, COUNT(*) AS orders, SUM(freight) AS freight_total\nFROM orders\nWHERE order_date >= DATE '1997-01-01' AND order_date < DATE '1998-01-01'\nGROUP BY 1\nORDER BY 1;\n",
+      "solution": "WITH RECURSIVE months (month) AS (\n  SELECT DATE '1997-01-01'\n  UNION ALL\n  SELECT (month + INTERVAL '1 month')::date FROM months WHERE month < DATE '1997-12-01'\n)\nSELECT m.month, COUNT(o.order_id) AS orders, COALESCE(SUM(o.freight), 0) AS freight_total\nFROM months AS m\nLEFT JOIN orders AS o ON date_trunc('month', o.order_date) = m.month\nGROUP BY m.month\nORDER BY m.month;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Reporting chains at least three levels deep",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Walk the organisation from the top. Return `last_name`, `level` and `chain` (names from the top down joined with ` > `) for the employees at level 3 or deeper only, ordered by `chain`.",
+      "starter": "SELECT last_name, 3 AS level, last_name AS chain\nFROM employees\nWHERE reports_to IS NOT NULL\nORDER BY last_name;\n",
+      "solution": "WITH RECURSIVE org AS (\n  SELECT employee_id, last_name, 1 AS level, last_name::text AS chain\n  FROM employees\n  WHERE reports_to IS NULL\n  UNION ALL\n  SELECT e.employee_id, e.last_name, o.level + 1, o.chain || ' > ' || e.last_name\n  FROM employees AS e\n  JOIN org AS o ON e.reports_to = o.employee_id\n)\nSELECT last_name, level, chain\nFROM org\nWHERE level >= 3\nORDER BY chain;\n"
+    },
+    {
+      "id": "i3",
+      "title": "The first ten Fibonacci numbers (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `n` (1 to 10) and `fib` (the n-th Fibonacci number: 1, 1, 2, 3, 5, 8, ...) with one recursive CTE that carries two columns, the current number and the next one. Order by `n`.",
+      "starter": "SELECT 1 AS n, 1 AS fib;\n",
+      "solution": "WITH RECURSIVE f (n, fib, next_fib) AS (\n  SELECT 1, 1, 1\n  UNION ALL\n  SELECT n + 1, next_fib, fib + next_fib FROM f WHERE n < 10\n)\nSELECT n, fib\nFROM f\nORDER BY n;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What happens with `WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM t) SELECT * FROM t`?",
+      "options": [
+        "It returns the single row 1",
+        "It returns 1 to 100 by default",
+        "It never stops, because the recursive member has no stop condition",
+        "It raises a syntax error"
+      ],
+      "answer": 2,
+      "explanation": "Every round produces one more row, so no round is empty and recursion never ends. A WHERE n < limit is needed. PostgreSQL has no default limit."
+    },
+    {
+      "id": "c2",
+      "question": "In round 2, which rows does the recursive member read through the CTE name?",
+      "options": [
+        "All rows found so far",
+        "Only the rows produced in round 1",
+        "Only the anchor rows",
+        "The whole base table"
+      ],
+      "answer": 1,
+      "explanation": "Each round sees only the previous round's rows. That is why a tree is walked level by level. The anchor rows are used only in round 1."
+    },
+    {
+      "id": "c3",
+      "question": "You forgot the word RECURSIVE. What error do you get?",
+      "options": [
+        "relation \"org\" does not exist, because an ordinary CTE cannot refer to itself",
+        "A division by zero error",
+        "The query runs and returns only the anchor rows",
+        "A syntax error at UNION ALL"
+      ],
+      "answer": 0,
+      "explanation": "Without RECURSIVE the name of the CTE is not visible inside its own definition, so the recursive member cannot find it. It does not silently return only the anchor."
+    },
+    {
+      "id": "c4",
+      "question": "A route graph contains a cycle A, B, C, A. How do you stop the recursion?",
+      "options": [
+        "Use UNION instead of UNION ALL only",
+        "Keep the visited path in a column and skip nodes already in it",
+        "Add ORDER BY to the recursive member",
+        "Nothing is needed; PostgreSQL detects cycles"
+      ],
+      "answer": 1,
+      "explanation": "Checking the path stops a walk from re-entering a node. PostgreSQL does not detect cycles on its own, and ORDER BY does not limit the recursion."
+    },
+    {
+      "id": "c5",
+      "question": "A month list is left-joined to orders and you write COUNT(*) per month. What is wrong for a month without orders?",
+      "options": [
+        "The count is 0, which is correct",
+        "The count is 1, because the unmatched month row itself is counted; use COUNT(o.order_id)",
+        "The query fails",
+        "The month disappears"
+      ],
+      "answer": 1,
+      "explanation": "A LEFT JOIN keeps the month row with NULL order columns, and COUNT(*) counts rows, so it returns 1. COUNT(o.order_id) ignores NULLs and gives 0."
+    }
+  ]
+}

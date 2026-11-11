@@ -1,0 +1,170 @@
+{
+  "id": "d065",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Replace a loop",
+      "prompt": "The list `celsius = [0, 25, 100, -40]` is converted to an array. Print the Fahrenheit values (`c * 9 / 5 + 32`) as a list on line 1 and, on line 2, the list of Fahrenheit values that are above 70 (use a mask).",
+      "starter": "import numpy as np\n\ncelsius = np.array([0, 25, 100, -40])\n",
+      "solution": "import numpy as np\n\ncelsius = np.array([0, 25, 100, -40])\nf = celsius * 9 / 5 + 32\nprint(f.tolist())\nprint(f[f > 70].tolist())\n",
+      "hints": [
+        "Arithmetic on the whole array works without a loop.",
+        "Store the Fahrenheit array in a variable so that you can mask it afterwards.",
+        "`f = celsius * 9 / 5 + 32`, then print `f.tolist()` and `f[f > 70].tolist()`."
+      ],
+      "kind": "python",
+      "expected": "[32.0, 77.0, 212.0, -40.0]\n[77.0, 212.0]"
+    },
+    {
+      "id": "g2",
+      "title": "Floors and labels",
+      "prompt": "For `bal = np.array([120.5, -30.0, 0.0, -5.5, 80.0])` print two lines: the balances with every negative value replaced by 0 using `np.maximum`, and the labels `\"ok\"` where the balance is at least 0 and `\"overdrawn\"` otherwise using `np.where`, both as lists.",
+      "starter": "import numpy as np\n\nbal = np.array([120.5, -30.0, 0.0, -5.5, 80.0])\n",
+      "solution": "import numpy as np\n\nbal = np.array([120.5, -30.0, 0.0, -5.5, 80.0])\nprint(np.maximum(bal, 0).tolist())\nprint(np.where(bal >= 0, \"ok\", \"overdrawn\").tolist())\n",
+      "hints": [
+        "`np.maximum(a, 0)` picks the larger of each value and 0.",
+        "`np.where(condition, value_if_true, value_if_false)`.",
+        "`np.maximum(bal, 0).tolist()` and `np.where(bal >= 0, \"ok\", \"overdrawn\").tolist()`."
+      ],
+      "kind": "python",
+      "expected": "[120.5, 0.0, 0.0, 0.0, 80.0]\n['ok', 'overdrawn', 'ok', 'overdrawn', 'ok']"
+    },
+    {
+      "id": "g3",
+      "title": "Row and column broadcast",
+      "prompt": "With `t = np.arange(6).reshape(2, 3)`, print on line 1 the table with `np.array([10, 20, 30])` added to every row, and on line 2 the table with `np.array([100, 200])` added to every column, so the first row gets +100 and the second +200. Print both as nested lists.",
+      "starter": "import numpy as np\n\nt = np.arange(6).reshape(2, 3)\n",
+      "solution": "import numpy as np\n\nt = np.arange(6).reshape(2, 3)\nprint((t + np.array([10, 20, 30])).tolist())\nprint((t + np.array([100, 200])[:, None]).tolist())\n",
+      "hints": [
+        "Shape `(3,)` broadcasts across the rows of a `(2, 3)` table.",
+        "A per-row array has shape `(2,)`; it needs to become a column of shape `(2, 1)` first.",
+        "Use `np.array([100, 200])[:, None]` or `.reshape(-1, 1)` before adding."
+      ],
+      "kind": "python",
+      "expected": "[[10, 21, 32], [13, 24, 35]]\n[[100, 101, 102], [203, 204, 205]]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Invoice totals",
+      "prompt": "Three items cost `unit = np.array([9.99, 24.5, 3.0])` and were bought in the quantities `qty = np.array([4, 2, 10])`. Compute the line totals, the total with a 20% tax added (round each to 2 decimals), and a boolean array that is `True` where the line total (before tax) is at least 40. Print, on separate lines, the pre-tax line totals as a list, the taxed line totals as a list, the boolean array as a list, and the number of lines that are `True`.",
+      "starter": "import numpy as np\n\nunit = np.array([9.99, 24.5, 3.0])\nqty = np.array([4, 2, 10])\n",
+      "solution": "import numpy as np\n\nunit = np.array([9.99, 24.5, 3.0])\nqty = np.array([4, 2, 10])\nline = np.round(unit * qty, 2)\ntaxed = np.round(line * 1.2, 2)\nbig = line >= 40\nprint(line.tolist())\nprint(taxed.tolist())\nprint(big.tolist())\nprint(big.sum())\n",
+      "kind": "python",
+      "expected": "[39.96, 49.0, 30.0]\n[47.95, 58.8, 36.0]\n[False, True, False]\n1"
+    },
+    {
+      "id": "i2",
+      "title": "Multiplication grid with a rule",
+      "prompt": "Build the 4 by 5 table of products of the numbers 1 to 4 (rows) and 1 to 5 (columns) using broadcasting only, no loops. Print the table as a nested list on line 1. Then replace every product above 10 by the text `big` and every other product by the text `small`, with `np.where`, and print the label table's first and last rows as lists on lines 2 and 3.",
+      "starter": "import numpy as np\n\n",
+      "solution": "import numpy as np\n\nrows = np.arange(1, 5)[:, None]\ncols = np.arange(1, 6)\ngrid = rows * cols\nprint(grid.tolist())\nlabels = np.where(grid > 10, \"big\", \"small\")\nprint(labels[0].tolist())\nprint(labels[-1].tolist())\n",
+      "kind": "python",
+      "expected": "[[1, 2, 3, 4, 5], [2, 4, 6, 8, 10], [3, 6, 9, 12, 15], [4, 8, 12, 16, 20]]\n['small', 'small', 'small', 'small', 'small']\n['small', 'small', 'big', 'big', 'big']"
+    },
+    {
+      "id": "i3",
+      "title": "Centre columns and verify against a loop",
+      "required": false,
+      "prompt": "For `x = np.array([[2.0, 10.0], [4.0, 20.0], [6.0, 60.0]])` build the column averages with a Python comprehension over `x.T.tolist()` (`x.T` swaps rows and columns). Subtract them from the table with broadcasting. Also compute the same result with a nested loop into a list of lists. Print the centred table (rounded to 2) as a nested list, then `True` or `False` from `np.allclose` comparing your two results.",
+      "starter": "import numpy as np\n\nx = np.array([[2.0, 10.0], [4.0, 20.0], [6.0, 60.0]])\n",
+      "solution": "import numpy as np\n\nx = np.array([[2.0, 10.0], [4.0, 20.0], [6.0, 60.0]])\nmeans = np.array([sum(col) / len(col) for col in x.T.tolist()])\ncentred = x - means\nprint(np.round(centred, 2).tolist())\nloop = []\nfor row in x.tolist():\n    loop.append([row[j] - means[j] for j in range(len(row))])\nprint(np.allclose(centred, loop))\n",
+      "kind": "python",
+      "expected": "[[-2.0, -20.0], [0.0, -10.0], [2.0, 30.0]]\nTrue"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nimport numpy as np\na = np.array([1, 2, 3])\nb = np.array([10, 20, 30])\nprint((a * b).tolist())\n```",
+      "options": [
+        "[10, 40, 90]",
+        "[140]",
+        "[1, 2, 3, 10, 20, 30]",
+        "[11, 22, 33]"
+      ],
+      "answer": 0,
+      "explanation": "`*` multiplies element by element: 1*10, 2*20, 3*30. `[140]` would be the dot product, and the joined list is what `+` does on plain lists, not arrays."
+    },
+    {
+      "id": "c2",
+      "question": "Which pair of shapes can be broadcast together?",
+      "options": [
+        "(3, 4) and (3,)",
+        "(3, 4) and (4,)",
+        "(2, 3) and (3, 2)",
+        "(5,) and (4,)"
+      ],
+      "answer": 1,
+      "explanation": "Shapes are compared from the last dimension: 4 and 4 match, and the missing leading dimension is stretched. `(3, 4)` with `(3,)` compares 4 with 3, which is neither equal nor 1, so it fails, and so do the other two pairs."
+    },
+    {
+      "id": "c3",
+      "question": "What is the shape of the result of `np.array([1, 2, 3])[:, None] + np.array([10, 20])`?",
+      "options": [
+        "(3,)",
+        "(2,)",
+        "(3, 2)",
+        "(2, 3)"
+      ],
+      "answer": 2,
+      "explanation": "The first operand becomes shape `(3, 1)` and the second is `(2,)`. Broadcasting stretches the 1 to 2 and the missing leading dimension to 3, giving a table of 3 rows and 2 columns."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\nimport numpy as np\nprint(np.where(np.array([3, 8, 5]) > 4, 1, 0).tolist())\n```",
+      "options": [
+        "[False, True, True]",
+        "[0, 1, 1]",
+        "[8, 5]",
+        "[1, 2]"
+      ],
+      "answer": 1,
+      "explanation": "`np.where` takes 1 where the condition is true and 0 where it is false. The condition alone would give the booleans, and `[8, 5]` is what mask indexing returns."
+    },
+    {
+      "id": "c5",
+      "question": "What does this print?\n\n```python\nimport numpy as np\nprint((np.array([4, 6]) / 2).tolist())\n```",
+      "options": [
+        "[2, 3]",
+        "[2.0, 3.0]",
+        "[2.0, 3]",
+        "[8, 12]"
+      ],
+      "answer": 1,
+      "explanation": "True division with `/` always produces floats, even when the result is a whole number, so the values print as `2.0` and `3.0`. Floor division `//` would keep integers."
+    },
+    {
+      "id": "c6",
+      "question": "A learner subtracts per-row averages `m` of shape `(3,)` from a table of shape `(3, 4)` using `t - m` and gets a ValueError. What is the correct fix?",
+      "options": [
+        "Transpose the table with `t.T - m`",
+        "Use `t - m[:, None]`",
+        "Convert `m` to a list",
+        "Use `t - m.size`"
+      ],
+      "answer": 1,
+      "explanation": "The per-row values must line up with axis 0, so they need shape `(3, 1)`; `m[:, None]` adds that axis. Transposing would work only by changing the result's shape, and a list or a single number would not give one value per row."
+    }
+  ]
+}

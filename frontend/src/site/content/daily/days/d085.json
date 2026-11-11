@@ -1,0 +1,177 @@
+{
+  "time": {
+    "theory": 20,
+    "examples": 40,
+    "guided": 20,
+    "independent": 60,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-csv-json"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-clean-dataframe"
+    ],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Profile a raw table",
+      "prompt": "The text `RAW` is read as strings. Print three lines: the shape as a tuple, the number of exact duplicate rows, and the number of missing values in the whole table (`raw.isna().sum().sum()`).",
+      "starter": "import io\nimport pandas as pd\nRAW = \"id,name,score\\n1,Ann,5\\n2,Bob,\\n2,Bob,\\n3,,7\\n\"\nraw = pd.read_csv(io.StringIO(RAW), dtype=str)\nprint(raw.head(1))\n",
+      "solution": "import io\nimport pandas as pd\nRAW = \"id,name,score\\n1,Ann,5\\n2,Bob,\\n2,Bob,\\n3,,7\\n\"\nraw = pd.read_csv(io.StringIO(RAW), dtype=str)\nprint(raw.shape)\nprint(raw.duplicated().sum())\nprint(raw.isna().sum().sum())\n",
+      "hints": [
+        "`shape` is an attribute, not a method.",
+        "`duplicated()` marks repeated rows; `sum()` counts them.",
+        "`raw.isna().sum().sum()` totals the missing cells."
+      ],
+      "kind": "python",
+      "expected": "(4, 3)\n1\n3"
+    },
+    {
+      "id": "g2",
+      "title": "Standardise names and codes",
+      "prompt": "Clean the `city` series: strip spaces, convert to upper case, and map the long name `\"NEW YORK\"` to `\"NYC\"` with `map` and a function using `dict.get`. Print the sorted distinct values as a list.",
+      "starter": "import pandas as pd\ncity = pd.Series([\" new york\", \"NYC \", \"Boston\", \"boston \", \"New York\"])\nprint(city.unique().tolist())\n",
+      "solution": "import pandas as pd\ncity = pd.Series([\" new york\", \"NYC \", \"Boston\", \"boston \", \"New York\"])\nnames = {\"NEW YORK\": \"NYC\"}\nclean = city.str.strip().str.upper().map(lambda v: names.get(v, v))\nprint(sorted(clean.unique().tolist()))\n",
+      "hints": [
+        "Strip and upper-case first, so spellings can be compared.",
+        "`names.get(v, v)` returns the mapped value or the value itself.",
+        "`city.str.strip().str.upper().map(lambda v: names.get(v, v))`."
+      ],
+      "kind": "python",
+      "expected": "['BOSTON', 'NYC']"
+    },
+    {
+      "id": "g3",
+      "title": "Money text to numbers",
+      "prompt": "Convert `price` (text such as `\"$1,050.5\"`, `\"20\"`, `\"free\"`) to numbers by removing `$` and commas and coercing failures. Print the list of numbers with `.tolist()` and then the number of failed conversions.",
+      "starter": "import pandas as pd\nprice = pd.Series([\"$1,050.5\", \"20\", \"free\", \"$7\"])\nprint(price.tolist())\n",
+      "solution": "import pandas as pd\nprice = pd.Series([\"$1,050.5\", \"20\", \"free\", \"$7\"])\nnum = pd.to_numeric(price.str.replace(\"[$,]\", \"\", regex=True), errors=\"coerce\")\nprint(num.tolist())\nprint(num.isna().sum())\n",
+      "hints": [
+        "Remove the characters that are not part of the number first.",
+        "`str.replace(\"[$,]\", \"\", regex=True)` removes `$` and commas.",
+        "Pass the result to `pd.to_numeric(..., errors=\"coerce\")`."
+      ],
+      "kind": "python",
+      "expected": "[1050.5, 20.0, nan, 7.0]\n1"
+    },
+    {
+      "id": "g4",
+      "title": "Keep the corrected row",
+      "prompt": "Table `t` has repeated `id` values where the later row is the correction. Keep one row per `id`, the last one, and print `print(t.to_string(index=False))` of the result (row order as in the input).",
+      "starter": "import pandas as pd\nt = pd.DataFrame({\"id\": [1, 2, 1, 3], \"price\": [10, 20, 12, 30]})\nprint(t.to_string(index=False))\n",
+      "solution": "import pandas as pd\nt = pd.DataFrame({\"id\": [1, 2, 1, 3], \"price\": [10, 20, 12, 30]})\nt = t.drop_duplicates(subset=\"id\", keep=\"last\")\nprint(t.to_string(index=False))\n",
+      "hints": [
+        "`drop_duplicates` compares whole rows by default.",
+        "Use `subset` to name the key column and `keep` to choose which row survives.",
+        "`t.drop_duplicates(subset=\"id\", keep=\"last\")`."
+      ],
+      "kind": "python",
+      "expected": " id  price\n  2     20\n  1     12\n  3     30"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Clean an employee file",
+      "prompt": "The setup loads an employee file as text. Write the full cleaning: strip and title-case `name`; strip and upper-case `dept`; convert `salary` (remove `$` and commas) and `hired` (`%Y-%m-%d`) with `errors=\"coerce\"`; drop exact duplicates, then keep the last row for each `emp_id`; reject rows with missing salary or hire date. Print four lines: rows read, rows kept, rows rejected, and the list of kept `emp_id` values.",
+      "starter": "import io\nimport pandas as pd\nRAW = \"\"\"emp_id,name,dept,salary,hired\nE1, ann lee ,sales,\"$52,000\",2021-03-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE3,cara diaz,IT,\"$61,500\",2022-13-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE4,Dan Fox,it,n/a,2019-11-30\nE5,eve ray,HR,\"$45,250.50\",2023-01-20\nE5,Eve Ray,hr,\"$47,000\",2023-01-20\nE6,Gus Hall,Sales,0,2018-05-05\n\"\"\"\nraw = pd.read_csv(io.StringIO(RAW), dtype=str)\nprint(len(raw))\n",
+      "solution": "import io\nimport pandas as pd\nRAW = \"\"\"emp_id,name,dept,salary,hired\nE1, ann lee ,sales,\"$52,000\",2021-03-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE3,cara diaz,IT,\"$61,500\",2022-13-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE4,Dan Fox,it,n/a,2019-11-30\nE5,eve ray,HR,\"$45,250.50\",2023-01-20\nE5,Eve Ray,hr,\"$47,000\",2023-01-20\nE6,Gus Hall,Sales,0,2018-05-05\n\"\"\"\nraw = pd.read_csv(io.StringIO(RAW), dtype=str)\ndf = raw.copy()\ndf[\"name\"] = df[\"name\"].str.strip().str.title()\ndf[\"dept\"] = df[\"dept\"].str.strip().str.upper()\ndf[\"salary\"] = pd.to_numeric(df[\"salary\"].str.replace(\"[$,]\", \"\", regex=True), errors=\"coerce\")\ndf[\"hired\"] = pd.to_datetime(df[\"hired\"], format=\"%Y-%m-%d\", errors=\"coerce\")\ndf = df.drop_duplicates().drop_duplicates(subset=\"emp_id\", keep=\"last\")\nbad = df[\"salary\"].isna() | df[\"hired\"].isna()\nclean, rejects = df[~bad], df[bad]\nprint(len(raw))\nprint(len(clean))\nprint(len(rejects))\nprint(clean[\"emp_id\"].tolist())\n",
+      "kind": "python",
+      "expected": "8\n4\n2\n['E1', 'E2', 'E5', 'E6']"
+    },
+    {
+      "id": "i2",
+      "title": "Validate and summarise",
+      "prompt": "Using the same raw employee text, apply the cleaning from the previous exercise (write it again) and then also treat a salary of 0 or less as invalid (reject it as well). Assert that `emp_id` is unique and every salary is positive. Print the average salary per `dept` rounded to 2 places with `print(avg.to_string())` and then the line `ok` after the assertions pass.",
+      "starter": "import io\nimport pandas as pd\nRAW = \"\"\"emp_id,name,dept,salary,hired\nE1, ann lee ,sales,\"$52,000\",2021-03-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE3,cara diaz,IT,\"$61,500\",2022-13-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE4,Dan Fox,it,n/a,2019-11-30\nE5,eve ray,HR,\"$45,250.50\",2023-01-20\nE5,Eve Ray,hr,\"$47,000\",2023-01-20\nE6,Gus Hall,Sales,0,2018-05-05\n\"\"\"\nraw = pd.read_csv(io.StringIO(RAW), dtype=str)\nprint(raw.shape)\n",
+      "solution": "import io\nimport pandas as pd\nRAW = \"\"\"emp_id,name,dept,salary,hired\nE1, ann lee ,sales,\"$52,000\",2021-03-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE3,cara diaz,IT,\"$61,500\",2022-13-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE4,Dan Fox,it,n/a,2019-11-30\nE5,eve ray,HR,\"$45,250.50\",2023-01-20\nE5,Eve Ray,hr,\"$47,000\",2023-01-20\nE6,Gus Hall,Sales,0,2018-05-05\n\"\"\"\nraw = pd.read_csv(io.StringIO(RAW), dtype=str)\ndf = raw.copy()\ndf[\"name\"] = df[\"name\"].str.strip().str.title()\ndf[\"dept\"] = df[\"dept\"].str.strip().str.upper()\ndf[\"salary\"] = pd.to_numeric(df[\"salary\"].str.replace(\"[$,]\", \"\", regex=True), errors=\"coerce\")\ndf[\"hired\"] = pd.to_datetime(df[\"hired\"], format=\"%Y-%m-%d\", errors=\"coerce\")\ndf = df.drop_duplicates().drop_duplicates(subset=\"emp_id\", keep=\"last\")\nbad = df[\"salary\"].isna() | (df[\"salary\"] <= 0) | df[\"hired\"].isna()\nclean = df[~bad]\nassert clean[\"emp_id\"].is_unique\nassert (clean[\"salary\"] > 0).all()\navg = clean.groupby(\"dept\")[\"salary\"].mean().round(2)\nprint(avg.to_string())\nprint(\"ok\")\n",
+      "kind": "python",
+      "expected": "dept\nHR       47000.0\nSALES    50000.0\nok"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: rejects with a reason",
+      "required": false,
+      "prompt": "With the same employee text and the same cleaning, build a `rejects` table with a column `reason` that is `\"bad salary\"` when salary is missing or not positive and `\"bad date\"` otherwise (use `np.where`; a row with both problems counts as `\"bad salary\"`). Print `rejects[[\"emp_id\", \"reason\"]].to_string(index=False)`.",
+      "starter": "import io\nimport pandas as pd\nRAW = \"\"\"emp_id,name,dept,salary,hired\nE1, ann lee ,sales,\"$52,000\",2021-03-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE3,cara diaz,IT,\"$61,500\",2022-13-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE4,Dan Fox,it,n/a,2019-11-30\nE5,eve ray,HR,\"$45,250.50\",2023-01-20\nE5,Eve Ray,hr,\"$47,000\",2023-01-20\nE6,Gus Hall,Sales,0,2018-05-05\n\"\"\"\nraw = pd.read_csv(io.StringIO(RAW), dtype=str)\nprint(raw.shape)\n",
+      "solution": "import numpy as np\nimport io\nimport pandas as pd\nRAW = \"\"\"emp_id,name,dept,salary,hired\nE1, ann lee ,sales,\"$52,000\",2021-03-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE3,cara diaz,IT,\"$61,500\",2022-13-01\nE2,BOB KING,Sales ,48000,2020-07-15\nE4,Dan Fox,it,n/a,2019-11-30\nE5,eve ray,HR,\"$45,250.50\",2023-01-20\nE5,Eve Ray,hr,\"$47,000\",2023-01-20\nE6,Gus Hall,Sales,0,2018-05-05\n\"\"\"\nraw = pd.read_csv(io.StringIO(RAW), dtype=str)\ndf = raw.copy()\ndf[\"salary\"] = pd.to_numeric(df[\"salary\"].str.replace(\"[$,]\", \"\", regex=True), errors=\"coerce\")\ndf[\"hired\"] = pd.to_datetime(df[\"hired\"], format=\"%Y-%m-%d\", errors=\"coerce\")\ndf = df.drop_duplicates().drop_duplicates(subset=\"emp_id\", keep=\"last\")\nbad_salary = df[\"salary\"].isna() | (df[\"salary\"] <= 0)\nbad = bad_salary | df[\"hired\"].isna()\nrejects = df[bad].assign(reason=np.where(bad_salary[bad], \"bad salary\", \"bad date\"))\nprint(rejects[[\"emp_id\", \"reason\"]].to_string(index=False))\n",
+      "kind": "python",
+      "expected": "emp_id     reason\n    E3   bad date\n    E4 bad salary\n    E6 bad salary"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why standardise text (strip, case) before calling `drop_duplicates`?",
+      "options": [
+        "It makes the code shorter",
+        "Copies that differ only in spaces or capitals are not seen as duplicates",
+        "drop_duplicates only works on lower case",
+        "It converts the types"
+      ],
+      "answer": 1,
+      "explanation": "`\"UK \"` and `\"uk\"` are different strings, so rows that are really copies survive until the text is standardised. `drop_duplicates` itself is case-sensitive but works on any text."
+    },
+    {
+      "id": "c2",
+      "question": "`pd.to_numeric(pd.Series(['5', 'abc']), errors='coerce').isna().sum()` prints what?",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "It raises ValueError"
+      ],
+      "answer": 1,
+      "explanation": "`abc` cannot be converted and becomes NaN, which `isna` counts once; `5` converts. Without `errors=\"coerce\"` the call would raise an error."
+    },
+    {
+      "id": "c3",
+      "question": "You read 100 rows, remove 5 duplicates and reject 8 rows. How many rows are kept?",
+      "options": [
+        "95",
+        "92",
+        "87",
+        "13"
+      ],
+      "answer": 2,
+      "explanation": "100 minus 5 minus 8 is 87. Reconciling read = kept + rejected + duplicates is a simple check that no rows were lost silently."
+    },
+    {
+      "id": "c4",
+      "question": "Order id 7 appears twice with different amounts and the later row is the correction. Which call keeps the correction?",
+      "options": [
+        "drop_duplicates()",
+        "drop_duplicates(subset='order_id', keep='last')",
+        "drop_duplicates(keep=False)",
+        "dropna()"
+      ],
+      "answer": 1,
+      "explanation": "The default compares whole rows, so both rows differing in amount survive. `subset` names the key and `keep=\"last\"` keeps the later row; `keep=False` would drop every row of the repeated key."
+    },
+    {
+      "id": "c5",
+      "question": "What is the purpose of `assert clean['order_id'].is_unique` at the end of a pipeline?",
+      "options": [
+        "It repairs duplicate ids",
+        "It stops the run with an error if the key is not unique",
+        "It sorts the ids",
+        "It counts the ids"
+      ],
+      "answer": 1,
+      "explanation": "An assertion states a rule and fails loudly when it is broken. It does not change the data; the repair must happen in earlier steps."
+    }
+  ],
+  "id": "d085"
+}

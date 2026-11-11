@@ -1,0 +1,192 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "join-cardinality",
+      "primary-foreign-keys",
+      "views"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "filter-valid-records"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "joins"
+    ],
+    "patterns": [
+      "conditional-aggregation"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Static role on segment",
+      "kind": "python",
+      "prompt": "Replicate a role `Corporate` with the DAX filter `[segment] = \"Corporate\"` on `Customers`. Keep the sales of those customers and print the number of orders and the revenue (2 decimals) on one line as `orders revenue`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# filter customers, then sales\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nallowed = customers[customers[\"segment\"] == \"Corporate\"][\"customer_id\"]\nv = sales[sales[\"customer_id\"].isin(allowed)]\nprint(len(v), round(float(v[\"revenue\"].sum()), 2))\n",
+      "hints": [
+        "The filter is on the dimension table.",
+        "Take the customer ids of Corporate customers.",
+        "Keep sales whose customer_id is in that set."
+      ],
+      "expected": "225 37905.0"
+    },
+    {
+      "id": "g2",
+      "title": "Dynamic role per user",
+      "kind": "python",
+      "prompt": "Using the `user_security` table (given), write `view_for(email)` that returns the sales rows the user may see (customers whose country is listed for that email). Print `email orders revenue` (revenue 2 decimals) for `ana@example.com`, `ben@example.com` and `guest@example.com`, one per line.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nuser_security = pd.DataFrame({\n    \"email\": [\"ana@example.com\", \"ben@example.com\", \"ben@example.com\", \"cho@example.com\"],\n    \"country\": [\"UK\", \"France\", \"Spain\", \"Germany\"],\n})\n\ndef view_for(email):\n    pass\n\nfor who in [\"ana@example.com\", \"ben@example.com\", \"guest@example.com\"]:\n    v = view_for(who)\n    print(who, len(v), round(float(v[\"revenue\"].sum()), 2))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nuser_security = pd.DataFrame({\n    \"email\": [\"ana@example.com\", \"ben@example.com\", \"ben@example.com\", \"cho@example.com\"],\n    \"country\": [\"UK\", \"France\", \"Spain\", \"Germany\"],\n})\n\ndef view_for(email):\n    countries = user_security.loc[user_security[\"email\"] == email, \"country\"]\n    allowed = customers[customers[\"country\"].isin(countries)][\"customer_id\"]\n    return sales[sales[\"customer_id\"].isin(allowed)]\n\nfor who in [\"ana@example.com\", \"ben@example.com\", \"guest@example.com\"]:\n    v = view_for(who)\n    print(who, len(v), round(float(v[\"revenue\"].sum()), 2))\n",
+      "hints": [
+        "The user's countries come from the user table.",
+        "Select customers in those countries, then their sales.",
+        "An unknown email has no countries, so isin gives no rows."
+      ],
+      "expected": "ana@example.com 83 14047.5\nben@example.com 204 33637.5\nguest@example.com 0 0.0"
+    },
+    {
+      "id": "g3",
+      "title": "Hours since last success",
+      "kind": "python",
+      "prompt": "Using `log` and `parse` (given), compute the hours between the last successful refresh and `2025-12-05 09:00`, and print `last_success hours verdict` where hours has 1 decimal and verdict is `fresh` for 24 hours or less, otherwise `STALE`.",
+      "starter": "from datetime import datetime\n\nlog = [\n    (\"2025-12-01 06:00\", \"success\"),\n    (\"2025-12-02 06:00\", \"failed\"),\n    (\"2025-12-03 06:00\", \"success\"),\n    (\"2025-12-04 06:00\", \"failed\"),\n    (\"2025-12-05 06:00\", \"failed\"),\n]\n\ndef parse(ts):\n    return datetime.strptime(ts, \"%Y-%m-%d %H:%M\")\n\n# find the last success and the age\n",
+      "solution": "from datetime import datetime\n\nlog = [\n    (\"2025-12-01 06:00\", \"success\"),\n    (\"2025-12-02 06:00\", \"failed\"),\n    (\"2025-12-03 06:00\", \"success\"),\n    (\"2025-12-04 06:00\", \"failed\"),\n    (\"2025-12-05 06:00\", \"failed\"),\n]\n\ndef parse(ts):\n    return datetime.strptime(ts, \"%Y-%m-%d %H:%M\")\n\nlast = max(parse(t) for t, s in log if s == \"success\")\nhours = (parse(\"2025-12-05 09:00\") - last).total_seconds() / 3600\nprint(last.strftime(\"%Y-%m-%d %H:%M\"), round(hours, 1), \"fresh\" if hours <= 24 else \"STALE\")\n",
+      "hints": [
+        "Only successful entries count.",
+        "Subtract the parsed time from the reference time and convert seconds to hours.",
+        "Compare the unrounded hours with 24."
+      ],
+      "expected": "2025-12-03 06:00 51.0 STALE"
+    },
+    {
+      "id": "g4",
+      "title": "Write a dynamic RLS rule (written)",
+      "kind": "written",
+      "prompt": "The model has a `UserSecurity` table with `email` and `country`, and `Customers[country]`. Write the DAX filter for a dynamic role on `Customers`, explain how it restricts `Sales`, and say what a user who is not in `UserSecurity` sees.",
+      "starter": "Role filter on Customers: ...\nEffect on Sales: ...\nUnknown user: ...",
+      "solution": "```dax\n[country] IN SELECTCOLUMNS(\n    FILTER(UserSecurity, UserSecurity[email] = USERPRINCIPALNAME()),\n    \"c\", UserSecurity[country]\n)\n```\n\nThe filter is defined on `Customers`. `USERPRINCIPALNAME()` returns the signed-in user, and the rule keeps the customers whose country is listed for that user. Because `Customers` is on the one side of a one-to-many relationship to `Sales`, the filter propagates and only the sales of the allowed customers remain, so all measures return restricted values. A user who is not in `UserSecurity` has no allowed country, sees no customers and no sales, which is the safe default. `UserSecurity` itself should be hidden and not related to the fact table.",
+      "rubric": [
+        "Filter on Customers using USERPRINCIPALNAME().",
+        "Explains propagation through the relationship to Sales.",
+        "States that an unknown user sees nothing.",
+        "Notes that membership of the role is set in the Service."
+      ],
+      "hints": [
+        "Which function gives the signed-in user?",
+        "Filter UserSecurity by that user, take the countries.",
+        "What does an empty list of countries allow?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Roles for a team, with a leakage check",
+      "kind": "python",
+      "prompt": "Roles: `uk` allows country UK, `de` allows Germany, `corp` allows segment Corporate. Users: `ana` has [uk], `ben` has [uk, de], `cho` has [corp]. A user sees the union of the rows allowed by their roles (customers matching any role). Print `user orders revenue` per user (revenue 2 decimals), then `leak 0` style line: `leak N` where N counts the rows seen by `ana` whose customer is not in the UK.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nroles = {\n    \"uk\": lambda c: c[\"country\"] == \"UK\",\n    \"de\": lambda c: c[\"country\"] == \"Germany\",\n    \"corp\": lambda c: c[\"segment\"] == \"Corporate\",\n}\nusers = {\"ana\": [\"uk\"], \"ben\": [\"uk\", \"de\"], \"cho\": [\"corp\"]}\n\n# view(user), then the printed lines\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nroles = {\n    \"uk\": lambda c: c[\"country\"] == \"UK\",\n    \"de\": lambda c: c[\"country\"] == \"Germany\",\n    \"corp\": lambda c: c[\"segment\"] == \"Corporate\",\n}\nusers = {\"ana\": [\"uk\"], \"ben\": [\"uk\", \"de\"], \"cho\": [\"corp\"]}\n\ndef view(user):\n    mask = pd.Series(False, index=customers.index)\n    for r in users[user]:\n        mask |= roles[r](customers)\n    return sales[sales[\"customer_id\"].isin(customers.loc[mask, \"customer_id\"])]\n\nfor u in users:\n    v = view(u)\n    print(u, len(v), round(float(v[\"revenue\"].sum()), 2))\nseen = view(\"ana\").merge(customers, on=\"customer_id\")\nprint(\"leak\", int((seen[\"country\"] != \"UK\").sum()))\n",
+      "expected": "ana 83 14047.5\nben 196 33495.0\ncho 225 37905.0\nleak 0"
+    },
+    {
+      "id": "i2",
+      "title": "Refresh monitor",
+      "kind": "python",
+      "prompt": "Using `log` (given, a list of (time, status)), print one line per entry `time status` with the text ` (stale since)` appended to every `failed` entry that comes after the last success, then `consecutive failures N` for the number of failed entries at the end of the log, and `last success T`.",
+      "starter": "from datetime import datetime\n\nlog = [\n    (\"2025-12-01 06:00\", \"success\"),\n    (\"2025-12-02 06:00\", \"failed\"),\n    (\"2025-12-03 06:00\", \"success\"),\n    (\"2025-12-04 06:00\", \"failed\"),\n    (\"2025-12-05 06:00\", \"failed\"),\n]\n\ndef parse(ts):\n    return datetime.strptime(ts, \"%Y-%m-%d %H:%M\")\n\n# print the annotated log and the summary\n",
+      "solution": "from datetime import datetime\n\nlog = [\n    (\"2025-12-01 06:00\", \"success\"),\n    (\"2025-12-02 06:00\", \"failed\"),\n    (\"2025-12-03 06:00\", \"success\"),\n    (\"2025-12-04 06:00\", \"failed\"),\n    (\"2025-12-05 06:00\", \"failed\"),\n]\n\ndef parse(ts):\n    return datetime.strptime(ts, \"%Y-%m-%d %H:%M\")\n\nlast_ok = max(parse(t) for t, s in log if s == \"success\")\nfor t, s in log:\n    note = \" (stale since)\" if s == \"failed\" and parse(t) > last_ok else \"\"\n    print(t, s + note)\nn = 0\nfor t, s in reversed(log):\n    if s != \"failed\":\n        break\n    n += 1\nprint(\"consecutive failures\", n)\nprint(\"last success\", last_ok.strftime(\"%Y-%m-%d %H:%M\"))\n",
+      "expected": "2025-12-01 06:00 success\n2025-12-02 06:00 failed\n2025-12-03 06:00 success\n2025-12-04 06:00 failed (stale since)\n2025-12-05 06:00 failed (stale since)\nconsecutive failures 2\nlast success 2025-12-03 06:00"
+    },
+    {
+      "id": "i3",
+      "title": "Security and refresh plan (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A company has sales data in an on-premises SQL Server, 200 managers who should see only their own country, and an executive group that should see everything. Design the publishing, refresh and security setup: where to publish, how refresh reaches the database, which roles to define and how the executive group is handled, and how you would test it before launch.",
+      "starter": "Publish: ...\nRefresh: ...\nRoles: ...\nTesting: ...",
+      "solution": "Publish the model and report to a dedicated workspace, and share the finished pages with the audience as an app, so the managers are viewers and not workspace editors. Because the database is on-premises, install an on-premises data gateway on a server inside the network, store the credentials for the source in the Service and schedule the refresh outside business hours, with failure notifications to the model owner and a `Last Refresh` text on the report. For security, create one dynamic role on `Customers` that uses `USERPRINCIPALNAME()` and a hidden `UserSecurity` table with one row per manager and country, so that 200 people need no 200 roles. For the executives, either add a second role with no filter on Customers (roles combine as a union, so the executives see all rows) or list every country for them in the table. Test with Test as role in the Service for several users, including one who is not in the table (must see nothing), and check from a viewer account, since editors are not restricted by RLS.",
+      "rubric": [
+        "Uses a gateway and a scheduled refresh with monitoring.",
+        "One dynamic role with a user table instead of many static roles.",
+        "Handles the executives with an unfiltered role or all countries, noting union.",
+        "Tests as role and as a viewer, including an unlisted user."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Publishing, scheduled refresh, gateways, row-level security and sharing need Power BI Desktop (Windows-only) and a Power BI Service account (a browser), and some features depend on the licence. None of this runs here. The graded exercises model the role filters and the refresh log with pandas and plain Python."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A user belongs to two RLS roles, one allowing UK and one allowing Germany. What does the user see?",
+      "options": [
+        "Nothing, because the filters contradict each other",
+        "UK and Germany rows together",
+        "Only the first role",
+        "All rows"
+      ],
+      "answer": 1,
+      "explanation": "Roles are additive: the user sees the union of rows allowed by each role. A narrower view needs the user removed from a role."
+    },
+    {
+      "id": "c2",
+      "question": "A scheduled refresh has failed for three days. What does a viewer see?",
+      "options": [
+        "An error page",
+        "The report with the old data from the last successful refresh",
+        "An empty report",
+        "Live data"
+      ],
+      "answer": 1,
+      "explanation": "An import-mode model keeps the data of the last successful load, so the report opens normally but is stale. The failure is visible in the refresh history, which is why a Last Refresh text helps."
+    },
+    {
+      "id": "c3",
+      "question": "Which tool actually restricts the rows a viewer can reach?",
+      "options": [
+        "A hidden page",
+        "A page-level filter",
+        "A role with a DAX table filter (RLS)",
+        "A bookmark"
+      ],
+      "answer": 2,
+      "explanation": "Pages, filters and bookmarks only change the view, and a reader can change them. RLS filters are applied by the model to the user's queries."
+    },
+    {
+      "id": "c4",
+      "question": "Why is an on-premises data gateway needed for an on-premises SQL Server source?",
+      "options": [
+        "To compress the data",
+        "Because the cloud service cannot reach a private network by itself",
+        "To define roles",
+        "To publish the report"
+      ],
+      "answer": 1,
+      "explanation": "The gateway is software inside the network that carries refresh queries between the Service and the private source. Without it, scheduled refresh fails."
+    },
+    {
+      "id": "c5",
+      "question": "In dynamic RLS, what does a user who is missing from the UserSecurity table see?",
+      "options": [
+        "All rows",
+        "No rows",
+        "A random country",
+        "An error only in Desktop"
+      ],
+      "answer": 1,
+      "explanation": "With no matching entry the allowed set is empty, so the filter on Customers keeps no rows and measures return blank. That is the safe default."
+    }
+  ],
+  "id": "a135"
+}

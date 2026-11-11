@@ -1,0 +1,191 @@
+{
+  "id": "a168",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "dwh-star-schema"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pivot-records",
+      "pandas-merge-anti-join"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "interview-patterns"
+    ],
+    "patterns": [
+      "pivot-report",
+      "unmatched-records"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Tier lookup",
+      "kind": "python",
+      "prompt": "Using `merge_asof`, give each rep a commission rate from the tier table (largest `min_sales` not above their sales) and print `<rep>: <rate>` for the reps in the original order.",
+      "starter": "import pandas as pd\n\nreps = pd.DataFrame({\"rep\": [\"Ana\", \"Ben\", \"Cho\", \"Dev\", \"Eli\"], \"sales\": [9800, 10000, 24999, 51000, 30250]})\ntiers = pd.DataFrame({\"min_sales\": [0, 10000, 25000, 50000], \"rate\": [0.00, 0.02, 0.04, 0.06]})\n\n# approximate match\n",
+      "solution": "import pandas as pd\n\nreps = pd.DataFrame({\"rep\": [\"Ana\", \"Ben\", \"Cho\", \"Dev\", \"Eli\"], \"sales\": [9800, 10000, 24999, 51000, 30250]})\ntiers = pd.DataFrame({\"min_sales\": [0, 10000, 25000, 50000], \"rate\": [0.00, 0.02, 0.04, 0.06]})\n\nout = pd.merge_asof(reps.sort_values(\"sales\"), tiers, left_on=\"sales\", right_on=\"min_sales\").set_index(\"rep\").loc[reps[\"rep\"]]\nfor rep, row in out.iterrows():\n    print(f\"{rep}: {row['rate']}\")\n",
+      "expected": "Ana: 0.0\nBen: 0.02\nCho: 0.02\nDev: 0.06\nEli: 0.04",
+      "hints": [
+        "Approximate match needs both tables sorted by the key.",
+        "`pd.merge_asof(left, right, left_on=, right_on=)` finds the last right key not above the left key.",
+        "Restore the original rep order with `.loc[reps[\"rep\"]]` after setting the index."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "SUMIFS replica",
+      "kind": "python",
+      "prompt": "Print the revenue of orders from `Corporate` customers in `Technology` products for quarter 2 (`quarter == 2`), rounded to 2 decimals, as `revenue: <value>`, and the number of such order rows as `orders: <n>`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef revenue_table():\n    sales, customers, products, calendar = make_model()\n    sales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n    return sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\").merge(calendar, left_on=\"order_date\", right_on=\"date\")\n\nt = revenue_table()\n\n# conditional sum\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef revenue_table():\n    sales, customers, products, calendar = make_model()\n    sales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n    return sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\").merge(calendar, left_on=\"order_date\", right_on=\"date\")\n\nt = revenue_table()\n\nmask = (t[\"segment\"] == \"Corporate\") & (t[\"category\"] == \"Technology\") & (t[\"quarter\"] == 2)\nprint(\"revenue:\", round(float(t.loc[mask, \"revenue\"].sum()), 2))\nprint(\"orders:\", int(mask.sum()))\n",
+      "expected": "revenue: 5214.87\norders: 11",
+      "hints": [
+        "Combine three conditions with `&`, each in parentheses.",
+        "`t.loc[mask, \"revenue\"].sum()` is the SUMIFS.",
+        "`mask.sum()` counts the rows."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Percent of all by segment",
+      "kind": "python",
+      "prompt": "Print each customer `segment`'s share of total revenue (the `ALL` denominator) as `<segment>: <pct>%` with 1 decimal, in descending order of revenue.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef revenue_table():\n    sales, customers, products, calendar = make_model()\n    sales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n    return sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\").merge(calendar, left_on=\"order_date\", right_on=\"date\")\n\nt = revenue_table()\n\n# shares by segment\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef revenue_table():\n    sales, customers, products, calendar = make_model()\n    sales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n    return sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\").merge(calendar, left_on=\"order_date\", right_on=\"date\")\n\nt = revenue_table()\n\ntotal = t[\"revenue\"].sum()\nshare = (t.groupby(\"segment\")[\"revenue\"].sum() / total * 100).round(1).sort_values(ascending=False)\nfor name, v in share.items():\n    print(f\"{name}: {v}%\")\n",
+      "expected": "Consumer: 51.9%\nCorporate: 27.5%\nSmall Business: 20.6%",
+      "hints": [
+        "Total revenue is the denominator, unaffected by the grouping.",
+        "Group by `segment`, sum revenue, divide by the total.",
+        "Sort descending and print an f-string."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "VLOOKUP, XLOOKUP, INDEX/MATCH",
+      "kind": "written",
+      "prompt": "Interview question: `When would you use XLOOKUP instead of VLOOKUP, and what is INDEX/MATCH for?` Give a three-part answer (what, why, risk) in about 100 words.",
+      "starter": "What:\nWhy:\nRisk:",
+      "solution": "What: all three return a value from a table row found by a key. `VLOOKUP` searches the first column and returns a column by its number; `XLOOKUP` takes separate lookup and return ranges; `INDEX`/`MATCH` combines a position finder with a range picker.\n\nWhy: I prefer `XLOOKUP` (or `INDEX`/`MATCH` in versions without it) because it does not break when columns are inserted, can look left, and defaults to an exact match; `VLOOKUP` hard-codes a column number and defaults to approximate match when the last argument is omitted.\n\nRisk: a missing key returns `#N/A`, so give `XLOOKUP` a not-found text and count misses with `COUNTIF` or `ISNA`; and approximate match on an unsorted first column returns wrong results.",
+      "hints": [
+        "Which one breaks when a column is inserted?",
+        "Which default is dangerous?",
+        "What does a missing key return?"
+      ],
+      "rubric": [
+        "Says what each does in one line.",
+        "Gives the column-number and look-left reasons.",
+        "Names the missing-key or approximate-match risk."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Year to date by country",
+      "kind": "python",
+      "prompt": "For the UK only, compute monthly revenue (by `month_number`) and the year-to-date running total, rounded to 2 decimals. Print the rows for months 1 to 3 as `<month>: <revenue> <ytd>`, and then `final ytd equals UK total: True/False`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef revenue_table():\n    sales, customers, products, calendar = make_model()\n    sales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n    return sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\").merge(calendar, left_on=\"order_date\", right_on=\"date\")\n\nt = revenue_table()\n\n# UK year to date\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef revenue_table():\n    sales, customers, products, calendar = make_model()\n    sales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n    return sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\").merge(calendar, left_on=\"order_date\", right_on=\"date\")\n\nt = revenue_table()\n\nuk = t[t[\"country\"] == \"UK\"]\nmonthly = uk.groupby(\"month_number\")[\"revenue\"].sum().round(2)\nytd = monthly.cumsum().round(2)\nfor month in monthly.index[:3]:\n    print(f\"{month}: {monthly[month]} {ytd[month]}\")\nprint(\"final ytd equals UK total:\", round(float(ytd.iloc[-1]), 2) == round(float(uk[\"revenue\"].sum()), 2))\n",
+      "expected": "1: 406.51 406.51\n2: 3906.8 4313.31\n3: 978.81 5292.12\nfinal ytd equals UK total: True"
+    },
+    {
+      "id": "i2",
+      "title": "A share function like ALL",
+      "kind": "python",
+      "prompt": "Write `share_by(df, column)` returning the share of total `revenue` (percent, rounded to 1 decimal) per value of `column` as a Series sorted descending. Print `share_by(t, 'category').to_string()` and `share_by(t, 'country').to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef revenue_table():\n    sales, customers, products, calendar = make_model()\n    sales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n    return sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\").merge(calendar, left_on=\"order_date\", right_on=\"date\")\n\nt = revenue_table()\n\ndef share_by(df, column):\n    pass\n\n\nprint(share_by(t, \"category\").to_string())\nprint(share_by(t, \"country\").to_string())\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef revenue_table():\n    sales, customers, products, calendar = make_model()\n    sales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n    return sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\").merge(calendar, left_on=\"order_date\", right_on=\"date\")\n\nt = revenue_table()\n\ndef share_by(df, column):\n    totals = df.groupby(column)[\"revenue\"].sum()\n    return (totals / df[\"revenue\"].sum() * 100).round(1).sort_values(ascending=False)\n\n\nprint(share_by(t, \"category\").to_string())\nprint(share_by(t, \"country\").to_string())\n",
+      "expected": "category\nTechnology         44.4\nFurniture          32.5\nOffice Supplies    23.1\ncountry\nSpain      32.9\nFrance     29.4\nGermany    25.1\nUK         12.7"
+    },
+    {
+      "id": "i3",
+      "title": "Why do the totals disagree",
+      "kind": "written",
+      "prompt": "A manager says: `The matrix by country adds up to less than the total revenue card`. List five causes in the order you would check them, what you look at for each, and the fix for the most likely one.",
+      "starter": "1. ...\n2. ...",
+      "solution": "Order of checks: (1) orphan keys: sales whose `customer_id` is missing from `Customers` show under a blank country; check with an anti-join or the blank row in the matrix and fix the dimension or the source keys. (2) A relationship that is inactive or filters the wrong way, so the country filter does not reach `Sales`; check Model view. (3) A measure that uses `ALL` or a fixed filter and ignores the country on the rows. (4) A visual-level or page filter that removes rows from the matrix but not the card. (5) A partial or stale refresh, or a date table that does not cover all dates.\n\nThe most likely fix is for orphans: correct or add the missing customers, refresh, and reconcile so that the sum of countries (including the blank group, which should disappear) equals the card total.",
+      "rubric": [
+        "Lists orphan keys, relationships, measure filters, visual filters and refresh or date coverage.",
+        "Says how to check each one.",
+        "Gives a fix for orphans and a reconciliation check."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Excel, Power BI Desktop (Windows only) and DAX have no runtime in this course's browser. The formulas and DAX are shown as text, and every number in the lesson and in the model answers is reproduced with pandas, which runs in the browser. Function names are those of current Excel (XLOOKUP needs a recent version) and Power BI. The graded exercises are pandas replicas; the written exercises are model answers marked against a rubric."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`VLOOKUP(x, table, 2)` with the last argument omitted does what?",
+      "options": [
+        "An approximate match that needs a sorted first column",
+        "An exact match",
+        "A lookup to the left",
+        "A sum"
+      ],
+      "answer": 0,
+      "explanation": "Omitting the last argument is the same as TRUE, which is approximate match on sorted data. Use FALSE for exact."
+    },
+    {
+      "id": "c2",
+      "question": "What does `ALL(Customers)` do inside `CALCULATE` for a percent-of-total measure?",
+      "options": [
+        "Removes filters from Customers so the denominator is the overall total",
+        "Adds all customers to the visual",
+        "Deletes the table",
+        "Sorts customers"
+      ],
+      "answer": 0,
+      "explanation": "The denominator must ignore the country on the rows, which ALL achieves; the numerator keeps the filter."
+    },
+    {
+      "id": "c3",
+      "question": "Why does a PivotTable show Count instead of Sum for a column?",
+      "options": [
+        "The column contains text or blanks",
+        "The pivot is broken",
+        "Sum is not available",
+        "The column is a key"
+      ],
+      "answer": 0,
+      "explanation": "Excel defaults to Count when a values field has non-numeric entries; clean the data or switch the aggregation."
+    },
+    {
+      "id": "c4",
+      "question": "A measure is different from a calculated column because:",
+      "options": [
+        "It is computed at report time for the current filters",
+        "It is stored for every row",
+        "It cannot use SUM",
+        "It only works in Excel"
+      ],
+      "answer": 0,
+      "explanation": "Measures respond to filter context when the visual is drawn; calculated columns are fixed at refresh."
+    },
+    {
+      "id": "c5",
+      "question": "A rep has sales of 24,999 and tiers start at 0, 10,000, 25,000, 50,000. Which tier applies with approximate match?",
+      "options": [
+        "The 10,000 tier",
+        "The 25,000 tier",
+        "The 0 tier",
+        "The 50,000 tier"
+      ],
+      "answer": 0,
+      "explanation": "Approximate match returns the largest minimum not above the value: 10,000 is, 25,000 is not."
+    }
+  ]
+}

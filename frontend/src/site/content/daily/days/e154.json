@@ -1,0 +1,169 @@
+{
+  "id": "e154",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "airflow-failure-handling"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Modes to octal",
+      "kind": "python",
+      "prompt": "The functions `mode_to_octal`, `octal_to_mode` and `apply_chmod` are given. Print `mode_to_octal` of `rwxr-xr-x`, `rw-r-----` and `r--------`, one result per line.",
+      "starter": "BITS = {\"r\": 4, \"w\": 2, \"x\": 1}\n\n\ndef mode_to_octal(text):\n    if len(text) != 9:\n        raise ValueError(\"mode must have 9 characters\")\n    digits = \"\"\n    for start in range(0, 9, 3):\n        total = 0\n        for offset, letter in enumerate(\"rwx\"):\n            ch = text[start + offset]\n            if ch == letter:\n                total += BITS[letter]\n            elif ch != \"-\":\n                raise ValueError(f\"unexpected {ch!r} at position {start + offset}\")\n        digits += str(total)\n    return int(digits)\n\n\ndef octal_to_mode(number):\n    digits = f\"{number:03d}\"\n    if len(digits) != 3 or any(d not in \"01234567\" for d in digits):\n        raise ValueError(\"expected three octal digits\")\n    return \"\".join(\n        \"\".join(letter if int(d) & BITS[letter] else \"-\" for letter in \"rwx\") for d in digits\n    )\n\n\ndef apply_chmod(number, spec):\n    parts = [int(d) for d in f\"{number:03d}\"]\n    index = {\"u\": 0, \"g\": 1, \"o\": 2}\n    for clause in spec.split(\",\"):\n        sign = \"+\" if \"+\" in clause else \"-\" if \"-\" in clause else \"=\"\n        who, bits = clause.split(sign)\n        who = \"ugo\" if who in (\"\", \"a\") else who\n        value = sum(BITS[b] for b in bits)\n        for w in who:\n            i = index[w]\n            if sign == \"+\":\n                parts[i] |= value\n            elif sign == \"-\":\n                parts[i] &= ~value & 7\n            else:\n                parts[i] = value\n    return int(\"\".join(str(p) for p in parts))\n\n# print three conversions\n",
+      "solution": "BITS = {\"r\": 4, \"w\": 2, \"x\": 1}\n\n\ndef mode_to_octal(text):\n    if len(text) != 9:\n        raise ValueError(\"mode must have 9 characters\")\n    digits = \"\"\n    for start in range(0, 9, 3):\n        total = 0\n        for offset, letter in enumerate(\"rwx\"):\n            ch = text[start + offset]\n            if ch == letter:\n                total += BITS[letter]\n            elif ch != \"-\":\n                raise ValueError(f\"unexpected {ch!r} at position {start + offset}\")\n        digits += str(total)\n    return int(digits)\n\n\ndef octal_to_mode(number):\n    digits = f\"{number:03d}\"\n    if len(digits) != 3 or any(d not in \"01234567\" for d in digits):\n        raise ValueError(\"expected three octal digits\")\n    return \"\".join(\n        \"\".join(letter if int(d) & BITS[letter] else \"-\" for letter in \"rwx\") for d in digits\n    )\n\n\ndef apply_chmod(number, spec):\n    parts = [int(d) for d in f\"{number:03d}\"]\n    index = {\"u\": 0, \"g\": 1, \"o\": 2}\n    for clause in spec.split(\",\"):\n        sign = \"+\" if \"+\" in clause else \"-\" if \"-\" in clause else \"=\"\n        who, bits = clause.split(sign)\n        who = \"ugo\" if who in (\"\", \"a\") else who\n        value = sum(BITS[b] for b in bits)\n        for w in who:\n            i = index[w]\n            if sign == \"+\":\n                parts[i] |= value\n            elif sign == \"-\":\n                parts[i] &= ~value & 7\n            else:\n                parts[i] = value\n    return int(\"\".join(str(p) for p in parts))\n\nfor m in [\"rwxr-xr-x\", \"rw-r-----\", \"r--------\"]:\n    print(mode_to_octal(m))\n",
+      "hints": [
+        "Loop over the three strings.",
+        "Each call returns an integer such as 754.",
+        "print(mode_to_octal(m)) inside the loop."
+      ],
+      "expected": "755\n640\n400"
+    },
+    {
+      "id": "g2",
+      "title": "Octal to modes",
+      "kind": "python",
+      "prompt": "Print `octal_to_mode` of 600, 644 and 750 on one line each, in that order.",
+      "starter": "BITS = {\"r\": 4, \"w\": 2, \"x\": 1}\n\n\ndef mode_to_octal(text):\n    if len(text) != 9:\n        raise ValueError(\"mode must have 9 characters\")\n    digits = \"\"\n    for start in range(0, 9, 3):\n        total = 0\n        for offset, letter in enumerate(\"rwx\"):\n            ch = text[start + offset]\n            if ch == letter:\n                total += BITS[letter]\n            elif ch != \"-\":\n                raise ValueError(f\"unexpected {ch!r} at position {start + offset}\")\n        digits += str(total)\n    return int(digits)\n\n\ndef octal_to_mode(number):\n    digits = f\"{number:03d}\"\n    if len(digits) != 3 or any(d not in \"01234567\" for d in digits):\n        raise ValueError(\"expected three octal digits\")\n    return \"\".join(\n        \"\".join(letter if int(d) & BITS[letter] else \"-\" for letter in \"rwx\") for d in digits\n    )\n\n\ndef apply_chmod(number, spec):\n    parts = [int(d) for d in f\"{number:03d}\"]\n    index = {\"u\": 0, \"g\": 1, \"o\": 2}\n    for clause in spec.split(\",\"):\n        sign = \"+\" if \"+\" in clause else \"-\" if \"-\" in clause else \"=\"\n        who, bits = clause.split(sign)\n        who = \"ugo\" if who in (\"\", \"a\") else who\n        value = sum(BITS[b] for b in bits)\n        for w in who:\n            i = index[w]\n            if sign == \"+\":\n                parts[i] |= value\n            elif sign == \"-\":\n                parts[i] &= ~value & 7\n            else:\n                parts[i] = value\n    return int(\"\".join(str(p) for p in parts))\n\n# print three modes\n",
+      "solution": "BITS = {\"r\": 4, \"w\": 2, \"x\": 1}\n\n\ndef mode_to_octal(text):\n    if len(text) != 9:\n        raise ValueError(\"mode must have 9 characters\")\n    digits = \"\"\n    for start in range(0, 9, 3):\n        total = 0\n        for offset, letter in enumerate(\"rwx\"):\n            ch = text[start + offset]\n            if ch == letter:\n                total += BITS[letter]\n            elif ch != \"-\":\n                raise ValueError(f\"unexpected {ch!r} at position {start + offset}\")\n        digits += str(total)\n    return int(digits)\n\n\ndef octal_to_mode(number):\n    digits = f\"{number:03d}\"\n    if len(digits) != 3 or any(d not in \"01234567\" for d in digits):\n        raise ValueError(\"expected three octal digits\")\n    return \"\".join(\n        \"\".join(letter if int(d) & BITS[letter] else \"-\" for letter in \"rwx\") for d in digits\n    )\n\n\ndef apply_chmod(number, spec):\n    parts = [int(d) for d in f\"{number:03d}\"]\n    index = {\"u\": 0, \"g\": 1, \"o\": 2}\n    for clause in spec.split(\",\"):\n        sign = \"+\" if \"+\" in clause else \"-\" if \"-\" in clause else \"=\"\n        who, bits = clause.split(sign)\n        who = \"ugo\" if who in (\"\", \"a\") else who\n        value = sum(BITS[b] for b in bits)\n        for w in who:\n            i = index[w]\n            if sign == \"+\":\n                parts[i] |= value\n            elif sign == \"-\":\n                parts[i] &= ~value & 7\n            else:\n                parts[i] = value\n    return int(\"\".join(str(p) for p in parts))\n\nfor n in [600, 644, 750]:\n    print(octal_to_mode(n))\n",
+      "hints": [
+        "octal_to_mode takes an integer such as 644.",
+        "Use a list and a for loop.",
+        "print(octal_to_mode(n))."
+      ],
+      "expected": "rw-------\nrw-r--r--\nrwxr-x---"
+    },
+    {
+      "id": "g3",
+      "title": "Symbolic chmod",
+      "kind": "python",
+      "prompt": "Using `apply_chmod`, print the octal mode that results from applying `u+x` to 644, `go-r` to 755 and `a=rx` to 600, one per line.",
+      "starter": "BITS = {\"r\": 4, \"w\": 2, \"x\": 1}\n\n\ndef mode_to_octal(text):\n    if len(text) != 9:\n        raise ValueError(\"mode must have 9 characters\")\n    digits = \"\"\n    for start in range(0, 9, 3):\n        total = 0\n        for offset, letter in enumerate(\"rwx\"):\n            ch = text[start + offset]\n            if ch == letter:\n                total += BITS[letter]\n            elif ch != \"-\":\n                raise ValueError(f\"unexpected {ch!r} at position {start + offset}\")\n        digits += str(total)\n    return int(digits)\n\n\ndef octal_to_mode(number):\n    digits = f\"{number:03d}\"\n    if len(digits) != 3 or any(d not in \"01234567\" for d in digits):\n        raise ValueError(\"expected three octal digits\")\n    return \"\".join(\n        \"\".join(letter if int(d) & BITS[letter] else \"-\" for letter in \"rwx\") for d in digits\n    )\n\n\ndef apply_chmod(number, spec):\n    parts = [int(d) for d in f\"{number:03d}\"]\n    index = {\"u\": 0, \"g\": 1, \"o\": 2}\n    for clause in spec.split(\",\"):\n        sign = \"+\" if \"+\" in clause else \"-\" if \"-\" in clause else \"=\"\n        who, bits = clause.split(sign)\n        who = \"ugo\" if who in (\"\", \"a\") else who\n        value = sum(BITS[b] for b in bits)\n        for w in who:\n            i = index[w]\n            if sign == \"+\":\n                parts[i] |= value\n            elif sign == \"-\":\n                parts[i] &= ~value & 7\n            else:\n                parts[i] = value\n    return int(\"\".join(str(p) for p in parts))\n\n# print three results\n",
+      "solution": "BITS = {\"r\": 4, \"w\": 2, \"x\": 1}\n\n\ndef mode_to_octal(text):\n    if len(text) != 9:\n        raise ValueError(\"mode must have 9 characters\")\n    digits = \"\"\n    for start in range(0, 9, 3):\n        total = 0\n        for offset, letter in enumerate(\"rwx\"):\n            ch = text[start + offset]\n            if ch == letter:\n                total += BITS[letter]\n            elif ch != \"-\":\n                raise ValueError(f\"unexpected {ch!r} at position {start + offset}\")\n        digits += str(total)\n    return int(digits)\n\n\ndef octal_to_mode(number):\n    digits = f\"{number:03d}\"\n    if len(digits) != 3 or any(d not in \"01234567\" for d in digits):\n        raise ValueError(\"expected three octal digits\")\n    return \"\".join(\n        \"\".join(letter if int(d) & BITS[letter] else \"-\" for letter in \"rwx\") for d in digits\n    )\n\n\ndef apply_chmod(number, spec):\n    parts = [int(d) for d in f\"{number:03d}\"]\n    index = {\"u\": 0, \"g\": 1, \"o\": 2}\n    for clause in spec.split(\",\"):\n        sign = \"+\" if \"+\" in clause else \"-\" if \"-\" in clause else \"=\"\n        who, bits = clause.split(sign)\n        who = \"ugo\" if who in (\"\", \"a\") else who\n        value = sum(BITS[b] for b in bits)\n        for w in who:\n            i = index[w]\n            if sign == \"+\":\n                parts[i] |= value\n            elif sign == \"-\":\n                parts[i] &= ~value & 7\n            else:\n                parts[i] = value\n    return int(\"\".join(str(p) for p in parts))\n\nprint(apply_chmod(644, \"u+x\"))\nprint(apply_chmod(755, \"go-r\"))\nprint(apply_chmod(600, \"a=rx\"))\n",
+      "hints": [
+        "Each call needs an octal number and a clause string.",
+        "The result is an integer, for example 744.",
+        "Three print calls with the three pairs."
+      ],
+      "expected": "744\n711\n555"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Audit world-writable files",
+      "kind": "python",
+      "prompt": "`listing` holds mode and name per line. Print, in the order given, each file whose mode gives *others* the write permission, as `name: <octal now> -> <octal after chmod o-w>`. Skip files that others cannot write. Use the given functions. Print nothing for files that are fine.",
+      "starter": "BITS = {\"r\": 4, \"w\": 2, \"x\": 1}\n\n\ndef mode_to_octal(text):\n    if len(text) != 9:\n        raise ValueError(\"mode must have 9 characters\")\n    digits = \"\"\n    for start in range(0, 9, 3):\n        total = 0\n        for offset, letter in enumerate(\"rwx\"):\n            ch = text[start + offset]\n            if ch == letter:\n                total += BITS[letter]\n            elif ch != \"-\":\n                raise ValueError(f\"unexpected {ch!r} at position {start + offset}\")\n        digits += str(total)\n    return int(digits)\n\n\ndef octal_to_mode(number):\n    digits = f\"{number:03d}\"\n    if len(digits) != 3 or any(d not in \"01234567\" for d in digits):\n        raise ValueError(\"expected three octal digits\")\n    return \"\".join(\n        \"\".join(letter if int(d) & BITS[letter] else \"-\" for letter in \"rwx\") for d in digits\n    )\n\n\ndef apply_chmod(number, spec):\n    parts = [int(d) for d in f\"{number:03d}\"]\n    index = {\"u\": 0, \"g\": 1, \"o\": 2}\n    for clause in spec.split(\",\"):\n        sign = \"+\" if \"+\" in clause else \"-\" if \"-\" in clause else \"=\"\n        who, bits = clause.split(sign)\n        who = \"ugo\" if who in (\"\", \"a\") else who\n        value = sum(BITS[b] for b in bits)\n        for w in who:\n            i = index[w]\n            if sign == \"+\":\n                parts[i] |= value\n            elif sign == \"-\":\n                parts[i] &= ~value & 7\n            else:\n                parts[i] = value\n    return int(\"\".join(str(p) for p in parts))\n\nlisting = \"\"\"\nrwxr-xr-x etl.sh\nrw-rw-rw- shared.csv\nrwxrwxrwx deploy.sh\nrw------- secrets.env\nrw-r--rw- notes.txt\n\"\"\"\n# your code here\n",
+      "solution": "BITS = {\"r\": 4, \"w\": 2, \"x\": 1}\n\n\ndef mode_to_octal(text):\n    if len(text) != 9:\n        raise ValueError(\"mode must have 9 characters\")\n    digits = \"\"\n    for start in range(0, 9, 3):\n        total = 0\n        for offset, letter in enumerate(\"rwx\"):\n            ch = text[start + offset]\n            if ch == letter:\n                total += BITS[letter]\n            elif ch != \"-\":\n                raise ValueError(f\"unexpected {ch!r} at position {start + offset}\")\n        digits += str(total)\n    return int(digits)\n\n\ndef octal_to_mode(number):\n    digits = f\"{number:03d}\"\n    if len(digits) != 3 or any(d not in \"01234567\" for d in digits):\n        raise ValueError(\"expected three octal digits\")\n    return \"\".join(\n        \"\".join(letter if int(d) & BITS[letter] else \"-\" for letter in \"rwx\") for d in digits\n    )\n\n\ndef apply_chmod(number, spec):\n    parts = [int(d) for d in f\"{number:03d}\"]\n    index = {\"u\": 0, \"g\": 1, \"o\": 2}\n    for clause in spec.split(\",\"):\n        sign = \"+\" if \"+\" in clause else \"-\" if \"-\" in clause else \"=\"\n        who, bits = clause.split(sign)\n        who = \"ugo\" if who in (\"\", \"a\") else who\n        value = sum(BITS[b] for b in bits)\n        for w in who:\n            i = index[w]\n            if sign == \"+\":\n                parts[i] |= value\n            elif sign == \"-\":\n                parts[i] &= ~value & 7\n            else:\n                parts[i] = value\n    return int(\"\".join(str(p) for p in parts))\n\nlisting = \"\"\"\nrwxr-xr-x etl.sh\nrw-rw-rw- shared.csv\nrwxrwxrwx deploy.sh\nrw------- secrets.env\nrw-r--rw- notes.txt\n\"\"\"\nfor line in listing.strip().splitlines():\n    mode, name = line.split()\n    if mode[7] == \"w\":\n        now = mode_to_octal(mode)\n        print(f\"{name}: {now} -> {apply_chmod(now, 'o-w')}\")\n",
+      "expected": "shared.csv: 666 -> 664\ndeploy.sh: 777 -> 775\nnotes.txt: 646 -> 644"
+    },
+    {
+      "id": "i2",
+      "title": "Default modes from a umask",
+      "kind": "python",
+      "prompt": "Write `default_modes(umask)` that returns the tuple `(file_mode, dir_mode)` as three-digit integers, where the file mode is 666 and the directory mode is 777 with the umask bits removed digit by digit (a digit of the umask clears those bits in the same digit). Print `umask file dir` for umasks 22, 77 and 2 formatted as three-digit strings, for example `022 644 755`, one per line.",
+      "starter": "BITS = {\"r\": 4, \"w\": 2, \"x\": 1}\n\n\ndef mode_to_octal(text):\n    if len(text) != 9:\n        raise ValueError(\"mode must have 9 characters\")\n    digits = \"\"\n    for start in range(0, 9, 3):\n        total = 0\n        for offset, letter in enumerate(\"rwx\"):\n            ch = text[start + offset]\n            if ch == letter:\n                total += BITS[letter]\n            elif ch != \"-\":\n                raise ValueError(f\"unexpected {ch!r} at position {start + offset}\")\n        digits += str(total)\n    return int(digits)\n\n\ndef octal_to_mode(number):\n    digits = f\"{number:03d}\"\n    if len(digits) != 3 or any(d not in \"01234567\" for d in digits):\n        raise ValueError(\"expected three octal digits\")\n    return \"\".join(\n        \"\".join(letter if int(d) & BITS[letter] else \"-\" for letter in \"rwx\") for d in digits\n    )\n\n\ndef apply_chmod(number, spec):\n    parts = [int(d) for d in f\"{number:03d}\"]\n    index = {\"u\": 0, \"g\": 1, \"o\": 2}\n    for clause in spec.split(\",\"):\n        sign = \"+\" if \"+\" in clause else \"-\" if \"-\" in clause else \"=\"\n        who, bits = clause.split(sign)\n        who = \"ugo\" if who in (\"\", \"a\") else who\n        value = sum(BITS[b] for b in bits)\n        for w in who:\n            i = index[w]\n            if sign == \"+\":\n                parts[i] |= value\n            elif sign == \"-\":\n                parts[i] &= ~value & 7\n            else:\n                parts[i] = value\n    return int(\"\".join(str(p) for p in parts))\n\ndef default_modes(umask):\n    pass\n\n\nfor u in [22, 77, 2]:\n    pass  # print the line\n",
+      "solution": "BITS = {\"r\": 4, \"w\": 2, \"x\": 1}\n\n\ndef mode_to_octal(text):\n    if len(text) != 9:\n        raise ValueError(\"mode must have 9 characters\")\n    digits = \"\"\n    for start in range(0, 9, 3):\n        total = 0\n        for offset, letter in enumerate(\"rwx\"):\n            ch = text[start + offset]\n            if ch == letter:\n                total += BITS[letter]\n            elif ch != \"-\":\n                raise ValueError(f\"unexpected {ch!r} at position {start + offset}\")\n        digits += str(total)\n    return int(digits)\n\n\ndef octal_to_mode(number):\n    digits = f\"{number:03d}\"\n    if len(digits) != 3 or any(d not in \"01234567\" for d in digits):\n        raise ValueError(\"expected three octal digits\")\n    return \"\".join(\n        \"\".join(letter if int(d) & BITS[letter] else \"-\" for letter in \"rwx\") for d in digits\n    )\n\n\ndef apply_chmod(number, spec):\n    parts = [int(d) for d in f\"{number:03d}\"]\n    index = {\"u\": 0, \"g\": 1, \"o\": 2}\n    for clause in spec.split(\",\"):\n        sign = \"+\" if \"+\" in clause else \"-\" if \"-\" in clause else \"=\"\n        who, bits = clause.split(sign)\n        who = \"ugo\" if who in (\"\", \"a\") else who\n        value = sum(BITS[b] for b in bits)\n        for w in who:\n            i = index[w]\n            if sign == \"+\":\n                parts[i] |= value\n            elif sign == \"-\":\n                parts[i] &= ~value & 7\n            else:\n                parts[i] = value\n    return int(\"\".join(str(p) for p in parts))\n\ndef default_modes(umask):\n    digits = [int(d) for d in f\"{umask:03d}\"]\n    file_mode = \"\".join(str(6 & ~d & 7) for d in digits)\n    dir_mode = \"\".join(str(7 & ~d & 7) for d in digits)\n    return int(file_mode), int(dir_mode)\n\n\nfor u in [22, 77, 2]:\n    f, d = default_modes(u)\n    print(f\"{u:03d} {f:03d} {d:03d}\")\n",
+      "expected": "022 644 755\n077 600 700\n002 664 775"
+    },
+    {
+      "id": "i3",
+      "title": "Parallel loads with wait",
+      "kind": "written",
+      "required": false,
+      "prompt": "Write a Bash script outline that starts three loads (`load_a.sh`, `load_b.sh`, `load_c.sh`) in the background, waits for each by PID, prints which ones failed and exits 1 if any failed, otherwise exits 0. Explain why plain `wait` is not enough.",
+      "starter": "#!/usr/bin/env bash\n\n",
+      "solution": "```text\n#!/usr/bin/env bash\nset -uo pipefail\nfailed=0\npids=()\nfor job in load_a.sh load_b.sh load_c.sh; do\n  ./\"$job\" &\n  pids+=($!)\ndone\ni=0\nfor job in load_a.sh load_b.sh load_c.sh; do\n  if ! wait \"${pids[$i]}\"; then\n    echo \"failed: $job\"\n    failed=1\n  fi\n  i=$((i + 1))\ndone\nexit $failed\n```\n\nPlain `wait` with no argument returns 0 once all jobs have ended, whatever their statuses, so a failed load would be missed. `wait $pid` returns the status of that one job. `set -e` is left off so that the script can collect all failures and report them before it exits.",
+      "rubric": [
+        "Starts each job with & and records its PID from $!.",
+        "Waits for each PID separately and tests its status.",
+        "Exits non-zero when any job failed.",
+        "Explains that plain wait hides failures."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "The bash examples need a Unix shell with Bash, find, du and coreutils (macOS, Linux or WSL) and run in a throwaway folder; they are shown read-only in the browser with the output produced when the lesson was tested. Signals, background jobs and umask behave the same way on your own machine; PIDs and owners differ, which is why no example prints them. The mode arithmetic is modelled by Python functions that are graded in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A background job is stopped with kill (default signal). What does `wait $pid` report?",
+      "options": [
+        "0",
+        "143",
+        "9",
+        "1"
+      ],
+      "answer": 1,
+      "explanation": "A process ended by a signal reports 128 plus the signal number; the default signal is SIGTERM (15), so 143. 9 would be the signal number of SIGKILL, not an exit status."
+    },
+    {
+      "id": "c2",
+      "question": "What is the octal form of rwxr-x---?",
+      "options": [
+        "750",
+        "755",
+        "570",
+        "640"
+      ],
+      "answer": 0,
+      "explanation": "rwx is 7, r-x is 5, --- is 0. 755 would give others read and execute; 640 is rw-r-----."
+    },
+    {
+      "id": "c3",
+      "question": "With umask 077, a new file is created. Which mode does it get?",
+      "options": [
+        "rw-------",
+        "rw-r--r--",
+        "rwx------",
+        "rwxrwxrwx"
+      ],
+      "answer": 0,
+      "explanation": "New files start from 666 and the umask removes bits: 666 minus 077 is 600. rwx------ would need the execute bit, which files never receive by default."
+    },
+    {
+      "id": "c4",
+      "question": "A script starts three jobs with & and immediately runs `cat out*.txt`. What is the likely symptom?",
+      "options": [
+        "The jobs run faster",
+        "Some files are missing or empty because the jobs have not finished",
+        "The script exits 143",
+        "cat waits automatically"
+      ],
+      "answer": 1,
+      "explanation": "Background jobs run concurrently with the script. Without wait the cat can run first. cat has no idea about other processes."
+    },
+    {
+      "id": "c5",
+      "question": "Why is `kill -9` a last resort?",
+      "options": [
+        "It is slower than TERM",
+        "The process cannot catch it, so its trap or cleanup never runs",
+        "It only works on files",
+        "It needs the umask"
+      ],
+      "answer": 1,
+      "explanation": "SIGKILL cannot be caught, so temporary files and locks may be left behind. SIGTERM lets the program clean up first."
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "id": "d040",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "inner-join",
+      "join-cardinality"
+    ],
+    "questions": [
+      11
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "joins"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Expensive freight with company names",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Join `orders` (alias `o`) to `customers` (alias `c`) on `customer_id`. Return `order_id`, `company_name` and `freight` (in that order) for orders whose freight is above 150. Order by `order_id`.",
+      "starter": "-- Orders with freight above 150 and the customer's company name\nSELECT o.order_id, o.customer_id AS company_name, o.freight\nFROM orders o\nWHERE o.freight > 150\nORDER BY o.order_id;\n",
+      "solution": "SELECT o.order_id, c.company_name, o.freight\nFROM orders o\nJOIN customers c ON o.customer_id = c.customer_id\nWHERE o.freight > 150\nORDER BY o.order_id;\n",
+      "hints": [
+        "The starter shows the customer key, not the name. The name lives in the customers table, so you have to join to it.",
+        "FROM orders o JOIN customers c ON ... ; match the foreign key in orders with the primary key in customers.",
+        "JOIN customers c ON o.customer_id = c.customer_id, then select c.company_name"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Premium products and their suppliers",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Join `products` (alias `p`) to `suppliers` (alias `s`) on `supplier_id`. Return `product_id`, `product_name` and `supplier` (the supplier's `company_name`) for products with a `unit_price` of 60 or more. Order by `product_id`.",
+      "starter": "-- Products priced 60 or more with their supplier's company name\nSELECT p.product_id, p.product_name, p.supplier_id AS supplier\nFROM products p\nWHERE p.unit_price >= 60\nORDER BY p.product_id;\n",
+      "solution": "SELECT p.product_id, p.product_name, s.company_name AS supplier\nFROM products p\nJOIN suppliers s ON p.supplier_id = s.supplier_id\nWHERE p.unit_price >= 60\nORDER BY p.product_id;\n",
+      "hints": [
+        "The supplier's name is in the suppliers table, so the products table alone cannot give it.",
+        "Join on the key that both tables share: supplier_id.",
+        "JOIN suppliers s ON p.supplier_id = s.supplier_id and select s.company_name AS supplier"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Orders handled per employee",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Join `orders` to `employees` and return `last_name` and `orders` (the number of orders handled) for each employee, grouped by `employee_id` and `last_name`. Order by `orders` descending, then `last_name`.",
+      "starter": "-- Number of orders per employee last name\nSELECT last_name, COUNT(*) AS orders\nFROM employees\nGROUP BY last_name\nORDER BY orders DESC, last_name;\n",
+      "solution": "SELECT e.last_name, COUNT(*) AS orders\nFROM orders o\nJOIN employees e ON o.employee_id = e.employee_id\nGROUP BY e.employee_id, e.last_name\nORDER BY orders DESC, e.last_name;\n",
+      "hints": [
+        "The starter counts employees, not orders. The orders live in the orders table, which must be joined.",
+        "Join orders to employees on employee_id, then group by the employee and count the joined rows.",
+        "FROM orders o JOIN employees e ON o.employee_id = e.employee_id GROUP BY e.employee_id, e.last_name"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Late orders per shipper",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Join `orders` (alias `o`) to `shippers` (alias `sh`) on `o.ship_via = sh.shipper_id`. Return `shipper` (the shipper's `company_name`) and `late_orders` (the number of orders shipped after their `required_date`) for each shipper. Order by `shipper`.",
+      "starter": "-- Late orders per shipper\nSELECT sh.company_name AS shipper, COUNT(*) AS late_orders\nFROM orders o\nJOIN shippers sh ON o.ship_via = sh.shipper_id\nGROUP BY sh.company_name\nORDER BY shipper;\n",
+      "solution": "SELECT sh.company_name AS shipper, COUNT(*) AS late_orders\nFROM orders o\nJOIN shippers sh ON o.ship_via = sh.shipper_id\nWHERE o.shipped_date > o.required_date\nGROUP BY sh.company_name\nORDER BY shipper;\n",
+      "hints": [
+        "The starter counts every order of each shipper. Only the late ones should be counted.",
+        "A late order has a shipped_date after its required_date. This is a row condition, so it belongs in WHERE, before GROUP BY.",
+        "WHERE o.shipped_date > o.required_date"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Line totals for three orders",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Join `order_details` (alias `od`) to `products` (alias `p`). For orders 10250, 10251 and 10252 return `order_id`, `product_name`, `quantity` and `line_total` (`od.unit_price * od.quantity * (1 - od.discount)` rounded to 2 decimals, with `discount` cast to `numeric`), ordered by `order_id`, then `product_name`.",
+      "starter": "-- Line totals for orders 10250 to 10252\nSELECT od.order_id, od.product_id AS product_name, od.quantity, od.unit_price AS line_total\nFROM order_details od\nWHERE od.order_id IN (10250, 10251, 10252)\nORDER BY od.order_id, od.product_id;\n",
+      "solution": "SELECT od.order_id, p.product_name, od.quantity,\n       ROUND(od.unit_price * od.quantity * (1 - od.discount::numeric), 2) AS line_total\nFROM order_details od\nJOIN products p ON od.product_id = p.product_id\nWHERE od.order_id IN (10250, 10251, 10252)\nORDER BY od.order_id, p.product_name;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Revenue per order year",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Join `orders` (alias `o`) to `order_details` (alias `od`). Return `yr` (the year of `order_date` as an integer), `orders` (the number of distinct orders), `lines` (the number of order lines) and `revenue` (the sum of `od.unit_price * od.quantity * (1 - od.discount)`, `discount` cast to `numeric`, rounded to 2 decimals). Order by `yr`.",
+      "starter": "-- Orders, lines and revenue per year\nSELECT EXTRACT(year FROM order_date)::int AS yr, COUNT(*) AS orders\nFROM orders\nGROUP BY 1\nORDER BY yr;\n",
+      "solution": "SELECT EXTRACT(year FROM o.order_date)::int AS yr,\n       COUNT(DISTINCT o.order_id) AS orders,\n       COUNT(*) AS lines,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount::numeric)), 2) AS revenue\nFROM orders o\nJOIN order_details od ON od.order_id = o.order_id\nGROUP BY 1\nORDER BY yr;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Countries with the most orders",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. Join `customers` (alias `c`) to `orders` (alias `o`). For each customer `country` with at least 10 orders return `country`, `customers` (the number of distinct customers who ordered), `orders` and `avg_freight` (rounded to 2 decimals). Order by `orders` descending, then `country`.",
+      "starter": "-- Countries with at least 10 orders\nSELECT c.country, COUNT(*) AS customers\nFROM customers c\nGROUP BY c.country\nORDER BY c.country;\n",
+      "solution": "SELECT c.country,\n       COUNT(DISTINCT c.customer_id) AS customers,\n       COUNT(*) AS orders,\n       ROUND(AVG(o.freight), 2) AS avg_freight\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.country\nHAVING COUNT(*) >= 10\nORDER BY orders DESC, c.country;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`orders` has 100 rows and `order_details` has 250 rows, with every order having at least one line. How many rows does `SELECT * FROM orders o JOIN order_details od ON od.order_id = o.order_id` return?",
+      "options": [
+        "100",
+        "250",
+        "25000",
+        "350"
+      ],
+      "answer": 1,
+      "explanation": "A one-to-many join returns one row per matched row on the many side: one per order line, so 250. It is not 100 because each order appears once for each of its lines. 25000 would be every combination of the two tables, which an ON condition prevents."
+    },
+    {
+      "id": "c2",
+      "question": "The order with id 10347 has a NULL `employee_id`. What happens to it in `orders o JOIN employees e ON o.employee_id = e.employee_id`?",
+      "options": [
+        "It appears once, with NULL employee columns",
+        "It appears once for every employee",
+        "It is left out of the result",
+        "The query fails with an error"
+      ],
+      "answer": 2,
+      "explanation": "NULL never equals anything, so the ON condition is not true for this order and an inner join drops it, giving 99 rows. Keeping it with NULL employee columns is what a LEFT JOIN does (day 41). There is no error."
+    },
+    {
+      "id": "c3",
+      "question": "Both `orders` and `customers` have a column `customer_id`. What does `SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id` do?",
+      "options": [
+        "Returns the column from orders, because it comes first",
+        "Returns the column from customers, because it is the key",
+        "Fails with 'column reference customer_id is ambiguous'",
+        "Returns both columns side by side"
+      ],
+      "answer": 2,
+      "explanation": "PostgreSQL does not guess which table you mean. You must write o.customer_id or c.customer_id. Both would give the same values here, but the rule is the same for any shared column name."
+    },
+    {
+      "id": "c4",
+      "question": "After joining `orders o` to `order_details od`, a learner runs `SELECT SUM(o.freight)` and gets 23554.40, while `SELECT SUM(freight) FROM orders` gives 9851.61. What explains the difference?",
+      "options": [
+        "The join rounds numbers up",
+        "Each order's freight is repeated once per order line before it is added",
+        "order_details has its own freight column",
+        "SUM adds NULLs as 0 only after a join"
+      ],
+      "answer": 1,
+      "explanation": "The join returns 250 rows, and an order's freight appears on every one of its lines, so it is summed several times. Aggregate order-level columns on orders alone, or on a result with one row per order."
+    },
+    {
+      "id": "c5",
+      "question": "After `FROM orders o JOIN customers c ON ...` the learner writes `FROM orders o` in the select list as `SELECT orders.order_id`. What happens?",
+      "options": [
+        "It works, the alias is optional",
+        "It fails: once a table has an alias, the alias must be used",
+        "It returns the order_id twice",
+        "It works only in the WHERE clause"
+      ],
+      "answer": 1,
+      "explanation": "With an alias, the original table name is hidden for that query and PostgreSQL reports an invalid reference to the FROM-clause entry. Use o.order_id."
+    },
+    {
+      "id": "c6",
+      "question": "Customers FISSA and PARIS have no orders. Are they in the result of `customers c JOIN orders o ON o.customer_id = c.customer_id`?",
+      "options": [
+        "Yes, with NULL order columns",
+        "Yes, but only once each",
+        "No, an inner join keeps only customers with at least one matching order",
+        "Only if the query has DISTINCT"
+      ],
+      "answer": 2,
+      "explanation": "An inner join keeps only matched pairs, so customers without orders vanish. To list them you need a LEFT JOIN (day 41). DISTINCT only removes duplicate rows and cannot create missing ones."
+    }
+  ]
+}

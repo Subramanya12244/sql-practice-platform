@@ -1,0 +1,170 @@
+{
+  "time": {
+    "theory": 15,
+    "examples": 25,
+    "guided": 25,
+    "independent": 75,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-incremental-load",
+      "etl-idempotency",
+      "etl-error-handling",
+      "etl-pipeline-monitoring"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "incremental-loading",
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "The reconciliation equation",
+      "kind": "python",
+      "prompt": "Write `reconcile(read, quarantined, duplicates, skipped, loaded)` returning `OK` when `read` equals the sum of the other four and otherwise `MISMATCH (<accounted> of <read>)`. Print the result for `(7, 1, 1, 0, 5)` and `(5, 0, 0, 5, 1)`. Expected output: `OK` then `MISMATCH (6 of 5)`.",
+      "starter": "def reconcile(read, quarantined, duplicates, skipped, loaded):\n    pass\n\nprint(reconcile(7, 1, 1, 0, 5))\nprint(reconcile(5, 0, 0, 5, 1))\n",
+      "solution": "def reconcile(read, quarantined, duplicates, skipped, loaded):\n    accounted = quarantined + duplicates + skipped + loaded\n    return \"OK\" if accounted == read else f\"MISMATCH ({accounted} of {read})\"\n\nprint(reconcile(7, 1, 1, 0, 5))\nprint(reconcile(5, 0, 0, 5, 1))\n",
+      "hints": [
+        "Add the four counts that account for the rows.",
+        "Compare the sum with `read`.",
+        "`return \"OK\" if accounted == read else f\"MISMATCH ({accounted} of {read})\"`"
+      ],
+      "expected": "OK\nMISMATCH (6 of 5)"
+    },
+    {
+      "id": "g2",
+      "title": "Rows above the watermark",
+      "kind": "python",
+      "prompt": "Write `split_by_watermark(rows, watermark)` for tuples `(id, updated_at)` returning `(new, skipped)` as two lists of ids: new when `updated_at > watermark`, skipped otherwise, both in input order. Print the result for the watermark `\"2025-03-03\"`. Expected output: `([3, 4], [1, 2])`.",
+      "starter": "def split_by_watermark(rows, watermark):\n    pass\n\nrows = [(1, \"2025-03-01\"), (3, \"2025-03-04\"), (2, \"2025-03-03\"), (4, \"2025-03-05\")]\nprint(split_by_watermark(rows, \"2025-03-03\"))\n",
+      "solution": "def split_by_watermark(rows, watermark):\n    new = [i for i, ts in rows if ts > watermark]\n    skipped = [i for i, ts in rows if ts <= watermark]\n    return new, skipped\n\nrows = [(1, \"2025-03-01\"), (3, \"2025-03-04\"), (2, \"2025-03-03\"), (4, \"2025-03-05\")]\nprint(split_by_watermark(rows, \"2025-03-03\"))\n",
+      "hints": [
+        "Two comprehensions over the rows: one for newer, one for the rest.",
+        "New rows are strictly greater than the watermark, skipped ones are `<=`.",
+        "`new = [i for i, ts in rows if ts > watermark]` and `skipped = [i for i, ts in rows if ts <= watermark]`."
+      ],
+      "expected": "([3, 4], [1, 2])"
+    },
+    {
+      "id": "g3",
+      "title": "Check the run records in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the table `etl_runs(run_id, read, duplicates, quarantined, skipped, loaded)` is created for you. Return `run_id` and `balanced` (the text `yes` when `read` equals the sum of the other four columns, otherwise `no`), ordered by `run_id`.",
+      "starter": "CREATE TABLE etl_runs (run_id int, read int, duplicates int, quarantined int, skipped int, loaded int);\nINSERT INTO etl_runs VALUES (1, 7, 1, 1, 0, 5), (2, 5, 0, 1, 2, 2), (3, 5, 0, 0, 5, 1);\nSELECT run_id FROM etl_runs ORDER BY run_id LIMIT 1;\n",
+      "solution": "CREATE TABLE etl_runs (run_id int, read int, duplicates int, quarantined int, skipped int, loaded int);\nINSERT INTO etl_runs VALUES (1, 7, 1, 1, 0, 5), (2, 5, 0, 1, 2, 2), (3, 5, 0, 0, 5, 1);\nSELECT run_id,\n       CASE WHEN read = duplicates + quarantined + skipped + loaded THEN 'yes' ELSE 'no' END AS balanced\nFROM etl_runs\nORDER BY run_id;\n",
+      "hints": [
+        "A `CASE WHEN` expression returns one of two texts.",
+        "Compare `read` with `duplicates + quarantined + skipped + loaded`.",
+        "`CASE WHEN read = duplicates + quarantined + skipped + loaded THEN 'yes' ELSE 'no' END AS balanced`"
+      ],
+      "ordered": true
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Plan one run",
+      "kind": "python",
+      "prompt": "Write `plan(rows, watermark)` for the starter rows (dicts with `id`, `amount` text and `updated_at` text). Rows whose amount is not a number or is negative are quarantined; among the rest keep the latest `updated_at` per id (the others count as duplicates); of those, ids with `updated_at <= watermark` are skipped and the others loaded. Return a dict with `read`, `quarantined`, `duplicates`, `skipped`, `loaded`. Print the dict with its keys in that order, then `balanced: True` or `False` for whether `read` equals the other four added. Use the watermark `\"2025-03-03\"`.",
+      "starter": "ROWS = [\n    {\"id\": 1, \"amount\": \"10.00\", \"updated_at\": \"2025-03-01\"},\n    {\"id\": 2, \"amount\": \"abc\", \"updated_at\": \"2025-03-02\"},\n    {\"id\": 3, \"amount\": \"-1.00\", \"updated_at\": \"2025-03-02\"},\n    {\"id\": 4, \"amount\": \"5.00\", \"updated_at\": \"2025-03-02\"},\n    {\"id\": 4, \"amount\": \"6.00\", \"updated_at\": \"2025-03-04\"},\n    {\"id\": 5, \"amount\": \"7.00\", \"updated_at\": \"2025-03-05\"},\n    {\"id\": 6, \"amount\": \"8.00\", \"updated_at\": \"2025-03-06\"},\n]\n\ndef plan(rows, watermark):\n    return {}\n\nresult = plan(ROWS, \"2025-03-03\")\nprint(result)\nprint(\"balanced:\", result.get(\"read\") == sum(result.get(k, 0) for k in (\"quarantined\", \"duplicates\", \"skipped\", \"loaded\")))\n",
+      "solution": "ROWS = [\n    {\"id\": 1, \"amount\": \"10.00\", \"updated_at\": \"2025-03-01\"},\n    {\"id\": 2, \"amount\": \"abc\", \"updated_at\": \"2025-03-02\"},\n    {\"id\": 3, \"amount\": \"-1.00\", \"updated_at\": \"2025-03-02\"},\n    {\"id\": 4, \"amount\": \"5.00\", \"updated_at\": \"2025-03-02\"},\n    {\"id\": 4, \"amount\": \"6.00\", \"updated_at\": \"2025-03-04\"},\n    {\"id\": 5, \"amount\": \"7.00\", \"updated_at\": \"2025-03-05\"},\n    {\"id\": 6, \"amount\": \"8.00\", \"updated_at\": \"2025-03-06\"},\n]\n\ndef plan(rows, watermark):\n    good, quarantined = {}, 0\n    valid_count = 0\n    for r in rows:\n        try:\n            value = float(r[\"amount\"])\n        except ValueError:\n            quarantined += 1\n            continue\n        if value < 0:\n            quarantined += 1\n            continue\n        valid_count += 1\n        if r[\"id\"] not in good or r[\"updated_at\"] >= good[r[\"id\"]]:\n            good[r[\"id\"]] = r[\"updated_at\"]\n    skipped = sum(1 for ts in good.values() if ts <= watermark)\n    return {\"read\": len(rows), \"quarantined\": quarantined, \"duplicates\": valid_count - len(good), \"skipped\": skipped, \"loaded\": len(good) - skipped}\n\nresult = plan(ROWS, \"2025-03-03\")\nprint(result)\nprint(\"balanced:\", result.get(\"read\") == sum(result.get(k, 0) for k in (\"quarantined\", \"duplicates\", \"skipped\", \"loaded\")))\n",
+      "expected": "{'read': 7, 'quarantined': 2, 'duplicates': 1, 'skipped': 1, 'loaded': 3}\nbalanced: True"
+    },
+    {
+      "id": "i2",
+      "title": "Whole-run test",
+      "kind": "python",
+      "prompt": "The starter has a small `run(conn, rows)` (rows are `(id, status, updated_at)` tuples; it upserts with a guard and advances `etl_state`). Write `check()` that builds a fresh database, runs the rows once and then again, and returns four strings: `first run loaded: <n>`, `second run loaded: <n>`, `table rows: <n>` and `watermark: <value>`, where loaded is the number of rows the run changed (use the value `run` returns). Print each on its own line.",
+      "starter": "import sqlite3\n\ndef make():\n    conn = sqlite3.connect(\":memory:\")\n    conn.execute(\"CREATE TABLE t (id INTEGER PRIMARY KEY, status TEXT, updated_at TEXT)\")\n    conn.execute(\"CREATE TABLE etl_state (id INTEGER PRIMARY KEY CHECK (id = 1), watermark TEXT)\")\n    conn.execute(\"INSERT INTO etl_state VALUES (1, '1970-01-01')\")\n    return conn\n\ndef run(conn, rows):\n    watermark = conn.execute(\"SELECT watermark FROM etl_state\").fetchone()[0]\n    new = [r for r in rows if r[2] > watermark]\n    with conn:\n        conn.executemany(\"INSERT INTO t VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET status = excluded.status, updated_at = excluded.updated_at WHERE excluded.updated_at > t.updated_at\", new)\n        if new:\n            conn.execute(\"UPDATE etl_state SET watermark = ?\", (max(r[2] for r in new),))\n    return len(new)\n\nROWS = [(1, \"paid\", \"2025-03-01\"), (2, \"paid\", \"2025-03-02\"), (3, \"failed\", \"2025-03-04\")]\n\ndef check():\n    return []\n\nfor line in check():\n    print(line)\n",
+      "solution": "import sqlite3\n\ndef make():\n    conn = sqlite3.connect(\":memory:\")\n    conn.execute(\"CREATE TABLE t (id INTEGER PRIMARY KEY, status TEXT, updated_at TEXT)\")\n    conn.execute(\"CREATE TABLE etl_state (id INTEGER PRIMARY KEY CHECK (id = 1), watermark TEXT)\")\n    conn.execute(\"INSERT INTO etl_state VALUES (1, '1970-01-01')\")\n    return conn\n\ndef run(conn, rows):\n    watermark = conn.execute(\"SELECT watermark FROM etl_state\").fetchone()[0]\n    new = [r for r in rows if r[2] > watermark]\n    with conn:\n        conn.executemany(\"INSERT INTO t VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET status = excluded.status, updated_at = excluded.updated_at WHERE excluded.updated_at > t.updated_at\", new)\n        if new:\n            conn.execute(\"UPDATE etl_state SET watermark = ?\", (max(r[2] for r in new),))\n    return len(new)\n\nROWS = [(1, \"paid\", \"2025-03-01\"), (2, \"paid\", \"2025-03-02\"), (3, \"failed\", \"2025-03-04\")]\n\ndef check():\n    conn = make()\n    first = run(conn, ROWS)\n    second = run(conn, ROWS)\n    return [\n        f\"first run loaded: {first}\",\n        f\"second run loaded: {second}\",\n        f\"table rows: {conn.execute('SELECT COUNT(*) FROM t').fetchone()[0]}\",\n        f\"watermark: {conn.execute('SELECT watermark FROM etl_state').fetchone()[0]}\",\n    ]\n\nfor line in check():\n    print(line)\n",
+      "expected": "first run loaded: 3\nsecond run loaded: 0\ntable rows: 3\nwatermark: 2025-03-04"
+    },
+    {
+      "id": "i3",
+      "title": "Project handover note",
+      "kind": "written",
+      "prompt": "Write the handover note for the incremental orders pipeline for the engineer who takes it over: what it reads and writes, the order of one run and why the writes share a transaction, how to rerun it safely, what the reconciliation equation means, how late data and deleted rows are handled today, where to look when it fails (tables and fields), and the three weaknesses you would fix next.",
+      "starter": "Inputs and outputs:\nOrder of one run:\nSafe rerun:\nReconciliation:\nLate data and deletes:\nWhere to look:\nNext weaknesses:\n",
+      "solution": "Inputs and outputs: it reads a CSV (the orders API stand-in) and writes `orders_clean`, `etl_state`, `etl_runs` and `quarantine`. Order of one run: extract, transform (validate, quarantine, dedupe by key), keep rows newer than the watermark minus the lookback, then one transaction that upserts with the `updated_at` guard, moves the watermark to the maximum loaded timestamp, writes the quarantined rows and writes the run record; one transaction means a failed run leaves no trace. Safe rerun: run it again with the same file; every row is at or below the watermark, so `loaded` is 0 and the table is unchanged; for a past date use the backfill rules, not the watermark. Reconciliation: `read = quarantined + duplicates + skipped + loaded`, read from `etl_runs`; a mismatch means a row was lost or counted twice and the run is not trusted. Late data and deletes: a 24-hour lookback catches late rows; deletes are not handled (the watermark cannot see them). Where to look: `etl_runs` for the counts and watermark, `quarantine` for the rejected rows with reasons, `etl_state` for the current watermark. Next weaknesses: no handling of source deletes, no retry or logging around the extract, and no freshness alert.",
+      "required": false,
+      "rubric": [
+        "Describes inputs and the four tables written.",
+        "Gives the order of one run and explains why the writes share one transaction.",
+        "Explains the rerun and the reconciliation equation correctly.",
+        "States honestly that deletes are not handled and how late data is.",
+        "Names where to look on failure and lists concrete weaknesses."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "In one run, why are the upsert, the watermark update and the run record written in one transaction?",
+      "options": [
+        "It is faster",
+        "A failure leaves no partial state, so the next run starts from the same watermark and neither loses nor duplicates rows",
+        "SQLite requires it",
+        "It avoids the quarantine"
+      ],
+      "answer": 1,
+      "explanation": "If the watermark moved without the data, rows would be skipped forever; if the data was written without the watermark, rows would be reread. One transaction keeps them consistent."
+    },
+    {
+      "id": "c2",
+      "question": "A run reads 7 rows, quarantines 1, removes 1 older duplicate, skips 0 and loads 4. What does the reconciliation say?",
+      "options": [
+        "OK",
+        "MISMATCH: 6 of 7 rows are accounted for",
+        "MISMATCH: 8 of 7",
+        "Cannot be computed"
+      ],
+      "answer": 1,
+      "explanation": "1 + 1 + 0 + 4 = 6, but 7 rows were read, so one row is unaccounted for and must be found."
+    },
+    {
+      "id": "c3",
+      "question": "The same file is run twice with lookback 0. What does the second run load?",
+      "options": [
+        "Everything again",
+        "0 rows, because every row is at or below the watermark",
+        "Only the quarantined rows",
+        "Only the duplicates"
+      ],
+      "answer": 1,
+      "explanation": "The watermark moved to the newest loaded timestamp, so nothing is newer. The table does not change."
+    },
+    {
+      "id": "c4",
+      "question": "Why is the order 8 row (stamped before the watermark) loaded only with a lookback?",
+      "options": [
+        "It is invalid",
+        "A strict read above the watermark never sees it; the lookback rereads recent rows and the guarded upsert makes that safe",
+        "It is a duplicate",
+        "It has a bad status"
+      ],
+      "answer": 1,
+      "explanation": "The watermark had already passed its timestamp. A lookback window rereads the recent period, and the guard stops old versions from overwriting new rows."
+    },
+    {
+      "id": "c5",
+      "question": "What does the guard `WHERE excluded.updated_at > orders_clean.updated_at` protect against?",
+      "options": [
+        "Quarantined rows",
+        "An old version of a row overwriting a newer one",
+        "Negative amounts",
+        "Duplicate file names"
+      ],
+      "answer": 1,
+      "explanation": "The update applies only when the incoming row is newer. Late or replayed old versions are ignored."
+    }
+  ],
+  "id": "e131"
+}

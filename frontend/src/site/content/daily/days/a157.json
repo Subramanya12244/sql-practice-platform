@@ -1,0 +1,192 @@
+{
+  "id": "a157",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-database-connectivity",
+      "python-pandas"
+    ],
+    "questions": [
+      3,
+      31
+    ],
+    "pyExercises": [
+      "customer-transaction-stats"
+    ],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "interview-patterns",
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A parameterised query",
+      "kind": "python",
+      "prompt": "Create an in-memory `sqlite3` table `items(name TEXT, price REAL)` with the rows `('pen', 1.5)`, `('book', 12.0)`, `('lamp', 30.0)` using `executemany`. Query the names with a price of at least 10 using a `?` parameter, ordered by name, and print them as a list: `['book', 'lamp']`. Close the connection.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE items (name TEXT, price REAL)')\nconn.executemany('INSERT INTO items VALUES (?, ?)', [('pen', 1.5), ('book', 12.0), ('lamp', 30.0)])\nrows = conn.execute('SELECT name FROM items WHERE price >= ? ORDER BY name', (10,)).fetchall()\nprint([r[0] for r in rows])\nconn.close()\n",
+      "hints": [
+        "conn.execute creates the table; executemany inserts all three rows.",
+        "Use WHERE price >= ? and pass (10,) as the parameters.",
+        "fetchall returns tuples, so take r[0] from each."
+      ],
+      "expected": "['book', 'lamp']"
+    },
+    {
+      "id": "g2",
+      "title": "Total with a named parameter",
+      "kind": "python",
+      "prompt": "Create an in-memory table `sales(region TEXT, amount REAL)` with the rows `('north', 100.0)`, `('south', 50.0)`, `('north', 25.0)`. Use a named parameter `:region` to compute the total for `north` and print `north total: 125.0`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE sales (region TEXT, amount REAL)')\nconn.executemany('INSERT INTO sales VALUES (?, ?)', [('north', 100.0), ('south', 50.0), ('north', 25.0)])\ntotal = conn.execute('SELECT SUM(amount) FROM sales WHERE region = :region', {'region': 'north'}).fetchone()[0]\nprint('north total:', total)\nconn.close()\n",
+      "hints": [
+        "Named parameters are written :region in the SQL and passed as a dict.",
+        "SUM(amount) returns one row with one value; use fetchone()[0].",
+        "Print with the label north total:."
+      ],
+      "expected": "north total: 125.0"
+    },
+    {
+      "id": "g3",
+      "title": "read_sql_query with params",
+      "kind": "python",
+      "prompt": "Using the table below created in memory, read the orders with an amount of at least 50 into a DataFrame with `pd.read_sql_query` and a `?` parameter, then print the number of rows and the sum of the amounts as `2 rows, total 260.0` (use an f-string).",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE orders (id INTEGER, amount REAL)')\nconn.executemany('INSERT INTO orders VALUES (?, ?)', [(1, 20.0), (2, 60.0), (3, 200.0), (4, 49.9)])\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE orders (id INTEGER, amount REAL)')\nconn.executemany('INSERT INTO orders VALUES (?, ?)', [(1, 20.0), (2, 60.0), (3, 200.0), (4, 49.9)])\ndf = pd.read_sql_query('SELECT id, amount FROM orders WHERE amount >= ? ORDER BY id', conn, params=(50,))\nprint(f\"{len(df)} rows, total {df['amount'].sum()}\")\nconn.close()\n",
+      "hints": [
+        "pd.read_sql_query(sql, conn, params=(50,)) runs the query.",
+        "Use WHERE amount >= ? in the SQL.",
+        "len(df) and df['amount'].sum() give the two numbers."
+      ],
+      "expected": "2 rows, total 260.0"
+    },
+    {
+      "id": "g4",
+      "title": "Fix the injection",
+      "kind": "python",
+      "prompt": "The function `find` below is unsafe. Rewrite it to use a `?` parameter. The final lines call it with a normal name and a malicious name, and must print `1` and `0` (the number of rows returned).",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE users (name TEXT)')\nconn.executemany('INSERT INTO users VALUES (?)', [('ann',), ('bob',)])\n\ndef find(name):\n    return conn.execute(f\"SELECT name FROM users WHERE name = '{name}'\").fetchall()\n\nprint(len(find('ann')))\nprint(len(find(\"x' OR '1'='1\")))\nconn.close()\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE users (name TEXT)')\nconn.executemany('INSERT INTO users VALUES (?)', [('ann',), ('bob',)])\n\ndef find(name):\n    return conn.execute('SELECT name FROM users WHERE name = ?', (name,)).fetchall()\n\nprint(len(find('ann')))\nprint(len(find(\"x' OR '1'='1\")))\nconn.close()\n",
+      "hints": [
+        "Remove the f-string and put a ? where the name was.",
+        "Pass the value as a tuple as the second argument of execute.",
+        "A one-element tuple needs a trailing comma: (name,)."
+      ],
+      "expected": "1\n0"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A safe search function with a whitelist",
+      "kind": "python",
+      "prompt": "Create an in-memory table `products(name TEXT, price REAL, stock INTEGER)` with `('pen', 1.5, 100)`, `('book', 12.0, 20)`, `('lamp', 30.0, 5)`, `('desk', 120.0, 2)`. Write `search(max_price, order_by)` that returns the names of products with a price at most `max_price` (a parameter), sorted by `order_by`, which must be one of `price`, `name` or `stock` (anything else raises `ValueError`). Print `search(50, 'stock')`, `search(50, 'name')` and then the text of the `ValueError` for `search(50, 'price; DROP TABLE products')`, which must be `bad column`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE products (name TEXT, price REAL, stock INTEGER)')\nconn.executemany('INSERT INTO products VALUES (?, ?, ?)', [('pen', 1.5, 100), ('book', 12.0, 20), ('lamp', 30.0, 5), ('desk', 120.0, 2)])\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE products (name TEXT, price REAL, stock INTEGER)')\nconn.executemany('INSERT INTO products VALUES (?, ?, ?)', [('pen', 1.5, 100), ('book', 12.0, 20), ('lamp', 30.0, 5), ('desk', 120.0, 2)])\nALLOWED = {'price', 'name', 'stock'}\n\ndef search(max_price, order_by):\n    if order_by not in ALLOWED:\n        raise ValueError('bad column')\n    sql = f'SELECT name FROM products WHERE price <= ? ORDER BY {order_by}'\n    return [r[0] for r in conn.execute(sql, (max_price,)).fetchall()]\n\nprint(search(50, 'stock'))\nprint(search(50, 'name'))\ntry:\n    search(50, 'price; DROP TABLE products')\nexcept ValueError as e:\n    print(e)\nconn.close()\n",
+      "expected": "['lamp', 'book', 'pen']\n['book', 'lamp', 'pen']\nbad column"
+    },
+    {
+      "id": "i2",
+      "title": "The query a script would send",
+      "kind": "sql",
+      "prompt": "A Python script sends this query to PostgreSQL for a given country (the placeholder would be `%s`). In the browser, write it with the country `Germany` written in: return `customer_id` and `orders` (number of orders) for customers from that country (the `customers.country` column) who have at least one order, ordered by `orders` descending, then `customer_id`, limited to 5 rows.",
+      "starter": "SELECT customer_id\nFROM customers\nWHERE country = 'Germany'\nLIMIT 5;\n",
+      "solution": "SELECT c.customer_id, COUNT(o.order_id) AS orders\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nWHERE c.country = 'Germany'\nGROUP BY c.customer_id\nORDER BY orders DESC, c.customer_id\nLIMIT 5;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Port the code to PostgreSQL",
+      "kind": "written",
+      "required": false,
+      "prompt": "The following sqlite3 code runs in a notebook: `conn = sqlite3.connect('shop.db'); cur = conn.execute('SELECT * FROM orders WHERE customer = ? AND amount >= ?', (c, m)); rows = cur.fetchall()`. Describe, in 5 to 8 sentences, what you would change to run it against PostgreSQL with psycopg 3, and what you would check in the SQL itself.",
+      "starter": "Write your answer here.",
+      "solution": "I would replace the connection with a call to psycopg.connect using a connection string taken from an environment variable such as DATABASE_URL, so that the host, user and password are not in the code. The placeholders change from ? to %s, and the parameters stay a tuple. Because PostgreSQL has a server, I would close the connection or use it as a context manager so that it is released and changes are committed or rolled back. I would list the columns instead of SELECT * so that the code does not depend on column order, and check that the types used are valid in PostgreSQL, since SQLite is loosely typed and may have accepted values (for example text in a numeric column) that PostgreSQL rejects. I would test any SQL that uses date functions or text functions against PostgreSQL because SQLite does not have the same functions. The query would still pass the customer and amount as parameters, not by formatting them into the text.",
+      "rubric": [
+        "Moves credentials to environment variables or a secrets store",
+        "Changes the placeholder marker to %s and keeps parameters separate",
+        "Mentions types or SQL features that differ between SQLite and PostgreSQL",
+        "Handles connection closing or commit through a context manager or explicit calls"
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "sqlalchemy"
+    ],
+    "note": "Example 5 uses SQLAlchemy with an in-memory SQLite database. Install it with `pip install sqlalchemy` and run the example in a local Python session. The browser cannot install it, so that example is shown read-only with the verified output. A real PostgreSQL server, psycopg and credentials are not available in the browser or in the tests: the psycopg code in the lesson is shown but not run, and its logic is proven on sqlite3."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A variable holds the text `x' OR '1'='1`. What does `conn.execute('SELECT * FROM t WHERE a = ?', (text,))` do with it?",
+      "options": [
+        "Binds it as data, so it cannot change the statement structure",
+        "Pastes it into the SQL text and then parses it",
+        "Rejects any value with quotes",
+        "Escapes quotes and then pastes it"
+      ],
+      "answer": 0,
+      "explanation": "A parameter is sent separately from the statement and bound as a value after parsing. Quotes in it are just characters, not SQL syntax."
+    },
+    {
+      "id": "c2",
+      "question": "Which call has a bug?",
+      "options": [
+        "conn.execute('SELECT * FROM t WHERE name = ?', ('ann'))",
+        "conn.execute('SELECT * FROM t WHERE name = ?', ('ann',))",
+        "conn.execute('SELECT * FROM t WHERE name = ?', ['ann'])",
+        "conn.execute('SELECT * FROM t WHERE name = :n', {'n': 'ann'})"
+      ],
+      "answer": 0,
+      "explanation": "('ann') is just the string 'ann', which sqlite3 treats as three parameters (one per character) and raises ProgrammingError about the number of bindings. A one-element tuple needs a trailing comma, or use a list."
+    },
+    {
+      "id": "c3",
+      "question": "A function takes a column name from a user and puts it in ORDER BY. Can a `?` parameter protect it?",
+      "options": [
+        "No, parameters bind values only, so use a whitelist of allowed names",
+        "Yes, ? works for identifiers too",
+        "Yes, if the name is quoted",
+        "No, and nothing can protect it"
+      ],
+      "answer": 0,
+      "explanation": "Placeholders stand for values, not identifiers or keywords. Compare the input with a fixed set of allowed columns and insert only the matching item."
+    },
+    {
+      "id": "c4",
+      "question": "Which placeholder does psycopg use for a positional parameter?",
+      "options": [
+        "%s",
+        "?",
+        ":1",
+        "$name"
+      ],
+      "answer": 0,
+      "explanation": "psycopg uses %s (and %(name)s for named parameters). sqlite3 uses ? or :name, which is why code moved between them must change the marker."
+    },
+    {
+      "id": "c5",
+      "question": "After `conn.execute(\"INSERT INTO t VALUES ('abc')\")` into an INTEGER column, SQLite stores the text without error. What would PostgreSQL do?",
+      "options": [
+        "Raise an error because the value is not an integer",
+        "Store the text as 0",
+        "Store the text as it is",
+        "Convert it to NULL"
+      ],
+      "answer": 0,
+      "explanation": "PostgreSQL enforces column types and raises an invalid input syntax error. SQLite's loose typing can hide such mistakes until the code runs on PostgreSQL."
+    }
+  ]
+}

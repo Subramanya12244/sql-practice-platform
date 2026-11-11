@@ -382,3 +382,42 @@ html.theme-transition *::after {
 .prose-compact h2 { margin: 1.4em 0 0.4em; font-size: 1.05rem; }
 .prose-compact h3 { margin: 1.2em 0 0.3em; font-size: 0.95rem; }
 .prose-compact p, .prose-compact ul, .prose-compact ol { margin: 0.5em 0; }
+
+/* ── Daily Learning ─────────────────────────────────────────────────────── */
+/* Pulse ring around the current day's marker. */
+@keyframes df-pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(var(--color-accent) / 0.45); }
+  100% { box-shadow: 0 0 0 10px rgb(var(--color-accent) / 0); }
+}
+.df-pulse { animation: df-pulse-ring 1.8s ease-out infinite; }
+
+/* Roadmap timeline: a vertical line that draws itself down the list when a phase opens. */
+@keyframes df-line-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.df-timeline { position: relative; }
+.df-timeline::before {
+  content: ""; position: absolute; left: 1.05rem; top: 0.5rem; bottom: 0.5rem; width: 2px; border-radius: 2px;
+  background: linear-gradient(to bottom, rgb(var(--color-accent) / 0.55), rgb(var(--color-accent) / 0.08));
+  transform-origin: top; animation: df-line-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Calendar cells pop in a row at a time; the delay is set per cell with --i. */
+.df-cell { animation: df-pop 360ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 14ms); }
+
+/* Lesson step content slides in when the step changes. */
+@keyframes df-step-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
+.df-step { animation: df-step-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Completion burst: dots fly out from the check mark. Pure CSS, transform and opacity only. */
+@keyframes df-burst { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; } }
+.df-burst > span { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 9999px; animation: df-burst 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Shimmer sweep across a filled progress bar. */
+@keyframes df-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.df-sweep { position: relative; overflow: hidden; }
+.df-sweep::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28), transparent); animation: df-sweep 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .df-pulse, .df-sweep::after { animation: none; }
+  .df-timeline::before, .df-cell, .df-step, .df-burst > span { animation-duration: 0.01ms !important; animation-delay: 0ms !important; }
+}
+@media print { .df-burst { display: none; } }

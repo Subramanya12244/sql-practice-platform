@@ -1,0 +1,174 @@
+{
+  "id": "d070",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "First look",
+      "prompt": "The table `df` is already loaded. Print its shape on line 1, the column names as a list on line 2, and the last 2 rows with `print(df.tail(2))`.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nTEXT = \"\"\"id,city,qty,price\\n1,Oslo,3,9.5\\n2,Rome,1,4.0\\n3,oslo,5,12.25\\n4,Lima,2,-7.0\\n5,Rome,4,3.5\\n6,Lima,2,5.5\\n\"\"\"\ndf = pd.read_csv(io.StringIO(TEXT))\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nTEXT = \"\"\"id,city,qty,price\\n1,Oslo,3,9.5\\n2,Rome,1,4.0\\n3,oslo,5,12.25\\n4,Lima,2,-7.0\\n5,Rome,4,3.5\\n6,Lima,2,5.5\\n\"\"\"\ndf = pd.read_csv(io.StringIO(TEXT))\nprint(df.shape)\nprint(df.columns.tolist())\nprint(df.tail(2))\n",
+      "hints": [
+        "`shape` is an attribute and `columns.tolist()` gives names as a list.",
+        "`tail(2)` gives the last two rows.",
+        "Print `df.shape`, `df.columns.tolist()` and `df.tail(2)`."
+      ],
+      "kind": "python",
+      "expected": "(6, 4)\n['id', 'city', 'qty', 'price']\n   id  city  qty  price\n4   5  Rome    4    3.5\n5   6  Lima    2    5.5"
+    },
+    {
+      "id": "g2",
+      "title": "Ranges from describe",
+      "prompt": "Print the minimum and maximum of `price` (two numbers separated by a space, from `df[\"price\"].min()` and `.max()`), then the `describe()` table of the columns `qty` and `price` rounded to 2 decimals with `print(df[[\"qty\", \"price\"]].describe().round(2))`.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nTEXT = \"\"\"id,city,qty,price\\n1,Oslo,3,9.5\\n2,Rome,1,4.0\\n3,oslo,5,12.25\\n4,Lima,2,-7.0\\n5,Rome,4,3.5\\n6,Lima,2,5.5\\n\"\"\"\ndf = pd.read_csv(io.StringIO(TEXT))\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nTEXT = \"\"\"id,city,qty,price\\n1,Oslo,3,9.5\\n2,Rome,1,4.0\\n3,oslo,5,12.25\\n4,Lima,2,-7.0\\n5,Rome,4,3.5\\n6,Lima,2,5.5\\n\"\"\"\ndf = pd.read_csv(io.StringIO(TEXT))\nprint(df[\"price\"].min(), df[\"price\"].max())\nprint(df[[\"qty\", \"price\"]].describe().round(2))\n",
+      "hints": [
+        "`min()` and `max()` are methods of a column.",
+        "`describe()` of two columns needs the double brackets.",
+        "Print `df[\"price\"].min(), df[\"price\"].max()` and then the describe table."
+      ],
+      "kind": "python",
+      "expected": "-7.0 12.25\n        qty  price\ncount  6.00   6.00\nmean   2.83   4.62\nstd    1.47   6.63\nmin    1.00  -7.00\n25%    2.00   3.62\n50%    2.50   4.75\n75%    3.75   8.50\nmax    5.00  12.25"
+    },
+    {
+      "id": "g3",
+      "title": "Count the labels",
+      "prompt": "Print the counts of each city as a dictionary sorted by city name (`df[\"city\"].value_counts().sort_index().to_dict()`) on line 1, and the number of distinct cities on line 2.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nTEXT = \"\"\"id,city,qty,price\\n1,Oslo,3,9.5\\n2,Rome,1,4.0\\n3,oslo,5,12.25\\n4,Lima,2,-7.0\\n5,Rome,4,3.5\\n6,Lima,2,5.5\\n\"\"\"\ndf = pd.read_csv(io.StringIO(TEXT))\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nTEXT = \"\"\"id,city,qty,price\\n1,Oslo,3,9.5\\n2,Rome,1,4.0\\n3,oslo,5,12.25\\n4,Lima,2,-7.0\\n5,Rome,4,3.5\\n6,Lima,2,5.5\\n\"\"\"\ndf = pd.read_csv(io.StringIO(TEXT))\nprint(df[\"city\"].value_counts().sort_index().to_dict())\nprint(df[\"city\"].nunique())\n",
+      "hints": [
+        "`value_counts()` counts each distinct value.",
+        "`sort_index()` orders the counts by label so that the order is fixed; `nunique()` counts distinct values.",
+        "Print the sorted dictionary and `df[\"city\"].nunique()`."
+      ],
+      "kind": "python",
+      "expected": "{'Lima': 2, 'Oslo': 1, 'Rome': 2, 'oslo': 1}\n4"
+    },
+    {
+      "id": "g4",
+      "title": "Read info",
+      "prompt": "Call `df.info(memory_usage=False)` and then, on the next line, print the number of non-null values of every column as a dictionary using `df.count().to_dict()`. `info` prints by itself, so do not wrap it in `print`. Add `print()` after `info` so that the next output starts on a fresh line.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nTEXT = \"\"\"id,city,qty,price\\n1,Oslo,3,9.5\\n2,Rome,1,4.0\\n3,oslo,5,12.25\\n4,Lima,2,-7.0\\n5,Rome,4,3.5\\n6,Lima,2,5.5\\n\"\"\"\ndf = pd.read_csv(io.StringIO(TEXT))\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nTEXT = \"\"\"id,city,qty,price\\n1,Oslo,3,9.5\\n2,Rome,1,4.0\\n3,oslo,5,12.25\\n4,Lima,2,-7.0\\n5,Rome,4,3.5\\n6,Lima,2,5.5\\n\"\"\"\ndf = pd.read_csv(io.StringIO(TEXT))\ndf.info(memory_usage=False)\nprint()\nprint(df.count().to_dict())\n",
+      "hints": [
+        "`info()` prints directly and returns `None`.",
+        "`df.count()` returns a Series of non-null counts.",
+        "`df.info(memory_usage=False)`, `print()`, then `print(df.count().to_dict())`."
+      ],
+      "kind": "python",
+      "expected": "<class 'pandas.core.frame.DataFrame'>\nRangeIndex: 6 entries, 0 to 5\nData columns (total 4 columns):\n #   Column  Non-Null Count  Dtype  \n---  ------  --------------  -----  \n 0   id      6 non-null      int64  \n 1   city    6 non-null      object \n 2   qty     6 non-null      int64  \n 3   price   6 non-null      float64\ndtypes: float64(1), int64(2), object(1)\n{'id': 6, 'city': 6, 'qty': 6, 'price': 6}"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Problem report",
+      "prompt": "The table below has several problems. Print five lines: the number of rows; the number of distinct `id` values; the number of distinct `dept` values; the minimum and maximum `salary` separated by a space; and the sorted list of departments (`sorted(df[\"dept\"].unique().tolist())`).",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nraw = \"\"\"id,name,dept,salary\\n1,Ana,IT,5000\\n2,Ben,hr,4200\\n3,Cy,IT,-1\\n4,Di,HR ,3900\\n5,Ed,IT,99999\\n5,Flo,Ops,4500\\n\"\"\"\ndf = pd.read_csv(io.StringIO(raw))\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nraw = \"\"\"id,name,dept,salary\\n1,Ana,IT,5000\\n2,Ben,hr,4200\\n3,Cy,IT,-1\\n4,Di,HR ,3900\\n5,Ed,IT,99999\\n5,Flo,Ops,4500\\n\"\"\"\ndf = pd.read_csv(io.StringIO(raw))\nprint(len(df))\nprint(df[\"id\"].nunique())\nprint(df[\"dept\"].nunique())\nprint(df[\"salary\"].min(), df[\"salary\"].max())\nprint(sorted(df[\"dept\"].unique().tolist()))\n",
+      "kind": "python",
+      "expected": "6\n5\n4\n-1 99999\n['HR ', 'IT', 'Ops', 'hr']"
+    },
+    {
+      "id": "i2",
+      "title": "Write an inspection function",
+      "prompt": "Write a function `report(df)` that prints, for a DataFrame, one line `<rows> rows, <cols> columns`, then one line per column in the form `<name>: <non-null count> non-null, <unique count> unique`, in column order. Call it on the loaded table `df` and then print the median of `price` (a number) on a last line.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.read_csv(io.StringIO(\"id,city,price\\n1,Oslo,9.5\\n2,Rome,\\n3,Oslo,4.0\\n4,Lima,7.5\\n\"))\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.read_csv(io.StringIO(\"id,city,price\\n1,Oslo,9.5\\n2,Rome,\\n3,Oslo,4.0\\n4,Lima,7.5\\n\"))\ndef report(table):\n    print(f\"{len(table)} rows, {table.shape[1]} columns\")\n    counts = table.count()\n    for col in table.columns:\n        print(f\"{col}: {counts[col]} non-null, {table[col].nunique()} unique\")\n\nreport(df)\nprint(df[\"price\"].median())\n",
+      "kind": "python",
+      "expected": "4 rows, 3 columns\nid: 4 non-null, 4 unique\ncity: 4 non-null, 3 unique\nprice: 3 non-null, 3 unique\n7.5"
+    },
+    {
+      "id": "i3",
+      "title": "Spot the quiet text column",
+      "required": false,
+      "prompt": "The column `qty` loads as text because of the cell `ten`. Without fixing anything yet, print: the dtype test `df[\"qty\"].dtype == \"object\"` (a boolean); the sorted list of the distinct values of `qty`; and the result of `df[\"qty\"].sum()` to show that summing text joins it. Then print the sum of `price`.",
+      "starter": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.read_csv(io.StringIO(\"qty,price\\n3,1.5\\nten,2.5\\n5,4.0\\n\"))\n",
+      "solution": "import io\nimport pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.read_csv(io.StringIO(\"qty,price\\n3,1.5\\nten,2.5\\n5,4.0\\n\"))\nprint(df[\"qty\"].dtype == \"object\")\nprint(sorted(df[\"qty\"].unique().tolist()))\nprint(df[\"qty\"].sum())\nprint(df[\"price\"].sum())\n",
+      "kind": "python",
+      "expected": "True\n['3', '5', 'ten']\n3ten5\n8.0"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `print(df.info())` show?",
+      "options": [
+        "Only the summary table",
+        "The summary table followed by the word None",
+        "An error",
+        "The first five rows"
+      ],
+      "answer": 1,
+      "explanation": "`info()` prints its summary itself and returns `None`, so wrapping it in `print` adds a line with `None`. Call `df.info()` alone."
+    },
+    {
+      "id": "c2",
+      "question": "In `info()` output a column that should hold prices has the dtype `object`. What is the most likely cause?",
+      "options": [
+        "The column is empty",
+        "At least one cell could not be read as a number",
+        "pandas always shows object for decimals",
+        "The index is wrong"
+      ],
+      "answer": 1,
+      "explanation": "If any single value is text such as `n/a` or `ten`, pandas stores the whole column as text (`object`). Decimals normally show `float64`."
+    },
+    {
+      "id": "c3",
+      "question": "`describe()` of an age column shows min -1 and max 999. What does that most likely mean?",
+      "options": [
+        "Real ages with extreme values",
+        "Sentinel values that stand for unknown or error",
+        "The column is constant",
+        "A bug in describe"
+      ],
+      "answer": 1,
+      "explanation": "Negative ages and 999 are impossible, and are typical placeholder codes for missing or invalid data. They need handling before averages are calculated."
+    },
+    {
+      "id": "c4",
+      "question": "A table has 100 rows but `df[\"id\"].nunique()` is 97. What does this suggest?",
+      "options": [
+        "Three ids are missing",
+        "Some ids appear more than once",
+        "The id column is numeric",
+        "Nothing"
+      ],
+      "answer": 1,
+      "explanation": "If every id were unique, `nunique` would equal the number of rows (when there are no missing values). A smaller number means repeated identifiers."
+    },
+    {
+      "id": "c5",
+      "question": "What does this print?\n\n```python\nimport pandas as pd\ns = pd.Series([\"a\", \"b\", \"a\", \"a\"])\nprint(s.value_counts().to_dict())\n```",
+      "options": [
+        "{'a': 3, 'b': 1}",
+        "{'a': 1, 'b': 1}",
+        "['a', 'b']",
+        "{'a': 0.75, 'b': 0.25}"
+      ],
+      "answer": 0,
+      "explanation": "`value_counts` counts occurrences, most common first: three a's and one b. The shares in the last option need `normalize=True`, and the list of distinct values is `unique()`."
+    }
+  ]
+}

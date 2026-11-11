@@ -1,0 +1,186 @@
+{
+  "id": "a169",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-numpy",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "numpy-vectorised-zscore",
+      "customer-transaction-stats"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "interview-patterns"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Positive predictive value",
+      "kind": "python",
+      "prompt": "Write `ppv(sens, fpr, prev)` returning P(ill | positive) by Bayes' rule, and print it rounded to 4 decimals for `(0.95, 0.02, 0.005)` and for `(0.95, 0.02, 0.10)`, one per line.",
+      "starter": "def ppv(sens, fpr, prev):\n    pass\n\n\nprint(round(ppv(0.95, 0.02, 0.005), 4))\nprint(round(ppv(0.95, 0.02, 0.10), 4))\n",
+      "solution": "def ppv(sens, fpr, prev):\n    return sens * prev / (sens * prev + fpr * (1 - prev))\n\n\nprint(round(ppv(0.95, 0.02, 0.005), 4))\nprint(round(ppv(0.95, 0.02, 0.10), 4))\n",
+      "expected": "0.1927\n0.8407",
+      "hints": [
+        "True positives are `sens * prev`.",
+        "False positives are `fpr * (1 - prev)`.",
+        "Divide true positives by true plus false positives."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Two-proportion z-test",
+      "kind": "python",
+      "prompt": "Group A converted 90 of 1500 visitors and group B 117 of 1500. Print `z: <z rounded to 3>` and `p-value: <two-sided p rounded to 4>` using the pooled standard error and `scipy.stats.norm`.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\nn_a, x_a, n_b, x_b = 1500, 90, 1500, 117\n# z-test\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\nn_a, x_a, n_b, x_b = 1500, 90, 1500, 117\npool = (x_a + x_b) / (n_a + n_b)\nse = np.sqrt(pool * (1 - pool) * (1 / n_a + 1 / n_b))\nz = (x_b / n_b - x_a / n_a) / se\nprint(\"z:\", round(float(z), 3))\nprint(\"p-value:\", round(float(2 * (1 - stats.norm.cdf(abs(z)))), 4))\n",
+      "expected": "z: 1.945\np-value: 0.0518",
+      "hints": [
+        "The pooled rate is total conversions over total visitors.",
+        "The standard error uses `pool * (1 - pool) * (1/n_a + 1/n_b)` under a square root.",
+        "Two-sided p is `2 * (1 - stats.norm.cdf(abs(z)))`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Decompose by factor",
+      "kind": "python",
+      "prompt": "Using the dictionaries `last` and `this`, substitute the factors in the order visitors, conversion, aov and print `<factor>: <change in revenue rounded to 0 decimals>` for each, then `total: <sum>`.",
+      "starter": "last = {\"visitors\": 40000, \"conversion\": 0.025, \"aov\": 70.0}\nthis = {\"visitors\": 42000, \"conversion\": 0.022, \"aov\": 71.0}\n# sequential substitution\n",
+      "solution": "last = {\"visitors\": 40000, \"conversion\": 0.025, \"aov\": 70.0}\nthis = {\"visitors\": 42000, \"conversion\": 0.022, \"aov\": 71.0}\nrevenue = lambda d: d[\"visitors\"] * d[\"conversion\"] * d[\"aov\"]\nstep = dict(last)\ntotal = 0\nfor factor in [\"visitors\", \"conversion\", \"aov\"]:\n    before = revenue(step)\n    step[factor] = this[factor]\n    change = round(revenue(step) - before)\n    total += change\n    print(f\"{factor}: {change}\")\nprint(\"total:\", total)\n",
+      "expected": "visitors: 3500\nconversion: -8820\naov: 924\ntotal: -4396",
+      "hints": [
+        "Revenue is the product of the three values.",
+        "Start from `last` and replace one factor at a time with its `this` value.",
+        "Record the revenue difference at each replacement."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Explain a p-value",
+      "kind": "written",
+      "prompt": "Interviewer: `Our test gave p = 0.03. Does that mean the new design is better with 97% probability?` Answer in about 100 words: say what the p-value means, why 97% is wrong, and what else you would report.",
+      "starter": "Answer:",
+      "solution": "No. A p-value of 0.03 means that if the new design had no effect, a difference at least as large as the one we saw would appear about 3 percent of the time by chance. It is a statement about the data under the null hypothesis, not the probability that the new design is better, so 97 percent is a misreading. I would also report the size of the lift with a confidence interval, because a statistically significant effect can be too small to matter, check that the test ran for the planned duration with random assignment, and say how many comparisons were made.",
+      "hints": [
+        "Under which assumption is the p-value calculated?",
+        "Is it a probability about the hypothesis?",
+        "What tells you whether the lift matters?"
+      ],
+      "rubric": [
+        "Defines the p-value as probability of data this extreme under the null.",
+        "Says 97 percent is a misreading and why.",
+        "Mentions effect size or an interval.",
+        "Mentions the test design or multiple comparisons."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Conditional probability by enumeration",
+      "kind": "python",
+      "prompt": "Two dice are rolled. Using `itertools.product`, print three lines: `P(at least one 6): <Fraction>`, `P(sum >= 10): <Fraction>`, `P(at least one 6 | sum >= 10): <Fraction>` (use `fractions.Fraction`, which prints reduced fractions such as `1/4`).",
+      "starter": "from fractions import Fraction\nfrom itertools import product\n\nrolls = list(product(range(1, 7), repeat=2))\n",
+      "solution": "from fractions import Fraction\nfrom itertools import product\n\nrolls = list(product(range(1, 7), repeat=2))\nsix = [r for r in rolls if 6 in r]\nbig = [r for r in rolls if sum(r) >= 10]\nboth = [r for r in big if 6 in r]\nprint(\"P(at least one 6):\", Fraction(len(six), len(rolls)))\nprint(\"P(sum >= 10):\", Fraction(len(big), len(rolls)))\nprint(\"P(at least one 6 | sum >= 10):\", Fraction(len(both), len(big)))\n",
+      "expected": "P(at least one 6): 11/36\nP(sum >= 10): 1/6\nP(at least one 6 | sum >= 10): 5/6"
+    },
+    {
+      "id": "i2",
+      "title": "A t-test readout",
+      "kind": "python",
+      "prompt": "Generate `a = rng.normal(100, 20, 250)` and `b = rng.normal(104, 20, 250)` with `rng = np.random.default_rng(11)` (a first, then b). Use Welch's t-test and print `diff: <mean b - mean a, 2 decimals>`, `p-value: <4 decimals>` and `significant at 0.05: True/False`.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\nrng = np.random.default_rng(11)\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\nrng = np.random.default_rng(11)\na = rng.normal(100, 20, 250)\nb = rng.normal(104, 20, 250)\nt, p = stats.ttest_ind(b, a, equal_var=False)\nprint(\"diff:\", round(float(b.mean() - a.mean()), 2))\nprint(\"p-value:\", round(float(p), 4))\nprint(\"significant at 0.05:\", bool(p < 0.05))\n",
+      "expected": "diff: 4.96\np-value: 0.0045\nsignificant at 0.05: True"
+    },
+    {
+      "id": "i3",
+      "title": "A metric case, end to end",
+      "kind": "written",
+      "prompt": "Case: `Weekly orders on our app fell 12% compared with last week. What do you do?` Give a structured answer: definition checks, a decomposition, three segments, three hypotheses with the evidence you would look for, and your recommendation. About 200 words.",
+      "starter": "1. Define and check:\n2. Decompose:\n3. Segment:\n4. Hypotheses:\n5. Recommendation:",
+      "solution": "1. Define and check: confirm what an order is, the two periods compared (same weekdays, holidays), and that tracking and the data pipeline are healthy; compare the fall with normal week-to-week variation. 2. Decompose: orders = active users x sessions per user x conversion per session; find which factor moved. 3. Segment: platform and app version, country, new versus returning users, acquisition channel. 4. Hypotheses: a release bug (a drop concentrated in one app version, check crash and error rates); a campaign ended (a drop in one channel); seasonality or a holiday (compare with the same week last year); a payment provider outage (a drop at the payment step of the funnel). 5. Recommendation: if tracking is fine and the drop is concentrated in a segment, escalate to the owner of that area with the evidence; set an alert on the decomposed factors, and review again in 48 hours with fresh data before acting on a company-wide change.",
+      "rubric": [
+        "Starts with the metric definition, the period and data quality.",
+        "Decomposes into factors that multiply or add.",
+        "Segments and gives hypotheses with the evidence for each.",
+        "Ends with a recommendation and a follow-up check."
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Two fair dice are rolled. What is P(sum = 8)?",
+      "options": [
+        "5/36",
+        "1/6",
+        "1/9",
+        "6/36 because 8 is common"
+      ],
+      "answer": 0,
+      "explanation": "Five of the 36 equally likely pairs sum to 8: (2,6), (3,5), (4,4), (5,3), (6,2)."
+    },
+    {
+      "id": "c2",
+      "question": "A disease affects 1% of people. A test finds 90% of ill people and gives 5% false positives. Most positive results are:",
+      "options": [
+        "False positives",
+        "True positives",
+        "Exactly half and half",
+        "Impossible to know"
+      ],
+      "answer": 0,
+      "explanation": "Of 10,000 people, 90 ill test positive and about 495 healthy people also do, so about 15% of positives are real."
+    },
+    {
+      "id": "c3",
+      "question": "What is a p-value?",
+      "options": [
+        "The probability of data this extreme if the null hypothesis were true",
+        "The probability the null hypothesis is true",
+        "The size of the effect",
+        "The sample size needed"
+      ],
+      "answer": 0,
+      "explanation": "It conditions on the null. It is not the probability that a hypothesis is true and tells you nothing about importance."
+    },
+    {
+      "id": "c4",
+      "question": "You test 20 independent segments at the 0.05 level when there is no real effect anywhere. About how likely is at least one significant result?",
+      "options": [
+        "64%",
+        "5%",
+        "20%",
+        "1%"
+      ],
+      "answer": 0,
+      "explanation": "1 - 0.95^20 is about 0.64. Slicing results and reporting the winner inflates false positives."
+    },
+    {
+      "id": "c5",
+      "question": "Revenue = visitors x conversion x order value. Visitors rose 4%, conversion fell 13% and order value rose 2%. Which factor drove the fall?",
+      "options": [
+        "Conversion",
+        "Visitors",
+        "Order value",
+        "None, revenue cannot fall"
+      ],
+      "answer": 0,
+      "explanation": "The conversion drop outweighs the small rises in the other two factors, so decompose before looking for causes."
+    }
+  ]
+}

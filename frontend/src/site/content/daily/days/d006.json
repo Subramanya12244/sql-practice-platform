@@ -1,0 +1,186 @@
+{
+  "id": "d006",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-fundamentals",
+      "python-conditionals",
+      "python-variables-data-types"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Compare a budget with a price",
+      "prompt": "The variables `budget` and `price` are set to `50` and `65`. Print four lines, each a comparison produced by Python: `budget == price`, `budget != price`, `budget < price`, `budget >= price`. No text labels, only the four booleans.",
+      "starter": "budget = 50\nprice = 65\n# print the four comparisons\n",
+      "solution": "budget = 50\nprice = 65\nprint(budget == price)\nprint(budget != price)\nprint(budget < price)\nprint(budget >= price)\n",
+      "hints": [
+        "Each line is one `print()` of a single comparison.",
+        "The six operators are `==`, `!=`, `<`, `<=`, `>`, `>=`.",
+        "Write `print(budget == price)` and then change the operator for each remaining line."
+      ],
+      "kind": "python",
+      "expected": "False\nTrue\nTrue\nFalse"
+    },
+    {
+      "id": "g2",
+      "title": "Weekend plans with and, or, not",
+      "prompt": "The variables `sunny` is `True`, `weekend` is `False` and `free_ticket` is `True`. Print three lines: whether it is sunny and a weekend; whether it is sunny or a weekend; whether there is no free ticket (use `not`).",
+      "starter": "sunny = True\nweekend = False\nfree_ticket = True\n# print the three results\n",
+      "solution": "sunny = True\nweekend = False\nfree_ticket = True\nprint(sunny and weekend)\nprint(sunny or weekend)\nprint(not free_ticket)\n",
+      "hints": [
+        "`and` needs both sides true; `or` needs at least one.",
+        "`not` goes in front of a value and flips it.",
+        "Use `print(sunny and weekend)`, `print(sunny or weekend)` and `print(not free_ticket)`."
+      ],
+      "kind": "python",
+      "expected": "False\nTrue\nFalse"
+    },
+    {
+      "id": "g3",
+      "title": "Which values are truthy",
+      "prompt": "Print the truthiness of these five values, one per line, using `bool()`: `0`, `\"0\"`, `\"\"`, `\" \"` and `None`. Print only the booleans.",
+      "starter": "# one print(bool(...)) per value\n",
+      "solution": "print(bool(0))\nprint(bool(\"0\"))\nprint(bool(\"\"))\nprint(bool(\" \"))\nprint(bool(None))\n",
+      "hints": [
+        "`bool()` takes one value and returns `True` or `False`.",
+        "Zero, the empty string and `None` are false; other strings are true, even `\"0\"`.",
+        "Write five lines like `print(bool(0))`, keeping the quotes on the strings."
+      ],
+      "kind": "python",
+      "expected": "False\nTrue\nFalse\nTrue\nFalse"
+    },
+    {
+      "id": "g4",
+      "title": "Range check with a chain",
+      "prompt": "The variable `score` is `72`. Print two lines. First, whether `score` is from 60 up to and including 100, written as one chained comparison. Second, whether `score` is a distinction, meaning 85 or more.",
+      "starter": "score = 72\n# two prints\n",
+      "solution": "score = 72\nprint(60 <= score <= 100)\nprint(score >= 85)\n",
+      "hints": [
+        "A chain puts the value between two comparison operators.",
+        "Both ends are included, so use `<=` on both sides.",
+        "The first line is `print(60 <= score <= 100)`."
+      ],
+      "kind": "python",
+      "expected": "True\nFalse"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Order review flags",
+      "prompt": "An order has `total = 250.0`, `status = \"pending\"` and `coupon = \"\"`. Create three named booleans: `big` (total at least 200), `has_coupon` (the coupon text is not empty, using `bool()`), and `needs_review` (true when the order is big and the status is not `\"cancelled\"`, or when it has a coupon and its status is `\"pending\"`). Print the three booleans on one line separated by spaces, in that order, with one `print()` call.",
+      "starter": "total = 250.0\nstatus = \"pending\"\ncoupon = \"\"\n",
+      "solution": "total = 250.0\nstatus = \"pending\"\ncoupon = \"\"\nbig = total >= 200\nhas_coupon = bool(coupon)\nneeds_review = (big and status != \"cancelled\") or (has_coupon and status == \"pending\")\nprint(big, has_coupon, needs_review)\n",
+      "kind": "python",
+      "expected": "True False True"
+    },
+    {
+      "id": "i2",
+      "title": "Fallbacks and missing values",
+      "prompt": "Three customer fields are given: `nickname = \"\"`, `city = \"Leeds\"` and `phone = None`. Print three lines. Line 1: the nickname, or `\"guest\"` if it is empty (use `or`). Line 2: the city, or `\"unknown\"` if it is empty. Line 3: `True` if the phone is missing (use `is None`), otherwise `False`. Then print a fourth line: `True` if both nickname and city are non-empty, using `and` on their truthiness through `bool()`.",
+      "starter": "nickname = \"\"\ncity = \"Leeds\"\nphone = None\n",
+      "solution": "nickname = \"\"\ncity = \"Leeds\"\nphone = None\nprint(nickname or \"guest\")\nprint(city or \"unknown\")\nprint(phone is None)\nprint(bool(nickname) and bool(city))\n",
+      "kind": "python",
+      "expected": "guest\nLeeds\nTrue\nFalse"
+    },
+    {
+      "id": "i3",
+      "title": "Discount eligibility (stretch)",
+      "prompt": "A shopper has `age = 67`, `is_student = False`, `basket = 42.5` and `code = \"\"`. A discount applies when the basket is at least 40 and the shopper is a student, or is aged 65 or over, or has a non-empty code. Print on separate lines: whether the discount applies; whether the age is in the range 18 to 64 inclusive (one chained comparison); and the result of `not (is_student or code)`, as Python evaluates it (note it prints a boolean).",
+      "starter": "age = 67\nis_student = False\nbasket = 42.5\ncode = \"\"\n",
+      "solution": "age = 67\nis_student = False\nbasket = 42.5\ncode = \"\"\napplies = (basket >= 40 and is_student) or age >= 65 or bool(code)\nprint(applies)\nprint(18 <= age <= 64)\nprint(not (is_student or code))\n",
+      "kind": "python",
+      "expected": "True\nFalse\nTrue",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nprint(\"10\" < \"9\")\n```",
+      "options": [
+        "`False`, because 10 is larger than 9",
+        "`True`, because text is compared character by character and `\"1\"` comes before `\"9\"`",
+        "`True`, because Python converts both to numbers",
+        "A `TypeError`"
+      ],
+      "answer": 1,
+      "explanation": "Strings compare as text, character by character; `\"1\"` sorts before `\"9\"`, so the result is `True`. Python never converts strings to numbers by itself, and comparing two strings is not an error."
+    },
+    {
+      "id": "c2",
+      "question": "What does `True or False and False` evaluate to?",
+      "options": [
+        "`False`, because it is evaluated left to right",
+        "`True`, because `and` is applied before `or`",
+        "`False`, because one operand is `False`",
+        "A `SyntaxError`"
+      ],
+      "answer": 1,
+      "explanation": "`and` binds tighter than `or`, so the expression is `True or (False and False)`, which is `True`. Left-to-right evaluation is the common wrong assumption."
+    },
+    {
+      "id": "c3",
+      "question": "Which of these values is falsy?",
+      "options": [
+        "`\"0\"`",
+        "`\"False\"`",
+        "`\" \"`",
+        "`\"\"`"
+      ],
+      "answer": 3,
+      "explanation": "Only the empty string is falsy. `\"0\"`, `\"False\"` and a single space are non-empty strings, so they are truthy."
+    },
+    {
+      "id": "c4",
+      "question": "What does `print(0 or \"none\", 5 and \"yes\")` print?",
+      "options": [
+        "`False True`",
+        "`none yes`",
+        "`0 5`",
+        "`none 5`"
+      ],
+      "answer": 1,
+      "explanation": "`0 or \"none\"` returns the second value because `0` is falsy. `5 and \"yes\"` returns the second value because `5` is truthy. `or` and `and` return an operand, not necessarily a boolean."
+    },
+    {
+      "id": "c5",
+      "question": "Why is `0.1 + 0.2 == 0.3` false in Python?",
+      "options": [
+        "Python cannot add decimals",
+        "Floats are stored in binary, so the sum is slightly more than `0.3`",
+        "`==` only works on integers",
+        "The `+` operator runs after `==`"
+      ],
+      "answer": 1,
+      "explanation": "Binary floating point cannot store 0.1 or 0.2 exactly, so the sum is a tiny bit larger than 0.3. Rounding both sides before comparing avoids the issue."
+    },
+    {
+      "id": "c6",
+      "question": "Which line correctly checks that `x` is missing?",
+      "options": [
+        "`if x = None:`",
+        "`x is None`",
+        "`x == \"None\"`",
+        "`x is 0`"
+      ],
+      "answer": 1,
+      "explanation": "`x is None` is the standard test. A single `=` assigns and is a syntax error in a condition, the text `\"None\"` is a different value, and `0` is not `None`."
+    }
+  ]
+}

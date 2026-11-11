@@ -1,0 +1,187 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "avg"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "year-over-year-growth"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Classify statements",
+      "kind": "python",
+      "prompt": "Using `classify` (given), print the class of each statement on its own line: \"Germany revenue was 19,447.50.\", \"Germany is 29.0% of revenue, more than any other market.\", \"Germany should be the first market to receive the new product, since it is 29.0% of revenue against 20.9% for the UK.\", \"Markets are listed below.\"",
+      "starter": "import re\n\nCOMPARE = (\"against\", \"than\", \"from\", \"versus\", \"compared\", \"slowest\", \"fastest\")\n\ndef classify(text):\n    t = text.lower()\n    has_number = bool(re.search(r\"\\d\", t))\n    has_comparison = any(w in t for w in COMPARE)\n    has_action = any(w in t for w in (\"recommend\", \"should\", \"review\", \"investigate\"))\n    if has_number and has_comparison and has_action:\n        return \"recommendation\"\n    if has_number and has_comparison:\n        return \"insight\"\n    if has_number:\n        return \"observation\"\n    return \"none\"\n\nfor s in [\"Germany revenue was 19,447.50.\", \"Germany is 29.0% of revenue, more than any other market.\", \"Germany should be the first market to receive the new product, since it is 29.0% of revenue against 20.9% for the UK.\", \"Markets are listed below.\"]:\n    print(\"none\")\n",
+      "solution": "import re\n\nCOMPARE = (\"against\", \"than\", \"from\", \"versus\", \"compared\", \"slowest\", \"fastest\")\n\ndef classify(text):\n    t = text.lower()\n    has_number = bool(re.search(r\"\\d\", t))\n    has_comparison = any(w in t for w in COMPARE)\n    has_action = any(w in t for w in (\"recommend\", \"should\", \"review\", \"investigate\"))\n    if has_number and has_comparison and has_action:\n        return \"recommendation\"\n    if has_number and has_comparison:\n        return \"insight\"\n    if has_number:\n        return \"observation\"\n    return \"none\"\n\nfor s in [\"Germany revenue was 19,447.50.\", \"Germany is 29.0% of revenue, more than any other market.\", \"Germany should be the first market to receive the new product, since it is 29.0% of revenue against 20.9% for the UK.\", \"Markets are listed below.\"]:\n    print(classify(s))\n",
+      "hints": [
+        "Check the three tests in order: number, comparison, action.",
+        "The second statement has a number and the word than, but no action word.",
+        "The third has a number, against and should."
+      ],
+      "expected": "observation\ninsight\nrecommendation\nnone"
+    },
+    {
+      "id": "g2",
+      "title": "A sized scenario",
+      "kind": "python",
+      "prompt": "If every market had grown by the same percentage as Germany (2025 revenue against the 2024 revenue `c24`, built from `s24` merged with `customers`), what would total revenue have been? Print `Germany rate <factor>` (4 decimals), `Scenario total <value>` (2 decimals, thousands separator) and `Gap to actual <value>` (2 decimals, thousands separator, scenario minus actual).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\n# growth factor of Germany applied to every 2024 market\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\nt24 = s24.merge(customers, on=\"customer_id\")\nc24 = t24.groupby(\"country\")[\"revenue\"].sum()\nc25 = fact.groupby(\"country\")[\"revenue\"].sum()\nrate = c25[\"Germany\"] / c24[\"Germany\"]\nscenario = float((c24 * rate).sum())\nprint(f\"Germany rate {rate:.4f}\")\nprint(f\"Scenario total {scenario:,.2f}\")\nprint(f\"Gap to actual {scenario - float(c25.sum()):,.2f}\")\n",
+      "hints": [
+        "The growth factor is 2025 revenue divided by 2024 revenue for Germany.",
+        "Multiply every 2024 market by that factor and add them up.",
+        "The gap is scenario minus the actual 2025 total."
+      ],
+      "expected": "Germany rate 1.6579\nScenario total 67,170.97\nGap to actual 38.47"
+    },
+    {
+      "id": "g3",
+      "title": "Compute a caveat",
+      "kind": "python",
+      "prompt": "Write `small_groups(df, column, min_orders)` returning the sorted list of values of `column` with fewer than `min_orders` distinct orders. Print `small_groups(fact, \"country\", 100)`, `small_groups(fact, \"segment\", 100)` and `small_groups(fact, \"category\", 130)` on three lines (the lists).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef small_groups(df, column, min_orders):\n    return []\n\nprint(small_groups(fact, \"country\", 100))\nprint(small_groups(fact, \"segment\", 100))\nprint(small_groups(fact, \"category\", 130))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef small_groups(df, column, min_orders):\n    n = df.groupby(column)[\"order_id\"].nunique()\n    return sorted(n[n < min_orders].index)\n\nprint(small_groups(fact, \"country\", 100))\nprint(small_groups(fact, \"segment\", 100))\nprint(small_groups(fact, \"category\", 130))\n",
+      "hints": [
+        "Count distinct order ids per group.",
+        "Keep the groups with a count below min_orders.",
+        "Return sorted(...index) as a list."
+      ],
+      "expected": "['UK']\n[]\n['Services', 'Software']"
+    },
+    {
+      "id": "g4",
+      "title": "Rewrite as an insight and recommendation (written)",
+      "kind": "written",
+      "prompt": "Rewrite this analysis result as an insight and a recommendation for a commercial director: 'Revenue by customer segment: Corporate 37,905.00, Retail 29,227.50.' You have also found that Corporate grew 66.5% and Retail 64.7% over 2024, that Corporate has half of the customers (20 of 40) and that results are for one year only.",
+      "starter": "Insight: ...\nRecommendation: ...\nCaveat: ...",
+      "solution": "Insight: Corporate brings 56.5% of revenue from half of the customers and grew 66.5% against 64.7% for Retail, so it is both the larger and the faster-growing segment (the gap in growth is small). Recommendation: keep account management focused on Corporate, but do not cut Retail investment on this evidence, because the growth difference is under two points. Decision wanted: confirm the planning assumption for both segments by the next review. Caveat: the comparison covers one year of change and the segment split is based on customer lists, so the result is indicative and should be re-checked with the next year's data. The original sentence only reported two numbers with no comparison and no action.",
+      "rubric": [
+        "Turns the numbers into a comparison (share, growth) with a meaning.",
+        "Gives a specific recommendation with a decision wanted.",
+        "States the main caveat (one year, small difference).",
+        "Keeps it short and in answer-first order."
+      ],
+      "hints": [
+        "Compare the two segments on share and growth.",
+        "What should the director do?",
+        "What limits the reading?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Full caveat report",
+      "kind": "python",
+      "prompt": "Write `caveat_report(df)` returning a list: for each country in alphabetical order with fewer than 100 distinct orders `<country>: <n> orders`; then `empty days: <k>` where k is the number of calendar days between the first and last order dates (inclusive) with no order; then `top customer share: <p>%` with p the share of total revenue held by the single largest customer (1 decimal). Print the lines.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef caveat_report(df):\n    return []\n\nprint(\"\\n\".join(caveat_report(fact)))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef caveat_report(df):\n    out = []\n    n = df.groupby(\"country\")[\"order_id\"].nunique()\n    for country, count in n.sort_index().items():\n        if count < 100:\n            out.append(f\"{country}: {count} orders\")\n    days = pd.date_range(df[\"order_date\"].min(), df[\"order_date\"].max())\n    empty = len(days) - df[\"order_date\"].dt.normalize().nunique()\n    out.append(f\"empty days: {empty}\")\n    top = df.groupby(\"customer_id\")[\"revenue\"].sum().max() / df[\"revenue\"].sum() * 100\n    out.append(f\"top customer share: {top:.1f}%\")\n    return out\n\nprint(\"\\n\".join(caveat_report(fact)))\n",
+      "expected": "UK: 83 orders\nempty days: 114\ntop customer share: 4.8%"
+    },
+    {
+      "id": "i2",
+      "title": "Answer bank",
+      "kind": "python",
+      "prompt": "Build a dictionary `answers` mapping the questions below to computed one-line answers and print `question -> answer` for each in the order given. Q1 `Best month?` -> `<YYYY-MM> <revenue>` (2 decimals); Q2 `Best country?` -> `<country> <share>%` (share of total, 1 decimal); Q3 `Orders per customer?` -> `<value>` (400 orders over the customers who ordered, 2 decimals).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nanswers = {}\n# fill the three answers, then print question -> answer\nfor q, a in answers.items():\n    print(f\"{q} -> {a}\")\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nmonthly = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\nby_country = fact.groupby(\"country\")[\"revenue\"].sum()\nanswers = {\n    \"Best month?\": f\"{monthly.idxmax()} {monthly.max():.2f}\",\n    \"Best country?\": f\"{by_country.idxmax()} {by_country.max() / by_country.sum() * 100:.1f}%\",\n    \"Orders per customer?\": f\"{fact['order_id'].nunique() / fact['customer_id'].nunique():.2f}\",\n}\nfor q, a in answers.items():\n    print(f\"{q} -> {a}\")\n",
+      "expected": "Best month? -> 2025-11 6652.50\nBest country? -> Germany 29.0%\nOrders per customer? -> 10.00"
+    },
+    {
+      "id": "i3",
+      "title": "Respond to a challenge (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "In a meeting, the finance director says: 'These growth numbers cannot be right, our ledger shows lower revenue.' You cannot yet explain the difference. Write what you say in the meeting and what you do in the next two days, including what you prepare in advance for such a challenge.",
+      "starter": "In the meeting: ...\nNext two days: ...\nPrepared in advance: ...",
+      "solution": "In the meeting: acknowledge the point without defending: 'That is a fair challenge. Our figure is the sum of quantity times unit price for orders dated in 2025, 67,132.50. I do not yet know why the ledger differs, so I will reconcile the two and send you the result by Thursday.' Do not guess a reason. Next two days: obtain the ledger extract, reconcile at the level of month and order, check definitions (are cancelled orders, returns, taxes or posting dates treated differently), list the difference by cause and send a short note with the reconciled figure and what, if anything, changes in the recommendation. Prepared in advance: a definition of the revenue measure, a reconciliation to a figure the finance team trusts, and the answers to likely questions; with those, the challenge would have been answered on the spot.",
+      "rubric": [
+        "Acknowledges the challenge and states the definition.",
+        "Does not guess; commits to a follow-up with a date.",
+        "Plans a reconciliation by month and order and checks definitions.",
+        "Says what to prepare in advance."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which sentence is an insight, not only an observation?",
+      "options": [
+        "Spain revenue was 16,642.50.",
+        "Spain grew 62.6% against 68.1% for the UK.",
+        "Spain is a market.",
+        "Please see the chart."
+      ],
+      "answer": 1,
+      "explanation": "An insight adds a comparison to a number. The first is an observation, and the last two have no number."
+    },
+    {
+      "id": "c2",
+      "question": "Why state the assumption next to a scenario figure?",
+      "options": [
+        "To make the slide longer",
+        "So the reader can judge and challenge the estimate",
+        "Because scenarios are exact",
+        "To avoid a recommendation"
+      ],
+      "answer": 1,
+      "explanation": "A scenario is an estimate under an assumption. Showing the assumption lets the reader decide whether it is reasonable and keeps the claim honest."
+    },
+    {
+      "id": "c3",
+      "question": "You are asked something you cannot answer in a meeting. What is the best reply?",
+      "options": [
+        "Give your best guess",
+        "Say you will find out and name when you will reply",
+        "Change the subject",
+        "Say the data is perfect"
+      ],
+      "answer": 1,
+      "explanation": "A guess that turns out wrong damages trust. A clear follow-up with a date does not."
+    },
+    {
+      "id": "c4",
+      "question": "Which caveat usually belongs next to the recommendation?",
+      "options": [
+        "Every limitation found",
+        "The one or two that could change the decision",
+        "None",
+        "Only the ones about formatting"
+      ],
+      "answer": 1,
+      "explanation": "Caveats that could change the reading go with the recommendation; the rest belong in an appendix. A long list on the first slide buries the message."
+    },
+    {
+      "id": "c5",
+      "question": "With 83 orders in the UK and a threshold of 100, what should the analyst do?",
+      "options": [
+        "Remove the UK",
+        "Flag the UK comparison as indicative",
+        "Double the UK revenue",
+        "Ignore it"
+      ],
+      "answer": 1,
+      "explanation": "Small groups can change a lot from a few orders. State the limit and present the difference with caution; do not delete the data."
+    }
+  ],
+  "id": "a141"
+}

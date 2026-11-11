@@ -1,0 +1,191 @@
+{
+  "id": "a093",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "string-functions",
+      "date-time-functions",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "clean-contact-fields",
+      "format-sku-codes"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "MID, LEFT and RIGHT on codes",
+      "kind": "python",
+      "prompt": "Replicate `=LEFT(A2,2)`, `=VALUE(MID(A2,4,4))` and `=RIGHT(A2,4)` for the code series. Build a DataFrame with columns `Prefix`, `Year` (integer) and `Serial` (text) and print it with `to_string(index=False)`.",
+      "starter": "import pandas as pd\n\ncodes = pd.Series([\"DF-2024-0137\", \"NW-2025-0021\", \"DF-2023-0009\"])\n# build Prefix, Year, Serial and print\n",
+      "solution": "import pandas as pd\n\ncodes = pd.Series([\"DF-2024-0137\", \"NW-2025-0021\", \"DF-2023-0009\"])\nout = pd.DataFrame({\n    \"Prefix\": codes.str[:2],\n    \"Year\": codes.str[3:7].astype(int),\n    \"Serial\": codes.str[-4:],\n})\nprint(out.to_string(index=False))\n",
+      "hints": [
+        "Excel counts from 1, pandas string slicing counts from 0.",
+        "MID(A2,4,4) is the slice [3:7]; RIGHT(A2,4) is [-4:].",
+        "codes.str[:2], codes.str[3:7].astype(int) and codes.str[-4:]."
+      ],
+      "expected": "Prefix  Year Serial\n    DF  2024   0137\n    NW  2025   0021\n    DF  2023   0009"
+    },
+    {
+      "id": "g2",
+      "title": "Replicating TRIM and PROPER",
+      "kind": "python",
+      "prompt": "Replicate `=PROPER(TRIM(A2))` on the names below. `TRIM` removes outer spaces and collapses inner runs of spaces to one. Print the cleaned names as a list.",
+      "starter": "import pandas as pd\n\nnames = pd.Series([\"  ada   lovelace \", \"GRACE  HOPPER\", \"alan turing\"])\n# print the cleaned names as a list\n",
+      "solution": "import pandas as pd\n\nnames = pd.Series([\"  ada   lovelace \", \"GRACE  HOPPER\", \"alan turing\"])\nclean = names.str.split().str.join(\" \").str.title()\nprint(clean.tolist())\n",
+      "hints": [
+        "str.strip() leaves doubled spaces inside; TRIM does not.",
+        "Split on whitespace and join with a single space.",
+        "names.str.split().str.join(\" \").str.title()"
+      ],
+      "expected": "['Ada Lovelace', 'Grace Hopper', 'Alan Turing']"
+    },
+    {
+      "id": "g3",
+      "title": "Month start and end",
+      "kind": "python",
+      "prompt": "For the dates 2024-02-10, 2025-01-31 and 2025-12-05 replicate `=DATE(YEAR(A2),MONTH(A2),1)` (month start) and `=EOMONTH(A2,0)` (month end). Print one line per date in the format `YYYY-MM-DD YYYY-MM-DD` (start, then end).",
+      "starter": "import pandas as pd\n\ndates = pd.to_datetime([\"2024-02-10\", \"2025-01-31\", \"2025-12-05\"])\n# print start and end of month for each date\n",
+      "solution": "import pandas as pd\n\ndates = pd.to_datetime([\"2024-02-10\", \"2025-01-31\", \"2025-12-05\"])\nfor d in dates:\n    start = d.to_period(\"M\").to_timestamp()\n    end = d + pd.offsets.MonthEnd(0)\n    print(start.date(), end.date())\n",
+      "hints": [
+        "A month start can be found by replacing the day with 1; pandas can do it through a monthly period.",
+        "d.to_period(\"M\").to_timestamp() is the first day of the month.",
+        "d + pd.offsets.MonthEnd(0) is the last day of the month (the date itself if it already is the last day)."
+      ],
+      "expected": "2024-02-01 2024-02-29\n2025-01-01 2025-01-31\n2025-12-01 2025-12-31"
+    },
+    {
+      "id": "g4",
+      "title": "Formulas for a messy column (written)",
+      "kind": "written",
+      "prompt": "Cell A2 contains the text ` Ref:ab-77-2025 ` (with spaces around it, copied from a web page, so possibly character 160). Write Excel formulas for (a) the cleaned text in capitals without spaces at the ends, (b) the number 77 taken from the cleaned text in B2, (c) the text before the first dash in B2.",
+      "starter": "(a) ...\n(b) ...\n(c) ...",
+      "solution": "(a) `=UPPER(TRIM(SUBSTITUTE(A2,CHAR(160),\" \")))` gives `REF:AB-77-2025`. The SUBSTITUTE turns non-breaking spaces into normal ones so that TRIM can remove them.\n\n(b) With the cleaned text in B2, the number starts after the first dash: `=VALUE(MID(B2, FIND(\"-\",B2)+1, 2))` gives 77. FIND gives position 7 for the dash, so MID starts at 8 and takes two characters. If the length varies, locate the second dash with `FIND(\"-\",B2,FIND(\"-\",B2)+1)` and subtract.\n\n(c) `=LEFT(B2, FIND(\"-\",B2)-1)` gives `REF:AB`; the `-1` leaves out the dash itself.",
+      "hints": [
+        "Inside-out: replace character 160, trim, then change case.",
+        "FIND returns the position of the dash, so MID starts one character later.",
+        "Subtract 1 from the FIND position in LEFT, so the dash is not included."
+      ],
+      "rubric": [
+        "(a) nests SUBSTITUTE with CHAR(160), TRIM and UPPER in a sensible order.",
+        "(b) uses FIND for the dash position and +1 for the start of MID, then VALUE.",
+        "(c) uses LEFT with FIND(...)-1.",
+        "All positions are counted from 1."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Clean, split and rebuild an order table",
+      "kind": "python",
+      "prompt": "Replicate five Excel columns for the table below. `Code` = `UPPER(TRIM(A2))`; `Year` = `VALUE(MID(Code,4,4))`; `Date` = `DATE(LEFT(B2,4),MID(B2,6,2),RIGHT(B2,2))`; `Label` = `TEXT(Date,\"yyyy-mm\")`; `Tag` = `TEXTJOIN(\"/\", TRUE, Code, Label)` (join skipping empty parts). Print `df[[\"Code\",\"Year\",\"Label\",\"Tag\"]].to_string(index=False)`.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\n    \"Raw\": [\" df-2024-0137\", \"nw-2025-0021  \", \"  df-2023-0009 \"],\n    \"When\": [\"2024-03-07\", \"2025-12-30\", \"2023-01-15\"],\n})\n# build Code, Year, Date, Label, Tag and print\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\n    \"Raw\": [\" df-2024-0137\", \"nw-2025-0021  \", \"  df-2023-0009 \"],\n    \"When\": [\"2024-03-07\", \"2025-12-30\", \"2023-01-15\"],\n})\ndf[\"Code\"] = df[\"Raw\"].str.split().str.join(\" \").str.upper()\ndf[\"Year\"] = df[\"Code\"].str[3:7].astype(int)\ndf[\"Date\"] = pd.to_datetime(df[\"When\"].str[:4] + \"-\" + df[\"When\"].str[5:7] + \"-\" + df[\"When\"].str[8:])\ndf[\"Label\"] = df[\"Date\"].dt.strftime(\"%Y-%m\")\ndf[\"Tag\"] = df[\"Code\"] + \"/\" + df[\"Label\"]\nprint(df[[\"Code\", \"Year\", \"Label\", \"Tag\"]].to_string(index=False))\n",
+      "expected": "        Code  Year   Label                  Tag\nDF-2024-0137  2024 2024-03 DF-2024-0137/2024-03\nNW-2025-0021  2025 2025-12 NW-2025-0021/2025-12\nDF-2023-0009  2023 2023-01 DF-2023-0009/2023-01"
+    },
+    {
+      "id": "i2",
+      "title": "Deadlines with EDATE and EOMONTH",
+      "kind": "python",
+      "prompt": "Invoices are issued on the dates below. Replicate `Due = EDATE(Issued, 1)` and `Cutoff = EOMONTH(Issued, 1)`, and `Weekday = WEEKDAY(Due, 2)` (Monday=1). Print `inv[[\"Issued\",\"Due\",\"Cutoff\",\"Weekday\"]].to_string(index=False)` with Issued, Due and Cutoff as dates (no time part; format with `strftime(\"%Y-%m-%d\")`).",
+      "starter": "import pandas as pd\n\ninv = pd.DataFrame({\"Issued\": pd.to_datetime([\"2025-01-31\", \"2025-03-15\", \"2024-12-31\"])})\n# build Due, Cutoff, Weekday, then print\n",
+      "solution": "import pandas as pd\n\ninv = pd.DataFrame({\"Issued\": pd.to_datetime([\"2025-01-31\", \"2025-03-15\", \"2024-12-31\"])})\ndue = inv[\"Issued\"] + pd.DateOffset(months=1)\ninv[\"Due\"] = due\ninv[\"Cutoff\"] = inv[\"Issued\"] + pd.DateOffset(months=1) + pd.offsets.MonthEnd(0)\ninv[\"Weekday\"] = due.dt.dayofweek + 1\nfor c in [\"Issued\", \"Due\", \"Cutoff\"]:\n    inv[c] = inv[c].dt.strftime(\"%Y-%m-%d\")\nprint(inv[[\"Issued\", \"Due\", \"Cutoff\", \"Weekday\"]].to_string(index=False))\n",
+      "expected": "    Issued        Due     Cutoff  Weekday\n2025-01-31 2025-02-28 2025-02-28        5\n2025-03-15 2025-04-15 2025-04-30        2\n2024-12-31 2025-01-31 2025-01-31        5"
+    },
+    {
+      "id": "i3",
+      "title": "Quarter and month labels (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A Table has a real date column `OrderDate`. Write Excel formulas for three new columns: `MonthStart` (first day of the month as a date), `Quarter` (text like `Q2 2025`) and `MonthLabel` (text like `Mar 2025`). Explain which one you would use as the axis of a chart or PivotTable, and why the text label alone is a poor choice for sorting.",
+      "starter": "Formulas and explanation: ...",
+      "solution": "`MonthStart`: `=DATE(YEAR([@OrderDate]),MONTH([@OrderDate]),1)`, formatted as a date. `Quarter`: `=\"Q\"&ROUNDUP(MONTH([@OrderDate])/3,0)&\" \"&YEAR([@OrderDate])`. `MonthLabel`: `=TEXT([@OrderDate],\"mmm yyyy\")`. The `MonthStart` date is the best axis: it is a real date, so it sorts in time order and can be formatted as `mmm yyyy` for display. A text label such as `Mar 2025` sorts alphabetically (Apr before Mar), so grouping and charts built on it come out in the wrong order unless a numeric helper column is also kept.",
+      "rubric": [
+        "MonthStart is built with DATE, YEAR, MONTH and day 1.",
+        "Quarter is built from MONTH divided by 3 rounded up, joined with &.",
+        "MonthLabel uses TEXT with a month-year code.",
+        "The answer says text labels sort alphabetically and the real date should be kept for ordering."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Formulas need Excel 2016 or later; TEXTJOIN needs Excel 2019 or Microsoft 365 (or LibreOffice Calc 5.2+). TEXT format codes follow the language of your Excel (for example, other languages may use different letters for year and day). The graded exercises use pandas, which runs in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A2 holds `DF-2024-0137`. What does `=MID(A2,4,4)` return?",
+      "options": [
+        "F-20",
+        "2024 (text)",
+        "-202",
+        "2024 (number)"
+      ],
+      "answer": 1,
+      "explanation": "Excel counts from 1, so characters 4 to 7 are 2024. MID returns text, not a number, even though it looks numeric; VALUE or -- converts it. Starting from 0 would give the wrong slice."
+    },
+    {
+      "id": "c2",
+      "question": "What does `=TRIM(\"  a   b  \")` return?",
+      "options": [
+        "\"a   b\"",
+        "\"a b\"",
+        "\"ab\"",
+        "\"  a b\""
+      ],
+      "answer": 1,
+      "explanation": "TRIM removes spaces at both ends and reduces runs of spaces inside to a single space. Python's strip() would give the first option, which is the common wrong answer."
+    },
+    {
+      "id": "c3",
+      "question": "B2 contains the date 2025-01-31. What does `=EDATE(B2,1)` return?",
+      "options": [
+        "2025-02-28",
+        "2025-03-03",
+        "2025-03-02",
+        "#NUM!"
+      ],
+      "answer": 0,
+      "explanation": "EDATE keeps the day number when possible and otherwise uses the last day of the shorter month, so 31 January plus one month is 28 February. Adding 31 days would give 3 March."
+    },
+    {
+      "id": "c4",
+      "question": "Why does a month column built with `TEXT(date,\"mmm\")` sort as Apr, Aug, Dec, Feb ...?",
+      "options": [
+        "TEXT rounds the dates",
+        "TEXT returns text, which sorts alphabetically",
+        "Excel sorts months wrongly",
+        "The date format is missing"
+      ],
+      "answer": 1,
+      "explanation": "TEXT returns text, so the sort is alphabetical. The underlying date or month number must be kept for order. The other options blame the data or Excel when the cause is the text type."
+    },
+    {
+      "id": "c5",
+      "question": "A cell shows 45688 instead of a date. What is the likely cause?",
+      "options": [
+        "The cell holds an error",
+        "The cell holds a date serial number with General format",
+        "The date is text",
+        "The date is before 1900"
+      ],
+      "answer": 1,
+      "explanation": "Dates are stored as serial numbers; with General format the number is displayed. Changing the format to a date format shows 2025-01-31. If it were text it would be left-aligned and could not be formatted."
+    }
+  ]
+}

@@ -1,0 +1,5306 @@
+{
+ "version": 1,
+ "programme": {
+  "title": "DataForge Daily Learning",
+  "totalDays": 180,
+  "commonDays": 90,
+  "branchStartDay": 91,
+  "defaultDailyMinutes": 130
+ },
+ "paths": [
+  {
+   "id": "analyst",
+   "title": "Data Analyst",
+   "summary": "SQL, Excel, Pandas, statistics, EDA, visualisation, Power BI, business analytics and reporting."
+  },
+  {
+   "id": "engineer",
+   "title": "Data Engineer",
+   "summary": "Python, SQL, APIs, ETL, PostgreSQL, data quality, data warehousing, Airflow and Spark."
+  }
+ ],
+ "phases": [
+  {
+   "id": "python-fundamentals",
+   "title": "Python fundamentals",
+   "path": "common",
+   "summary": "Write and run small programs: values, control flow, collections and functions.",
+   "firstDay": 1,
+   "lastDay": 15,
+   "resources": {
+    "notes": [
+     "python-fundamentals",
+     "python-variables-data-types",
+     "python-collections",
+     "python-conditionals",
+     "python-loops",
+     "python-functions"
+    ],
+    "mindmaps": [
+     "python-track"
+    ]
+   }
+  },
+  {
+   "id": "python-intermediate",
+   "title": "Intermediate Python and tools",
+   "path": "common",
+   "summary": "Write reusable, robust programs and work from the command line with Git.",
+   "firstDay": 16,
+   "lastDay": 30,
+   "resources": {
+    "notes": [
+     "python-functions",
+     "python-lambdas",
+     "python-comprehensions",
+     "python-file-handling",
+     "python-csv-json",
+     "python-exceptions",
+     "python-logging",
+     "python-modules-packages",
+     "python-oop",
+     "python-regex",
+     "python-virtual-environments"
+    ],
+    "mindmaps": [
+     "python-track"
+    ]
+   }
+  },
+  {
+   "id": "sql-fundamentals",
+   "title": "SQL fundamentals",
+   "path": "common",
+   "summary": "Query a relational database with SELECT, filters, joins and subqueries, and change data safely.",
+   "firstDay": 31,
+   "lastDay": 45,
+   "resources": {
+    "notes": [
+     "intro-to-sql",
+     "select",
+     "where",
+     "order-by",
+     "null-handling",
+     "case"
+    ],
+    "mindmaps": [
+     "sql-roadmap",
+     "postgresql-fundamentals",
+     "joins",
+     "aggregation"
+    ]
+   }
+  },
+  {
+   "id": "sql-advanced",
+   "title": "Advanced SQL, optimisation and analytics",
+   "path": "common",
+   "summary": "Use CTEs, window functions and set operators for analysis, then read plans and optimise queries.",
+   "firstDay": 46,
+   "lastDay": 60,
+   "resources": {
+    "notes": [
+     "intro-to-sql"
+    ],
+    "mindmaps": [
+     "window-functions",
+     "subqueries-ctes",
+     "indexing-optimization",
+     "interview-patterns",
+     "set-operators"
+    ]
+   }
+  },
+  {
+   "id": "python-testing",
+   "title": "Python testing with pytest",
+   "path": "common",
+   "summary": "Write automated tests so changes to code are safe.",
+   "firstDay": 61,
+   "lastDay": 62,
+   "resources": {
+    "notes": [
+     "python-functions",
+     "python-exceptions"
+    ]
+   }
+  },
+  {
+   "id": "numpy",
+   "title": "NumPy",
+   "path": "common",
+   "summary": "Compute on arrays in bulk: the foundation for pandas.",
+   "firstDay": 63,
+   "lastDay": 67,
+   "resources": {
+    "notes": [
+     "python-numpy"
+    ]
+   }
+  },
+  {
+   "id": "pandas",
+   "title": "Pandas",
+   "path": "common",
+   "summary": "Load, clean, reshape and summarise tabular data in Python.",
+   "firstDay": 68,
+   "lastDay": 85,
+   "resources": {
+    "notes": [
+     "python-pandas",
+     "python-csv-json"
+    ],
+    "projects": [
+     "python-data-cleaning"
+    ]
+   }
+  },
+  {
+   "id": "statistics-foundations",
+   "title": "Statistics foundations",
+   "path": "common",
+   "summary": "Core statistics every analyst and engineer needs, then choose your path.",
+   "firstDay": 86,
+   "lastDay": 90,
+   "resources": {
+    "mindmaps": []
+   }
+  },
+  {
+   "id": "excel",
+   "title": "Excel for analysis",
+   "path": "analyst",
+   "summary": "Analyse and report in Excel: formulas, lookups, PivotTables and Power Query.",
+   "firstDay": 91,
+   "lastDay": 100,
+   "resources": {}
+  },
+  {
+   "id": "analyst-statistics",
+   "title": "Statistics for analysts",
+   "path": "analyst",
+   "summary": "Relationships, tests and experiments.",
+   "firstDay": 101,
+   "lastDay": 105,
+   "resources": {}
+  },
+  {
+   "id": "eda",
+   "title": "Exploratory data analysis",
+   "path": "analyst",
+   "summary": "Systematically explore a new dataset and communicate findings.",
+   "firstDay": 106,
+   "lastDay": 113,
+   "resources": {
+    "notes": [
+     "python-pandas"
+    ]
+   }
+  },
+  {
+   "id": "visualisation",
+   "title": "Data visualisation",
+   "path": "analyst",
+   "summary": "Choose and build clear charts with Matplotlib, Seaborn and Plotly.",
+   "firstDay": 114,
+   "lastDay": 123,
+   "resources": {}
+  },
+  {
+   "id": "power-bi",
+   "title": "Power BI",
+   "path": "analyst",
+   "summary": "Build a data model, write DAX and publish an interactive dashboard.",
+   "firstDay": 124,
+   "lastDay": 137,
+   "resources": {}
+  },
+  {
+   "id": "storytelling",
+   "title": "Data storytelling and dashboard design",
+   "path": "analyst",
+   "summary": "Turn analysis into decisions people act on.",
+   "firstDay": 138,
+   "lastDay": 142,
+   "resources": {}
+  },
+  {
+   "id": "business-analytics",
+   "title": "Business analytics",
+   "path": "analyst",
+   "summary": "Apply analysis to realistic business problems.",
+   "firstDay": 143,
+   "lastDay": 156,
+   "resources": {
+    "mindmaps": [
+     "interview-patterns"
+    ]
+   }
+  },
+  {
+   "id": "analyst-data-prep",
+   "title": "SQL, Python and data preparation for analysts",
+   "path": "analyst",
+   "summary": "Combine SQL and Python, load data into PostgreSQL and check it.",
+   "firstDay": 157,
+   "lastDay": 166,
+   "resources": {
+    "notes": [
+     "python-database-connectivity",
+     "python-api-integration"
+    ],
+    "projects": [
+     "csv-to-postgres-etl"
+    ]
+   }
+  },
+  {
+   "id": "analyst-interview",
+   "title": "Interview preparation: analyst",
+   "path": "analyst",
+   "summary": "Practise the question types analyst interviews use.",
+   "firstDay": 167,
+   "lastDay": 171,
+   "resources": {
+    "mindmaps": [
+     "interview-patterns"
+    ]
+   }
+  },
+  {
+   "id": "analyst-capstone",
+   "title": "Capstone: analytics project",
+   "path": "analyst",
+   "summary": "Deliver one complete analytics project from raw data to a presentation.",
+   "firstDay": 172,
+   "lastDay": 180,
+   "resources": {
+    "projects": [
+     "sales-analytics-pipeline",
+     "end-to-end-pipeline"
+    ]
+   }
+  },
+  {
+   "id": "ingestion-csv-excel",
+   "title": "Python and PostgreSQL: CSV and Excel ingestion",
+   "path": "engineer",
+   "summary": "Load files into PostgreSQL reliably.",
+   "firstDay": 91,
+   "lastDay": 100,
+   "resources": {
+    "notes": [
+     "python-database-connectivity",
+     "python-csv-json"
+    ],
+    "projects": [
+     "csv-to-postgres-etl"
+    ]
+   }
+  },
+  {
+   "id": "rest-api",
+   "title": "REST APIs to PostgreSQL",
+   "path": "engineer",
+   "summary": "Build a pipeline from an HTTP API into PostgreSQL.",
+   "firstDay": 101,
+   "lastDay": 113,
+   "resources": {
+    "notes": [
+     "python-api-integration"
+    ],
+    "projects": [
+     "rest-api-to-postgres"
+    ]
+   }
+  },
+  {
+   "id": "sql-python-eng",
+   "title": "SQL and Python combined analytics",
+   "path": "engineer",
+   "summary": "Use SQL and Python together in pipelines and reports.",
+   "firstDay": 114,
+   "lastDay": 119,
+   "resources": {
+    "notes": [
+     "python-database-connectivity"
+    ]
+   }
+  },
+  {
+   "id": "etl",
+   "title": "ETL and incremental loading",
+   "path": "engineer",
+   "summary": "Design batch pipelines that can be re-run safely.",
+   "firstDay": 120,
+   "lastDay": 131,
+   "resources": {
+    "notes": [
+     "etl-architecture",
+     "elt-architecture",
+     "etl-batch-processing",
+     "etl-full-load",
+     "etl-incremental-load",
+     "etl-idempotency",
+     "etl-change-data-capture",
+     "etl-error-handling",
+     "etl-retries",
+     "etl-pipeline-monitoring"
+    ],
+    "projects": [
+     "incremental-loading"
+    ],
+    "mindmaps": [
+     "etl-track"
+    ]
+   }
+  },
+  {
+   "id": "data-quality",
+   "title": "Data quality and validation",
+   "path": "engineer",
+   "summary": "Prove that data is correct before others use it.",
+   "firstDay": 132,
+   "lastDay": 141,
+   "resources": {
+    "notes": [
+     "etl-data-validation"
+    ],
+    "projects": [
+     "data-validation-pipeline"
+    ]
+   }
+  },
+  {
+   "id": "warehousing",
+   "title": "Databases and data warehousing",
+   "path": "engineer",
+   "summary": "Model data for analytics and build a warehouse in PostgreSQL.",
+   "firstDay": 142,
+   "lastDay": 152,
+   "resources": {
+    "notes": [],
+    "projects": [
+     "star-schema-warehouse",
+     "hr-analytics-warehouse"
+    ],
+    "mindmaps": [
+     "warehousing-track"
+    ]
+   }
+  },
+  {
+   "id": "linux-tools",
+   "title": "Linux, containers and practical tools",
+   "path": "engineer",
+   "summary": "Run pipelines from the command line and package them.",
+   "firstDay": 153,
+   "lastDay": 156,
+   "resources": {}
+  },
+  {
+   "id": "airflow",
+   "title": "Airflow orchestration",
+   "path": "engineer",
+   "summary": "Schedule and monitor pipelines with Airflow.",
+   "firstDay": 157,
+   "lastDay": 162,
+   "resources": {
+    "notes": [],
+    "projects": [
+     "airflow-etl-pipeline"
+    ],
+    "mindmaps": [
+     "airflow-track"
+    ]
+   }
+  },
+  {
+   "id": "spark",
+   "title": "Spark and PySpark",
+   "path": "engineer",
+   "summary": "Process larger data with Spark.",
+   "firstDay": 163,
+   "lastDay": 168,
+   "resources": {
+    "notes": [],
+    "projects": [
+     "pyspark-transformation"
+    ],
+    "mindmaps": [
+     "spark-track"
+    ]
+   }
+  },
+  {
+   "id": "engineer-interview",
+   "title": "Interview preparation: engineer",
+   "path": "engineer",
+   "summary": "Practise the question types data engineering interviews use.",
+   "firstDay": 169,
+   "lastDay": 172,
+   "resources": {
+    "mindmaps": [
+     "interview-patterns"
+    ]
+   }
+  },
+  {
+   "id": "engineer-capstone",
+   "title": "Capstone: end-to-end data pipeline",
+   "path": "engineer",
+   "summary": "Deliver a complete pipeline from source to analytics.",
+   "firstDay": 173,
+   "lastDay": 180,
+   "resources": {
+    "projects": [
+     "end-to-end-pipeline",
+     "airflow-etl-pipeline"
+    ]
+   }
+  }
+ ],
+ "days": [
+  {
+   "id": "d001",
+   "day": 1,
+   "title": "Install Python, the REPL and your first script",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "python command",
+    "REPL vs script",
+    "print()",
+    "comments"
+   ],
+   "prerequisites": []
+  },
+  {
+   "id": "d002",
+   "day": 2,
+   "title": "Variables and data types",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "names and assignment",
+    "int, float, str, bool, None",
+    "type()",
+    "type conversion"
+   ],
+   "prerequisites": [
+    "d001"
+   ]
+  },
+  {
+   "id": "d003",
+   "day": 3,
+   "title": "Numbers and operators",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "arithmetic",
+    "floor division and modulo",
+    "operator precedence",
+    "round()",
+    "math module"
+   ],
+   "prerequisites": [
+    "d002"
+   ]
+  },
+  {
+   "id": "d004",
+   "day": 4,
+   "title": "Strings",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "indexing and slicing",
+    "immutability",
+    "common methods",
+    "in",
+    "escape sequences"
+   ],
+   "prerequisites": [
+    "d003"
+   ]
+  },
+  {
+   "id": "d005",
+   "day": 5,
+   "title": "String formatting, input and output",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "f-strings",
+    "format specs",
+    "input()",
+    "print() options"
+   ],
+   "prerequisites": [
+    "d004"
+   ]
+  },
+  {
+   "id": "d006",
+   "day": 6,
+   "title": "Booleans and comparisons",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "comparison operators",
+    "and, or, not",
+    "truthiness",
+    "chained comparisons"
+   ],
+   "prerequisites": [
+    "d005"
+   ]
+  },
+  {
+   "id": "d007",
+   "day": 7,
+   "title": "Conditional statements",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "if/elif/else",
+    "nested conditions",
+    "conditional expressions",
+    "guard clauses"
+   ],
+   "prerequisites": [
+    "d006"
+   ]
+  },
+  {
+   "id": "d008",
+   "day": 8,
+   "title": "Lists",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "creating and indexing",
+    "append, insert, remove, pop",
+    "slicing",
+    "sorting",
+    "copying"
+   ],
+   "prerequisites": [
+    "d007"
+   ]
+  },
+  {
+   "id": "d009",
+   "day": 9,
+   "title": "Tuples and sets",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "tuples and unpacking",
+    "sets",
+    "set operations",
+    "membership",
+    "deduplication"
+   ],
+   "prerequisites": [
+    "d008"
+   ]
+  },
+  {
+   "id": "d010",
+   "day": 10,
+   "title": "Dictionaries",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "key-value pairs",
+    "get()",
+    "items()",
+    "update",
+    "nested dictionaries",
+    "counting"
+   ],
+   "prerequisites": [
+    "d009"
+   ]
+  },
+  {
+   "id": "d011",
+   "day": 11,
+   "title": "for loops and range",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "iterating sequences",
+    "range()",
+    "enumerate()",
+    "zip()",
+    "accumulators"
+   ],
+   "prerequisites": [
+    "d010"
+   ]
+  },
+  {
+   "id": "d012",
+   "day": 12,
+   "title": "while loops, break and continue",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "while conditions",
+    "sentinel loops",
+    "break and continue",
+    "avoiding infinite loops"
+   ],
+   "prerequisites": [
+    "d011"
+   ]
+  },
+  {
+   "id": "d013",
+   "day": 13,
+   "title": "Nested loops and loop patterns",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "nested loops",
+    "search patterns",
+    "filtering",
+    "building results"
+   ],
+   "prerequisites": [
+    "d012"
+   ]
+  },
+  {
+   "id": "d014",
+   "day": 14,
+   "title": "Functions: parameters and return values",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "def",
+    "parameters and arguments",
+    "return",
+    "docstrings",
+    "calling functions"
+   ],
+   "prerequisites": [
+    "d013"
+   ]
+  },
+  {
+   "id": "d015",
+   "day": 15,
+   "title": "Checkpoint project: expense summariser",
+   "phase": "python-fundamentals",
+   "path": "common",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "combining lists, dicts, loops and functions",
+    "designing small programs",
+    "testing by hand"
+   ],
+   "prerequisites": [
+    "d014"
+   ]
+  },
+  {
+   "id": "d016",
+   "day": 16,
+   "title": "Scope, default and keyword arguments, *args and **kwargs",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "local and global scope",
+    "defaults",
+    "keyword arguments",
+    "*args",
+    "**kwargs"
+   ],
+   "prerequisites": [
+    "d014",
+    "d015"
+   ]
+  },
+  {
+   "id": "d017",
+   "day": 17,
+   "title": "Lambda, map, filter and sorted",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "lambda",
+    "map()",
+    "filter()",
+    "sorted(key=)",
+    "functional style"
+   ],
+   "prerequisites": [
+    "d016"
+   ]
+  },
+  {
+   "id": "d018",
+   "day": 18,
+   "title": "Comprehensions",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "list comprehensions",
+    "dict and set comprehensions",
+    "conditions",
+    "when not to use them"
+   ],
+   "prerequisites": [
+    "d017"
+   ]
+  },
+  {
+   "id": "d019",
+   "day": 19,
+   "title": "File handling",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "open()",
+    "context managers",
+    "reading and writing text",
+    "pathlib",
+    "encodings"
+   ],
+   "prerequisites": [
+    "d018"
+   ]
+  },
+  {
+   "id": "d020",
+   "day": 20,
+   "title": "CSV and JSON",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "csv module",
+    "DictReader and DictWriter",
+    "json load and dump",
+    "nested data"
+   ],
+   "prerequisites": [
+    "d019"
+   ]
+  },
+  {
+   "id": "d021",
+   "day": 21,
+   "title": "Exceptions and logging",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "try/except/else/finally",
+    "raising",
+    "custom exceptions",
+    "logging module"
+   ],
+   "prerequisites": [
+    "d020"
+   ]
+  },
+  {
+   "id": "d022",
+   "day": 22,
+   "title": "Modules, packages, venv and pip",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "import",
+    "standard library",
+    "creating a module",
+    "virtual environments",
+    "pip and requirements.txt"
+   ],
+   "prerequisites": [
+    "d021"
+   ]
+  },
+  {
+   "id": "d023",
+   "day": 23,
+   "title": "Dates and times",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "datetime",
+    "timedelta",
+    "parsing and formatting",
+    "time zones",
+    "common pitfalls"
+   ],
+   "prerequisites": [
+    "d022"
+   ]
+  },
+  {
+   "id": "d024",
+   "day": 24,
+   "title": "Object-oriented programming 1: classes and objects",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "classes",
+    "__init__",
+    "attributes and methods",
+    "self",
+    "encapsulation"
+   ],
+   "prerequisites": [
+    "d023"
+   ]
+  },
+  {
+   "id": "d025",
+   "day": 25,
+   "title": "Object-oriented programming 2: inheritance and dataclasses",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "inheritance",
+    "super()",
+    "dunder methods",
+    "dataclasses",
+    "composition"
+   ],
+   "prerequisites": [
+    "d024"
+   ]
+  },
+  {
+   "id": "d026",
+   "day": 26,
+   "title": "Iterators and generators",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "iterator protocol",
+    "yield",
+    "generator expressions",
+    "lazy processing",
+    "itertools"
+   ],
+   "prerequisites": [
+    "d025"
+   ]
+  },
+  {
+   "id": "d027",
+   "day": 27,
+   "title": "Decorators and context managers",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "functions as values",
+    "decorators",
+    "functools.wraps",
+    "with statements",
+    "contextlib"
+   ],
+   "prerequisites": [
+    "d026"
+   ]
+  },
+  {
+   "id": "d028",
+   "day": 28,
+   "title": "Regular expressions and text cleaning",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "re module",
+    "patterns and groups",
+    "search, findall, sub",
+    "cleaning text"
+   ],
+   "prerequisites": [
+    "d027"
+   ]
+  },
+  {
+   "id": "d029",
+   "day": 29,
+   "title": "Linux command line",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "navigation",
+    "files and permissions",
+    "pipes and redirection",
+    "grep, sort, cut",
+    "shell basics"
+   ],
+   "prerequisites": [
+    "d028"
+   ]
+  },
+  {
+   "id": "d030",
+   "day": 30,
+   "title": "Git and GitHub",
+   "phase": "python-intermediate",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "commits",
+    "branches",
+    "merging",
+    "remotes",
+    "pull requests",
+    ".gitignore"
+   ],
+   "prerequisites": [
+    "d029"
+   ]
+  },
+  {
+   "id": "d031",
+   "day": 31,
+   "title": "Relational model, PostgreSQL and the Northwind database",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "tables, rows, keys",
+    "relationships",
+    "PostgreSQL",
+    "reading a schema"
+   ],
+   "prerequisites": [
+    "d030"
+   ]
+  },
+  {
+   "id": "d032",
+   "day": 32,
+   "title": "SELECT, aliases and expressions",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "SELECT lists",
+    "column aliases",
+    "expressions",
+    "literals",
+    "casting"
+   ],
+   "prerequisites": [
+    "d031"
+   ]
+  },
+  {
+   "id": "d033",
+   "day": 33,
+   "title": "WHERE, LIKE, IN and BETWEEN",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "comparison operators",
+    "AND/OR/NOT",
+    "LIKE and ILIKE",
+    "IN",
+    "BETWEEN"
+   ],
+   "prerequisites": [
+    "d032"
+   ]
+  },
+  {
+   "id": "d034",
+   "day": 34,
+   "title": "ORDER BY, LIMIT and DISTINCT",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "sorting",
+    "multi-column sorts",
+    "LIMIT and OFFSET",
+    "DISTINCT",
+    "NULL ordering"
+   ],
+   "prerequisites": [
+    "d033"
+   ]
+  },
+  {
+   "id": "d035",
+   "day": 35,
+   "title": "NULL handling",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "three-valued logic",
+    "IS NULL",
+    "COALESCE",
+    "NULLIF",
+    "NULL in aggregates"
+   ],
+   "prerequisites": [
+    "d034"
+   ]
+  },
+  {
+   "id": "d036",
+   "day": 36,
+   "title": "Aggregate functions",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "COUNT, SUM, AVG, MIN, MAX",
+    "COUNT(*) vs COUNT(col)",
+    "DISTINCT inside aggregates"
+   ],
+   "prerequisites": [
+    "d035"
+   ]
+  },
+  {
+   "id": "d037",
+   "day": 37,
+   "title": "GROUP BY and HAVING",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "grouping",
+    "multiple grouping columns",
+    "HAVING vs WHERE",
+    "execution order"
+   ],
+   "prerequisites": [
+    "d036"
+   ]
+  },
+  {
+   "id": "d038",
+   "day": 38,
+   "title": "CASE, string and numeric functions",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "CASE expressions",
+    "string functions",
+    "numeric functions",
+    "conditional aggregation"
+   ],
+   "prerequisites": [
+    "d037"
+   ]
+  },
+  {
+   "id": "d039",
+   "day": 39,
+   "title": "Date and time functions",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "date types",
+    "EXTRACT",
+    "date_trunc",
+    "intervals",
+    "date arithmetic"
+   ],
+   "prerequisites": [
+    "d038"
+   ]
+  },
+  {
+   "id": "d040",
+   "day": 40,
+   "title": "INNER JOIN",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "join conditions",
+    "table aliases",
+    "joining on keys",
+    "row multiplication"
+   ],
+   "prerequisites": [
+    "d039"
+   ]
+  },
+  {
+   "id": "d041",
+   "day": 41,
+   "title": "LEFT, RIGHT and FULL joins",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "outer joins",
+    "unmatched rows",
+    "filtering outer joins",
+    "anti-join with IS NULL"
+   ],
+   "prerequisites": [
+    "d040"
+   ]
+  },
+  {
+   "id": "d042",
+   "day": 42,
+   "title": "Self joins, cross joins and multi-table joins",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "self joins",
+    "CROSS JOIN",
+    "joining three or more tables",
+    "join order"
+   ],
+   "prerequisites": [
+    "d041"
+   ]
+  },
+  {
+   "id": "d043",
+   "day": 43,
+   "title": "Subqueries",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "scalar subqueries",
+    "IN subqueries",
+    "correlated subqueries",
+    "subqueries in FROM"
+   ],
+   "prerequisites": [
+    "d042"
+   ]
+  },
+  {
+   "id": "d044",
+   "day": 44,
+   "title": "INSERT, UPDATE and DELETE",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "INSERT forms",
+    "UPDATE with WHERE",
+    "DELETE",
+    "RETURNING",
+    "safe practice"
+   ],
+   "prerequisites": [
+    "d043"
+   ]
+  },
+  {
+   "id": "d045",
+   "day": 45,
+   "title": "DDL, data types and constraints",
+   "phase": "sql-fundamentals",
+   "path": "common",
+   "kind": "checkpoint",
+   "minutes": 140,
+   "topics": [
+    "CREATE TABLE",
+    "data types",
+    "primary and foreign keys",
+    "constraints",
+    "fundamentals checkpoint"
+   ],
+   "prerequisites": [
+    "d044"
+   ]
+  },
+  {
+   "id": "d046",
+   "day": 46,
+   "title": "Common table expressions (CTEs)",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "WITH",
+    "naming steps",
+    "multiple CTEs",
+    "CTE vs subquery",
+    "readability"
+   ],
+   "prerequisites": [
+    "d045"
+   ]
+  },
+  {
+   "id": "d047",
+   "day": 47,
+   "title": "Set operators",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "UNION and UNION ALL",
+    "INTERSECT",
+    "EXCEPT",
+    "column compatibility"
+   ],
+   "prerequisites": [
+    "d046"
+   ]
+  },
+  {
+   "id": "d048",
+   "day": 48,
+   "title": "EXISTS, NOT EXISTS and anti-joins",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "EXISTS",
+    "NOT EXISTS",
+    "NOT IN pitfalls with NULL",
+    "semi- and anti-joins"
+   ],
+   "prerequisites": [
+    "d047"
+   ]
+  },
+  {
+   "id": "d049",
+   "day": 49,
+   "title": "Window functions 1: OVER and PARTITION BY",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "window concept",
+    "PARTITION BY",
+    "windowed aggregates",
+    "vs GROUP BY"
+   ],
+   "prerequisites": [
+    "d048"
+   ]
+  },
+  {
+   "id": "d050",
+   "day": 50,
+   "title": "Ranking and top N per group",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "ROW_NUMBER",
+    "RANK",
+    "DENSE_RANK",
+    "top N per group"
+   ],
+   "prerequisites": [
+    "d049"
+   ]
+  },
+  {
+   "id": "d051",
+   "day": 51,
+   "title": "LAG and LEAD",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "previous and next rows",
+    "period-over-period change",
+    "defaults"
+   ],
+   "prerequisites": [
+    "d050"
+   ]
+  },
+  {
+   "id": "d052",
+   "day": 52,
+   "title": "Running totals and window frames",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "cumulative sums",
+    "moving averages",
+    "ROWS vs RANGE",
+    "frame clauses"
+   ],
+   "prerequisites": [
+    "d051"
+   ]
+  },
+  {
+   "id": "d053",
+   "day": 53,
+   "title": "NTILE, FIRST_VALUE and percentiles",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "NTILE",
+    "FIRST_VALUE and LAST_VALUE",
+    "percentile_cont",
+    "distribution analysis"
+   ],
+   "prerequisites": [
+    "d052"
+   ]
+  },
+  {
+   "id": "d054",
+   "day": 54,
+   "title": "Recursive CTEs",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "anchor and recursive members",
+    "hierarchies",
+    "series generation",
+    "termination"
+   ],
+   "prerequisites": [
+    "d053"
+   ]
+  },
+  {
+   "id": "d055",
+   "day": 55,
+   "title": "Deduplication and gaps and islands",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "finding duplicates",
+    "keeping the latest row",
+    "consecutive groups",
+    "sequence gaps"
+   ],
+   "prerequisites": [
+    "d054"
+   ]
+  },
+  {
+   "id": "d056",
+   "day": 56,
+   "title": "Cohort, retention and funnel SQL",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "cohort definition",
+    "retention tables",
+    "funnel steps",
+    "conversion rates"
+   ],
+   "prerequisites": [
+    "d055"
+   ]
+  },
+  {
+   "id": "d057",
+   "day": 57,
+   "title": "Indexes",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "B-tree indexes",
+    "composite indexes",
+    "selectivity",
+    "when indexes help",
+    "write cost"
+   ],
+   "prerequisites": [
+    "d056"
+   ]
+  },
+  {
+   "id": "d058",
+   "day": 58,
+   "title": "Execution plans with EXPLAIN",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "EXPLAIN and EXPLAIN ANALYZE",
+    "scan types",
+    "join algorithms",
+    "reading cost and rows"
+   ],
+   "prerequisites": [
+    "d057"
+   ]
+  },
+  {
+   "id": "d059",
+   "day": 59,
+   "title": "SQL query optimisation",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "sargable predicates",
+    "avoiding SELECT *",
+    "rewriting subqueries",
+    "join and filter order",
+    "measuring changes"
+   ],
+   "prerequisites": [
+    "d058"
+   ]
+  },
+  {
+   "id": "d060",
+   "day": 60,
+   "title": "Transactions, views and SQL checkpoint",
+   "phase": "sql-advanced",
+   "path": "common",
+   "kind": "checkpoint",
+   "minutes": 140,
+   "topics": [
+    "ACID",
+    "BEGIN, COMMIT, ROLLBACK",
+    "views and materialised views",
+    "timed SQL checkpoint"
+   ],
+   "prerequisites": [
+    "d059"
+   ]
+  },
+  {
+   "id": "d061",
+   "day": 61,
+   "title": "Testing Python with pytest",
+   "phase": "python-testing",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "assert",
+    "test discovery",
+    "running pytest",
+    "arrange-act-assert",
+    "testing exceptions"
+   ],
+   "prerequisites": [
+    "d021",
+    "d060"
+   ]
+  },
+  {
+   "id": "d062",
+   "day": 62,
+   "title": "pytest fixtures, parametrisation and test design",
+   "phase": "python-testing",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "fixtures",
+    "parametrize",
+    "tmp_path",
+    "mocking basics",
+    "what to test"
+   ],
+   "prerequisites": [
+    "d061"
+   ]
+  },
+  {
+   "id": "d063",
+   "day": 63,
+   "title": "ndarray basics",
+   "phase": "numpy",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "creating arrays",
+    "dtype",
+    "shape and ndim",
+    "arange and linspace"
+   ],
+   "prerequisites": [
+    "d018",
+    "d062"
+   ]
+  },
+  {
+   "id": "d064",
+   "day": 64,
+   "title": "Indexing, slicing and boolean masks",
+   "phase": "numpy",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "integer and slice indexing",
+    "boolean masks",
+    "fancy indexing",
+    "views vs copies"
+   ],
+   "prerequisites": [
+    "d063"
+   ]
+  },
+  {
+   "id": "d065",
+   "day": 65,
+   "title": "Vectorisation and broadcasting",
+   "phase": "numpy",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "element-wise operations",
+    "broadcasting rules",
+    "universal functions",
+    "avoiding loops"
+   ],
+   "prerequisites": [
+    "d064"
+   ]
+  },
+  {
+   "id": "d066",
+   "day": 66,
+   "title": "Aggregation and axes",
+   "phase": "numpy",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "sum, mean, std",
+    "axis argument",
+    "cumulative functions",
+    "argmax"
+   ],
+   "prerequisites": [
+    "d065"
+   ]
+  },
+  {
+   "id": "d067",
+   "day": 67,
+   "title": "NumPy mini-project: sensor readings analysis",
+   "phase": "numpy",
+   "path": "common",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "cleaning arrays",
+    "masks",
+    "normalisation",
+    "summary statistics"
+   ],
+   "prerequisites": [
+    "d066"
+   ]
+  },
+  {
+   "id": "d068",
+   "day": 68,
+   "title": "Series and DataFrame",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "constructing",
+    "index",
+    "columns",
+    "basic attributes"
+   ],
+   "prerequisites": [
+    "d067"
+   ]
+  },
+  {
+   "id": "d069",
+   "day": 69,
+   "title": "Reading and writing CSV, Excel and JSON",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "read_csv options",
+    "to_csv",
+    "Excel and JSON",
+    "dtype and parse_dates"
+   ],
+   "prerequisites": [
+    "d068"
+   ]
+  },
+  {
+   "id": "d070",
+   "day": 70,
+   "title": "Inspecting data",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "head, info, describe",
+    "value_counts",
+    "shape",
+    "spotting problems"
+   ],
+   "prerequisites": [
+    "d069"
+   ]
+  },
+  {
+   "id": "d071",
+   "day": 71,
+   "title": "Selecting with loc and iloc",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "label and position selection",
+    "selecting rows and columns",
+    "setting values"
+   ],
+   "prerequisites": [
+    "d070"
+   ]
+  },
+  {
+   "id": "d072",
+   "day": 72,
+   "title": "Boolean filtering and query",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "masks",
+    "combining conditions",
+    "isin",
+    "between",
+    "query()"
+   ],
+   "prerequisites": [
+    "d071"
+   ]
+  },
+  {
+   "id": "d073",
+   "day": 73,
+   "title": "Sorting, new columns and assign",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "sort_values",
+    "derived columns",
+    "assign",
+    "rename",
+    "drop"
+   ],
+   "prerequisites": [
+    "d072"
+   ]
+  },
+  {
+   "id": "d074",
+   "day": 74,
+   "title": "Missing values",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "isna",
+    "dropna",
+    "fillna",
+    "interpolation",
+    "missing-value strategy"
+   ],
+   "prerequisites": [
+    "d073"
+   ]
+  },
+  {
+   "id": "d075",
+   "day": 75,
+   "title": "Duplicates and dtype conversion",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "duplicated",
+    "drop_duplicates",
+    "astype",
+    "to_numeric",
+    "categorical dtype"
+   ],
+   "prerequisites": [
+    "d074"
+   ]
+  },
+  {
+   "id": "d076",
+   "day": 76,
+   "title": "String methods",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    ".str accessor",
+    "split and extract",
+    "replace",
+    "cleaning text columns"
+   ],
+   "prerequisites": [
+    "d075"
+   ]
+  },
+  {
+   "id": "d077",
+   "day": 77,
+   "title": "Datetime handling",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "to_datetime",
+    ".dt accessor",
+    "resampling",
+    "time deltas"
+   ],
+   "prerequisites": [
+    "d076"
+   ]
+  },
+  {
+   "id": "d078",
+   "day": 78,
+   "title": "apply, map and vectorisation",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "map",
+    "apply",
+    "vectorised alternatives",
+    "performance"
+   ],
+   "prerequisites": [
+    "d077"
+   ]
+  },
+  {
+   "id": "d079",
+   "day": 79,
+   "title": "groupby 1",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "split-apply-combine",
+    "size and count",
+    "single and multiple keys",
+    "named aggregation"
+   ],
+   "prerequisites": [
+    "d078"
+   ]
+  },
+  {
+   "id": "d080",
+   "day": 80,
+   "title": "groupby 2: agg and transform",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "multiple aggregations",
+    "transform",
+    "filter",
+    "group-wise ranking"
+   ],
+   "prerequisites": [
+    "d079"
+   ]
+  },
+  {
+   "id": "d081",
+   "day": 81,
+   "title": "merge and join types",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "merge keys",
+    "inner, left, right, outer",
+    "validate",
+    "indicator"
+   ],
+   "prerequisites": [
+    "d080"
+   ]
+  },
+  {
+   "id": "d082",
+   "day": 82,
+   "title": "concat, pivot and reshaping",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "concat",
+    "pivot_table",
+    "crosstab",
+    "melt"
+   ],
+   "prerequisites": [
+    "d081"
+   ]
+  },
+  {
+   "id": "d083",
+   "day": 83,
+   "title": "Rolling, expanding and shift",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "rolling windows",
+    "expanding",
+    "shift and diff",
+    "percent change"
+   ],
+   "prerequisites": [
+    "d082"
+   ]
+  },
+  {
+   "id": "d084",
+   "day": 84,
+   "title": "Memory, categoricals and chunked reading",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "dtypes and memory",
+    "categoricals",
+    "chunksize",
+    "efficient pipelines"
+   ],
+   "prerequisites": [
+    "d083"
+   ]
+  },
+  {
+   "id": "d085",
+   "day": 85,
+   "title": "Pandas project: clean a messy dataset",
+   "phase": "pandas",
+   "path": "common",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "profiling",
+    "cleaning",
+    "type fixes",
+    "deduplication",
+    "validated output"
+   ],
+   "prerequisites": [
+    "d084"
+   ]
+  },
+  {
+   "id": "d086",
+   "day": 86,
+   "title": "Descriptive statistics",
+   "phase": "statistics-foundations",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "mean, median, mode",
+    "percentiles",
+    "choosing the right summary",
+    "outliers"
+   ],
+   "prerequisites": [
+    "d085"
+   ]
+  },
+  {
+   "id": "d087",
+   "day": 87,
+   "title": "Spread and distributions",
+   "phase": "statistics-foundations",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "variance",
+    "standard deviation",
+    "IQR",
+    "skewness",
+    "histograms"
+   ],
+   "prerequisites": [
+    "d086"
+   ]
+  },
+  {
+   "id": "d088",
+   "day": 88,
+   "title": "Probability and the normal distribution",
+   "phase": "statistics-foundations",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "probability rules",
+    "conditional probability",
+    "normal distribution",
+    "z-scores"
+   ],
+   "prerequisites": [
+    "d087"
+   ]
+  },
+  {
+   "id": "d089",
+   "day": 89,
+   "title": "Sampling and confidence intervals",
+   "phase": "statistics-foundations",
+   "path": "common",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "sampling",
+    "standard error",
+    "central limit theorem",
+    "confidence intervals"
+   ],
+   "prerequisites": [
+    "d088"
+   ]
+  },
+  {
+   "id": "d090",
+   "day": 90,
+   "title": "Hypothesis testing and choosing your path",
+   "phase": "statistics-foundations",
+   "path": "common",
+   "kind": "checkpoint",
+   "minutes": 140,
+   "topics": [
+    "null and alternative",
+    "p-values",
+    "errors",
+    "common-core checkpoint",
+    "Data Analyst or Data Engineer"
+   ],
+   "prerequisites": [
+    "d089"
+   ]
+  },
+  {
+   "id": "a091",
+   "day": 91,
+   "title": "Excel workbooks, tables and formatting",
+   "phase": "excel",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "structured tables",
+    "formatting",
+    "named ranges",
+    "data entry hygiene"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "a092",
+   "day": 92,
+   "title": "Logical and math formulas",
+   "phase": "excel",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "IF, IFS, AND, OR",
+    "SUM, ROUND",
+    "absolute and relative references",
+    "error values"
+   ],
+   "prerequisites": [
+    "a091"
+   ]
+  },
+  {
+   "id": "a093",
+   "day": 93,
+   "title": "Text and date formulas",
+   "phase": "excel",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "LEFT, MID, TEXT",
+    "TEXTJOIN",
+    "DATE functions",
+    "cleaning text"
+   ],
+   "prerequisites": [
+    "a092"
+   ]
+  },
+  {
+   "id": "a094",
+   "day": 94,
+   "title": "Lookup functions",
+   "phase": "excel",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "VLOOKUP",
+    "XLOOKUP",
+    "INDEX and MATCH",
+    "approximate vs exact match"
+   ],
+   "prerequisites": [
+    "a093"
+   ]
+  },
+  {
+   "id": "a095",
+   "day": 95,
+   "title": "Conditional aggregation",
+   "phase": "excel",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "SUMIFS",
+    "COUNTIFS",
+    "AVERAGEIFS",
+    "dynamic arrays",
+    "named criteria"
+   ],
+   "prerequisites": [
+    "a094"
+   ]
+  },
+  {
+   "id": "a096",
+   "day": 96,
+   "title": "PivotTables",
+   "phase": "excel",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "building pivots",
+    "grouping",
+    "calculated fields",
+    "slicers",
+    "refreshing"
+   ],
+   "prerequisites": [
+    "a095"
+   ]
+  },
+  {
+   "id": "a097",
+   "day": 97,
+   "title": "Charts and dashboards in Excel",
+   "phase": "excel",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "choosing charts",
+    "combo charts",
+    "formatting",
+    "interactive dashboards"
+   ],
+   "prerequisites": [
+    "a096"
+   ]
+  },
+  {
+   "id": "a098",
+   "day": 98,
+   "title": "Power Query in Excel: import and clean",
+   "phase": "excel",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "Get Data",
+    "applied steps",
+    "types",
+    "filtering",
+    "unpivot"
+   ],
+   "prerequisites": [
+    "a097"
+   ]
+  },
+  {
+   "id": "a099",
+   "day": 99,
+   "title": "Power Query: merge, append and M basics",
+   "phase": "excel",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "merge queries",
+    "append",
+    "custom columns",
+    "M language basics",
+    "refresh"
+   ],
+   "prerequisites": [
+    "a098"
+   ]
+  },
+  {
+   "id": "a100",
+   "day": 100,
+   "title": "Excel project: monthly sales workbook",
+   "phase": "excel",
+   "path": "analyst",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "cleaning",
+    "lookups",
+    "PivotTables",
+    "charts",
+    "delivered report"
+   ],
+   "prerequisites": [
+    "a099"
+   ]
+  },
+  {
+   "id": "a101",
+   "day": 101,
+   "title": "Correlation and covariance",
+   "phase": "analyst-statistics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "Pearson and Spearman",
+    "correlation vs causation",
+    "scatter plots"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "a102",
+   "day": 102,
+   "title": "Linear regression",
+   "phase": "analyst-statistics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "least squares",
+    "interpreting coefficients",
+    "R-squared",
+    "residuals"
+   ],
+   "prerequisites": [
+    "a101"
+   ]
+  },
+  {
+   "id": "a103",
+   "day": 103,
+   "title": "t-tests",
+   "phase": "analyst-statistics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "one-sample and two-sample tests",
+    "paired tests",
+    "assumptions",
+    "effect size"
+   ],
+   "prerequisites": [
+    "a102"
+   ]
+  },
+  {
+   "id": "a104",
+   "day": 104,
+   "title": "Chi-square tests and categorical data",
+   "phase": "analyst-statistics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "contingency tables",
+    "chi-square test",
+    "expected counts",
+    "interpretation"
+   ],
+   "prerequisites": [
+    "a103"
+   ]
+  },
+  {
+   "id": "a105",
+   "day": 105,
+   "title": "A/B testing in practice",
+   "phase": "analyst-statistics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "experiment design",
+    "sample size",
+    "significance",
+    "reporting results"
+   ],
+   "prerequisites": [
+    "a104"
+   ]
+  },
+  {
+   "id": "a106",
+   "day": 106,
+   "title": "EDA workflow and asking questions",
+   "phase": "eda",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "profiling",
+    "questions first",
+    "documenting assumptions",
+    "checklist"
+   ],
+   "prerequisites": [
+    "d085",
+    "d090"
+   ]
+  },
+  {
+   "id": "a107",
+   "day": 107,
+   "title": "Univariate analysis",
+   "phase": "eda",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "distributions",
+    "histograms",
+    "boxplots",
+    "summary tables"
+   ],
+   "prerequisites": [
+    "a106"
+   ]
+  },
+  {
+   "id": "a108",
+   "day": 108,
+   "title": "Bivariate analysis",
+   "phase": "eda",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "numeric vs numeric",
+    "categorical vs numeric",
+    "cross-tabs",
+    "correlation matrix"
+   ],
+   "prerequisites": [
+    "a107"
+   ]
+  },
+  {
+   "id": "a109",
+   "day": 109,
+   "title": "Outliers and missing data",
+   "phase": "eda",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "detecting outliers",
+    "IQR and z-score",
+    "missing patterns",
+    "treatment choices"
+   ],
+   "prerequisites": [
+    "a108"
+   ]
+  },
+  {
+   "id": "a110",
+   "day": 110,
+   "title": "Time-series EDA and derived metrics",
+   "phase": "eda",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "trends",
+    "seasonality",
+    "rolling metrics",
+    "growth rates"
+   ],
+   "prerequisites": [
+    "a109"
+   ]
+  },
+  {
+   "id": "a111",
+   "day": 111,
+   "title": "Segmentation and cohort analysis",
+   "phase": "eda",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "segments",
+    "cohort tables",
+    "comparison",
+    "lift"
+   ],
+   "prerequisites": [
+    "a110"
+   ]
+  },
+  {
+   "id": "a112",
+   "day": 112,
+   "title": "Communicating EDA findings",
+   "phase": "eda",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "findings and evidence",
+    "EDA report structure",
+    "caveats"
+   ],
+   "prerequisites": [
+    "a111"
+   ]
+  },
+  {
+   "id": "a113",
+   "day": 113,
+   "title": "EDA project",
+   "phase": "eda",
+   "path": "analyst",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "full exploration of a dataset",
+    "written findings"
+   ],
+   "prerequisites": [
+    "a112"
+   ]
+  },
+  {
+   "id": "a114",
+   "day": 114,
+   "title": "Chart selection and design principles",
+   "phase": "visualisation",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "chart types",
+    "encoding",
+    "clutter",
+    "honest axes"
+   ],
+   "prerequisites": [
+    "d085",
+    "d090"
+   ]
+  },
+  {
+   "id": "a115",
+   "day": 115,
+   "title": "Matplotlib 1",
+   "phase": "visualisation",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "figure and axes",
+    "line, bar, scatter",
+    "labels"
+   ],
+   "prerequisites": [
+    "a114"
+   ]
+  },
+  {
+   "id": "a116",
+   "day": 116,
+   "title": "Matplotlib 2: subplots and styling",
+   "phase": "visualisation",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "subplots",
+    "styles",
+    "annotations",
+    "saving figures"
+   ],
+   "prerequisites": [
+    "a115"
+   ]
+  },
+  {
+   "id": "a117",
+   "day": 117,
+   "title": "Seaborn 1",
+   "phase": "visualisation",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "distribution plots",
+    "categorical plots",
+    "themes"
+   ],
+   "prerequisites": [
+    "a116"
+   ]
+  },
+  {
+   "id": "a118",
+   "day": 118,
+   "title": "Seaborn 2: heatmaps, pair plots and facets",
+   "phase": "visualisation",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "heatmaps",
+    "pairplot",
+    "FacetGrid",
+    "regression plots"
+   ],
+   "prerequisites": [
+    "a117"
+   ]
+  },
+  {
+   "id": "a119",
+   "day": 119,
+   "title": "Plotly Express",
+   "phase": "visualisation",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "px charts",
+    "hover",
+    "colour scales",
+    "animation frames"
+   ],
+   "prerequisites": [
+    "a118"
+   ]
+  },
+  {
+   "id": "a120",
+   "day": 120,
+   "title": "Interactive Plotly",
+   "phase": "visualisation",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "graph_objects",
+    "interactivity",
+    "dashboards basics",
+    "exporting"
+   ],
+   "prerequisites": [
+    "a119"
+   ]
+  },
+  {
+   "id": "a121",
+   "day": 121,
+   "title": "Time-series and distribution charts",
+   "phase": "visualisation",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "line charts",
+    "area charts",
+    "histograms",
+    "box and violin plots"
+   ],
+   "prerequisites": [
+    "a120"
+   ]
+  },
+  {
+   "id": "a122",
+   "day": 122,
+   "title": "Colour, accessibility and annotation",
+   "phase": "visualisation",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "colour palettes",
+    "colour blindness",
+    "annotation",
+    "titles that say something"
+   ],
+   "prerequisites": [
+    "a121"
+   ]
+  },
+  {
+   "id": "a123",
+   "day": 123,
+   "title": "Visualisation project: sales insight report",
+   "phase": "visualisation",
+   "path": "analyst",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "analysis",
+    "charts",
+    "narrative"
+   ],
+   "prerequisites": [
+    "a122"
+   ]
+  },
+  {
+   "id": "a124",
+   "day": 124,
+   "title": "Power BI interface and getting data",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "Desktop",
+    "connectors",
+    "report, data and model views"
+   ],
+   "prerequisites": [
+    "a099",
+    "d090"
+   ]
+  },
+  {
+   "id": "a125",
+   "day": 125,
+   "title": "Power Query in Power BI",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "transformations",
+    "query dependencies",
+    "parameters",
+    "query folding"
+   ],
+   "prerequisites": [
+    "a124"
+   ]
+  },
+  {
+   "id": "a126",
+   "day": 126,
+   "title": "Data modelling: star schema",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "facts and dimensions",
+    "relationships",
+    "avoiding flat tables"
+   ],
+   "prerequisites": [
+    "a125"
+   ]
+  },
+  {
+   "id": "a127",
+   "day": 127,
+   "title": "Relationships, cardinality and filter direction",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "one-to-many",
+    "cross-filter direction",
+    "inactive relationships",
+    "ambiguity"
+   ],
+   "prerequisites": [
+    "a126"
+   ]
+  },
+  {
+   "id": "a128",
+   "day": 128,
+   "title": "Date tables",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "calendar tables",
+    "marking as date table",
+    "hierarchies",
+    "fiscal calendars"
+   ],
+   "prerequisites": [
+    "a127"
+   ]
+  },
+  {
+   "id": "a129",
+   "day": 129,
+   "title": "DAX 1: measures and calculated columns",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "measures vs columns",
+    "aggregations",
+    "implicit vs explicit measures",
+    "formatting"
+   ],
+   "prerequisites": [
+    "a128"
+   ]
+  },
+  {
+   "id": "a130",
+   "day": 130,
+   "title": "DAX 2: CALCULATE and filter context",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "filter context",
+    "CALCULATE",
+    "ALL",
+    "FILTER",
+    "context transition"
+   ],
+   "prerequisites": [
+    "a129"
+   ]
+  },
+  {
+   "id": "a131",
+   "day": 131,
+   "title": "DAX 3: time intelligence",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "YTD",
+    "previous period",
+    "same period last year",
+    "rolling periods"
+   ],
+   "prerequisites": [
+    "a130"
+   ]
+  },
+  {
+   "id": "a132",
+   "day": 132,
+   "title": "DAX 4: variables, iterators and ranking",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "VAR",
+    "SUMX",
+    "RANKX",
+    "TOPN",
+    "readable DAX"
+   ],
+   "prerequisites": [
+    "a131"
+   ]
+  },
+  {
+   "id": "a133",
+   "day": 133,
+   "title": "Visuals and interactivity",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "visual types",
+    "slicers",
+    "drill-through",
+    "bookmarks",
+    "tooltips"
+   ],
+   "prerequisites": [
+    "a132"
+   ]
+  },
+  {
+   "id": "a134",
+   "day": 134,
+   "title": "Dashboard layout and design",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "layout grids",
+    "hierarchy",
+    "themes",
+    "mobile layout"
+   ],
+   "prerequisites": [
+    "a133"
+   ]
+  },
+  {
+   "id": "a135",
+   "day": 135,
+   "title": "Publishing, refresh and security",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "Power BI Service",
+    "scheduled refresh",
+    "row-level security",
+    "sharing"
+   ],
+   "prerequisites": [
+    "a134"
+   ]
+  },
+  {
+   "id": "a136",
+   "day": 136,
+   "title": "Performance and best practices",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "model size",
+    "DAX performance",
+    "Performance Analyzer",
+    "naming conventions"
+   ],
+   "prerequisites": [
+    "a135"
+   ]
+  },
+  {
+   "id": "a137",
+   "day": 137,
+   "title": "Power BI project: sales dashboard",
+   "phase": "power-bi",
+   "path": "analyst",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "model",
+    "measures",
+    "visuals",
+    "published report"
+   ],
+   "prerequisites": [
+    "a136"
+   ]
+  },
+  {
+   "id": "a138",
+   "day": 138,
+   "title": "Story structure for data",
+   "phase": "storytelling",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "data storytelling basics",
+    "audience",
+    "situation, complication, resolution",
+    "one message per slide"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "a139",
+   "day": 139,
+   "title": "Dashboard design principles",
+   "phase": "storytelling",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "purpose",
+    "layout",
+    "visual hierarchy",
+    "reducing noise"
+   ],
+   "prerequisites": [
+    "a138"
+   ]
+  },
+  {
+   "id": "a140",
+   "day": 140,
+   "title": "KPI design and scorecards",
+   "phase": "storytelling",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "choosing KPIs",
+    "targets",
+    "variance",
+    "context for numbers"
+   ],
+   "prerequisites": [
+    "a139"
+   ]
+  },
+  {
+   "id": "a141",
+   "day": 141,
+   "title": "Presenting insights to stakeholders",
+   "phase": "storytelling",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "writing insights",
+    "recommendations",
+    "handling questions",
+    "caveats"
+   ],
+   "prerequisites": [
+    "a140"
+   ]
+  },
+  {
+   "id": "a142",
+   "day": 142,
+   "title": "Executive dashboard and narrative project",
+   "phase": "storytelling",
+   "path": "analyst",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "dashboard",
+    "written narrative",
+    "recommendation"
+   ],
+   "prerequisites": [
+    "a141"
+   ]
+  },
+  {
+   "id": "a143",
+   "day": 143,
+   "title": "KPIs and metric trees",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "defining metrics",
+    "metric trees",
+    "leading and lagging indicators",
+    "vanity metrics"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "a144",
+   "day": 144,
+   "title": "Revenue and sales analytics",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "revenue decomposition",
+    "price, volume, mix",
+    "growth",
+    "seasonality"
+   ],
+   "prerequisites": [
+    "a143"
+   ]
+  },
+  {
+   "id": "a145",
+   "day": 145,
+   "title": "Customer analytics and RFM",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "recency, frequency, monetary",
+    "segmentation",
+    "customer value"
+   ],
+   "prerequisites": [
+    "a144"
+   ]
+  },
+  {
+   "id": "a146",
+   "day": 146,
+   "title": "Retention and churn",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "retention curves",
+    "churn rate",
+    "survival thinking",
+    "drivers"
+   ],
+   "prerequisites": [
+    "a145"
+   ]
+  },
+  {
+   "id": "a147",
+   "day": 147,
+   "title": "Funnel and conversion analysis",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "funnel steps",
+    "drop-off",
+    "conversion rates",
+    "bottlenecks"
+   ],
+   "prerequisites": [
+    "a146"
+   ]
+  },
+  {
+   "id": "a148",
+   "day": 148,
+   "title": "Marketing and campaign analytics",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "attribution basics",
+    "campaign ROI",
+    "incrementality",
+    "uplift"
+   ],
+   "prerequisites": [
+    "a147"
+   ]
+  },
+  {
+   "id": "a149",
+   "day": 149,
+   "title": "Pricing and product mix analytics",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "price elasticity",
+    "product mix",
+    "discounts",
+    "margin impact"
+   ],
+   "prerequisites": [
+    "a148"
+   ]
+  },
+  {
+   "id": "a150",
+   "day": 150,
+   "title": "Operations and inventory analytics",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "stock turnover",
+    "stock-outs",
+    "lead times",
+    "service levels"
+   ],
+   "prerequisites": [
+    "a149"
+   ]
+  },
+  {
+   "id": "a151",
+   "day": 151,
+   "title": "Financial analytics: margin and variance",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "gross margin",
+    "budget vs actual",
+    "variance analysis",
+    "waterfall explanations"
+   ],
+   "prerequisites": [
+    "a150"
+   ]
+  },
+  {
+   "id": "a152",
+   "day": 152,
+   "title": "Forecasting basics",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "naive and moving-average forecasts",
+    "seasonality",
+    "error measures",
+    "communicating uncertainty"
+   ],
+   "prerequisites": [
+    "a151"
+   ]
+  },
+  {
+   "id": "a153",
+   "day": 153,
+   "title": "Scenario 1: diagnose a revenue drop",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "structured diagnosis",
+    "SQL and pandas",
+    "hypothesis tree"
+   ],
+   "prerequisites": [
+    "a152"
+   ]
+  },
+  {
+   "id": "a154",
+   "day": 154,
+   "title": "Scenario 2: customer segmentation",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "RFM segments",
+    "profiling",
+    "recommendations"
+   ],
+   "prerequisites": [
+    "a153"
+   ]
+  },
+  {
+   "id": "a155",
+   "day": 155,
+   "title": "Scenario 3: campaign ROI",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "measurement",
+    "comparison groups",
+    "recommendation"
+   ],
+   "prerequisites": [
+    "a154"
+   ]
+  },
+  {
+   "id": "a156",
+   "day": 156,
+   "title": "Scenario project: business case write-up",
+   "phase": "business-analytics",
+   "path": "analyst",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "end-to-end business problem",
+    "evidence",
+    "recommendation"
+   ],
+   "prerequisites": [
+    "a155"
+   ]
+  },
+  {
+   "id": "a157",
+   "day": 157,
+   "title": "SQL from Python",
+   "phase": "analyst-data-prep",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "connecting",
+    "parameterised queries",
+    "read_sql",
+    "avoiding injection"
+   ],
+   "prerequisites": [
+    "d085",
+    "d090"
+   ]
+  },
+  {
+   "id": "a158",
+   "day": 158,
+   "title": "SQL or pandas: where to do the work",
+   "phase": "analyst-data-prep",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "pushing work to the database",
+    "trade-offs",
+    "data volume"
+   ],
+   "prerequisites": [
+    "a157"
+   ]
+  },
+  {
+   "id": "a159",
+   "day": 159,
+   "title": "Combined SQL and pandas workflow",
+   "phase": "analyst-data-prep",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "query, transform, summarise",
+    "reproducible analysis"
+   ],
+   "prerequisites": [
+    "a158"
+   ]
+  },
+  {
+   "id": "a160",
+   "day": 160,
+   "title": "Excel to DataFrame to PostgreSQL 1",
+   "phase": "analyst-data-prep",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "reading Excel",
+    "cleaning headers and types",
+    "target tables"
+   ],
+   "prerequisites": [
+    "a159"
+   ]
+  },
+  {
+   "id": "a161",
+   "day": 161,
+   "title": "Excel to DataFrame to PostgreSQL 2: loading",
+   "phase": "analyst-data-prep",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "to_sql",
+    "constraints",
+    "idempotent loads",
+    "checks"
+   ],
+   "prerequisites": [
+    "a160"
+   ]
+  },
+  {
+   "id": "a162",
+   "day": 162,
+   "title": "Source-to-target validation and reconciliation",
+   "phase": "analyst-data-prep",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "row counts",
+    "totals",
+    "key comparison",
+    "reconciliation report"
+   ],
+   "prerequisites": [
+    "a161"
+   ]
+  },
+  {
+   "id": "a163",
+   "day": 163,
+   "title": "REST API data for analysts: authentication and pagination",
+   "phase": "analyst-data-prep",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "HTTP basics",
+    "API keys",
+    "pagination",
+    "rate limits and retries"
+   ],
+   "prerequisites": [
+    "a162"
+   ]
+  },
+  {
+   "id": "a164",
+   "day": 164,
+   "title": "API JSON to DataFrame to report",
+   "phase": "analyst-data-prep",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "parsing JSON",
+    "normalising nested data",
+    "reporting"
+   ],
+   "prerequisites": [
+    "a163"
+   ]
+  },
+  {
+   "id": "a165",
+   "day": 165,
+   "title": "Reporting automation",
+   "phase": "analyst-data-prep",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "parameterised reports",
+    "scheduling",
+    "export to Excel and CSV"
+   ],
+   "prerequisites": [
+    "a164"
+   ]
+  },
+  {
+   "id": "a166",
+   "day": 166,
+   "title": "Analytics mini-project",
+   "phase": "analyst-data-prep",
+   "path": "analyst",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "SQL plus pandas",
+    "load",
+    "validate",
+    "report"
+   ],
+   "prerequisites": [
+    "a165"
+   ]
+  },
+  {
+   "id": "a167",
+   "day": 167,
+   "title": "SQL interview practice",
+   "phase": "analyst-interview",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "joins",
+    "windows",
+    "aggregation",
+    "time-boxed questions"
+   ],
+   "prerequisites": [
+    "d060",
+    "d090"
+   ]
+  },
+  {
+   "id": "a168",
+   "day": 168,
+   "title": "Excel and Power BI interview practice",
+   "phase": "analyst-interview",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "lookups",
+    "pivots",
+    "DAX questions",
+    "model questions"
+   ],
+   "prerequisites": [
+    "a167"
+   ]
+  },
+  {
+   "id": "a169",
+   "day": 169,
+   "title": "Statistics and case-study interviews",
+   "phase": "analyst-interview",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "probability",
+    "tests",
+    "metric cases",
+    "structured thinking"
+   ],
+   "prerequisites": [
+    "a168"
+   ]
+  },
+  {
+   "id": "a170",
+   "day": 170,
+   "title": "Python and pandas interview practice",
+   "phase": "analyst-interview",
+   "path": "analyst",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "cleaning",
+    "groupby",
+    "merge",
+    "reading code"
+   ],
+   "prerequisites": [
+    "a169"
+   ]
+  },
+  {
+   "id": "a171",
+   "day": 171,
+   "title": "Mock interview and portfolio review",
+   "phase": "analyst-interview",
+   "path": "analyst",
+   "kind": "checkpoint",
+   "minutes": 140,
+   "topics": [
+    "timed mock",
+    "feedback",
+    "portfolio checklist"
+   ],
+   "prerequisites": [
+    "a170"
+   ]
+  },
+  {
+   "id": "a172",
+   "day": 172,
+   "title": "Capstone: scope the problem and the data",
+   "phase": "analyst-capstone",
+   "path": "analyst",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "question",
+    "data sources",
+    "success criteria",
+    "plan"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "a173",
+   "day": 173,
+   "title": "Capstone: acquire and ingest data",
+   "phase": "analyst-capstone",
+   "path": "analyst",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "ingestion",
+    "reproducibility",
+    "Git repository"
+   ],
+   "prerequisites": [
+    "a172"
+   ]
+  },
+  {
+   "id": "a174",
+   "day": 174,
+   "title": "Capstone: clean and validate",
+   "phase": "analyst-capstone",
+   "path": "analyst",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "cleaning",
+    "validation",
+    "reconciliation"
+   ],
+   "prerequisites": [
+    "a173"
+   ]
+  },
+  {
+   "id": "a175",
+   "day": 175,
+   "title": "Capstone: model and load",
+   "phase": "analyst-capstone",
+   "path": "analyst",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "data model",
+    "PostgreSQL load",
+    "documentation"
+   ],
+   "prerequisites": [
+    "a174"
+   ]
+  },
+  {
+   "id": "a176",
+   "day": 176,
+   "title": "Capstone: analysis with SQL",
+   "phase": "analyst-capstone",
+   "path": "analyst",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "analytical queries",
+    "windows",
+    "metrics"
+   ],
+   "prerequisites": [
+    "a175"
+   ]
+  },
+  {
+   "id": "a177",
+   "day": 177,
+   "title": "Capstone: visualise in Python and Power BI",
+   "phase": "analyst-capstone",
+   "path": "analyst",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "charts",
+    "dashboard",
+    "interactivity"
+   ],
+   "prerequisites": [
+    "a176"
+   ]
+  },
+  {
+   "id": "a178",
+   "day": 178,
+   "title": "Capstone: write the narrative",
+   "phase": "analyst-capstone",
+   "path": "analyst",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "insights",
+    "recommendation",
+    "caveats"
+   ],
+   "prerequisites": [
+    "a177"
+   ]
+  },
+  {
+   "id": "a179",
+   "day": 179,
+   "title": "Capstone: polish, test and publish",
+   "phase": "analyst-capstone",
+   "path": "analyst",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "README",
+    "tests",
+    "GitHub",
+    "reproducibility"
+   ],
+   "prerequisites": [
+    "a178"
+   ]
+  },
+  {
+   "id": "a180",
+   "day": 180,
+   "title": "Capstone: present and reflect",
+   "phase": "analyst-capstone",
+   "path": "analyst",
+   "kind": "checkpoint",
+   "minutes": 140,
+   "topics": [
+    "presentation",
+    "feedback",
+    "next steps"
+   ],
+   "prerequisites": [
+    "a179"
+   ]
+  },
+  {
+   "id": "e091",
+   "day": 91,
+   "title": "Python to PostgreSQL connections",
+   "phase": "ingestion-csv-excel",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "psycopg",
+    "SQLAlchemy engines",
+    "connection handling",
+    "credentials"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "e092",
+   "day": 92,
+   "title": "Designing target schemas",
+   "phase": "ingestion-csv-excel",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "data types",
+    "keys",
+    "constraints",
+    "staging tables"
+   ],
+   "prerequisites": [
+    "e091"
+   ]
+  },
+  {
+   "id": "e093",
+   "day": 93,
+   "title": "Reading and validating CSV in chunks",
+   "phase": "ingestion-csv-excel",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "chunked reads",
+    "schema checks",
+    "bad-row handling"
+   ],
+   "prerequisites": [
+    "e092"
+   ]
+  },
+  {
+   "id": "e094",
+   "day": 94,
+   "title": "Idempotent loads: COPY, executemany and to_sql",
+   "phase": "ingestion-csv-excel",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "COPY",
+    "batching",
+    "idempotency",
+    "transactions"
+   ],
+   "prerequisites": [
+    "e093"
+   ]
+  },
+  {
+   "id": "e095",
+   "day": 95,
+   "title": "CSV to PostgreSQL project: validate the load",
+   "phase": "ingestion-csv-excel",
+   "path": "engineer",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "counts",
+    "checksums",
+    "SQL validation"
+   ],
+   "prerequisites": [
+    "e094"
+   ]
+  },
+  {
+   "id": "e096",
+   "day": 96,
+   "title": "Excel with pandas and openpyxl",
+   "phase": "ingestion-csv-excel",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "sheets",
+    "headers",
+    "types",
+    "reading ranges"
+   ],
+   "prerequisites": [
+    "e095"
+   ]
+  },
+  {
+   "id": "e097",
+   "day": 97,
+   "title": "Messy Excel files",
+   "phase": "ingestion-csv-excel",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "merged cells",
+    "multiple header rows",
+    "footers",
+    "type repair"
+   ],
+   "prerequisites": [
+    "e096"
+   ]
+  },
+  {
+   "id": "e098",
+   "day": 98,
+   "title": "Multi-sheet workbooks to normalised tables",
+   "phase": "ingestion-csv-excel",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "splitting",
+    "keys",
+    "relationships"
+   ],
+   "prerequisites": [
+    "e097"
+   ]
+  },
+  {
+   "id": "e099",
+   "day": 99,
+   "title": "Loading with keys and constraints",
+   "phase": "ingestion-csv-excel",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "primary keys",
+    "foreign keys",
+    "load order",
+    "error handling"
+   ],
+   "prerequisites": [
+    "e098"
+   ]
+  },
+  {
+   "id": "e100",
+   "day": 100,
+   "title": "Excel to DataFrame to PostgreSQL project: reconciliation",
+   "phase": "ingestion-csv-excel",
+   "path": "engineer",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "reconciliation queries",
+    "reporting"
+   ],
+   "prerequisites": [
+    "e099"
+   ]
+  },
+  {
+   "id": "e101",
+   "day": 101,
+   "title": "Understand REST APIs",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "resources",
+    "endpoints",
+    "clients and servers",
+    "JSON"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "e102",
+   "day": 102,
+   "title": "HTTP methods and status codes",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "GET, POST, PUT, DELETE",
+    "status code classes",
+    "headers"
+   ],
+   "prerequisites": [
+    "e101"
+   ]
+  },
+  {
+   "id": "e103",
+   "day": 103,
+   "title": "API requests with Python",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "requests library",
+    "query parameters",
+    "timeouts",
+    "sessions"
+   ],
+   "prerequisites": [
+    "e102"
+   ]
+  },
+  {
+   "id": "e104",
+   "day": 104,
+   "title": "Parsing JSON responses",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "nested JSON",
+    "json_normalize",
+    "schema drift",
+    "safe access"
+   ],
+   "prerequisites": [
+    "e103"
+   ]
+  },
+  {
+   "id": "e105",
+   "day": 105,
+   "title": "API authentication",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "API keys",
+    "bearer tokens",
+    "OAuth overview",
+    "keeping secrets safe"
+   ],
+   "prerequisites": [
+    "e104"
+   ]
+  },
+  {
+   "id": "e106",
+   "day": 106,
+   "title": "Pagination",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "offset, page and cursor pagination",
+    "loops",
+    "stopping conditions"
+   ],
+   "prerequisites": [
+    "e105"
+   ]
+  },
+  {
+   "id": "e107",
+   "day": 107,
+   "title": "Rate limits and retries",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "429 responses",
+    "backoff",
+    "jitter",
+    "idempotent retries"
+   ],
+   "prerequisites": [
+    "e106"
+   ]
+  },
+  {
+   "id": "e108",
+   "day": 108,
+   "title": "Error handling for APIs",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "timeouts",
+    "partial failure",
+    "logging",
+    "dead-letter records"
+   ],
+   "prerequisites": [
+    "e107"
+   ]
+  },
+  {
+   "id": "e109",
+   "day": 109,
+   "title": "Clean API data with pandas",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "flattening",
+    "types",
+    "deduplication",
+    "validation"
+   ],
+   "prerequisites": [
+    "e108"
+   ]
+  },
+  {
+   "id": "e110",
+   "day": 110,
+   "title": "Load API data into PostgreSQL",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "upserts",
+    "staging",
+    "transactions",
+    "load logging"
+   ],
+   "prerequisites": [
+    "e109"
+   ]
+  },
+  {
+   "id": "e111",
+   "day": 111,
+   "title": "Validate loaded records",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "counts",
+    "keys",
+    "null checks",
+    "sampling against the source"
+   ],
+   "prerequisites": [
+    "e110"
+   ]
+  },
+  {
+   "id": "e112",
+   "day": 112,
+   "title": "Analytical SQL on API data",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "aggregations",
+    "windows",
+    "time series",
+    "views"
+   ],
+   "prerequisites": [
+    "e111"
+   ]
+  },
+  {
+   "id": "e113",
+   "day": 113,
+   "title": "API to PostgreSQL project: visualise and explain insights",
+   "phase": "rest-api",
+   "path": "engineer",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "charts",
+    "narrative",
+    "handover"
+   ],
+   "prerequisites": [
+    "e112"
+   ]
+  },
+  {
+   "id": "e114",
+   "day": 114,
+   "title": "Parameterised queries and read_sql",
+   "phase": "sql-python-eng",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "placeholders",
+    "injection",
+    "read_sql",
+    "typed results"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "e115",
+   "day": 115,
+   "title": "SQL or pandas: where to do the work",
+   "phase": "sql-python-eng",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "pushdown",
+    "memory",
+    "trade-offs"
+   ],
+   "prerequisites": [
+    "e114"
+   ]
+  },
+  {
+   "id": "e116",
+   "day": 116,
+   "title": "Combined SQL and pandas workflow",
+   "phase": "sql-python-eng",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "query, transform, summarise",
+    "reusable functions"
+   ],
+   "prerequisites": [
+    "e115"
+   ]
+  },
+  {
+   "id": "e117",
+   "day": 117,
+   "title": "Windows and aggregates from Python",
+   "phase": "sql-python-eng",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "window functions in pipelines",
+    "result handling"
+   ],
+   "prerequisites": [
+    "e116"
+   ]
+  },
+  {
+   "id": "e118",
+   "day": 118,
+   "title": "Charts for pipeline reporting",
+   "phase": "sql-python-eng",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "Matplotlib basics",
+    "monitoring charts",
+    "saving figures"
+   ],
+   "prerequisites": [
+    "e117"
+   ]
+  },
+  {
+   "id": "e119",
+   "day": 119,
+   "title": "SQL and Python analytics mini-project",
+   "phase": "sql-python-eng",
+   "path": "engineer",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "query",
+    "transform",
+    "chart",
+    "report"
+   ],
+   "prerequisites": [
+    "e118"
+   ]
+  },
+  {
+   "id": "e120",
+   "day": 120,
+   "title": "ETL versus ELT",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "architectures",
+    "when to use each",
+    "staging",
+    "layers"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "e121",
+   "day": 121,
+   "title": "Modular extract and transform code",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "functions",
+    "separation of concerns",
+    "testable steps"
+   ],
+   "prerequisites": [
+    "e120"
+   ]
+  },
+  {
+   "id": "e122",
+   "day": 122,
+   "title": "Configuration and secrets",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "config files",
+    "environment variables",
+    "secrets",
+    "per-environment settings"
+   ],
+   "prerequisites": [
+    "e121"
+   ]
+  },
+  {
+   "id": "e123",
+   "day": 123,
+   "title": "Batch processing",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "batch size",
+    "scheduling",
+    "windows",
+    "throughput"
+   ],
+   "prerequisites": [
+    "e122"
+   ]
+  },
+  {
+   "id": "e124",
+   "day": 124,
+   "title": "Full loads and idempotency",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "full refresh",
+    "idempotent steps",
+    "safe re-runs"
+   ],
+   "prerequisites": [
+    "e123"
+   ]
+  },
+  {
+   "id": "e125",
+   "day": 125,
+   "title": "Incremental loading and watermarks",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "high-water marks",
+    "checkpoint storage",
+    "late-arriving data"
+   ],
+   "prerequisites": [
+    "e124"
+   ]
+  },
+  {
+   "id": "e126",
+   "day": 126,
+   "title": "Upserts with ON CONFLICT",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "INSERT ON CONFLICT",
+    "merge semantics",
+    "deduplication"
+   ],
+   "prerequisites": [
+    "e125"
+   ]
+  },
+  {
+   "id": "e127",
+   "day": 127,
+   "title": "Change data capture",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "CDC concepts",
+    "log-based vs query-based",
+    "applying changes"
+   ],
+   "prerequisites": [
+    "e126"
+   ]
+  },
+  {
+   "id": "e128",
+   "day": 128,
+   "title": "Late data and backfills",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "backfill design",
+    "partitions",
+    "reprocessing"
+   ],
+   "prerequisites": [
+    "e127"
+   ]
+  },
+  {
+   "id": "e129",
+   "day": 129,
+   "title": "Error handling, retries and logging",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "retry policy",
+    "structured logs",
+    "quarantining bad records"
+   ],
+   "prerequisites": [
+    "e128"
+   ]
+  },
+  {
+   "id": "e130",
+   "day": 130,
+   "title": "Pipeline monitoring",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "run metrics",
+    "freshness",
+    "alerting"
+   ],
+   "prerequisites": [
+    "e129"
+   ]
+  },
+  {
+   "id": "e131",
+   "day": 131,
+   "title": "Incremental ETL project",
+   "phase": "etl",
+   "path": "engineer",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "incremental load",
+    "upserts",
+    "reconciliation",
+    "tests"
+   ],
+   "prerequisites": [
+    "e130"
+   ]
+  },
+  {
+   "id": "e132",
+   "day": 132,
+   "title": "Data quality dimensions",
+   "phase": "data-quality",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "completeness",
+    "validity",
+    "uniqueness",
+    "timeliness",
+    "consistency"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "e133",
+   "day": 133,
+   "title": "Validation rules in pandas",
+   "phase": "data-quality",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "rules as code",
+    "row-level and dataset-level checks",
+    "reporting failures"
+   ],
+   "prerequisites": [
+    "e132"
+   ]
+  },
+  {
+   "id": "e134",
+   "day": 134,
+   "title": "Schema checks and data contracts",
+   "phase": "data-quality",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "expected schemas",
+    "contracts",
+    "versioning",
+    "drift detection"
+   ],
+   "prerequisites": [
+    "e133"
+   ]
+  },
+  {
+   "id": "e135",
+   "day": 135,
+   "title": "SQL quality checks and constraints",
+   "phase": "data-quality",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "constraints",
+    "check queries",
+    "referential integrity"
+   ],
+   "prerequisites": [
+    "e134"
+   ]
+  },
+  {
+   "id": "e136",
+   "day": 136,
+   "title": "Source-to-target validation",
+   "phase": "data-quality",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "row counts",
+    "sums",
+    "hash comparison",
+    "column-level diffs"
+   ],
+   "prerequisites": [
+    "e135"
+   ]
+  },
+  {
+   "id": "e137",
+   "day": 137,
+   "title": "Reconciliation",
+   "phase": "data-quality",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "reconciling totals",
+    "explaining differences",
+    "tolerance rules"
+   ],
+   "prerequisites": [
+    "e136"
+   ]
+  },
+  {
+   "id": "e138",
+   "day": 138,
+   "title": "Testing pipelines with pytest",
+   "phase": "data-quality",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "unit tests for transforms",
+    "fixtures with small data",
+    "integration tests"
+   ],
+   "prerequisites": [
+    "e137"
+   ]
+  },
+  {
+   "id": "e139",
+   "day": 139,
+   "title": "Quality reports and alerts",
+   "phase": "data-quality",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "metrics",
+    "thresholds",
+    "notification",
+    "dashboards"
+   ],
+   "prerequisites": [
+    "e138"
+   ]
+  },
+  {
+   "id": "e140",
+   "day": 140,
+   "title": "GitHub workflows for pipelines",
+   "phase": "data-quality",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "branches",
+    "pull requests",
+    "code review",
+    "CI test runs"
+   ],
+   "prerequisites": [
+    "e139"
+   ]
+  },
+  {
+   "id": "e141",
+   "day": 141,
+   "title": "Data validation pipeline project",
+   "phase": "data-quality",
+   "path": "engineer",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "validation pipeline",
+    "report",
+    "tests"
+   ],
+   "prerequisites": [
+    "e140"
+   ]
+  },
+  {
+   "id": "e142",
+   "day": 142,
+   "title": "OLTP versus OLAP",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "workloads",
+    "row vs column stores",
+    "warehouses and marts"
+   ],
+   "prerequisites": [
+    "d060",
+    "d090"
+   ]
+  },
+  {
+   "id": "e143",
+   "day": 143,
+   "title": "Normalisation and data modelling",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "normal forms",
+    "entity relationships",
+    "trade-offs"
+   ],
+   "prerequisites": [
+    "e142"
+   ]
+  },
+  {
+   "id": "e144",
+   "day": 144,
+   "title": "Dimensional modelling",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "facts",
+    "dimensions",
+    "grain",
+    "measures"
+   ],
+   "prerequisites": [
+    "e143"
+   ]
+  },
+  {
+   "id": "e145",
+   "day": 145,
+   "title": "Star schema design",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "star vs snowflake",
+    "surrogate keys",
+    "conformed dimensions"
+   ],
+   "prerequisites": [
+    "e144"
+   ]
+  },
+  {
+   "id": "e146",
+   "day": 146,
+   "title": "Slowly changing dimensions",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "types 1, 2 and 3",
+    "effective dates",
+    "implementing type 2"
+   ],
+   "prerequisites": [
+    "e145"
+   ]
+  },
+  {
+   "id": "e147",
+   "day": 147,
+   "title": "Build a star schema in PostgreSQL",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "DDL",
+    "keys",
+    "constraints",
+    "sample data"
+   ],
+   "prerequisites": [
+    "e146"
+   ]
+  },
+  {
+   "id": "e148",
+   "day": 148,
+   "title": "Load facts and dimensions",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "dimension loads",
+    "fact loads",
+    "key lookups",
+    "late-arriving facts"
+   ],
+   "prerequisites": [
+    "e147"
+   ]
+  },
+  {
+   "id": "e149",
+   "day": 149,
+   "title": "Partitioning and indexing for analytics",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "partitioning",
+    "indexes for scans",
+    "maintenance"
+   ],
+   "prerequisites": [
+    "e148"
+   ]
+  },
+  {
+   "id": "e150",
+   "day": 150,
+   "title": "Materialised views and aggregates",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "materialised views",
+    "refresh",
+    "aggregate tables"
+   ],
+   "prerequisites": [
+    "e149"
+   ]
+  },
+  {
+   "id": "e151",
+   "day": 151,
+   "title": "Analytical queries on the warehouse",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "star-join queries",
+    "windows",
+    "reporting views"
+   ],
+   "prerequisites": [
+    "e150"
+   ]
+  },
+  {
+   "id": "e152",
+   "day": 152,
+   "title": "Warehouse project",
+   "phase": "warehousing",
+   "path": "engineer",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "design",
+    "load",
+    "query",
+    "document"
+   ],
+   "prerequisites": [
+    "e151"
+   ]
+  },
+  {
+   "id": "e153",
+   "day": 153,
+   "title": "Linux for engineers: shell scripting and cron",
+   "phase": "linux-tools",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "shell scripts",
+    "exit codes",
+    "cron schedules",
+    "logs"
+   ],
+   "prerequisites": [
+    "d030",
+    "d090"
+   ]
+  },
+  {
+   "id": "e154",
+   "day": 154,
+   "title": "Linux processes, files and permissions",
+   "phase": "linux-tools",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "processes",
+    "signals",
+    "permissions",
+    "disk usage"
+   ],
+   "prerequisites": [
+    "e153"
+   ]
+  },
+  {
+   "id": "e155",
+   "day": 155,
+   "title": "Docker basics: PostgreSQL in a container",
+   "phase": "linux-tools",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "images and containers",
+    "volumes",
+    "ports",
+    "Docker Compose"
+   ],
+   "prerequisites": [
+    "e154"
+   ]
+  },
+  {
+   "id": "e156",
+   "day": 156,
+   "title": "Configuration and packaging pipelines",
+   "phase": "linux-tools",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "project layout",
+    "entry points",
+    "dependencies",
+    "environments"
+   ],
+   "prerequisites": [
+    "e155"
+   ]
+  },
+  {
+   "id": "e157",
+   "day": 157,
+   "title": "Airflow concepts: DAGs and tasks",
+   "phase": "airflow",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "DAGs",
+    "tasks",
+    "scheduler",
+    "metadata database"
+   ],
+   "prerequisites": [
+    "e131",
+    "d090"
+   ]
+  },
+  {
+   "id": "e158",
+   "day": 158,
+   "title": "Operators and schedules",
+   "phase": "airflow",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "operators",
+    "schedules",
+    "catchup",
+    "start_date"
+   ],
+   "prerequisites": [
+    "e157"
+   ]
+  },
+  {
+   "id": "e159",
+   "day": 159,
+   "title": "Task dependencies and XComs",
+   "phase": "airflow",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "dependencies",
+    "XCom",
+    "task groups",
+    "branching"
+   ],
+   "prerequisites": [
+    "e158"
+   ]
+  },
+  {
+   "id": "e160",
+   "day": 160,
+   "title": "Retries, backfills and idempotent DAGs",
+   "phase": "airflow",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "retries",
+    "backfill",
+    "idempotent tasks",
+    "SLAs"
+   ],
+   "prerequisites": [
+    "e159"
+   ]
+  },
+  {
+   "id": "e161",
+   "day": 161,
+   "title": "Sensors, monitoring and alerting",
+   "phase": "airflow",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "sensors",
+    "callbacks",
+    "logs",
+    "alerting"
+   ],
+   "prerequisites": [
+    "e160"
+   ]
+  },
+  {
+   "id": "e162",
+   "day": 162,
+   "title": "Airflow pipeline project",
+   "phase": "airflow",
+   "path": "engineer",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "DAG for an ETL pipeline",
+    "tests",
+    "documentation"
+   ],
+   "prerequisites": [
+    "e161"
+   ]
+  },
+  {
+   "id": "e163",
+   "day": 163,
+   "title": "Spark fundamentals",
+   "phase": "spark",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "architecture",
+    "lazy evaluation",
+    "DataFrames",
+    "actions vs transformations"
+   ],
+   "prerequisites": [
+    "d085",
+    "d090"
+   ]
+  },
+  {
+   "id": "e164",
+   "day": 164,
+   "title": "DataFrame transformations",
+   "phase": "spark",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "select, filter, withColumn",
+    "aggregations",
+    "column expressions"
+   ],
+   "prerequisites": [
+    "e163"
+   ]
+  },
+  {
+   "id": "e165",
+   "day": 165,
+   "title": "Spark SQL",
+   "phase": "spark",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "temp views",
+    "SQL on DataFrames",
+    "functions"
+   ],
+   "prerequisites": [
+    "e164"
+   ]
+  },
+  {
+   "id": "e166",
+   "day": 166,
+   "title": "Joins, partitions and shuffles",
+   "phase": "spark",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "join strategies",
+    "partitioning",
+    "shuffle cost",
+    "skew"
+   ],
+   "prerequisites": [
+    "e165"
+   ]
+  },
+  {
+   "id": "e167",
+   "day": 167,
+   "title": "Reading and writing data with PySpark",
+   "phase": "spark",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "Parquet",
+    "CSV and JSON",
+    "partitioned writes",
+    "schemas"
+   ],
+   "prerequisites": [
+    "e166"
+   ]
+  },
+  {
+   "id": "e168",
+   "day": 168,
+   "title": "PySpark ETL project",
+   "phase": "spark",
+   "path": "engineer",
+   "kind": "project",
+   "minutes": 150,
+   "topics": [
+    "extract",
+    "transform",
+    "load",
+    "checks"
+   ],
+   "prerequisites": [
+    "e167"
+   ]
+  },
+  {
+   "id": "e169",
+   "day": 169,
+   "title": "SQL interview practice",
+   "phase": "engineer-interview",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "joins",
+    "windows",
+    "optimisation",
+    "time-boxed questions"
+   ],
+   "prerequisites": [
+    "d060",
+    "d090"
+   ]
+  },
+  {
+   "id": "e170",
+   "day": 170,
+   "title": "Python interview practice",
+   "phase": "engineer-interview",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "data structures",
+    "generators",
+    "file processing",
+    "pipeline code"
+   ],
+   "prerequisites": [
+    "e169"
+   ]
+  },
+  {
+   "id": "e171",
+   "day": 171,
+   "title": "Pipeline design and data modelling interviews",
+   "phase": "engineer-interview",
+   "path": "engineer",
+   "kind": "lesson",
+   "minutes": 130,
+   "topics": [
+    "designing pipelines",
+    "trade-offs",
+    "failure handling",
+    "modelling"
+   ],
+   "prerequisites": [
+    "e170"
+   ]
+  },
+  {
+   "id": "e172",
+   "day": 172,
+   "title": "Mock interview and portfolio review",
+   "phase": "engineer-interview",
+   "path": "engineer",
+   "kind": "checkpoint",
+   "minutes": 140,
+   "topics": [
+    "timed mock",
+    "feedback",
+    "portfolio checklist"
+   ],
+   "prerequisites": [
+    "e171"
+   ]
+  },
+  {
+   "id": "e173",
+   "day": 173,
+   "title": "Capstone: scope the pipeline and the data",
+   "phase": "engineer-capstone",
+   "path": "engineer",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "sources",
+    "requirements",
+    "architecture",
+    "plan"
+   ],
+   "prerequisites": [
+    "d090"
+   ]
+  },
+  {
+   "id": "e174",
+   "day": 174,
+   "title": "Capstone: ingestion",
+   "phase": "engineer-capstone",
+   "path": "engineer",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "API and file ingestion",
+    "credentials",
+    "retries"
+   ],
+   "prerequisites": [
+    "e173"
+   ]
+  },
+  {
+   "id": "e175",
+   "day": 175,
+   "title": "Capstone: cleaning and validation",
+   "phase": "engineer-capstone",
+   "path": "engineer",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "transformations",
+    "validation",
+    "quarantine"
+   ],
+   "prerequisites": [
+    "e174"
+   ]
+  },
+  {
+   "id": "e176",
+   "day": 176,
+   "title": "Capstone: warehouse model and load",
+   "phase": "engineer-capstone",
+   "path": "engineer",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "dimensional model",
+    "incremental load",
+    "upserts"
+   ],
+   "prerequisites": [
+    "e175"
+   ]
+  },
+  {
+   "id": "e177",
+   "day": 177,
+   "title": "Capstone: analytics layer",
+   "phase": "engineer-capstone",
+   "path": "engineer",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "analytical SQL",
+    "views",
+    "metrics"
+   ],
+   "prerequisites": [
+    "e176"
+   ]
+  },
+  {
+   "id": "e178",
+   "day": 178,
+   "title": "Capstone: orchestration and tests",
+   "phase": "engineer-capstone",
+   "path": "engineer",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "Airflow DAG",
+    "pytest",
+    "monitoring"
+   ],
+   "prerequisites": [
+    "e177"
+   ]
+  },
+  {
+   "id": "e179",
+   "day": 179,
+   "title": "Capstone: documentation and GitHub",
+   "phase": "engineer-capstone",
+   "path": "engineer",
+   "kind": "capstone",
+   "minutes": 150,
+   "topics": [
+    "README",
+    "architecture diagram",
+    "repository hygiene"
+   ],
+   "prerequisites": [
+    "e178"
+   ]
+  },
+  {
+   "id": "e180",
+   "day": 180,
+   "title": "Capstone: present and reflect",
+   "phase": "engineer-capstone",
+   "path": "engineer",
+   "kind": "checkpoint",
+   "minutes": 140,
+   "topics": [
+    "demo",
+    "trade-offs",
+    "next steps"
+   ],
+   "prerequisites": [
+    "e179"
+   ]
+  }
+ ]
+}

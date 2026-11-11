@@ -1,0 +1,183 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "jsonb",
+      "python-csv-json",
+      "python-api-integration"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "flatten-json-records"
+    ],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "id": "a164",
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Parse and count",
+      "kind": "python",
+      "prompt": "The text `text` holds a page of orders. `records` is already parsed. Print the sum of `amount_cents` as an int (`6550`) and then the number of records with status `paid` (`2`), each on its own line.",
+      "starter": "import json\nimport pandas as pd\n\ntext = '{\"data\": [{\"order_id\": 1, \"amount_cents\": 1250, \"status\": \"paid\", \"created_at\": \"2025-03-01T23:30:00Z\"}, {\"order_id\": 2, \"amount_cents\": 800, \"status\": \"refunded\", \"created_at\": \"2025-03-02T08:00:00Z\"}, {\"order_id\": 3, \"amount_cents\": 4500, \"status\": \"paid\", \"created_at\": \"2025-03-02T12:15:00Z\"}]}'\nrecords = json.loads(text)[\"data\"]\n\n",
+      "solution": "import json\nimport pandas as pd\n\ntext = '{\"data\": [{\"order_id\": 1, \"amount_cents\": 1250, \"status\": \"paid\", \"created_at\": \"2025-03-01T23:30:00Z\"}, {\"order_id\": 2, \"amount_cents\": 800, \"status\": \"refunded\", \"created_at\": \"2025-03-02T08:00:00Z\"}, {\"order_id\": 3, \"amount_cents\": 4500, \"status\": \"paid\", \"created_at\": \"2025-03-02T12:15:00Z\"}]}'\nrecords = json.loads(text)[\"data\"]\n\nprint(sum(r['amount_cents'] for r in records))\nprint(sum(1 for r in records if r['status'] == 'paid'))\n",
+      "hints": [
+        "Each record is a dict; read r['amount_cents'].",
+        "sum(...) over a generator expression adds them.",
+        "Count the paid ones with a condition inside sum(1 for ...)."
+      ],
+      "expected": "6550\n2"
+    },
+    {
+      "id": "g2",
+      "title": "Type the columns",
+      "kind": "python",
+      "prompt": "Build `df = pd.json_normalize(records)`, add `amount_eur` (`amount_cents / 100`), convert `created_at` with `pd.to_datetime(..., utc=True)`, and print `df[['order_id', 'amount_eur']].to_string(index=False)`, then the list of UTC dates as text with `df['created_at'].dt.strftime('%Y-%m-%d').tolist()`.",
+      "starter": "import json\nimport pandas as pd\n\ntext = '{\"data\": [{\"order_id\": 1, \"amount_cents\": 1250, \"status\": \"paid\", \"created_at\": \"2025-03-01T23:30:00Z\"}, {\"order_id\": 2, \"amount_cents\": 800, \"status\": \"refunded\", \"created_at\": \"2025-03-02T08:00:00Z\"}, {\"order_id\": 3, \"amount_cents\": 4500, \"status\": \"paid\", \"created_at\": \"2025-03-02T12:15:00Z\"}]}'\nrecords = json.loads(text)[\"data\"]\n\n",
+      "solution": "import json\nimport pandas as pd\n\ntext = '{\"data\": [{\"order_id\": 1, \"amount_cents\": 1250, \"status\": \"paid\", \"created_at\": \"2025-03-01T23:30:00Z\"}, {\"order_id\": 2, \"amount_cents\": 800, \"status\": \"refunded\", \"created_at\": \"2025-03-02T08:00:00Z\"}, {\"order_id\": 3, \"amount_cents\": 4500, \"status\": \"paid\", \"created_at\": \"2025-03-02T12:15:00Z\"}]}'\nrecords = json.loads(text)[\"data\"]\n\ndf = pd.json_normalize(records)\ndf['amount_eur'] = df['amount_cents'] / 100\ndf['created_at'] = pd.to_datetime(df['created_at'], utc=True)\nprint(df[['order_id', 'amount_eur']].to_string(index=False))\nprint(df['created_at'].dt.strftime('%Y-%m-%d').tolist())\n",
+      "hints": [
+        "pd.json_normalize(records) builds the table.",
+        "df['amount_cents'] / 100 gives euros.",
+        "Convert created_at with utc=True before calling .dt.strftime."
+      ],
+      "expected": " order_id  amount_eur\n        1        12.5\n        2         8.0\n        3        45.0\n['2025-03-01', '2025-03-02', '2025-03-02']"
+    },
+    {
+      "id": "g3",
+      "title": "Flatten the customer object",
+      "kind": "python",
+      "prompt": "Flatten `data` with `pd.json_normalize(data, sep='_')`. Print `sorted(df.columns)` and then the list `df['customer_name'].tolist()`.",
+      "starter": "import pandas as pd\n\ndata = [\n    {\"order_id\": 1, \"customer\": {\"name\": \"Ana\", \"country\": \"DE\"}, \"items\": [{\"sku\": \"A\", \"qty\": 2, \"unit_price_cents\": 500}]},\n    {\"order_id\": 2, \"customer\": {\"name\": \"Ben\", \"country\": \"FR\"}, \"items\": [{\"sku\": \"A\", \"qty\": 1, \"unit_price_cents\": 500}, {\"sku\": \"B\", \"qty\": 3, \"unit_price_cents\": 200}]},\n    {\"order_id\": 3, \"customer\": {\"name\": \"Cy\", \"country\": None}, \"items\": []},\n]\n\n",
+      "solution": "import pandas as pd\n\ndata = [\n    {\"order_id\": 1, \"customer\": {\"name\": \"Ana\", \"country\": \"DE\"}, \"items\": [{\"sku\": \"A\", \"qty\": 2, \"unit_price_cents\": 500}]},\n    {\"order_id\": 2, \"customer\": {\"name\": \"Ben\", \"country\": \"FR\"}, \"items\": [{\"sku\": \"A\", \"qty\": 1, \"unit_price_cents\": 500}, {\"sku\": \"B\", \"qty\": 3, \"unit_price_cents\": 200}]},\n    {\"order_id\": 3, \"customer\": {\"name\": \"Cy\", \"country\": None}, \"items\": []},\n]\n\ndf = pd.json_normalize(data, sep='_')\nprint(sorted(df.columns))\nprint(df['customer_name'].tolist())\n",
+      "hints": [
+        "pd.json_normalize(data, sep='_') flattens nested objects.",
+        "The nested name is joined with the separator: customer_name.",
+        "Print sorted(df.columns), then df['customer_name'].tolist()."
+      ],
+      "expected": "['customer_country', 'customer_name', 'items', 'order_id']\n['Ana', 'Ben', 'Cy']"
+    },
+    {
+      "id": "g4",
+      "title": "One row per line item",
+      "kind": "python",
+      "prompt": "Unpack the `items` arrays with `pd.json_normalize(data, record_path='items', meta=['order_id'])`. Print the number of line rows (`3`) and the total of `qty * unit_price_cents` over all lines as an int (`2100`).",
+      "starter": "import pandas as pd\n\ndata = [\n    {\"order_id\": 1, \"customer\": {\"name\": \"Ana\", \"country\": \"DE\"}, \"items\": [{\"sku\": \"A\", \"qty\": 2, \"unit_price_cents\": 500}]},\n    {\"order_id\": 2, \"customer\": {\"name\": \"Ben\", \"country\": \"FR\"}, \"items\": [{\"sku\": \"A\", \"qty\": 1, \"unit_price_cents\": 500}, {\"sku\": \"B\", \"qty\": 3, \"unit_price_cents\": 200}]},\n    {\"order_id\": 3, \"customer\": {\"name\": \"Cy\", \"country\": None}, \"items\": []},\n]\n\n",
+      "solution": "import pandas as pd\n\ndata = [\n    {\"order_id\": 1, \"customer\": {\"name\": \"Ana\", \"country\": \"DE\"}, \"items\": [{\"sku\": \"A\", \"qty\": 2, \"unit_price_cents\": 500}]},\n    {\"order_id\": 2, \"customer\": {\"name\": \"Ben\", \"country\": \"FR\"}, \"items\": [{\"sku\": \"A\", \"qty\": 1, \"unit_price_cents\": 500}, {\"sku\": \"B\", \"qty\": 3, \"unit_price_cents\": 200}]},\n    {\"order_id\": 3, \"customer\": {\"name\": \"Cy\", \"country\": None}, \"items\": []},\n]\n\nlines = pd.json_normalize(data, record_path='items', meta=['order_id'])\nprint(len(lines))\nprint(int((lines['qty'] * lines['unit_price_cents']).sum()))\n",
+      "hints": [
+        "record_path names the array to unpack.",
+        "meta=['order_id'] carries the parent's id onto each line.",
+        "Multiply qty and unit_price_cents, sum, and convert to int for printing."
+      ],
+      "expected": "3\n2100"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Orders report from a nested payload",
+      "kind": "python",
+      "prompt": "From `payload['data']`, build the orders table with `pd.json_normalize(..., sep='_')` (drop the `items` column) and the lines table with `record_path='items'`, `meta=['order_id']`. Print four things, one per line: (1) `orders: 5`; (2) `without items: [4]`, the sorted list of order ids that have no lines (plain ints); (3) `mismatches: [(4, 2500), (5, -50)]`: the list of `(order_id, amount_cents - sum of qty * unit_price_cents)` for orders with a non-zero difference, with orders that have no lines counting as a line sum of 0 (plain ints, sorted by order id); (4) the euro revenue of `paid` orders per country, country missing shown as `unknown`, one line per country sorted by country as `DE: 16.0`.",
+      "starter": "import pandas as pd\n\npayload = {\"data\": [\n    {\"order_id\": 1, \"status\": \"paid\", \"amount_cents\": 1000, \"customer\": {\"country\": \"DE\"}, \"items\": [{\"qty\": 2, \"unit_price_cents\": 500}]},\n    {\"order_id\": 2, \"status\": \"paid\", \"amount_cents\": 1400, \"customer\": {\"country\": \"FR\"}, \"items\": [{\"qty\": 1, \"unit_price_cents\": 500}, {\"qty\": 3, \"unit_price_cents\": 300}]},\n    {\"order_id\": 3, \"status\": \"refunded\", \"amount_cents\": 700, \"customer\": {\"country\": None}, \"items\": [{\"qty\": 1, \"unit_price_cents\": 700}]},\n    {\"order_id\": 4, \"status\": \"paid\", \"amount_cents\": 2500, \"customer\": {\"country\": None}, \"items\": []},\n    {\"order_id\": 5, \"status\": \"paid\", \"amount_cents\": 600, \"customer\": {\"country\": \"DE\"}, \"items\": [{\"qty\": 1, \"unit_price_cents\": 650}]},\n]}\n\n",
+      "solution": "import pandas as pd\n\npayload = {\"data\": [\n    {\"order_id\": 1, \"status\": \"paid\", \"amount_cents\": 1000, \"customer\": {\"country\": \"DE\"}, \"items\": [{\"qty\": 2, \"unit_price_cents\": 500}]},\n    {\"order_id\": 2, \"status\": \"paid\", \"amount_cents\": 1400, \"customer\": {\"country\": \"FR\"}, \"items\": [{\"qty\": 1, \"unit_price_cents\": 500}, {\"qty\": 3, \"unit_price_cents\": 300}]},\n    {\"order_id\": 3, \"status\": \"refunded\", \"amount_cents\": 700, \"customer\": {\"country\": None}, \"items\": [{\"qty\": 1, \"unit_price_cents\": 700}]},\n    {\"order_id\": 4, \"status\": \"paid\", \"amount_cents\": 2500, \"customer\": {\"country\": None}, \"items\": []},\n    {\"order_id\": 5, \"status\": \"paid\", \"amount_cents\": 600, \"customer\": {\"country\": \"DE\"}, \"items\": [{\"qty\": 1, \"unit_price_cents\": 650}]},\n]}\n\norders = pd.json_normalize(payload['data'], sep='_').drop(columns='items')\nlines = pd.json_normalize(payload['data'], record_path='items', meta=['order_id'])\nprint('orders:', len(orders))\nwith_lines = set(lines['order_id'])\nprint('without items:', sorted(int(i) for i in set(orders['order_id']) - with_lines))\nlines['line_cents'] = lines['qty'] * lines['unit_price_cents']\ntotals = lines.groupby('order_id')['line_cents'].sum()\nchk = orders.set_index('order_id')['amount_cents'] - totals.reindex(orders['order_id']).fillna(0).astype('int64').set_axis(orders['order_id'])\nprint('mismatches:', [(int(i), int(d)) for i, d in chk.items() if d != 0])\npaid = orders[orders['status'] == 'paid'].copy()\npaid['country'] = paid['customer_country'].fillna('unknown')\nrev = paid.groupby('country')['amount_cents'].sum() / 100\nfor country, value in rev.sort_index().items():\n    print(f'{country}: {float(value)}')\n",
+      "expected": "orders: 5\nwithout items: [4]\nmismatches: [(4, 2500), (5, -50)]\nDE: 16.0\nFR: 14.0\nunknown: 25.0"
+    },
+    {
+      "id": "i2",
+      "title": "Aggregate JSON documents in SQL",
+      "kind": "sql",
+      "prompt": "On the browser database, create `api_raw2(payload jsonb)` (drop it first if it exists) and insert these documents: `{\"status\": \"paid\", \"amount_cents\": 1250}`, `{\"status\": \"paid\", \"amount_cents\": 800}`, `{\"status\": \"refunded\", \"amount_cents\": 300}`, `{\"status\": \"failed\", \"amount_cents\": 999}`. Return `status`, `orders` (count) and `total_eur` (sum of `amount_cents` divided by 100, rounded to 2 decimals, using a cast of the extracted text to `numeric`) for each status, ordered by `status`.",
+      "starter": "SELECT '{\"status\": \"paid\"}'::jsonb->>'status' AS status;\n",
+      "solution": "DROP TABLE IF EXISTS api_raw2;\nCREATE TABLE api_raw2 (payload jsonb);\nINSERT INTO api_raw2 VALUES\n  ('{\"status\": \"paid\", \"amount_cents\": 1250}'),\n  ('{\"status\": \"paid\", \"amount_cents\": 800}'),\n  ('{\"status\": \"refunded\", \"amount_cents\": 300}'),\n  ('{\"status\": \"failed\", \"amount_cents\": 999}');\nSELECT payload->>'status' AS status,\n       COUNT(*) AS orders,\n       ROUND(SUM((payload->>'amount_cents')::numeric) / 100, 2) AS total_eur\nFROM api_raw2\nGROUP BY 1\nORDER BY 1;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "The provider changes the payload",
+      "kind": "written",
+      "prompt": "Your nightly job parses an orders API. One morning the provider (a) adds a new status `chargeback`, (b) sends `amount_cents` as a string in about 1% of records and (c) leaves `customer.country` null for some customers. In 5 to 8 sentences, describe how your parsing code and checks should react to each change, what the report should say about it, and why you keep the raw payload.",
+      "starter": "Write your answer here.",
+      "solution": "A schema check at the start of the job compares the statuses with an allowed list, so the new status chargeback is reported as unexpected and the job either stops or puts those orders in a separate group that is shown in the report, instead of counting them as paid or ignoring them. For the string amounts I would convert explicitly with pd.to_numeric and errors set to coerce, count the records that cannot be converted and fail or flag the load if the count is above an agreed limit, so that the totals never silently skip rows. The null country is allowed, because a null is legitimate here, but the report labels it unknown and states how many orders it covers, rather than dropping the rows in a group-by. The report lists these counts next to the figures so a reader can see what was excluded. I keep the raw payload, for example in a jsonb column or a file per run, so that after the provider's change I can fix the parsing code and re-derive the numbers without calling the API again and without waiting for rate limits, and so that any published figure can be traced.",
+      "required": false,
+      "rubric": [
+        "Checks statuses against an allowed list and reports unexpected values",
+        "Converts amounts explicitly and counts failures instead of skipping silently",
+        "Labels missing values (unknown) and reports how many rows they cover",
+        "Explains the value of keeping the raw payload"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `json.loads('{\"a\": null, \"b\": true}')` return?",
+      "options": [
+        "{'a': None, 'b': True}",
+        "{'a': 'null', 'b': 'true'}",
+        "{'a': 0, 'b': 1}",
+        "It raises an error because null is not valid"
+      ],
+      "answer": 0,
+      "explanation": "JSON null becomes Python None and true becomes True. They are not strings and are not converted to numbers."
+    },
+    {
+      "id": "c2",
+      "question": "An order has `\"items\": []`. What happens to it in `pd.json_normalize(data, record_path='items', meta=['order_id'])`?",
+      "options": [
+        "It produces no rows, so the order is missing from the result",
+        "It produces one row with missing values",
+        "It raises a KeyError",
+        "It produces one row with qty 0"
+      ],
+      "answer": 0,
+      "explanation": "record_path creates one row per element of the array. An empty array has no elements, so the order does not appear. Count orders from the orders table instead."
+    },
+    {
+      "id": "c3",
+      "question": "You merge order totals onto the line-item table and then sum `amount_cents`. What goes wrong?",
+      "options": [
+        "Each order is counted once per line, so the total is too high",
+        "Nothing, the sum is correct",
+        "The sum is too low because lines are dropped",
+        "The merge fails because the grains differ"
+      ],
+      "answer": 0,
+      "explanation": "The line table has several rows per order. After the merge the order total repeats on every line, and the sum counts it several times (a fan-out, as on Day 159). Aggregate the lines first."
+    },
+    {
+      "id": "c4",
+      "question": "Why does JSON data often carry money as integer cents?",
+      "options": [
+        "Integers avoid binary floating-point rounding errors",
+        "JSON cannot store decimals at all",
+        "Integers are faster to download",
+        "The API cannot send strings"
+      ],
+      "answer": 0,
+      "explanation": "Decimal fractions like 0.1 cannot be represented exactly in binary floating point, so amounts are sent as integer cents and converted deliberately. JSON can write decimal numbers, but parsers turn them into floats."
+    },
+    {
+      "id": "c5",
+      "question": "In PostgreSQL, which expression returns the `status` field of a jsonb column `payload` as text?",
+      "options": [
+        "payload->>'status'",
+        "payload->'status'",
+        "payload.status",
+        "payload['status']::text only works in pandas"
+      ],
+      "answer": 0,
+      "explanation": "->> extracts the field as text. -> returns a jsonb value (the text would include quotes). Dot syntax is not used for jsonb."
+    }
+  ]
+}

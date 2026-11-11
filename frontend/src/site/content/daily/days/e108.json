@@ -1,0 +1,188 @@
+{
+  "id": "e108",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-error-handling",
+      "python-logging",
+      "python-exceptions",
+      "etl-pipeline-monitoring"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Name the failure layer",
+      "kind": "python",
+      "prompt": "Write `layer(status=None, error=None, body_ok=True)` returning: `\"network\"` when `error` is `\"timeout\"` or `\"connection\"`; otherwise `\"status\"` when `status` is 400 or above; otherwise `\"body\"` when `body_ok` is `False`; otherwise `\"ok\"`. Print the result for the five calls in the starter. Expected output: `network`, `network`, `status`, `body`, `ok`, one per line.",
+      "starter": "def layer(status=None, error=None, body_ok=True):\n    return \"ok\"\n\nprint(layer(error=\"timeout\"))\nprint(layer(error=\"connection\"))\nprint(layer(status=503))\nprint(layer(status=200, body_ok=False))\nprint(layer(status=200))\n",
+      "solution": "def layer(status=None, error=None, body_ok=True):\n    if error in (\"timeout\", \"connection\"):\n        return \"network\"\n    if status is not None and status >= 400:\n        return \"status\"\n    if not body_ok:\n        return \"body\"\n    return \"ok\"\n\nprint(layer(error=\"timeout\"))\nprint(layer(error=\"connection\"))\nprint(layer(status=503))\nprint(layer(status=200, body_ok=False))\nprint(layer(status=200))\n",
+      "expected": "network\nnetwork\nstatus\nbody\nok",
+      "hints": [
+        "Check the layers in the order in which a call passes through them.",
+        "A network error means no status exists, so test it first.",
+        "`if error in (\"timeout\", \"connection\")`, then the status test, then `body_ok`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "A key=value log line",
+      "kind": "python",
+      "prompt": "Write `fmt(event, **fields)` returning the event name followed by `key=value` pairs in the order given, separated by single spaces. Print `fmt(\"page_failed\", page=17, status=503, attempts=5)` and `fmt(\"run_summary\", pages_ok=39, pages_failed=1)`. Expected output: `page_failed page=17 status=503 attempts=5` then `run_summary pages_ok=39 pages_failed=1`.",
+      "starter": "def fmt(event, **fields):\n    return event\n\nprint(fmt(\"page_failed\", page=17, status=503, attempts=5))\nprint(fmt(\"run_summary\", pages_ok=39, pages_failed=1))\n",
+      "solution": "def fmt(event, **fields):\n    return \" \".join([event] + [f\"{k}={v}\" for k, v in fields.items()])\n\nprint(fmt(\"page_failed\", page=17, status=503, attempts=5))\nprint(fmt(\"run_summary\", pages_ok=39, pages_failed=1))\n",
+      "expected": "page_failed page=17 status=503 attempts=5\nrun_summary pages_ok=39 pages_failed=1",
+      "hints": [
+        "`**fields` collects the keyword arguments in a dictionary that keeps their order.",
+        "Build a list of `key=value` strings with a comprehension.",
+        "`\" \".join([event] + [f\"{k}={v}\" for k, v in fields.items()])`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Verdict for a partial run",
+      "kind": "python",
+      "prompt": "Write `verdict(failed, total, threshold)` returning `\"FAILED\"` when `failed / total` is greater than `threshold`, `\"OK with warnings\"` when `failed` is above zero but the share is within the threshold, and `\"OK\"` when nothing failed. Print the verdict for `(0, 40, 0.05)`, `(1, 40, 0.05)`, `(3, 40, 0.05)` one per line. Expected output: `OK`, `OK with warnings`, `FAILED`.",
+      "starter": "def verdict(failed, total, threshold):\n    return \"OK\"\n\nfor failed in (0, 1, 3):\n    print(verdict(failed, 40, 0.05))\n",
+      "solution": "def verdict(failed, total, threshold):\n    if failed / total > threshold:\n        return \"FAILED\"\n    return \"OK with warnings\" if failed else \"OK\"\n\nfor failed in (0, 1, 3):\n    print(verdict(failed, 40, 0.05))\n",
+      "expected": "OK\nOK with warnings\nFAILED",
+      "hints": [
+        "Compare the share of failures with the threshold first.",
+        "1 of 40 is 0.025, which is within 0.05; 3 of 40 is 0.075.",
+        "Return `\"OK with warnings\" if failed else \"OK\"` for the remaining cases."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Build a dead-letter row",
+      "kind": "python",
+      "prompt": "Write `dead_letter(record, error, attempts)` returning a dictionary with the keys `payload` (the record as JSON text with sorted keys), `error` and `attempts`. Print the dictionary for `{\"order_id\": 7, \"amount_cents\": -5}`, error `negative amount`, 1 attempt, using `sorted(row.items())`. Expected output: `[('attempts', 1), ('error', 'negative amount'), ('payload', '{\"amount_cents\": -5, \"order_id\": 7}')]`.",
+      "starter": "import json\n\ndef dead_letter(record, error, attempts):\n    return {}\n\nrow = dead_letter({\"order_id\": 7, \"amount_cents\": -5}, \"negative amount\", 1)\nprint(sorted(row.items()))\n",
+      "solution": "import json\n\ndef dead_letter(record, error, attempts):\n    return {\"payload\": json.dumps(record, sort_keys=True), \"error\": error, \"attempts\": attempts}\n\nrow = dead_letter({\"order_id\": 7, \"amount_cents\": -5}, \"negative amount\", 1)\nprint(sorted(row.items()))\n",
+      "expected": "[('attempts', 1), ('error', 'negative amount'), ('payload', '{\"amount_cents\": -5, \"order_id\": 7}')]",
+      "hints": [
+        "The payload is the raw record converted to text.",
+        "`json.dumps(record, sort_keys=True)` gives stable text.",
+        "Return a dictionary with the three keys."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A run with partial failure and dead letters",
+      "kind": "python",
+      "prompt": "`fetch(page)` raises `RuntimeError` for page 3 and otherwise returns three records `{\"order_id\": page * 10 + i, \"amount_cents\": ...}` for `i` in 0, 1, 2 where the amount is `100 * i - 50` (so `i = 0` is negative). Write `run(pages)` that fetches each page, keeps valid records (amount at least 0), puts invalid ones into a dead-letter list as `(order_id, \"negative amount\")` and records the failed page. Print the number of valid records, the dead letters, the failed pages and the verdict from a threshold of 0.25 on the failed share of pages (`FAILED`, `OK with warnings` or `OK`), one per line. Pages: 1 to 5. Expected: `8`, `[(10, 'negative amount'), (20, 'negative amount'), (40, 'negative amount'), (50, 'negative amount')]`, `[3]`, `OK with warnings`.",
+      "starter": "def fetch(page):\n    if page == 3:\n        raise RuntimeError(\"HTTP 503\")\n    return [{\"order_id\": page * 10 + i, \"amount_cents\": 100 * i - 50} for i in range(3)]\n\ndef run(pages):\n    return [], [], []\n\nvalid, dead, failed = run([1, 2, 3, 4, 5])\nprint(len(valid))\nprint(dead)\nprint(failed)\nprint(\"\")\n",
+      "solution": "def fetch(page):\n    if page == 3:\n        raise RuntimeError(\"HTTP 503\")\n    return [{\"order_id\": page * 10 + i, \"amount_cents\": 100 * i - 50} for i in range(3)]\n\ndef run(pages):\n    valid, dead, failed = [], [], []\n    for page in pages:\n        try:\n            records = fetch(page)\n        except RuntimeError:\n            failed.append(page)\n            continue\n        for record in records:\n            if record[\"amount_cents\"] >= 0:\n                valid.append(record)\n            else:\n                dead.append((record[\"order_id\"], \"negative amount\"))\n    return valid, dead, failed\n\nvalid, dead, failed = run([1, 2, 3, 4, 5])\nprint(len(valid))\nprint(dead)\nprint(failed)\nshare = len(failed) / 5\nprint(\"FAILED\" if share > 0.25 else \"OK with warnings\" if failed else \"OK\")\n",
+      "expected": "8\n[(10, 'negative amount'), (20, 'negative amount'), (40, 'negative amount'), (50, 'negative amount')]\n[3]\nOK with warnings"
+    },
+    {
+      "id": "i2",
+      "title": "Redrive dead letters in SQLite",
+      "kind": "python",
+      "prompt": "The table `dead_letter(id, payload, error, resolved_at)` holds three open rows whose payloads are JSON with `currency`. Write `redrive(conn, allowed)` that loads every open dead letter whose currency is in `allowed` into `orders(order_id, currency)` and sets `resolved_at = 'fixed'`, leaving the others open. Run it with `{\"EUR\", \"USD\"}` and then with `{\"EUR\", \"USD\", \"GBP\", \"SEK\"}`, printing `orders` count and open count after each run on one line (`<orders> <open>`). Expected: `1 2` then `3 0`.",
+      "starter": "import json\nimport sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.executescript(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, currency TEXT); CREATE TABLE dead_letter (id INTEGER PRIMARY KEY, payload TEXT, error TEXT, resolved_at TEXT);\")\nrows = [{\"order_id\": 1, \"currency\": \"USD\"}, {\"order_id\": 2, \"currency\": \"GBP\"}, {\"order_id\": 3, \"currency\": \"SEK\"}]\nconn.executemany(\"INSERT INTO dead_letter (payload, error) VALUES (?, 'unknown currency')\", [(json.dumps(r),) for r in rows])\n\ndef redrive(conn, allowed):\n    pass\n\nfor allowed in ({\"EUR\", \"USD\"}, {\"EUR\", \"USD\", \"GBP\", \"SEK\"}):\n    redrive(conn, allowed)\n    print(conn.execute(\"SELECT COUNT(*) FROM orders\").fetchone()[0], conn.execute(\"SELECT COUNT(*) FROM dead_letter WHERE resolved_at IS NULL\").fetchone()[0])\n",
+      "solution": "import json\nimport sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.executescript(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, currency TEXT); CREATE TABLE dead_letter (id INTEGER PRIMARY KEY, payload TEXT, error TEXT, resolved_at TEXT);\")\nrows = [{\"order_id\": 1, \"currency\": \"USD\"}, {\"order_id\": 2, \"currency\": \"GBP\"}, {\"order_id\": 3, \"currency\": \"SEK\"}]\nconn.executemany(\"INSERT INTO dead_letter (payload, error) VALUES (?, 'unknown currency')\", [(json.dumps(r),) for r in rows])\n\ndef redrive(conn, allowed):\n    open_rows = conn.execute(\"SELECT id, payload FROM dead_letter WHERE resolved_at IS NULL ORDER BY id\").fetchall()\n    with conn:\n        for row_id, payload in open_rows:\n            record = json.loads(payload)\n            if record[\"currency\"] in allowed:\n                conn.execute(\"INSERT INTO orders VALUES (?, ?)\", (record[\"order_id\"], record[\"currency\"]))\n                conn.execute(\"UPDATE dead_letter SET resolved_at = 'fixed' WHERE id = ?\", (row_id,))\n\nfor allowed in ({\"EUR\", \"USD\"}, {\"EUR\", \"USD\", \"GBP\", \"SEK\"}):\n    redrive(conn, allowed)\n    print(conn.execute(\"SELECT COUNT(*) FROM orders\").fetchone()[0], conn.execute(\"SELECT COUNT(*) FROM dead_letter WHERE resolved_at IS NULL\").fetchone()[0])\n",
+      "expected": "1 2\n3 0"
+    },
+    {
+      "id": "i3",
+      "title": "An error handling plan for the orders job",
+      "kind": "written",
+      "prompt": "Your nightly orders job reads 40 pages. Write the plan: for a timeout on one page, for a 401, for a page whose body is HTML, for one record with a negative amount, and for 8 of 40 pages failing: what the job does, what it logs, what it stores, and the final status.",
+      "starter": "Write your plan here.",
+      "solution": "Timeout on one page: retry with backoff (Day 107); if all attempts fail, log `page_failed page=N status=timeout attempts=5`, add N to the failed-pages list and continue; the final status is OK with warnings and the failed page is refetched on the next run. 401: stop immediately, since every later call will fail too; log `auth_failed` without the key and exit with a failure status so the scheduler alerts. HTML body: treat the page as failed (body layer), log the content type and the first 200 characters, add the page to the failed list, continue. Negative amount: write the raw record, the error and `attempts=1` to the dead-letter table, load the others on the page, log `record_rejected order_id=... reason=negative amount`. 8 of 40 pages failing: 20 percent exceeds a 5 percent threshold, so the run status is FAILED: keep the loaded pages, write the failed page list to the checkpoint and alert. Every run ends with one summary line (`pages_ok`, `pages_failed`, `records_loaded`, `dead_letters`).",
+      "rubric": [
+        "Distinguishes stop (401) from continue (timeout, HTML, bad record)",
+        "Stores failed pages and dead-letter rows with raw data",
+        "Logs without secrets, with a summary line",
+        "Applies a threshold to the failed share of pages"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A response has status 200 but the body is an HTML maintenance page. Which layer failed and what does `response.json()` do?",
+      "options": [
+        "The status layer; it returns an empty dict",
+        "The body layer; it raises a decoding error (a `ValueError`)",
+        "The network layer; it times out",
+        "None; the page is fine"
+      ],
+      "answer": 1,
+      "explanation": "The status is a success code, but the body is not JSON, so parsing fails. This is why a status check alone is not enough and why the body step has its own handling."
+    },
+    {
+      "id": "c2",
+      "question": "Which is the most harmful pattern in an extract loop?",
+      "options": [
+        "Retrying with backoff",
+        "`except Exception: continue` with no logging",
+        "Logging a summary line",
+        "Writing failed pages to a list"
+      ],
+      "answer": 1,
+      "explanation": "Swallowing every error leaves a run that looks complete and is not. Failures must be recorded and the final status must reflect them."
+    },
+    {
+      "id": "c3",
+      "question": "What should a dead-letter row always contain?",
+      "options": [
+        "Only the error message",
+        "The raw payload as received, the error and the attempt count",
+        "A cleaned version of the record",
+        "The API key used"
+      ],
+      "answer": 1,
+      "explanation": "The raw payload allows a redrive and is the evidence for the provider. Cleaned data hides what was sent, and a key must never be stored there."
+    },
+    {
+      "id": "c4",
+      "question": "After processing 4 fetched records, 2 are loaded, 1 is an open dead letter and 1 was resolved by a redrive and loaded. What is the reconciliation?",
+      "options": [
+        "Loaded 3, open dead letters 1, and 3 + 1 = 4 fetched",
+        "Loaded 2, open 1: one record is lost",
+        "Loaded 4, open 1",
+        "It cannot be checked"
+      ],
+      "answer": 0,
+      "explanation": "The resolved record is now loaded, so loaded plus open dead letters equals the number fetched. If it did not, a record would have disappeared."
+    },
+    {
+      "id": "c5",
+      "question": "Why log `page_failed page=17 status=503 attempts=5` instead of `something went wrong`?",
+      "options": [
+        "It is shorter",
+        "The fields can be searched and counted, and they tell the reader what to refetch",
+        "Python requires key=value",
+        "It hides the secret key"
+      ],
+      "answer": 1,
+      "explanation": "Structured, specific messages let an on-call engineer find and quantify failures and know which page to rerun. A vague message gives no starting point."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "requests"
+    ],
+    "note": "Example 4 uses the requests library against a throwaway http.server on 127.0.0.1 with endpoints that return JSON, an HTML page, a 500 and a slow answer, and one request after the server has stopped; it runs locally after `pip install requests` and is shown read-only in the browser. No real service is contacted. The browser examples and graded exercises use stand-in fetch functions and an in-memory sqlite3 database; the dead-letter table is written for sqlite3 here and would use PostgreSQL types (`timestamptz`, `jsonb`) in a real database."
+  }
+}

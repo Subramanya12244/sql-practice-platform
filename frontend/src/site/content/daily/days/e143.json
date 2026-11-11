@@ -1,0 +1,175 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "normalization",
+      "dwh-data-modelling",
+      "primary-foreign-keys",
+      "database-design"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "star-schema-warehouse"
+    ],
+    "mindmaps": [
+      "warehousing-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Find an update anomaly",
+      "kind": "sql",
+      "prompt": "In the flat table `staff_flat(emp, dept, dept_head)`, the dependency `dept -> dept_head` should hold. Return `dept` and `heads` (the number of distinct `dept_head` values) for every department that violates it, ordered by `dept`.",
+      "starter": "CREATE TABLE staff_flat (emp text, dept text, dept_head text);\nINSERT INTO staff_flat VALUES ('Ana', 'Sales', 'Rita'), ('Ben', 'Sales', 'Rita'), ('Cy', 'Ops', 'Omar'), ('Di', 'Ops', 'Olga'), ('Eli', 'HR', 'Hana');\n\nSELECT dept FROM staff_flat ORDER BY dept LIMIT 5;\n",
+      "solution": "CREATE TABLE staff_flat (emp text, dept text, dept_head text);\nINSERT INTO staff_flat VALUES ('Ana', 'Sales', 'Rita'), ('Ben', 'Sales', 'Rita'), ('Cy', 'Ops', 'Omar'), ('Di', 'Ops', 'Olga'), ('Eli', 'HR', 'Hana');\n\nSELECT dept, COUNT(DISTINCT dept_head) AS heads\nFROM staff_flat\nGROUP BY dept\nHAVING COUNT(DISTINCT dept_head) > 1\nORDER BY dept;\n",
+      "hints": [
+        "A dependency fails when one value of the left column has several values on the right.",
+        "Group by `dept` and count the distinct heads.",
+        "Keep only groups with `HAVING COUNT(DISTINCT dept_head) > 1`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Extract a dimension table",
+      "kind": "sql",
+      "prompt": "From `staff_flat` create the table `dept` (`dept text PRIMARY KEY`, `dept_head text`) filled with the distinct department and head pairs (the data is consistent), then select `dept, dept_head` ordered by `dept`.",
+      "starter": "CREATE TABLE staff_flat (emp text, dept text, dept_head text);\nINSERT INTO staff_flat VALUES ('Ana', 'Sales', 'Rita'), ('Ben', 'Sales', 'Rita'), ('Cy', 'Ops', 'Omar'), ('Di', 'Ops', 'Omar'), ('Eli', 'HR', 'Hana');\n\nSELECT dept, dept_head FROM staff_flat ORDER BY dept, emp LIMIT 10;\n",
+      "solution": "CREATE TABLE staff_flat (emp text, dept text, dept_head text);\nINSERT INTO staff_flat VALUES ('Ana', 'Sales', 'Rita'), ('Ben', 'Sales', 'Rita'), ('Cy', 'Ops', 'Omar'), ('Di', 'Ops', 'Omar'), ('Eli', 'HR', 'Hana');\n\nCREATE TABLE dept (dept text PRIMARY KEY, dept_head text);\nINSERT INTO dept SELECT DISTINCT dept, dept_head FROM staff_flat;\nSELECT dept, dept_head FROM dept ORDER BY dept;\n",
+      "hints": [
+        "The new table holds one row per department.",
+        "`INSERT INTO dept SELECT DISTINCT dept, dept_head FROM staff_flat;` fills it.",
+        "Create the table first with its primary key, insert with `SELECT DISTINCT`, then select from it ordered by dept."
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g3",
+      "title": "Does A determine B?",
+      "kind": "python",
+      "prompt": "Write `determines(rows, a, b)` for a list of dictionaries: return True when every value of column `a` has exactly one value of column `b`. Print the result for `emp -> dept`, `dept -> dept_head` and `dept -> emp`, one `True` or `False` per line, in that order.",
+      "starter": "rows = [\n    {'emp': 'Ana', 'dept': 'Sales', 'dept_head': 'Rita'},\n    {'emp': 'Ben', 'dept': 'Sales', 'dept_head': 'Rita'},\n    {'emp': 'Cy', 'dept': 'Ops', 'dept_head': 'Omar'},\n]\n\ndef determines(rows, a, b):\n    pass\n\nprint(determines(rows, 'emp', 'dept'))\nprint(determines(rows, 'dept', 'dept_head'))\nprint(determines(rows, 'dept', 'emp'))\n",
+      "solution": "rows = [\n    {'emp': 'Ana', 'dept': 'Sales', 'dept_head': 'Rita'},\n    {'emp': 'Ben', 'dept': 'Sales', 'dept_head': 'Rita'},\n    {'emp': 'Cy', 'dept': 'Ops', 'dept_head': 'Omar'},\n]\n\ndef determines(rows, a, b):\n    seen = {}\n    for r in rows:\n        if seen.setdefault(r[a], r[b]) != r[b]:\n            return False\n    return True\n\nprint(determines(rows, 'emp', 'dept'))\nprint(determines(rows, 'dept', 'dept_head'))\nprint(determines(rows, 'dept', 'emp'))\n",
+      "hints": [
+        "Remember the first value you saw for each value of `a`.",
+        "`seen.setdefault(r[a], r[b])` returns the stored value, or stores and returns this one.",
+        "If the stored value differs from `r[b]`, return False; return True after the loop."
+      ],
+      "expected": "True\nTrue\nFalse"
+    },
+    {
+      "id": "g4",
+      "title": "Count through a junction table",
+      "kind": "sql",
+      "prompt": "Tables `author(author_id, name)`, `book(book_id, title)` and the junction `authorship(author_id, book_id)` describe a many-to-many relationship. Return `title` and `authors` (the number of authors) for each book, ordered by `title`.",
+      "starter": "CREATE TABLE author (author_id int PRIMARY KEY, name text);\nCREATE TABLE book (book_id int PRIMARY KEY, title text);\nCREATE TABLE authorship (author_id int REFERENCES author, book_id int REFERENCES book, PRIMARY KEY (author_id, book_id));\nINSERT INTO author VALUES (1, 'Ada'), (2, 'Bo'), (3, 'Cleo');\nINSERT INTO book VALUES (1, 'Data Basics'), (2, 'Pipelines'), (3, 'Solo Notes');\nINSERT INTO authorship VALUES (1, 1), (2, 1), (1, 2), (2, 2), (3, 2), (3, 3);\n\nSELECT title FROM book ORDER BY title LIMIT 5;\n",
+      "solution": "CREATE TABLE author (author_id int PRIMARY KEY, name text);\nCREATE TABLE book (book_id int PRIMARY KEY, title text);\nCREATE TABLE authorship (author_id int REFERENCES author, book_id int REFERENCES book, PRIMARY KEY (author_id, book_id));\nINSERT INTO author VALUES (1, 'Ada'), (2, 'Bo'), (3, 'Cleo');\nINSERT INTO book VALUES (1, 'Data Basics'), (2, 'Pipelines'), (3, 'Solo Notes');\nINSERT INTO authorship VALUES (1, 1), (2, 1), (1, 2), (2, 2), (3, 2), (3, 3);\n\nSELECT b.title, COUNT(*) AS authors\nFROM book b\nJOIN authorship a ON a.book_id = b.book_id\nGROUP BY b.title\nORDER BY b.title;\n",
+      "hints": [
+        "The junction table has one row per author and book pair.",
+        "Join `book` to `authorship` on `book_id`.",
+        "Group by title and use `COUNT(*) AS authors`."
+      ],
+      "ordered": true
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Dependency report",
+      "kind": "python",
+      "prompt": "Using the `determines` function in the starter (given), print one line per ordered pair of different columns (in the order of the `cols` list, pairs ordered by first column then second) for which `a -> b` holds, in the form `<a> -> <b>`. Skip pairs that do not hold. Then print `keys: <list of columns that determine every other column>` (the candidate single-column keys, in `cols` order).",
+      "starter": "rows = [\n    {'id': 1, 'city': 'Berlin', 'country': 'DE', 'name': 'Ana'},\n    {'id': 2, 'city': 'Munich', 'country': 'DE', 'name': 'Ben'},\n    {'id': 3, 'city': 'Paris', 'country': 'FR', 'name': 'Cy'},\n    {'id': 4, 'city': 'Berlin', 'country': 'DE', 'name': 'Di'},\n]\ncols = ['id', 'city', 'country', 'name']\n\ndef determines(rows, a, b):\n    seen = {}\n    for r in rows:\n        if seen.setdefault(r[a], r[b]) != r[b]:\n            return False\n    return True\n\n# Your code here\n",
+      "solution": "rows = [\n    {'id': 1, 'city': 'Berlin', 'country': 'DE', 'name': 'Ana'},\n    {'id': 2, 'city': 'Munich', 'country': 'DE', 'name': 'Ben'},\n    {'id': 3, 'city': 'Paris', 'country': 'FR', 'name': 'Cy'},\n    {'id': 4, 'city': 'Berlin', 'country': 'DE', 'name': 'Di'},\n]\ncols = ['id', 'city', 'country', 'name']\n\ndef determines(rows, a, b):\n    seen = {}\n    for r in rows:\n        if seen.setdefault(r[a], r[b]) != r[b]:\n            return False\n    return True\n\nfor a in cols:\n    for b in cols:\n        if a != b and determines(rows, a, b):\n            print(f'{a} -> {b}')\nkeys = [a for a in cols if all(determines(rows, a, b) for b in cols if b != a)]\nprint('keys:', keys)\n",
+      "expected": "id -> city\nid -> country\nid -> name\ncity -> country\nname -> id\nname -> city\nname -> country\nkeys: ['id', 'name']"
+    },
+    {
+      "id": "i2",
+      "title": "Normalise and prove it lossless",
+      "kind": "sql",
+      "prompt": "The flat table `reading_flat(sensor, site, site_region, ts, value)` has the dependency `sensor -> site` and `site -> site_region`. Create `site(site PRIMARY KEY, site_region)`, `sensor(sensor PRIMARY KEY, site REFERENCES site)` and `reading(sensor REFERENCES sensor, ts, value, PRIMARY KEY (sensor, ts))`, fill them from the flat table, and return one row with columns `lost_rows` and `invented_rows`: the counts of rows in the flat table missing from the join of the three tables, and the reverse (both should be 0).",
+      "starter": "CREATE TABLE reading_flat (sensor text, site text, site_region text, ts int, value int);\nINSERT INTO reading_flat VALUES ('s1', 'plant A', 'north', 1, 10), ('s1', 'plant A', 'north', 2, 12), ('s2', 'plant A', 'north', 1, 7), ('s3', 'plant B', 'south', 1, 9), ('s3', 'plant B', 'south', 2, 11);\n\nSELECT COUNT(*) AS lost_rows FROM reading_flat;\n",
+      "solution": "CREATE TABLE reading_flat (sensor text, site text, site_region text, ts int, value int);\nINSERT INTO reading_flat VALUES ('s1', 'plant A', 'north', 1, 10), ('s1', 'plant A', 'north', 2, 12), ('s2', 'plant A', 'north', 1, 7), ('s3', 'plant B', 'south', 1, 9), ('s3', 'plant B', 'south', 2, 11);\n\nCREATE TABLE site (site text PRIMARY KEY, site_region text NOT NULL);\nCREATE TABLE sensor (sensor text PRIMARY KEY, site text NOT NULL REFERENCES site);\nCREATE TABLE reading (sensor text REFERENCES sensor, ts int, value int, PRIMARY KEY (sensor, ts));\nINSERT INTO site SELECT DISTINCT site, site_region FROM reading_flat;\nINSERT INTO sensor SELECT DISTINCT sensor, site FROM reading_flat;\nINSERT INTO reading SELECT sensor, ts, value FROM reading_flat;\n\nSELECT\n  (SELECT COUNT(*) FROM (\n     SELECT sensor, site, site_region, ts, value FROM reading_flat\n     EXCEPT\n     SELECT r.sensor, s.site, t.site_region, r.ts, r.value\n     FROM reading r JOIN sensor s ON s.sensor = r.sensor JOIN site t ON t.site = s.site) a) AS lost_rows,\n  (SELECT COUNT(*) FROM (\n     SELECT r.sensor, s.site, t.site_region, r.ts, r.value\n     FROM reading r JOIN sensor s ON s.sensor = r.sensor JOIN site t ON t.site = s.site\n     EXCEPT\n     SELECT sensor, site, site_region, ts, value FROM reading_flat) b) AS invented_rows;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Find orphans",
+      "kind": "sql",
+      "required": false,
+      "prompt": "The tables `parent_t(id)` and `child_t(id, parent_id)` were loaded without a foreign key. Return `child_id` and `problem` for the children whose `parent_id` is NULL (`no parent`) or has no matching parent row (`orphan`), ordered by `child_id`.",
+      "starter": "CREATE TABLE parent_t (id int PRIMARY KEY);\nCREATE TABLE child_t (id int PRIMARY KEY, parent_id int);\nINSERT INTO parent_t VALUES (1), (2), (3);\nINSERT INTO child_t VALUES (10, 1), (11, 4), (12, NULL), (13, 2), (14, 9);\n\nSELECT id AS child_id FROM child_t ORDER BY id LIMIT 5;\n",
+      "solution": "CREATE TABLE parent_t (id int PRIMARY KEY);\nCREATE TABLE child_t (id int PRIMARY KEY, parent_id int);\nINSERT INTO parent_t VALUES (1), (2), (3);\nINSERT INTO child_t VALUES (10, 1), (11, 4), (12, NULL), (13, 2), (14, 9);\n\nSELECT c.id AS child_id,\n       CASE WHEN c.parent_id IS NULL THEN 'no parent' ELSE 'orphan' END AS problem\nFROM child_t c\nLEFT JOIN parent_t p ON p.id = c.parent_id\nWHERE c.parent_id IS NULL OR p.id IS NULL\nORDER BY c.id;\n",
+      "ordered": true
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Ana moves city. In a flat table her city is stored on 12 order rows and you update 11 of them. What is this problem called and what does a report show?",
+      "options": [
+        "An insert anomaly; the report fails with an error",
+        "An update anomaly; Ana appears in two cities and a report by city is wrong without any error",
+        "A delete anomaly; Ana disappears",
+        "No problem; the database picks the latest"
+      ],
+      "answer": 1,
+      "explanation": "Duplicated facts can be changed in some places and not others. The database does not know the rows are related, so no error occurs and results by city silently double count Ana."
+    },
+    {
+      "id": "c2",
+      "question": "A table has the composite key (order_id, product), and the column product_price depends only on product. Which normal form does this violate?",
+      "options": [
+        "First normal form",
+        "Second normal form: a column depends on part of the key",
+        "Third normal form only",
+        "None; composite keys are not allowed in 3NF"
+      ],
+      "answer": 1,
+      "explanation": "A column that depends on only part of a composite key is a partial dependency, which breaks 2NF. 1NF is about atomic values. 3NF concerns dependencies between non-key columns."
+    },
+    {
+      "id": "c3",
+      "question": "Why does a many-to-many relationship between orders and products need a third table?",
+      "options": [
+        "SQL cannot join two tables directly",
+        "A column cannot hold a list without breaking 1NF, so a junction table stores one row per pair",
+        "Foreign keys only work with three tables",
+        "It makes queries faster"
+      ],
+      "answer": 1,
+      "explanation": "Putting a list of product ids into an order row breaks atomic values. The junction table has one row per order and product pair, with a composite primary key, and holds attributes of the pair such as quantity."
+    },
+    {
+      "id": "c4",
+      "question": "After a decomposition, both EXCEPT queries (flat minus joined, joined minus flat) return 0 rows. What does that show?",
+      "options": [
+        "The decomposition is lossless: joining the pieces rebuilds exactly the original rows",
+        "The new tables are empty",
+        "The foreign keys are valid",
+        "The tables are in 3NF"
+      ],
+      "answer": 0,
+      "explanation": "Two empty differences mean the two row sets are equal. That proves nothing was lost or invented. It does not say whether the tables are in 3NF, nor whether the keys are right."
+    },
+    {
+      "id": "c5",
+      "question": "A warehouse stores customer city on every sales row. Is that a design mistake?",
+      "options": [
+        "Yes, always; every schema must be in 3NF",
+        "Not necessarily: analytical schemas denormalise on purpose because the pipeline rebuilds them and joins are expensive at scale",
+        "Yes, because it breaks 1NF",
+        "No, because cities never change"
+      ],
+      "answer": 1,
+      "explanation": "Normalisation protects an operational system that is edited row by row. A warehouse is loaded by pipelines and read in large scans, so copying descriptive attributes to avoid joins is a deliberate trade. Duplication of this kind does not break 1NF."
+    }
+  ],
+  "id": "e143"
+}

@@ -1,0 +1,190 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "rank",
+      "dense-rank",
+      "ranking-within-groups",
+      "sum"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "top-k-products-by-revenue",
+      "top-customers-ties"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "window-functions"
+    ],
+    "patterns": [
+      "top-n-per-group",
+      "nth-highest"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "SUMX with a related column",
+      "kind": "python",
+      "prompt": "Replicate `Total Cost = SUMX(Sales, Sales[quantity] * RELATED(Products[unit_cost]))` per `category`. Print the cost per category as a Series (rounded to 2 decimals) with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# per-row cost, then sum per category\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ncost = fact[\"quantity\"] * fact[\"unit_cost\"]\nprint(cost.groupby(fact[\"category\"]).sum().round(2).to_string())\n",
+      "hints": [
+        "Compute the row value first, then aggregate.",
+        "fact[\"quantity\"] * fact[\"unit_cost\"] is the row expression.",
+        "Group that Series by fact[\"category\"] and sum."
+      ],
+      "expected": "category\nHardware    15485.0\nServices    15380.0\nSoftware    13890.0"
+    },
+    {
+      "id": "g2",
+      "title": "Capped revenue",
+      "kind": "python",
+      "prompt": "Replicate `SUMX(Sales, MIN(Sales[quantity] * Sales[unit_price], 250))` per `country`. Print the capped revenue per country as a Series (2 decimals) with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# cap each row at 250 before summing\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ncapped = (fact[\"quantity\"] * fact[\"unit_price\"]).clip(upper=250)\nprint(capped.groupby(fact[\"country\"]).sum().round(2).to_string())\n",
+      "hints": [
+        "MIN of a row value and 250 is clip(upper=250).",
+        "Apply the cap per row, not to the total.",
+        "Group by country and sum."
+      ],
+      "expected": "country\nFrance     15265.0\nGermany    16732.5\nSpain      14317.5\nUK         11752.5"
+    },
+    {
+      "id": "g3",
+      "title": "RANKX on products",
+      "kind": "python",
+      "prompt": "Replicate `Product Rank = RANKX(ALL(Products[product_name]), [Total Revenue])`. Print the top 4 products with columns `revenue` and `rank` (ties use the skip rule) using `to_string()`, sorted by rank.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# revenue and rank per product\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nrev = fact.groupby(\"product_name\")[\"revenue\"].sum()\nout = pd.DataFrame({\"revenue\": rev, \"rank\": rev.rank(method=\"min\", ascending=False).astype(int)})\nprint(out.sort_values(\"rank\", kind=\"stable\").head(4).to_string())\n",
+      "hints": [
+        "Sum revenue per product first.",
+        "Series.rank(method=\"min\", ascending=False) is the skip rule.",
+        "Sort by rank and take head(4)."
+      ],
+      "expected": "              revenue  rank\nproduct_name               \nProduct 10    12952.5     1\nProduct 12     8482.5     2\nProduct 11     7380.0     3\nProduct 08     6952.5     4"
+    },
+    {
+      "id": "g4",
+      "title": "Rewrite with variables (written)",
+      "kind": "written",
+      "prompt": "Rewrite this measure so that it is readable and evaluates each part once: `YoY = DIVIDE(CALCULATE([Total Revenue]) - CALCULATE([Total Revenue], SAMEPERIODLASTYEAR(Calendar[date])), CALCULATE([Total Revenue], SAMEPERIODLASTYEAR(Calendar[date])))`. Explain the benefit of each change.",
+      "starter": "YoY =\nVAR ...\nRETURN ...",
+      "solution": "```dax\nYoY % =\nVAR Current = [Total Revenue]\nVAR Prior =\n    CALCULATE([Total Revenue], SAMEPERIODLASTYEAR(Calendar[date]))\nRETURN\n    DIVIDE(Current - Prior, Prior)\n```\n\nThe prior-year value was written twice in the original; as a variable it is evaluated once and named by its meaning. `Current` replaces a needless `CALCULATE` around a measure. The `RETURN` line reads as the definition of growth. Each variable is evaluated in the filter context where it is declared, which here is the cell's own context, so the result is the same as before. A step can be checked by temporarily returning `Prior`.",
+      "rubric": [
+        "Defines Current and Prior with VAR.",
+        "Prior keeps SAMEPERIODLASTYEAR inside CALCULATE.",
+        "RETURN uses DIVIDE of the difference by Prior.",
+        "Mentions single evaluation or readability or debugging."
+      ],
+      "hints": [
+        "Two values are needed: this period and last year's.",
+        "The repeated CALCULATE becomes one variable.",
+        "RETURN DIVIDE(Current - Prior, Prior)."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Rank with the dense rule per category",
+      "kind": "python",
+      "prompt": "For each `category` rank its customers by revenue within that category with the dense rule (rank 1 is the highest). Print the customers of rank 1 and 2 as `category customer_name revenue rank` rows sorted by category then rank, with `to_string(index=False)`. Use `groupby([\"category\", \"customer_name\"])` and `groupby(\"category\").rank(method=\"dense\", ascending=False)`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# dense rank within category\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nrev = fact.groupby([\"category\", \"customer_name\"])[\"revenue\"].sum().reset_index()\nrev[\"rank\"] = rev.groupby(\"category\")[\"revenue\"].rank(method=\"dense\", ascending=False).astype(int)\nout = rev[rev[\"rank\"] <= 2].sort_values([\"category\", \"rank\", \"customer_name\"], kind=\"stable\")\nprint(out.to_string(index=False))\n",
+      "expected": "category customer_name  revenue  rank\nHardware   Customer 06   1590.0     1\nHardware   Customer 16   1560.0     2\nServices   Customer 35   1605.0     1\nServices   Customer 13   1365.0     2\nSoftware   Customer 14   1620.0     1\nSoftware   Customer 32   1237.5     2"
+    },
+    {
+      "id": "i2",
+      "title": "Top-N share per category",
+      "kind": "python",
+      "prompt": "Write a function `top_share(df, n)` returning the share of revenue held by the `n` best customers (by revenue) within `df`. Print `category share` for each category with the share rounded to 4 decimals for `n = 3`, categories in alphabetical order.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef top_share(df, n):\n    pass\n\n# print each category share for n = 3\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef top_share(df, n):\n    by_customer = df.groupby(\"customer_id\")[\"revenue\"].sum()\n    return by_customer.nlargest(n).sum() / by_customer.sum()\n\nfor cat, d in fact.groupby(\"category\"):\n    print(cat, round(float(top_share(d, 3)), 4))\n",
+      "expected": "Hardware 0.1882\nServices 0.1749\nSoftware 0.189"
+    },
+    {
+      "id": "i3",
+      "title": "Weighted price per order (stretch)",
+      "kind": "python",
+      "prompt": "Compare two prices. Print, for each `category`, two numbers: `price_per_unit` = SUMX revenue divided by units, and `mean_row_price` = the mean of `unit_price`. Print them with columns in that order, 2 decimals, `to_string()`, and add a third column `gap` = price_per_unit minus mean_row_price (2 decimals).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# price_per_unit, mean_row_price, gap\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ng = fact.groupby(\"category\").agg(revenue=(\"revenue\", \"sum\"), units=(\"quantity\", \"sum\"), mean_row_price=(\"unit_price\", \"mean\"))\ng[\"price_per_unit\"] = g[\"revenue\"] / g[\"units\"]\ng[\"gap\"] = g[\"price_per_unit\"] - g[\"mean_row_price\"]\nprint(g[[\"price_per_unit\", \"mean_row_price\", \"gap\"]].round(2).to_string())\n",
+      "required": false,
+      "expected": "          price_per_unit  mean_row_price   gap\ncategory                                      \nHardware           51.05           51.31 -0.26\nServices           61.85           62.09 -0.24\nSoftware           55.71           54.29  1.42"
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "DAX variables, SUMX, RANKX and TOPN run in Power BI Desktop (Windows-only) or the Power BI Service in a browser, which this course cannot run. The graded exercises reproduce the results with pandas: row-wise arithmetic, rank and nlargest."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A variable is declared before a CALCULATE that removes a filter, and is used inside it. What value does it have inside?",
+      "options": [
+        "The value in the new, modified context",
+        "The value it had in the context where it was declared",
+        "Blank",
+        "It cannot be used inside CALCULATE"
+      ],
+      "answer": 1,
+      "explanation": "A variable is evaluated once where it is declared and keeps that value. A measure called inside CALCULATE is re-evaluated in the new context. Mixing the two causes shares that are always 100%."
+    },
+    {
+      "id": "c2",
+      "question": "What does SUMX(Sales, Sales[quantity] * RELATED(Products[unit_cost])) do?",
+      "options": [
+        "Multiplies the total quantity by the total unit cost",
+        "Computes quantity times unit cost for each Sales row, then adds the results",
+        "Returns a table",
+        "Averages the product of the two columns"
+      ],
+      "answer": 1,
+      "explanation": "An iterator creates a row context, computes the expression per row and then sums. Multiplying totals gives a different number: 44,654.30 against the true cost of 44,755.00 in the sample."
+    },
+    {
+      "id": "c3",
+      "question": "Four items have values 300, 250, 250 and 200. With the default RANKX tie rule, what is the rank of 200?",
+      "options": [
+        "3",
+        "4",
+        "2",
+        "1"
+      ],
+      "answer": 1,
+      "explanation": "The default skips ranks after a tie, so 1, 2, 2, 4. With the DENSE option the last would be 3."
+    },
+    {
+      "id": "c4",
+      "question": "Why does RANKX usually take ALL(Customers[customer_name]) as its table?",
+      "options": [
+        "To make it faster",
+        "So that every customer is a candidate, not only the one visible in the cell",
+        "To sort ascending",
+        "To remove ties"
+      ],
+      "answer": 1,
+      "explanation": "Without ALL, the table has only the filtered customer, so each row ranks itself first. ALL on the name column keeps other filters such as a country slicer."
+    },
+    {
+      "id": "c5",
+      "question": "What can TOPN(3, ...) return when two rows tie for third place?",
+      "options": [
+        "Always exactly three rows",
+        "Four rows, because tied rows are all returned",
+        "An error",
+        "Two rows"
+      ],
+      "answer": 1,
+      "explanation": "TOPN can return more than N rows when ties occur at the boundary, like nlargest(3, keep=\"all\"). Add a tie-breaker if exactly N rows are required."
+    }
+  ],
+  "id": "a132"
+}

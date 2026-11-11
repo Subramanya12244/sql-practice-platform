@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { classifyError } from "./diagnostics";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { accountsEnabled, getSupabase, send } from "./supabase";
 import { clearLocalData, setDataSink, startDataSync } from "./dataSync";
@@ -71,7 +72,7 @@ export function useAuth(): AuthState {
 const remoteState = (p: Progress): RemoteState => ({
   activeDays: p.activeDays, cards: p.cards, lessons: p.lessons,
   bookmarks: p.bookmarks, read: p.read, dailyGoal: p.dailyGoal, dayCounts: p.dayCounts,
-  plan: p.plan, answers: p.answers, portfolio: p.portfolio, reviews: p.reviews, revision: p.revision, revisionMarks: p.revisionMarks, sessions: p.sessions,
+  plan: p.plan, answers: p.answers, portfolio: p.portfolio, reviews: p.reviews, revision: p.revision, revisionMarks: p.revisionMarks, sessions: p.sessions, mistakes: p.mistakes, daily: p.daily,
   qmeta: Object.fromEntries(
     Object.entries(p.questions)
       .filter(([, q]) => q.practiced || q.imported || q.hintLevel || q.errorKinds || q.lastSql)
@@ -183,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email = (data as string | null) ?? usernameToEmail(email);
     }
     const { error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(friendlyAuthError(error.message));
+    if (error) { classifyError(new Error(error.message), "AUTHENTICATION_ERROR", "account_sync", { code: "AUTH_FAILED" }); throw new Error(friendlyAuthError(error.message)); }
   }, []);
 
   const signUp = useCallback(async (username: string, password: string, email?: string) => {
@@ -193,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: { data: { username: username.trim() }, emailRedirectTo: `${window.location.origin}/account` },
     });
-    if (error) throw new Error(friendlyAuthError(error.message));
+    if (error) { classifyError(new Error(error.message), "AUTHENTICATION_ERROR", "account_sync", { code: "AUTH_FAILED" }); throw new Error(friendlyAuthError(error.message)); }
     return { needsConfirm: !data.session };
   }, []);
 

@@ -1,0 +1,181 @@
+{
+  "id": "e144",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "dwh-data-modelling",
+      "dwh-fact-tables",
+      "dwh-dimension-tables",
+      "dwh-star-schema"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "star-schema-warehouse"
+    ],
+    "mindmaps": [
+      "warehousing-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Check the grain",
+      "kind": "sql",
+      "prompt": "The block builds the warehouse. Replace the last query so that it returns one row with the columns `lines` (rows in `fact_sales`) and `distinct_sales` (distinct `sale_id`).",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nSELECT count(*) AS lines FROM fact_sales;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nSELECT count(*) AS lines, count(DISTINCT sale_id) AS distinct_sales FROM fact_sales;\n",
+      "ordered": true,
+      "hints": [
+        "Both numbers come from `fact_sales` in one query.",
+        "`count(DISTINCT sale_id)` counts the different ids.",
+        "`SELECT count(*) AS lines, count(DISTINCT sale_id) AS distinct_sales FROM fact_sales`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Revenue by category",
+      "kind": "sql",
+      "prompt": "Return `category` and `amount_cents` (sum of the fact's `amount_cents`) for every product category, ordered by `category`, by joining `fact_sales` to `dim_product` on `product_key`.",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nSELECT category FROM dim_product GROUP BY category ORDER BY category;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nSELECT p.category, sum(f.amount_cents) AS amount_cents FROM fact_sales f JOIN dim_product p ON p.product_key = f.product_key GROUP BY p.category ORDER BY p.category;\n",
+      "ordered": true,
+      "hints": [
+        "The fact table is the left table of the join.",
+        "Group by the category column of the dimension.",
+        "`JOIN dim_product p ON p.product_key = f.product_key GROUP BY p.category`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "The correct average price",
+      "kind": "sql",
+      "prompt": "Return one row per `month` of `dim_date` (join on `date_key`) with the columns `month` and `avg_price_cents`, where `avg_price_cents` is `sum(amount_cents) / sum(quantity)` rounded to 1 decimal (cast to numeric first), ordered by `month`.",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nSELECT d.month FROM dim_date d GROUP BY d.month ORDER BY d.month;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nSELECT d.month, round(sum(f.amount_cents)::numeric / sum(f.quantity), 1) AS avg_price_cents FROM fact_sales f JOIN dim_date d ON d.date_key = f.date_key GROUP BY d.month ORDER BY d.month;\n",
+      "ordered": true,
+      "hints": [
+        "A ratio is computed from two sums.",
+        "Cast one sum to `numeric` so that the division is not an integer division.",
+        "`round(sum(f.amount_cents)::numeric / sum(f.quantity), 1)`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Units per country",
+      "kind": "sql",
+      "prompt": "Join `fact_sales` to `dim_customer` and return `country` and `units` (sum of `quantity`) ordered by `country`.",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nSELECT country FROM dim_customer GROUP BY country ORDER BY country;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nSELECT c.country, sum(f.quantity) AS units FROM fact_sales f JOIN dim_customer c ON c.customer_key = f.customer_key GROUP BY c.country ORDER BY c.country;\n",
+      "ordered": true,
+      "hints": [
+        "The country is in the customer dimension.",
+        "Join on `customer_key`.",
+        "Group by `c.country` and sum `f.quantity`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Best category per month",
+      "kind": "sql",
+      "prompt": "For each month of `dim_date`, return the category with the highest `amount_cents` that month: columns `month`, `category`, `amount_cents`, ordered by `month`. (Use a CTE with sums per month and category and `rank()` or `DISTINCT ON`; there are no ties in this data.)",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nSELECT d.month FROM dim_date d GROUP BY d.month ORDER BY d.month;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nWITH s AS (SELECT d.month, p.category, sum(f.amount_cents) AS amount_cents FROM fact_sales f JOIN dim_date d ON d.date_key = f.date_key JOIN dim_product p ON p.product_key = f.product_key GROUP BY d.month, p.category),\nr AS (SELECT *, rank() OVER (PARTITION BY month ORDER BY amount_cents DESC) AS rk FROM s)\nSELECT month, category, amount_cents FROM r WHERE rk = 1 ORDER BY month;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "A fan-out you can measure",
+      "kind": "sql",
+      "prompt": "The table `promo(product_key, promo_name)` lists product 1 twice and product 2 once. Return one row with `true_total` (sum of `amount_cents` of products 1 and 2 from `fact_sales`) and `joined_total` (the same sum after joining `fact_sales` to `promo` on `product_key`).",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE promo (product_key integer, promo_name text);\nINSERT INTO promo VALUES (1, 'spring'), (1, 'clearance'), (2, 'spring');\nSELECT 0 AS true_total, 0 AS joined_total;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE promo (product_key integer, promo_name text);\nINSERT INTO promo VALUES (1, 'spring'), (1, 'clearance'), (2, 'spring');\nSELECT (SELECT sum(amount_cents) FROM fact_sales WHERE product_key IN (1, 2)) AS true_total,\n       (SELECT sum(f.amount_cents) FROM fact_sales f JOIN promo r ON r.product_key = f.product_key) AS joined_total;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Declare a grain",
+      "kind": "written",
+      "prompt": "Choose a process (support tickets, deliveries or library loans). Write the grain sentence, three dimensions, two measures and say whether each measure is additive.",
+      "starter": "Write your design here.",
+      "solution": "Process: deliveries. Grain: one row per parcel delivered. Dimensions: date delivered, customer, carrier (also destination region if parcels have one). Measures: `weight_grams` (additive across all dimensions) and `delivery_minutes` (additive as a sum, but reported as an average computed as sum divided by the number of parcels; a stored `on_time_percent` would be non-additive and is computed from counts instead). Each row has one date, one customer and one carrier, which confirms the grain: nothing in the dimension list has several values per parcel.",
+      "rubric": [
+        "States the grain as one sentence",
+        "Lists dimensions that each take one value at that grain",
+        "Classifies measures and avoids a stored ratio"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What is the grain of `fact_sales` in the warehouse used here?",
+      "options": [
+        "One row per customer",
+        "One row per order line",
+        "One row per day",
+        "One row per product category"
+      ],
+      "answer": 1,
+      "explanation": "Each row is one product bought by one customer on one date; that statement is the grain. The other options describe aggregates built from it."
+    },
+    {
+      "id": "c2",
+      "question": "Why is `sum(amount_cents) / sum(quantity)` a better average price than `avg(amount_cents / quantity)`?",
+      "options": [
+        "It is faster",
+        "It weights each unit equally instead of each order line equally",
+        "It avoids integers",
+        "They are always equal"
+      ],
+      "answer": 1,
+      "explanation": "Averaging per-row prices treats a one-unit line like a fifty-unit line. The ratio of sums is the true average price per unit."
+    },
+    {
+      "id": "c3",
+      "question": "A query joins `fact_sales` to a table with two rows for product 1. What happens to the sum for product 1?",
+      "options": [
+        "It stays the same",
+        "It doubles",
+        "It halves",
+        "The query fails"
+      ],
+      "answer": 1,
+      "explanation": "Every fact row for product 1 matches two rows, so it appears twice. The join changed the grain of the result."
+    },
+    {
+      "id": "c4",
+      "question": "Which belongs in a dimension table?",
+      "options": [
+        "quantity",
+        "amount_cents",
+        "country",
+        "sale_id"
+      ],
+      "answer": 2,
+      "explanation": "Country is a descriptive attribute used to group and filter. Quantity and amount are measures; the sale id identifies a fact row."
+    },
+    {
+      "id": "c5",
+      "question": "Why declare the grain before choosing columns?",
+      "options": [
+        "Grain decides indexes only",
+        "It decides which dimensions and measures make sense and prevents mixing rows at different levels",
+        "It is required by PostgreSQL",
+        "It makes queries shorter"
+      ],
+      "answer": 1,
+      "explanation": "Dimensions and measures are valid only at the declared grain. Most modelling errors come from rows of different grain sharing a table."
+    }
+  ]
+}

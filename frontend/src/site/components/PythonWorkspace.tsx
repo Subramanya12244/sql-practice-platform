@@ -106,6 +106,8 @@ export function PythonWorkspace({
   const [activeFile, setActiveFile] = useState<string>("solution.py");
   const [openTabs, setOpenTabs] = useState<string[]>(["solution.py", "main.py"]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [clientReady, setClientReady] = useState(false);
+  useEffect(() => setClientReady(true), []);
   // On phones the explorer would leave the editor ~150px wide: start collapsed (it stays one tap away).
   useEffect(() => {
     if (window.matchMedia?.("(max-width: 639px)").matches) setSidebarOpen(false);
@@ -632,6 +634,8 @@ export function PythonWorkspace({
 
           {/* Monaco Code Editor */}
           <div className="min-h-0 flex-1">
+            {/* The editor is lazy-loaded: React's server renderer cannot suspend, so prerender and the first client render show the same skeleton and the editor mounts after. */}
+            {!clientReady ? <Skeleton className="h-full rounded-none" /> : (
             <Suspense fallback={<Skeleton className="h-full rounded-none" />}>
               <CodeEditor
                 value={currentContent}
@@ -644,6 +648,7 @@ export function PythonWorkspace({
                 errorMessage={testResult?.message || "Execution error"}
               />
             </Suspense>
+            )}
           </div>
 
           {/* Bottom Resizable Output Panel */}

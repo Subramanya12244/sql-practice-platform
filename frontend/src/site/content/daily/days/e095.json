@@ -1,0 +1,181 @@
+{
+  "id": "e095",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "etl-full-load",
+      "python-etl-pipelines",
+      "join-cardinality"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl",
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "unmatched-records",
+      "find-duplicates"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "The reconciliation line",
+      "kind": "python",
+      "prompt": "Write `reconcile(read, loaded, rejected)` that returns `PASS` or `FAIL` followed by `: read <read> = loaded <loaded> + rejected <rejected>`. The word is `PASS` when `read == loaded + rejected`. Print the result for `(20, 15, 5)` and for `(20, 14, 5)`. Expected output: `PASS: read 20 = loaded 15 + rejected 5` then `FAIL: read 20 = loaded 14 + rejected 5`.",
+      "starter": "def reconcile(read, loaded, rejected):\n    pass\n\nprint(reconcile(20, 15, 5))\nprint(reconcile(20, 14, 5))\n",
+      "solution": "def reconcile(read, loaded, rejected):\n    status = \"PASS\" if read == loaded + rejected else \"FAIL\"\n    return f\"{status}: read {read} = loaded {loaded} + rejected {rejected}\"\n\nprint(reconcile(20, 15, 5))\nprint(reconcile(20, 14, 5))\n",
+      "hints": [
+        "The equation is `read == loaded + rejected`; the line always shows the three numbers.",
+        "Choose the word first with a conditional expression, then build the line with an f-string.",
+        "`status = \"PASS\" if read == loaded + rejected else \"FAIL\"`, then `return f\"{status}: read {read} = loaded {loaded} + rejected {rejected}\"`."
+      ],
+      "expected": "PASS: read 20 = loaded 15 + rejected 5\nFAIL: read 20 = loaded 14 + rejected 5"
+    },
+    {
+      "id": "g2",
+      "title": "An exact control total",
+      "kind": "python",
+      "prompt": "The file's good amounts are the strings in `file_amounts`. The table stores whole cents in `table_cents`. Compute the file total with `Decimal` and the table total as `Decimal(sum(table_cents)) / 100`, and print the line `file=<file total> table=<table total> match=<True or False>`. Expected output: `file=44.30 table=44.30 match=True`.",
+      "starter": "from decimal import Decimal\n\nfile_amounts = [\"19.90\", \"12.50\", \"11.90\"]\ntable_cents = [1990, 1250, 1190]\nprint(\"file=0 table=0 match=False\")\n",
+      "solution": "from decimal import Decimal\n\nfile_amounts = [\"19.90\", \"12.50\", \"11.90\"]\ntable_cents = [1990, 1250, 1190]\nfile_total = sum(Decimal(a) for a in file_amounts)\ntable_total = Decimal(sum(table_cents)) / 100\nprint(f\"file={file_total} table={table_total:.2f} match={file_total == table_total}\")\n",
+      "hints": [
+        "Never add money as floats; build each amount from its text with `Decimal`.",
+        "`sum(Decimal(a) for a in file_amounts)` is the file total; divide the cents total by 100 for the table side.",
+        "Print with an f-string, using `{table_total:.2f}` so both sides show two decimals, and `{file_total == table_total}` for the match."
+      ],
+      "expected": "file=44.30 table=44.30 match=True"
+    },
+    {
+      "id": "g3",
+      "title": "Count the rule breakers",
+      "kind": "sql",
+      "prompt": "On PGlite the table `shipment(shipment_id, weight_kg, carrier)` has defects. Return one report with the columns `check_name` and `violations` and exactly two rows ordered by `check_name`: `duplicate shipment_id` (the number of shipment ids that appear more than once) and `missing weight` (rows where `weight_kg` is NULL). Use `UNION ALL`.",
+      "starter": "CREATE TABLE shipment (shipment_id int, weight_kg numeric(8,2), carrier text);\nINSERT INTO shipment VALUES (1, 10.5, 'A'), (2, NULL, 'A'), (2, 4.0, 'B'), (3, NULL, 'B'), (4, 7.2, 'A'), (4, 7.2, 'A'), (4, 7.2, 'A');\nSELECT 'duplicate shipment_id' AS check_name, 0 AS violations;\n",
+      "solution": "CREATE TABLE shipment (shipment_id int, weight_kg numeric(8,2), carrier text);\nINSERT INTO shipment VALUES (1, 10.5, 'A'), (2, NULL, 'A'), (2, 4.0, 'B'), (3, NULL, 'B'), (4, 7.2, 'A'), (4, 7.2, 'A'), (4, 7.2, 'A');\nSELECT check_name, violations FROM (\n  SELECT 'duplicate shipment_id' AS check_name, count(*) AS violations\n  FROM (SELECT shipment_id FROM shipment GROUP BY shipment_id HAVING count(*) > 1) d\n  UNION ALL\n  SELECT 'missing weight', count(*) FROM shipment WHERE weight_kg IS NULL\n) checks\nORDER BY check_name;\n",
+      "hints": [
+        "Each check is a `SELECT` that returns one text label and one count; `UNION ALL` stacks them.",
+        "Count duplicated ids with a subquery: `SELECT shipment_id FROM shipment GROUP BY shipment_id HAVING count(*) > 1`, then `count(*)` over it.",
+        "Wrap the stacked queries in `SELECT check_name, violations FROM (...) checks ORDER BY check_name`."
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g4",
+      "title": "A hash that ignores order but not content",
+      "kind": "python",
+      "prompt": "Write `digest(rows)` for a list of `(id, amount_text)` tuples: sort the rows, write each as `id|amount`, join with `,`, and return the MD5 hex digest of the UTF-8 text (use `hashlib`). Print `digest(a) == digest(b)` for two lists holding the same rows in a different order, then `digest(a) == digest(c)` where `c` has one amount changed. Expected output: `True` then `False`.",
+      "starter": "import hashlib\n\ndef digest(rows):\n    pass\n\na = [(1, \"5.00\"), (2, \"6.50\"), (3, \"7.25\")]\nb = [(3, \"7.25\"), (1, \"5.00\"), (2, \"6.50\")]\nc = [(1, \"5.00\"), (2, \"6.60\"), (3, \"7.25\")]\nprint(digest(a) == digest(b))\nprint(digest(a) == digest(c))\n",
+      "solution": "import hashlib\n\ndef digest(rows):\n    text = \",\".join(f\"{i}|{amount}\" for i, amount in sorted(rows))\n    return hashlib.md5(text.encode()).hexdigest()\n\na = [(1, \"5.00\"), (2, \"6.50\"), (3, \"7.25\")]\nb = [(3, \"7.25\"), (1, \"5.00\"), (2, \"6.50\")]\nc = [(1, \"5.00\"), (2, \"6.60\"), (3, \"7.25\")]\nprint(digest(a) == digest(b))\nprint(digest(a) == digest(c))\n",
+      "hints": [
+        "Sorting the rows first makes the digest independent of the order they arrive in.",
+        "Build one text such as `1|5.00,2|6.50,3|7.25` with `\",\".join(...)` over the sorted rows.",
+        "`hashlib.md5(text.encode()).hexdigest()` returns the 32-character digest."
+      ],
+      "expected": "True\nFalse"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Assemble the load report",
+      "kind": "python",
+      "prompt": "The tickets pipeline has loaded `rows` into the `ticket` table, and `stats` holds the numbers from the file (7 rows read, 2 rejected, and the expected good rows). Complete `validate_load(conn, stats)` so it returns four lines `<check>: PASS` or `<check>: FAIL` in this order: `reconcile` (read equals table rows plus rejected), `control total` (sum of cost cents in the table equals the expected total in cents, computed with `Decimal` from the expected text), `per priority` (row counts per priority in the table equal those of the expected rows) and `row hash` (an MD5 over the sorted rows written as `id|priority|cost_cents` and joined by `,`, compared between table and expected). The script runs it on the intact table and on a copy where ticket 3 was moved to priority `high`: the count and the total still pass, the other two fail.",
+      "starter": "import hashlib\nimport sqlite3\nfrom decimal import Decimal\n\nrows = [(1, \"high\", \"120.00\"), (2, \"low\", \"35.50\"), (3, \"low\", \"20.00\"), (4, \"high\", \"99.99\"), (5, \"mid\", \"60.00\")]\nstats = {\"read\": 7, \"rejected\": 2, \"rows\": rows}\n\ndef build(rows):\n    conn = sqlite3.connect(\":memory:\")\n    conn.execute(\"CREATE TABLE ticket (ticket_id INTEGER PRIMARY KEY, priority TEXT, cost_cents INTEGER)\")\n    conn.executemany(\"INSERT INTO ticket VALUES (?, ?, ?)\", [(i, p, int(Decimal(c) * 100)) for i, p, c in rows])\n    return conn\n\ndef validate_load(conn, stats):\n    return []\n\ngood = build(rows)\nfor line in validate_load(good, stats):\n    print(line)\nbad = build(rows)\nwith bad:\n    bad.execute(\"UPDATE ticket SET priority = 'high' WHERE ticket_id = 3\")\nfor line in validate_load(bad, stats):\n    print(line)\n",
+      "solution": "import hashlib\nimport sqlite3\nfrom decimal import Decimal\n\nrows = [(1, \"high\", \"120.00\"), (2, \"low\", \"35.50\"), (3, \"low\", \"20.00\"), (4, \"high\", \"99.99\"), (5, \"mid\", \"60.00\")]\nstats = {\"read\": 7, \"rejected\": 2, \"rows\": rows}\n\ndef build(rows):\n    conn = sqlite3.connect(\":memory:\")\n    conn.execute(\"CREATE TABLE ticket (ticket_id INTEGER PRIMARY KEY, priority TEXT, cost_cents INTEGER)\")\n    conn.executemany(\"INSERT INTO ticket VALUES (?, ?, ?)\", [(i, p, int(Decimal(c) * 100)) for i, p, c in rows])\n    return conn\n\ndef validate_load(conn, stats):\n    loaded = conn.execute(\"SELECT ticket_id, priority, cost_cents FROM ticket\").fetchall()\n    want = [(i, p, int(Decimal(c) * 100)) for i, p, c in stats[\"rows\"]]\n    def per_group(items):\n        counts = {}\n        for _, p, _ in items:\n            counts[p] = counts.get(p, 0) + 1\n        return counts\n    def digest(items):\n        return hashlib.md5(\",\".join(f\"{i}|{p}|{c}\" for i, p, c in sorted(items)).encode()).hexdigest()\n    checks = [\n        (\"reconcile\", stats[\"read\"] == len(loaded) + stats[\"rejected\"]),\n        (\"control total\", sum(c for _, _, c in loaded) == sum(c for _, _, c in want)),\n        (\"per priority\", per_group(loaded) == per_group(want)),\n        (\"row hash\", digest(loaded) == digest(want)),\n    ]\n    return [f\"{name}: {'PASS' if ok else 'FAIL'}\" for name, ok in checks]\n\ngood = build(rows)\nfor line in validate_load(good, stats):\n    print(line)\nbad = build(rows)\nwith bad:\n    bad.execute(\"UPDATE ticket SET priority = 'high' WHERE ticket_id = 3\")\nfor line in validate_load(bad, stats):\n    print(line)\n",
+      "expected": "reconcile: PASS\ncontrol total: PASS\nper priority: PASS\nrow hash: PASS\nreconcile: PASS\ncontrol total: PASS\nper priority: FAIL\nrow hash: FAIL"
+    },
+    {
+      "id": "i2",
+      "title": "Per-group reconciliation in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the CTEs `staged(status, n)` and `loaded(status, n)` hold row counts per status for the staging table and the target table. Return the statuses where the two counts differ, including a status that exists on only one side (treat a missing side as 0). Columns: `status`, `staged`, `loaded`, `difference` where `difference` is `staged - loaded`. Order by `status`. Use a `FULL OUTER JOIN` and `coalesce`.",
+      "starter": "WITH staged(status, n) AS (VALUES ('new', 40), ('paid', 120), ('shipped', 60), ('cancelled', 5)),\n     loaded(status, n) AS (VALUES ('new', 40), ('paid', 118), ('shipped', 60), ('returned', 2))\nSELECT status FROM staged ORDER BY status;\n",
+      "solution": "WITH staged(status, n) AS (VALUES ('new', 40), ('paid', 120), ('shipped', 60), ('cancelled', 5)),\n     loaded(status, n) AS (VALUES ('new', 40), ('paid', 118), ('shipped', 60), ('returned', 2))\nSELECT coalesce(s.status, l.status) AS status,\n       coalesce(s.n, 0) AS staged,\n       coalesce(l.n, 0) AS loaded,\n       coalesce(s.n, 0) - coalesce(l.n, 0) AS difference\nFROM staged s\nFULL OUTER JOIN loaded l ON l.status = s.status\nWHERE coalesce(s.n, 0) <> coalesce(l.n, 0)\nORDER BY status;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "The whole pipeline in one function",
+      "kind": "python",
+      "prompt": "Write `process(text)` for the CSV text (columns `sku`, `qty`, `price`). Read it in chunks of 3 as raw text. Reject a row when `qty` is not numeric, `price` is not numeric or is negative, or the `sku` was already accepted (including in an earlier chunk). Load the good rows into an in-memory `sqlite3` table `item(sku TEXT PRIMARY KEY, qty INTEGER, price_cents INTEGER)` (price as whole cents from `Decimal`) in one transaction. Return four lines: `read=<n> loaded=<n> rejected=<n>` (loaded from `SELECT COUNT(*)`), then `reconcile: PASS|FAIL`, `control total: PASS|FAIL` (sum of price cents in the table against the sum over the good rows) and `row hash: PASS|FAIL` (MD5 over sorted `sku|qty|price_cents` rows joined by `,`, table against the good rows). Print the lines.",
+      "starter": "CSV = \"\"\"sku,qty,price\nA1,3,2.50\nB2,x,1.00\nC3,5,4.20\nA1,2,2.50\nD4,1,\nE5,7,3.10\nF6,2,-1.00\nG7,4,6.00\n\"\"\"\n\ndef process(text):\n    return []\n\nfor line in process(CSV):\n    print(line)\n",
+      "solution": "import hashlib\nimport io\nimport sqlite3\nfrom decimal import Decimal\nimport pandas as pd\n\nCSV = \"\"\"sku,qty,price\nA1,3,2.50\nB2,x,1.00\nC3,5,4.20\nA1,2,2.50\nD4,1,\nE5,7,3.10\nF6,2,-1.00\nG7,4,6.00\n\"\"\"\n\ndef process(text):\n    conn = sqlite3.connect(\":memory:\")\n    conn.execute(\"CREATE TABLE item (sku TEXT PRIMARY KEY, qty INTEGER NOT NULL, price_cents INTEGER NOT NULL CHECK (price_cents >= 0))\")\n    seen, read, rejected, good = set(), 0, 0, []\n    for chunk in pd.read_csv(io.StringIO(text), chunksize=3, dtype=str, keep_default_na=False):\n        qty = pd.to_numeric(chunk[\"qty\"], errors=\"coerce\")\n        price = pd.to_numeric(chunk[\"price\"], errors=\"coerce\")\n        bad = qty.isna() | price.isna() | (price < 0) | chunk[\"sku\"].isin(seen) | chunk[\"sku\"].duplicated()\n        ok = chunk[~bad]\n        seen.update(ok[\"sku\"])\n        read += len(chunk)\n        rejected += int(bad.sum())\n        good += [(r.sku, int(r.qty), int(Decimal(r.price) * 100)) for r in ok.itertuples()]\n    with conn:\n        conn.executemany(\"INSERT INTO item VALUES (?, ?, ?)\", good)\n    loaded = conn.execute(\"SELECT sku, qty, price_cents FROM item\").fetchall()\n    def digest(rows):\n        return hashlib.md5(\",\".join(f\"{s}|{q}|{p}\" for s, q, p in sorted(rows)).encode()).hexdigest()\n    lines = [\n        f\"read={read} loaded={len(loaded)} rejected={rejected}\",\n        \"reconcile: \" + (\"PASS\" if read == len(loaded) + rejected else \"FAIL\"),\n        \"control total: \" + (\"PASS\" if sum(p for _, _, p in loaded) == sum(p for _, _, p in good) else \"FAIL\"),\n        \"row hash: \" + (\"PASS\" if digest(loaded) == digest(good) else \"FAIL\"),\n    ]\n    return lines\n\nfor line in process(CSV):\n    print(line)\n",
+      "expected": "read=8 loaded=4 rejected=4\nreconcile: PASS\ncontrol total: PASS\nrow hash: PASS",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A load reports `read=100 loaded=96 rejected=3`. What does the reconciliation say, and what does it tell you?",
+      "options": [
+        "PASS: the numbers are close enough",
+        "FAIL: 96 + 3 = 99, so one row was lost or invented and must be found before any other check matters",
+        "PASS: loaded is less than read",
+        "It cannot be decided without the sum"
+      ],
+      "answer": 1,
+      "explanation": "The equation is exact: read must equal loaded plus rejected. One row is unaccounted for. 'Close enough' hides exactly the kind of loss the check exists to catch."
+    },
+    {
+      "id": "c2",
+      "question": "Two orders have their amounts swapped during a load. Which checks still PASS?",
+      "options": [
+        "Row count and sum of amounts, but not the row hash",
+        "Only the row count",
+        "Row count, sum and row hash",
+        "None"
+      ],
+      "answer": 0,
+      "explanation": "A swap changes no count and leaves the sum unchanged, since the same amounts are still present. The hash is computed over each id with its amount, so it changes."
+    },
+    {
+      "id": "c3",
+      "question": "Why should the loaded-row count come from `SELECT COUNT(*)` on the target table rather than from a counter inside the loader?",
+      "options": [
+        "`COUNT(*)` is faster",
+        "A loader counter reports what the code intended to write, so a bug that skips a write cancels itself out; the table shows what is really there",
+        "SQL counts include rejected rows",
+        "Counters cannot be compared"
+      ],
+      "answer": 1,
+      "explanation": "A check is only independent when it reads the result, not the plan. A counter increments even if the insert failed or was rolled back."
+    },
+    {
+      "id": "c4",
+      "question": "Which query finds orders whose customer does not exist in the `customer` table?",
+      "options": [
+        "`SELECT * FROM orders o JOIN customer c USING (customer_id)`",
+        "`SELECT o.* FROM orders o LEFT JOIN customer c ON c.customer_id = o.customer_id WHERE c.customer_id IS NULL`",
+        "`SELECT * FROM orders WHERE customer_id IS NULL`",
+        "`SELECT customer_id FROM customer EXCEPT SELECT customer_id FROM orders`"
+      ],
+      "answer": 1,
+      "explanation": "The anti-join keeps child rows with no matching parent. The inner join returns only matched rows, the NULL test finds missing ids rather than unknown ones, and the EXCEPT query answers the opposite question (customers without orders)."
+    },
+    {
+      "id": "c5",
+      "question": "The Python side formats an amount as `19.9` and the SQL side as `19.90`. Both hash the same rows in the same order. What happens?",
+      "options": [
+        "The hashes match because the values are equal",
+        "The hashes differ although the data is the same, so both sides must format values identically",
+        "The SQL hash raises an error",
+        "The Python hash ignores decimals"
+      ],
+      "answer": 1,
+      "explanation": "A digest is computed over text, not over numbers. `19.9` and `19.90` are different text, so the digests differ. Fix the format on both sides, for example always two decimals."
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Sample standard deviation by hand",
+      "prompt": "For the list `x`, compute the mean, then the sample variance (sum of squared deviations divided by `n - 1`) and the sample standard deviation. Print the variance and the standard deviation rounded to 3 places on two lines.",
+      "starter": "x = [2, 4, 4, 4, 5, 5, 7, 9]\nprint(sum(x) / len(x))\n",
+      "solution": "x = [2, 4, 4, 4, 5, 5, 7, 9]\nmean = sum(x) / len(x)\nvar = sum((v - mean) ** 2 for v in x) / (len(x) - 1)\nprint(round(var, 3))\nprint(round(var ** 0.5, 3))\n",
+      "hints": [
+        "First the mean, then the deviation of each value from it.",
+        "Square each deviation, add them, and divide by `n - 1` for a sample.",
+        "The standard deviation is `var ** 0.5`."
+      ],
+      "kind": "python",
+      "expected": "4.571\n2.138"
+    },
+    {
+      "id": "g2",
+      "title": "Two ddof conventions",
+      "prompt": "For `x`, print the NumPy population standard deviation, the NumPy sample standard deviation (`ddof=1`) and the pandas standard deviation, each rounded to 3 places, on three lines. The last two must be equal.",
+      "starter": "import numpy as np\nimport pandas as pd\nx = [10, 12, 23, 23, 16, 23, 21, 16]\nprint(len(x))\n",
+      "solution": "import numpy as np\nimport pandas as pd\nx = [10, 12, 23, 23, 16, 23, 21, 16]\nprint(round(float(np.std(x)), 3))\nprint(round(float(np.std(x, ddof=1)), 3))\nprint(round(pd.Series(x).std(), 3))\n",
+      "hints": [
+        "NumPy and pandas have different defaults for the denominator.",
+        "`ddof=1` makes NumPy divide by `n - 1`.",
+        "pandas `std()` already divides by `n - 1`."
+      ],
+      "kind": "python",
+      "expected": "4.899\n5.237\n5.237"
+    },
+    {
+      "id": "g3",
+      "title": "IQR fences",
+      "prompt": "For the series `s`, print the IQR, then the lower and upper fences (1.5 times IQR beyond Q1 and Q3), then the list of values outside the fences, on three lines.",
+      "starter": "import pandas as pd\ns = pd.Series([5, 6, 7, 7, 8, 8, 9, 10, 11, 40])\nprint(s.median())\n",
+      "solution": "import pandas as pd\ns = pd.Series([5, 6, 7, 7, 8, 8, 9, 10, 11, 40])\nq1, q3 = s.quantile([0.25, 0.75])\niqr = q3 - q1\nlow, high = q1 - 1.5 * iqr, q3 + 1.5 * iqr\nprint(iqr)\nprint(low, high)\nprint(s[(s < low) | (s > high)].tolist())\n",
+      "hints": [
+        "`quantile` accepts a list of fractions.",
+        "IQR is `q3 - q1`; fences are `q1 - 1.5 * iqr` and `q3 + 1.5 * iqr`.",
+        "Select with `(s < low) | (s > high)`."
+      ],
+      "kind": "python",
+      "expected": "2.75\n2.875 13.875\n[40]"
+    },
+    {
+      "id": "g4",
+      "title": "Skew and the mean-median gap",
+      "prompt": "For `s`, print the mean, the median and the skewness rounded to 3 places on three lines, then the word `right` when the skewness is greater than 0.5, `left` when it is below -0.5, otherwise `symmetric`.",
+      "starter": "import pandas as pd\ns = pd.Series([1, 1, 2, 2, 2, 3, 3, 4, 12, 20])\nprint(s.sum())\n",
+      "solution": "import pandas as pd\ns = pd.Series([1, 1, 2, 2, 2, 3, 3, 4, 12, 20])\nsk = s.skew()\nprint(round(s.mean(), 3))\nprint(s.median())\nprint(round(sk, 3))\nprint(\"right\" if sk > 0.5 else \"left\" if sk < -0.5 else \"symmetric\")\n",
+      "hints": [
+        "pandas has methods for mean, median and skew.",
+        "Store the skewness in a variable so you can use it twice.",
+        "Use a conditional expression with two thresholds."
+      ],
+      "kind": "python",
+      "expected": "5.0\n2.5\n2.07\nright"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Compare two machines",
+      "prompt": "`a` and `b` are part lengths from two machines. For each print `name mean std iqr` as one line (name, then the three values rounded to 2 places, `std` is the sample standard deviation). Then print one last line: the name of the machine with the smaller IQR, a space, and the number of values outside the 1.5 times IQR fences of the machine with the larger standard deviation.",
+      "starter": "import pandas as pd\nm = {\"a\": pd.Series([50.1, 49.8, 50.0, 50.2, 49.9, 50.3, 49.7]), \"b\": pd.Series([50.5, 49.0, 51.2, 48.5, 50.0, 52.5, 47.0])}\nprint(len(m))\n",
+      "solution": "import pandas as pd\nm = {\"a\": pd.Series([50.1, 49.8, 50.0, 50.2, 49.9, 50.3, 49.7]), \"b\": pd.Series([50.5, 49.0, 51.2, 48.5, 50.0, 52.5, 47.0])}\niqr = {}\nstd = {}\nfor name, s in m.items():\n    q1, q3 = s.quantile([0.25, 0.75])\n    iqr[name] = q3 - q1\n    std[name] = s.std()\n    print(name, round(s.mean(), 2), round(std[name], 2), round(iqr[name], 2))\nsmaller = min(iqr, key=iqr.get)\nwider = max(std, key=std.get)\nq1, q3 = m[wider].quantile([0.25, 0.75])\nout = m[wider][(m[wider] < q1 - 1.5 * (q3 - q1)) | (m[wider] > q3 + 1.5 * (q3 - q1))]\nprint(smaller, len(out))\n",
+      "kind": "python",
+      "expected": "a 50.0 0.22 0.3\nb 49.81 1.82 2.1\na 0"
+    },
+    {
+      "id": "i2",
+      "title": "Histogram counts and the tail",
+      "prompt": "Using `np.histogram(x, bins=5)`, print the five counts as a list, then the percentage of values in the first bin rounded to 1 place, then the skewness of `x` (pandas, rounded to 2 places). Finally print `right tail` if the skewness is positive and the mean exceeds the median, otherwise `no clear tail`.",
+      "starter": "import numpy as np\nimport pandas as pd\nx = [3, 4, 4, 5, 5, 5, 6, 6, 7, 8, 9, 11, 14, 18, 25]\nprint(len(x))\n",
+      "solution": "import numpy as np\nimport pandas as pd\nx = [3, 4, 4, 5, 5, 5, 6, 6, 7, 8, 9, 11, 14, 18, 25]\ncounts, edges = np.histogram(x, bins=5)\nprint(counts.tolist())\nprint(round(100 * counts[0] / len(x), 1))\ns = pd.Series(x)\nprint(round(s.skew(), 2))\nprint(\"right tail\" if s.skew() > 0 and s.mean() > s.median() else \"no clear tail\")\n",
+      "kind": "python",
+      "expected": "[9, 3, 1, 1, 1]\n60.0\n1.73\nright tail"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: spread per group",
+      "required": false,
+      "prompt": "For `t` with columns `shop` and `sale`, build a table per shop with columns `mean`, `std` (sample), `iqr` and `n_out` (number of that shop's values outside its own 1.5 times IQR fences). Round `mean`, `std` and `iqr` to 2 places and print it with `to_string()`.",
+      "starter": "import pandas as pd\nt = pd.DataFrame({\"shop\": list(\"AAAAAABBBBBB\"), \"sale\": [10, 11, 12, 12, 13, 40, 20, 21, 22, 23, 24, 25]})\nprint(t.shape)\n",
+      "solution": "import pandas as pd\nt = pd.DataFrame({\"shop\": list(\"AAAAAABBBBBB\"), \"sale\": [10, 11, 12, 12, 13, 40, 20, 21, 22, 23, 24, 25]})\n\ndef summary(s):\n    q1, q3 = s.quantile([0.25, 0.75])\n    iqr = q3 - q1\n    n_out = int(((s < q1 - 1.5 * iqr) | (s > q3 + 1.5 * iqr)).sum())\n    return pd.Series({\"mean\": round(s.mean(), 2), \"std\": round(s.std(), 2), \"iqr\": round(iqr, 2), \"n_out\": n_out})\n\nprint(t.groupby(\"shop\")[\"sale\"].apply(summary).unstack().to_string())\n",
+      "kind": "python",
+      "expected": "       mean    std  iqr  n_out\nshop                          \nA     16.33  11.64  1.5    1.0\nB     22.50   1.87  2.5    0.0"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`x = [1, 2, 3]`. What do `np.var(x)` and `pd.Series(x).var()` return?",
+      "options": [
+        "0.667 and 1.0",
+        "1.0 and 0.667",
+        "1.0 and 1.0",
+        "0.667 and 0.667"
+      ],
+      "answer": 0,
+      "explanation": "NumPy divides the sum of squared deviations (2) by n = 3 giving 0.667, pandas by n - 1 = 2 giving 1.0. Using `ddof=1` in NumPy would make them agree."
+    },
+    {
+      "id": "c2",
+      "question": "Two datasets both have mean 50. Dataset A has standard deviation 1, B has 30. What follows?",
+      "options": [
+        "B's values are more spread out",
+        "A has the larger median",
+        "B has more values",
+        "A has outliers"
+      ],
+      "answer": 0,
+      "explanation": "The standard deviation measures spread, so B varies much more. It says nothing about the median, the number of values or the presence of outliers by itself."
+    },
+    {
+      "id": "c3",
+      "question": "Q1 = 10 and Q3 = 20. Which value is above the upper IQR fence?",
+      "options": [
+        "34",
+        "30",
+        "25",
+        "35 is the only one"
+      ],
+      "answer": 0,
+      "explanation": "IQR is 10, so the upper fence is 20 + 1.5 * 10 = 35. A value of 34 is within it. Only values above 35 are flagged, so none of 25, 30 and 34 is."
+    },
+    {
+      "id": "c4",
+      "question": "A dataset has positive skewness. What is most likely true?",
+      "options": [
+        "Mean is above median",
+        "Median is above mean",
+        "Mean equals median",
+        "All values are positive"
+      ],
+      "answer": 0,
+      "explanation": "Positive skew means a long right tail, which pulls the mean above the median. Negative values can still occur in a right-skewed set."
+    },
+    {
+      "id": "c5",
+      "question": "You draw a histogram with 3 bins and see one bar holding almost all data. What is the sensible next step?",
+      "options": [
+        "Conclude the data has no shape",
+        "Try more bins before concluding",
+        "Remove the largest value",
+        "Use only the mean"
+      ],
+      "answer": 1,
+      "explanation": "Too few bins hide the shape. Trying other bin counts shows whether there is a peak and a tail. Removing values or ignoring the spread are not responses to a coarse histogram."
+    }
+  ],
+  "id": "d087"
+}

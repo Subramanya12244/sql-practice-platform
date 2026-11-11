@@ -1,0 +1,189 @@
+{
+  "id": "a171",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 60,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [
+      149,
+      152
+    ],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline",
+      "end-to-end-pipeline"
+    ],
+    "mindmaps": [
+      "interview-patterns"
+    ],
+    "patterns": [
+      "top-n-per-group"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Build a timetable",
+      "kind": "python",
+      "prompt": "A 45-minute mock has sections `SQL` (20), `Statistics` (10), `Python` (15). Print one line per section as `<start>-<end> <name>` with times as `HH:MM` starting at 14:00, then `total: <minutes> minutes`.",
+      "starter": "schedule = [(\"SQL\", 20), (\"Statistics\", 10), (\"Python\", 15)]\n# print the timetable\n",
+      "solution": "schedule = [(\"SQL\", 20), (\"Statistics\", 10), (\"Python\", 15)]\nt = 14 * 60\nfor name, minutes in schedule:\n    print(f\"{t // 60:02d}:{t % 60:02d}-{(t + minutes) // 60:02d}:{(t + minutes) % 60:02d} {name}\")\n    t += minutes\nprint(\"total:\", sum(m for _, m in schedule), \"minutes\")\n",
+      "expected": "14:00-14:20 SQL\n14:20-14:30 Statistics\n14:30-14:45 Python\ntotal: 45 minutes",
+      "hints": [
+        "Work in minutes since midnight and keep a running start time.",
+        "Convert with `// 60` and `% 60`.",
+        "Format with `:02d` and add the section minutes after each line."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Weighted rubric score",
+      "kind": "python",
+      "prompt": "Weights are correctness 3, explanation 2, checks 3, pacing 1. Scores (1 to 4) are correctness 4, explanation 2, checks 3, pacing 1. Print `weighted: <percent with 1 decimal>%` where percent = weighted sum divided by (4 times the sum of weights) times 100.",
+      "starter": "weights = {\"correctness\": 3, \"explanation\": 2, \"checks\": 3, \"pacing\": 1}\nscores = {\"correctness\": 4, \"explanation\": 2, \"checks\": 3, \"pacing\": 1}\n# weighted percent\n",
+      "solution": "weights = {\"correctness\": 3, \"explanation\": 2, \"checks\": 3, \"pacing\": 1}\nscores = {\"correctness\": 4, \"explanation\": 2, \"checks\": 3, \"pacing\": 1}\npercent = sum(weights[c] * scores[c] for c in weights) / (4 * sum(weights.values())) * 100\nprint(f\"weighted: {percent:.1f}%\")\n",
+      "expected": "weighted: 72.2%",
+      "hints": [
+        "Multiply each score by its weight and add them up.",
+        "The maximum possible is 4 times the sum of the weights.",
+        "Divide, multiply by 100 and format with `:.1f`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Find the weakest areas",
+      "kind": "python",
+      "prompt": "From the ratings below print the three lowest-rated areas, lowest first with ties in alphabetical order, as `<area>: <rating>`.",
+      "starter": "ratings = {\"SQL\": 4, \"Excel\": 3, \"Statistics\": 2, \"DAX\": 2, \"Charts\": 4, \"Python\": 3}\n# three weakest\n",
+      "solution": "ratings = {\"SQL\": 4, \"Excel\": 3, \"Statistics\": 2, \"DAX\": 2, \"Charts\": 4, \"Python\": 3}\nfor area, rating in sorted(ratings.items(), key=lambda kv: (kv[1], kv[0]))[:3]:\n    print(f\"{area}: {rating}\")\n",
+      "expected": "DAX: 2\nStatistics: 2\nExcel: 3",
+      "hints": [
+        "Sort the items by rating, then name.",
+        "Use `key=lambda kv: (kv[1], kv[0])`.",
+        "Take the first three with slicing."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "A behavioural answer",
+      "kind": "written",
+      "prompt": "Write a 90-word answer to `Tell me about a time you found an error in your own analysis` using situation, task, action and result, with a number in the result.",
+      "starter": "Situation:\nTask:\nAction:\nResult:",
+      "solution": "Situation: In a monthly sales report I noticed that the regional totals added up to less than the overall total. Task: I needed to find the gap before the report went to the regional managers. Action: I compared row counts at each step and found that an inner join had dropped 3 orders whose customer id was missing from the customer table. I changed it to a left join, showed those orders under an Unknown region, and added a reconciliation check. Result: the regional figures matched the total again, 1,025 pounds of revenue was recovered in the report, and the check now runs in every monthly refresh.",
+      "hints": [
+        "What was the error and why did it matter?",
+        "What exactly did you do?",
+        "What number shows it was fixed?"
+      ],
+      "rubric": [
+        "Covers situation, task, action and result.",
+        "Action is specific and longer than the situation.",
+        "Result contains a number and a lasting improvement."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Portfolio checklist",
+      "kind": "python",
+      "prompt": "Write `review(project, checklist)` returning a dict with `missing` (checklist items that are missing or empty, in checklist order) and `score` (completeness as a percentage rounded to 0 decimals as int). Print it for the project below and checklist `['question', 'data', 'checks', 'charts', 'caveats']`.",
+      "starter": "project = {\"question\": \"Which region grows fastest?\", \"data\": \"orders.csv\", \"checks\": [], \"charts\": [\"growth by region\"], \"caveats\": \"six months only\"}\n\n\ndef review(project, checklist):\n    pass\n\n\nprint(review(project, [\"question\", \"data\", \"checks\", \"charts\", \"caveats\"]))\n",
+      "solution": "project = {\"question\": \"Which region grows fastest?\", \"data\": \"orders.csv\", \"checks\": [], \"charts\": [\"growth by region\"], \"caveats\": \"six months only\"}\n\n\ndef review(project, checklist):\n    missing = [item for item in checklist if not project.get(item)]\n    return {\"missing\": missing, \"score\": int(round((len(checklist) - len(missing)) / len(checklist) * 100))}\n\n\nprint(review(project, [\"question\", \"data\", \"checks\", \"charts\", \"caveats\"]))\n",
+      "expected": "{'missing': ['checks'], 'score': 80}"
+    },
+    {
+      "id": "i2",
+      "title": "What improved between mocks",
+      "kind": "python",
+      "prompt": "Two mocks are scored on the same criteria. Print the criteria that improved (second score higher) as `up: <list>`, those that fell as `down: <list>` and the total weighted change as `change: <points>` where weighted change is the sum of weight times score difference. Lists in the order of the `weights` dictionary.",
+      "starter": "weights = {\"correctness\": 3, \"explanation\": 2, \"checks\": 3, \"pacing\": 1}\nm1 = {\"correctness\": 3, \"explanation\": 3, \"checks\": 1, \"pacing\": 3}\nm2 = {\"correctness\": 4, \"explanation\": 3, \"checks\": 3, \"pacing\": 2}\n",
+      "solution": "weights = {\"correctness\": 3, \"explanation\": 2, \"checks\": 3, \"pacing\": 1}\nm1 = {\"correctness\": 3, \"explanation\": 3, \"checks\": 1, \"pacing\": 3}\nm2 = {\"correctness\": 4, \"explanation\": 3, \"checks\": 3, \"pacing\": 2}\nprint(\"up:\", [c for c in weights if m2[c] > m1[c]])\nprint(\"down:\", [c for c in weights if m2[c] < m1[c]])\nprint(\"change:\", sum(weights[c] * (m2[c] - m1[c]) for c in weights))\n",
+      "expected": "up: ['correctness', 'checks']\ndown: ['pacing']\nchange: 8"
+    },
+    {
+      "id": "i3",
+      "title": "Two-week plan",
+      "kind": "written",
+      "prompt": "Using your own honest ratings, write a two-week plan: your three weakest areas, one concrete task for each (with a time-box and a way to check it), when you will run the second mock, and which portfolio project you will review with the checklist and what you expect to fix.",
+      "starter": "Weakest areas:\nTasks:\nSecond mock:\nPortfolio:",
+      "solution": "Weakest areas (example): statistics and tests, DAX measures, star schema. Tasks: for statistics, redo the A/B test and the Bayes questions of Day 169 on fresh numbers in 45 minutes and check them with scipy; for DAX, write five measures (total, percent of all, average order value, YTD, UK revenue) on the sample model and reproduce each number in pandas; for the star schema, split a flat table into a fact and two dimensions and prove the split with a merge back, 30 minutes. Second mock: day 10, 60 minutes, new questions, scored with the same rubric and compared by criterion. Portfolio: the analytics mini-project; I expect to add a caveats section and a README that explains how to run it from the raw file, and to show the row accounting at the top.",
+      "rubric": [
+        "Names three weak areas honestly.",
+        "Each has a concrete task, time-box and check.",
+        "Schedules the second mock and a comparison.",
+        "Reviews a project with the checklist and names expected fixes."
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why score a mock interview with a rubric and evidence per criterion?",
+      "options": [
+        "It ties a score to what happened and shows what to change",
+        "It makes the total higher",
+        "It replaces practice",
+        "It is required by interviewers"
+      ],
+      "answer": 0,
+      "explanation": "A score without evidence cannot guide improvement; a note such as 'did not test for NULLs' shows the habit to fix."
+    },
+    {
+      "id": "c2",
+      "question": "Criteria weights are 3, 2, 3 and 1. Which statement is true of a weighted score?",
+      "options": [
+        "Improving a heavily weighted criterion changes the total more than the plain average suggests",
+        "It equals the plain average",
+        "Weights must sum to 100",
+        "Only the first criterion counts"
+      ],
+      "answer": 0,
+      "explanation": "The weighted sum multiplies each score by its weight, so heavy criteria move the total most."
+    },
+    {
+      "id": "c3",
+      "question": "Which item is most often missing from analyst portfolio projects?",
+      "options": [
+        "Caveats and a reproducibility note",
+        "A title",
+        "A chart",
+        "A dataset"
+      ],
+      "answer": 0,
+      "explanation": "Reviewers want to know what the data cannot show and whether they can rerun the work; both are easy to omit."
+    },
+    {
+      "id": "c4",
+      "question": "The mock runs out of time halfway through a question. What is the best move?",
+      "options": [
+        "State what you would do next and why",
+        "Stop talking",
+        "Start over",
+        "Skip the explanation"
+      ],
+      "answer": 0,
+      "explanation": "Showing the plan and the check you would run still demonstrates how you work; silence gives the interviewer nothing."
+    },
+    {
+      "id": "c5",
+      "question": "A skills self-assessment rates every area 4 or 5. What is the problem?",
+      "options": [
+        "It gives no weak areas to improve and probably overrates",
+        "It is perfect",
+        "It is too short",
+        "Ratings cannot be numbers"
+      ],
+      "answer": 0,
+      "explanation": "A useful rating reflects what you could do on a blank page; uniform high ratings usually mean the check was not honest."
+    }
+  ]
+}

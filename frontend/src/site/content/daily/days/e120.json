@@ -1,0 +1,169 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-architecture",
+      "elt-architecture",
+      "etl-transformation"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "latest-record-per-group"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Clean an amount",
+      "kind": "python",
+      "prompt": "Write `clean_amount(text)` that removes `$` and `,` and spaces from the text and returns the amount in whole cents as an `int` (`round(float(value) * 100)`), or `None` when the text is not a number. Print the results for `\"$1,250.00\"`, `\"19.90\"` and `\"abc\"`, one per line. Expected output: `125000`, `1990`, `None`.",
+      "starter": "def clean_amount(text):\n    pass\n\nfor t in [\"$1,250.00\", \"19.90\", \"abc\"]:\n    print(clean_amount(t))\n",
+      "solution": "def clean_amount(text):\n    cleaned = text.replace(\"$\", \"\").replace(\",\", \"\").strip()\n    try:\n        return round(float(cleaned) * 100)\n    except ValueError:\n        return None\n\nfor t in [\"$1,250.00\", \"19.90\", \"abc\"]:\n    print(clean_amount(t))\n",
+      "hints": [
+        "Remove the characters first, then try to convert.",
+        "`float(cleaned)` raises `ValueError` for text that is not a number; catch it and return `None`.",
+        "`return round(float(cleaned) * 100)` inside `try`, `return None` in `except ValueError`."
+      ],
+      "expected": "125000\n1990\nNone"
+    },
+    {
+      "id": "g2",
+      "title": "Latest per key",
+      "kind": "python",
+      "prompt": "Write `dedupe_latest(rows)` that keeps, for each `order_id`, the row with the largest `updated_at` text and returns the kept rows sorted by `order_id`. Print the list of `(order_id, status)` pairs for the starter rows. Expected output: `[(1, 'paid'), (3, 'refunded')]`.",
+      "starter": "def dedupe_latest(rows):\n    pass\n\nrows = [{\"order_id\": 3, \"status\": \"paid\", \"updated_at\": \"2025-03-02\"}, {\"order_id\": 1, \"status\": \"paid\", \"updated_at\": \"2025-03-01\"}, {\"order_id\": 3, \"status\": \"refunded\", \"updated_at\": \"2025-03-03\"}]\nprint([(r[\"order_id\"], r[\"status\"]) for r in dedupe_latest(rows)])\n",
+      "solution": "def dedupe_latest(rows):\n    latest = {}\n    for row in rows:\n        key = row[\"order_id\"]\n        if key not in latest or row[\"updated_at\"] >= latest[key][\"updated_at\"]:\n            latest[key] = row\n    return [latest[key] for key in sorted(latest)]\n\nrows = [{\"order_id\": 3, \"status\": \"paid\", \"updated_at\": \"2025-03-02\"}, {\"order_id\": 1, \"status\": \"paid\", \"updated_at\": \"2025-03-01\"}, {\"order_id\": 3, \"status\": \"refunded\", \"updated_at\": \"2025-03-03\"}]\nprint([(r[\"order_id\"], r[\"status\"]) for r in dedupe_latest(rows)])\n",
+      "hints": [
+        "Keep one row per key in a dictionary.",
+        "Replace the stored row when the new row's `updated_at` is at least as large.",
+        "Finish with `[latest[key] for key in sorted(latest)]`."
+      ],
+      "expected": "[(1, 'paid'), (3, 'refunded')]"
+    },
+    {
+      "id": "g3",
+      "title": "The ELT staging step",
+      "kind": "python",
+      "prompt": "The in-memory table `stg(order_id, amount)` holds text. Run one SQL statement that creates the table `clean(order_id INTEGER, cents INTEGER)` from `stg` with `CAST(order_id AS INTEGER)` and `CAST(ROUND(CAST(amount AS REAL) * 100) AS INTEGER)`, keeping only rows where `amount GLOB '[0-9]*'`. Print `SELECT * FROM clean ORDER BY order_id` as a list. Expected output: `[(1, 1990), (3, 400)]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE stg (order_id TEXT, amount TEXT)\")\nconn.executemany(\"INSERT INTO stg VALUES (?, ?)\", [(\"1\", \"19.90\"), (\"2\", \"n/a\"), (\"3\", \"4.00\")])\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE stg (order_id TEXT, amount TEXT)\")\nconn.executemany(\"INSERT INTO stg VALUES (?, ?)\", [(\"1\", \"19.90\"), (\"2\", \"n/a\"), (\"3\", \"4.00\")])\nconn.execute(\"\"\"CREATE TABLE clean AS\n    SELECT CAST(order_id AS INTEGER) AS order_id, CAST(ROUND(CAST(amount AS REAL) * 100) AS INTEGER) AS cents\n    FROM stg WHERE amount GLOB '[0-9]*'\"\"\")\nprint(conn.execute(\"SELECT * FROM clean ORDER BY order_id\").fetchall())\n",
+      "hints": [
+        "`CREATE TABLE clean AS SELECT ...` builds the table from a query.",
+        "Filter with `WHERE amount GLOB '[0-9]*'` so `n/a` is dropped.",
+        "Alias the two columns as `order_id` and `cents`."
+      ],
+      "expected": "[(1, 1990), (3, 400)]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "ETL and ELT must agree",
+      "kind": "python",
+      "prompt": "In the starter, `stg(sku, price)` holds text rows. Build the clean result twice: with a Python function (`price` with `$` removed, converted with `float`, rows with a non-numeric price rejected) and with one SQL statement in SQLite (`replace(price, '$', '')`, `GLOB '[0-9]*'`, `CAST(... AS REAL)`). Print the Python list of `(sku, price)` sorted by sku, the SQL list the same way, and `agree: True` or `agree: False`. Keep prices as floats.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE stg (sku TEXT, price TEXT)\")\nconn.executemany(\"INSERT INTO stg VALUES (?, ?)\", [(\"A\", \"$10.50\"), (\"B\", \"n/a\"), (\"C\", \"7\"), (\"D\", \"$2.25\")])\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE stg (sku TEXT, price TEXT)\")\nconn.executemany(\"INSERT INTO stg VALUES (?, ?)\", [(\"A\", \"$10.50\"), (\"B\", \"n/a\"), (\"C\", \"7\"), (\"D\", \"$2.25\")])\n\nvia_python = []\nfor sku, price in conn.execute(\"SELECT sku, price FROM stg\").fetchall():\n    try:\n        via_python.append((sku, float(price.replace(\"$\", \"\"))))\n    except ValueError:\n        pass\nvia_python.sort()\nvia_sql = conn.execute(\"SELECT sku, CAST(replace(price, '$', '') AS REAL) FROM stg WHERE replace(price, '$', '') GLOB '[0-9]*' ORDER BY sku\").fetchall()\nprint(via_python)\nprint(via_sql)\nprint(\"agree:\", via_python == via_sql)\n",
+      "expected": "[('A', 10.5), ('C', 7.0), ('D', 2.25)]\n[('A', 10.5), ('C', 7.0), ('D', 2.25)]\nagree: True"
+    },
+    {
+      "id": "i2",
+      "title": "Layer counts",
+      "kind": "python",
+      "prompt": "Create `raw(id, amount)` with the rows in the starter (amounts as text), then `clean(id, amount)` containing the numeric rows only with the amount as a float, then `mart(total)` with one row, the sum of the clean amounts. Print `raw <n> clean <n> mart <total>` where the total is rounded to 2 decimals. Use only SQL to build `clean` and `mart`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE raw (id TEXT, amount TEXT)\")\nconn.executemany(\"INSERT INTO raw VALUES (?, ?)\", [(\"1\", \"10.5\"), (\"2\", \"oops\"), (\"3\", \"4.25\"), (\"4\", \"\"), (\"5\", \"5\")])\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE raw (id TEXT, amount TEXT)\")\nconn.executemany(\"INSERT INTO raw VALUES (?, ?)\", [(\"1\", \"10.5\"), (\"2\", \"oops\"), (\"3\", \"4.25\"), (\"4\", \"\"), (\"5\", \"5\")])\nconn.execute(\"CREATE TABLE clean AS SELECT CAST(id AS INTEGER) AS id, CAST(amount AS REAL) AS amount FROM raw WHERE amount GLOB '[0-9]*'\")\nconn.execute(\"CREATE TABLE mart AS SELECT SUM(amount) AS total FROM clean\")\ncount = lambda t: conn.execute(f\"SELECT COUNT(*) FROM {t}\").fetchone()[0]\nprint(\"raw\", count(\"raw\"), \"clean\", count(\"clean\"), \"mart\", round(conn.execute(\"SELECT total FROM mart\").fetchone()[0], 2))\n",
+      "expected": "raw 5 clean 3 mart 19.75"
+    },
+    {
+      "id": "i3",
+      "title": "ETL or ELT?",
+      "kind": "written",
+      "prompt": "For each case choose ETL, ELT or a mix, and justify it in two sentences: (a) a nightly export of 200 million sensor rows into a cloud warehouse where analysts own the business rules; (b) a payments file containing card numbers that must never reach the analytics database; (c) a 50,000-row CSV from a partner whose format changes monthly and whose old files are deleted after a week. Then say which layer you would keep in each case so a wrong rule can be fixed.",
+      "starter": "(a)\n(b)\n(c)\nLayer to keep:\n",
+      "solution": "(a) ELT: the warehouse engine scales to 200 million rows, analysts can read and change SQL rules, and loading raw data first keeps reprocessing cheap. Keep the raw layer. (b) ETL, at least for the sensitive columns: mask or drop card numbers in code before loading, so the target never holds them; the transformation that can run in SQL afterwards can still be ELT. Keep a masked staging layer, not the raw file in the analytics database. (c) A mix: load the file as text into a raw table at once (the source files vanish, so raw must be stored), then transform in SQL or code with the rules for the current format; keep the raw layer because the source cannot be re-read and the format changes often.",
+      "required": false,
+      "rubric": [
+        "Case (a) is ELT with a reason tied to volume or rules ownership.",
+        "Case (b) removes sensitive data before it reaches the target (ETL at the edge).",
+        "Case (c) stores raw first because the source files disappear.",
+        "Names the layer kept in each case (raw, or masked staging for case b)."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "In ELT, where does the transformation run?",
+      "options": [
+        "In a Python process before loading",
+        "Inside the target database after the raw data is loaded",
+        "In the source system",
+        "In the file system"
+      ],
+      "answer": 1,
+      "explanation": "ELT loads raw data first and uses the target's own engine, usually SQL, for the transformation. Transforming before loading is ETL."
+    },
+    {
+      "id": "c2",
+      "question": "Why stage raw data as text columns?",
+      "options": [
+        "Text is faster",
+        "So the first malformed value cannot make the whole load fail; validation happens afterwards",
+        "SQL cannot store numbers",
+        "It saves disk"
+      ],
+      "answer": 1,
+      "explanation": "Strict types in the staging table reject the entire load at the first bad value. Text accepts everything, and the transform step decides what is valid."
+    },
+    {
+      "id": "c3",
+      "question": "`CAST('abc' AS REAL)` in SQLite returns:",
+      "options": [
+        "An error",
+        "0.0, a silent wrong value",
+        "NULL",
+        "'abc'"
+      ],
+      "answer": 1,
+      "explanation": "SQLite casts non-numeric text to 0.0 without complaint, which is why a guard such as GLOB (or a validation step) is needed before casting. PostgreSQL would raise an error instead."
+    },
+    {
+      "id": "c4",
+      "question": "A rule changes. Which design makes the fix a rerun, not a re-extraction?",
+      "options": [
+        "Keeping only the transformed rows",
+        "Keeping the raw layer and rebuilding clean from it",
+        "Editing the clean table by hand",
+        "Adding a mart table"
+      ],
+      "answer": 1,
+      "explanation": "With raw kept, clean can be dropped and rebuilt with the new rule. Without it you must ask the source again, which may no longer have the data."
+    },
+    {
+      "id": "c5",
+      "question": "Which case best fits ETL?",
+      "options": [
+        "Large volume, SQL-capable warehouse, analysts own rules",
+        "Sensitive columns must be removed before reaching the analytics database",
+        "Frequent rule changes",
+        "Raw data must be kept for audits"
+      ],
+      "answer": 1,
+      "explanation": "Removing or masking data before it reaches the target needs the transformation to run first. The other cases favour ELT."
+    }
+  ],
+  "id": "e120"
+}

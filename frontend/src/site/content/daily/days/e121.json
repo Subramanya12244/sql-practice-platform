@@ -1,0 +1,169 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-extraction",
+      "etl-transformation",
+      "python-etl-pipelines",
+      "python-functions"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A pure transform step",
+      "kind": "python",
+      "prompt": "Write `transform(rows)` taking a list of dicts with `id` and `amount` (text) and returning a list of `(id, cents)` tuples for the rows whose amount converts to a float (cents is `round(float(amount) * 100)`), skipping the others and not changing `rows`. Print the result and then `len(rows)` to show the input is untouched. Expected output: `[(1, 1990), (3, 500)]` then `3`.",
+      "starter": "def transform(rows):\n    pass\n\nrows = [{\"id\": 1, \"amount\": \"19.90\"}, {\"id\": 2, \"amount\": \"n/a\"}, {\"id\": 3, \"amount\": \"5\"}]\nprint(transform(rows))\nprint(len(rows))\n",
+      "solution": "def transform(rows):\n    out = []\n    for row in rows:\n        try:\n            out.append((row[\"id\"], round(float(row[\"amount\"]) * 100)))\n        except ValueError:\n            continue\n    return out\n\nrows = [{\"id\": 1, \"amount\": \"19.90\"}, {\"id\": 2, \"amount\": \"n/a\"}, {\"id\": 3, \"amount\": \"5\"}]\nprint(transform(rows))\nprint(len(rows))\n",
+      "hints": [
+        "Build a new list; never remove from `rows`.",
+        "`float(text)` raises `ValueError` for `n/a`; catch it and skip the row.",
+        "Append `(row[\"id\"], round(float(row[\"amount\"]) * 100))` inside `try`, `continue` in `except ValueError`."
+      ],
+      "expected": "[(1, 1990), (3, 500)]\n3"
+    },
+    {
+      "id": "g2",
+      "title": "A table-driven test",
+      "kind": "python",
+      "prompt": "Below is a `parse_status` function and a list `CASES` of `(input, expected)` pairs. Write the loop that collects the failing cases as `(input, expected, actual)` tuples and print `cases=<n> failures=<list>`. Because the function has a bug for one input, the output shows exactly one failure. Expected output: `cases=4 failures=[(' PAID ', 'paid', 'paid ')]`.",
+      "starter": "def parse_status(text):\n    return text.lstrip().lower()\n\nCASES = [(\"paid\", \"paid\"), (\"PAID\", \"paid\"), (\" PAID \", \"paid\"), (\"Failed\", \"failed\")]\n# Your code here\n",
+      "solution": "def parse_status(text):\n    return text.lstrip().lower()\n\nCASES = [(\"paid\", \"paid\"), (\"PAID\", \"paid\"), (\" PAID \", \"paid\"), (\"Failed\", \"failed\")]\nfailures = [(text, expected, parse_status(text)) for text, expected in CASES if parse_status(text) != expected]\nprint(f\"cases={len(CASES)} failures={failures}\")\n",
+      "hints": [
+        "Loop over the cases and compare the actual result with the expected one.",
+        "A list comprehension with `if parse_status(text) != expected` collects the failures.",
+        "`failures = [(text, expected, parse_status(text)) for text, expected in CASES if parse_status(text) != expected]`"
+      ],
+      "expected": "cases=4 failures=[(' PAID ', 'paid', 'paid ')]"
+    },
+    {
+      "id": "g3",
+      "title": "Inject the source and the sink",
+      "kind": "python",
+      "prompt": "Write `run(source, sink)`: call `source()` to get a list of numbers, keep the even ones, call `sink(kept)` once with that list, and return the dict `{\"read\": <count read>, \"loaded\": <count kept>}`. Test it with `lambda: [1, 2, 3, 4, 6]` as the source and a list's `extend` as the sink. Print the result, then the list. Expected output: `{'read': 5, 'loaded': 3}` then `[2, 4, 6]`.",
+      "starter": "def run(source, sink):\n    pass\n\ncaptured = []\nprint(run(lambda: [1, 2, 3, 4, 6], captured.extend))\nprint(captured)\n",
+      "solution": "def run(source, sink):\n    numbers = source()\n    kept = [n for n in numbers if n % 2 == 0]\n    sink(kept)\n    return {\"read\": len(numbers), \"loaded\": len(kept)}\n\ncaptured = []\nprint(run(lambda: [1, 2, 3, 4, 6], captured.extend))\nprint(captured)\n",
+      "hints": [
+        "Call `source()` once and keep the list.",
+        "Filter with `n % 2 == 0`, then call `sink(kept)`.",
+        "Return `{\"read\": len(numbers), \"loaded\": len(kept)}`."
+      ],
+      "expected": "{'read': 5, 'loaded': 3}\n[2, 4, 6]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Modular order pipeline",
+      "kind": "python",
+      "prompt": "Write `extract(text)` (CSV text to list of dicts with `csv.DictReader`), `transform(rows)` returning `(good, rejected)` where a row is rejected when its `qty` is not a positive integer, good rows becoming `(sku, int(qty))` tuples, and `run(source, sink)` returning `{\"read\": ..., \"loaded\": ..., \"rejected\": ...}` after calling `sink(good)`. Run it on the CSV text in the starter with a list as the sink and print the result then the loaded list.",
+      "starter": "import csv\nimport io\n\nTEXT = \"sku,qty\\nA,3\\nB,0\\nC,x\\nD,12\\n\"\n# Your code here\n",
+      "solution": "import csv\nimport io\n\nTEXT = \"sku,qty\\nA,3\\nB,0\\nC,x\\nD,12\\n\"\n\ndef extract(text):\n    return list(csv.DictReader(io.StringIO(text)))\n\ndef transform(rows):\n    good, rejected = [], []\n    for row in rows:\n        qty = row[\"qty\"]\n        if qty.isdigit() and int(qty) > 0:\n            good.append((row[\"sku\"], int(qty)))\n        else:\n            rejected.append(row[\"sku\"])\n    return good, rejected\n\ndef run(source, sink):\n    rows = extract(source())\n    good, rejected = transform(rows)\n    sink(good)\n    return {\"read\": len(rows), \"loaded\": len(good), \"rejected\": len(rejected)}\n\nloaded = []\nprint(run(lambda: TEXT, loaded.extend))\nprint(loaded)\n",
+      "expected": "{'read': 4, 'loaded': 2, 'rejected': 2}\n[('A', 3), ('D', 12)]"
+    },
+    {
+      "id": "i2",
+      "title": "Tests for the run",
+      "kind": "python",
+      "prompt": "Using the `run` function in the starter (which returns `(loaded_count, error_or_None)` and never raises), write `check()` that returns a list of three strings: `ok path: PASS/FAIL` (source returns `[1, 2, 3]`, expect `(3, None)`), `empty input: PASS/FAIL` (source returns `[]`, expect `(0, None)`), `failing source: PASS/FAIL` (source raises `ConnectionError`, expect `(0, \"ConnectionError\")`). Print each string on its own line.",
+      "starter": "def run(source, sink):\n    try:\n        rows = source()\n    except Exception as exc:\n        return 0, type(exc).__name__\n    sink(rows)\n    return len(rows), None\n\ndef check():\n    return []\n\nfor line in check():\n    print(line)\n",
+      "solution": "def run(source, sink):\n    try:\n        rows = source()\n    except Exception as exc:\n        return 0, type(exc).__name__\n    sink(rows)\n    return len(rows), None\n\ndef boom():\n    raise ConnectionError(\"down\")\n\ndef check():\n    sink = []\n    cases = [\n        (\"ok path\", lambda: [1, 2, 3], (3, None)),\n        (\"empty input\", lambda: [], (0, None)),\n        (\"failing source\", boom, (0, \"ConnectionError\")),\n    ]\n    return [f\"{name}: \" + (\"PASS\" if run(source, sink.extend) == expected else \"FAIL\") for name, source, expected in cases]\n\nfor line in check():\n    print(line)\n",
+      "expected": "ok path: PASS\nempty input: PASS\nfailing source: PASS"
+    },
+    {
+      "id": "i3",
+      "title": "Restructure a script",
+      "kind": "written",
+      "prompt": "A pipeline script reads `orders.csv` from a hard-coded path, loops over rows, cleans amounts inline, inserts each row into a PostgreSQL connection opened at the top of the file, and prints progress. Describe the restructured design: the functions with their arguments and return values, which are pure, what is injected into `run`, what `run` returns instead of printing, and five test cases you would write first for the amount clean-up.",
+      "starter": "Functions:\nPure ones:\nInjected into run:\nWhat run returns:\nFive test cases:\n",
+      "solution": "Functions: `extract(source)` returns raw rows from the text that `source()` returns; `clean_amount(text)`, `parse_ts(text)`, `dedupe_latest(rows)` and `transform(rows)` are pure and return `(good, rejected)`; `load(sink, rows)` calls the sink; `run(source, sink)` orchestrates. Pure ones: the clean-up, parse, dedupe and transform functions, because they take values and return values with no I/O. Injected into `run`: a `source` function (file or API in production, a string in tests) and a `sink` function (writes to PostgreSQL in production, a list in tests). `run` returns a result with `read`, `loaded`, `rejected` instead of printing; the command-line wrapper prints. Test cases: `\"19.90\"` gives 1990, `\"$1,250.00\"` gives 125000, `\"abc\"` gives None, empty text gives None, `\"-5.00\"` gives -500.",
+      "required": false,
+      "rubric": [
+        "Separates I/O, pure logic and orchestration into named functions.",
+        "Identifies which functions are pure and why.",
+        "Injects source and sink into run so tests can use fakes.",
+        "Returns a result from run instead of printing.",
+        "Lists test cases that include a bad value and an empty value."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which function is pure?",
+      "options": [
+        "`def f(path): return open(path).read()`",
+        "`def f(text): return text.strip().lower()`",
+        "`def f(rows): rows.sort(); return rows`",
+        "`def f(): return datetime.now()`"
+      ],
+      "answer": 1,
+      "explanation": "The second depends only on its argument and changes nothing. The first reads a file, the third mutates its argument and the fourth depends on the clock."
+    },
+    {
+      "id": "c2",
+      "question": "Why does `run(source, sink)` take functions instead of opening the file and database itself?",
+      "options": [
+        "It is faster",
+        "A test can pass a fake source and sink, so no file or database is needed",
+        "SQL requires it",
+        "Python forbids opening files in functions"
+      ],
+      "answer": 1,
+      "explanation": "Injecting the source and sink separates orchestration from I/O. The same `run` is then tested with a string and a list, and used in production with real systems."
+    },
+    {
+      "id": "c3",
+      "question": "A transform does `rows.sort(key=...)` on the list it received. What is the risk?",
+      "options": [
+        "None",
+        "The caller's list is reordered behind its back; use `sorted(rows, key=...)`",
+        "It raises an error",
+        "It deletes rows"
+      ],
+      "answer": 1,
+      "explanation": "`sort` works in place and returns None, so the caller's data changes. `sorted` returns a new list."
+    },
+    {
+      "id": "c4",
+      "question": "In a table-driven test, a production bug is found with the input `\"€5,00\"`. What do you do first?",
+      "options": [
+        "Fix the code and move on",
+        "Add the input and the expected output to the cases, see it fail, then fix the code",
+        "Delete the function",
+        "Rewrite the pipeline"
+      ],
+      "answer": 1,
+      "explanation": "Adding the case first proves that the test catches the bug and keeps it from returning. Fixing without a test leaves the bug free to reappear."
+    },
+    {
+      "id": "c5",
+      "question": "What should `run` return?",
+      "options": [
+        "Nothing; it prints",
+        "A result such as read, loaded and rejected counts",
+        "The database connection",
+        "The raw text"
+      ],
+      "answer": 1,
+      "explanation": "A returned result can be logged, asserted and used for alerting. Printing is for the program's edge and cannot be tested directly."
+    }
+  ],
+  "id": "e121"
+}

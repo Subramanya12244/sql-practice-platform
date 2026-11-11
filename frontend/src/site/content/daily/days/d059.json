@@ -1,0 +1,179 @@
+{
+  "id": "d059",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "query-optimization",
+      "indexes"
+    ],
+    "questions": [
+      28,
+      147,
+      167
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "indexing-optimization"
+    ],
+    "patterns": [
+      "anti-join"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Sargable plan for April 1996",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "In one block: create an index `idx_orders_date` on `orders (order_date)`, run `SET LOCAL enable_seqscan = off`, and return the `EXPLAIN (COSTS OFF)` plan of `SELECT order_id FROM orders WHERE order_date >= DATE '1996-04-01' AND order_date < DATE '1996-05-01'`.",
+      "starter": "CREATE INDEX idx_orders_date ON orders (order_date);\nSET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT order_id FROM orders WHERE EXTRACT(MONTH FROM order_date) = 4 AND EXTRACT(YEAR FROM order_date) = 1996;\n",
+      "solution": "CREATE INDEX idx_orders_date ON orders (order_date);\nSET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT order_id FROM orders WHERE order_date >= DATE '1996-04-01' AND order_date < DATE '1996-05-01';\n",
+      "hints": [
+        "The starter filters with functions on order_date, which blocks the index.",
+        "Replace both EXTRACT conditions by one half-open range on the bare column.",
+        "WHERE order_date >= DATE '1996-04-01' AND order_date < DATE '1996-05-01'"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Check the rewrite",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return one row with `with_function` (the count of orders where `EXTRACT(MONTH FROM order_date) = 4 AND EXTRACT(YEAR FROM order_date) = 1996`) and `with_range` (the count with `order_date >= DATE '1996-04-01' AND order_date < DATE '1996-05-01'`).",
+      "starter": "SELECT COUNT(*) AS with_function\nFROM orders\nWHERE EXTRACT(MONTH FROM order_date) = 4 AND EXTRACT(YEAR FROM order_date) = 1996;\n",
+      "solution": "SELECT (SELECT COUNT(*) FROM orders\n        WHERE EXTRACT(MONTH FROM order_date) = 4 AND EXTRACT(YEAR FROM order_date) = 1996) AS with_function,\n       (SELECT COUNT(*) FROM orders\n        WHERE order_date >= DATE '1996-04-01' AND order_date < DATE '1996-05-01') AS with_range;\n",
+      "hints": [
+        "Two counts in one row can come from two scalar subqueries in the select list.",
+        "SELECT (SELECT COUNT(*) ...) AS with_function, (SELECT COUNT(*) ...) AS with_range.",
+        "Use the starter's condition in the first subquery and the half-open range in the second."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "An index-only plan",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "In one block: create an index `idx_orders_emp_date` on `orders (employee_id, order_date)`, run `SET LOCAL enable_seqscan = off`, and return the `EXPLAIN (COSTS OFF)` plan of `SELECT employee_id, order_date FROM orders WHERE employee_id = 3`.",
+      "starter": "CREATE INDEX idx_orders_emp_date ON orders (employee_id, order_date);\nSET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT * FROM orders WHERE employee_id = 3;\n",
+      "solution": "CREATE INDEX idx_orders_emp_date ON orders (employee_id, order_date);\nSET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT employee_id, order_date FROM orders WHERE employee_id = 3;\n",
+      "hints": [
+        "The starter selects every column, so the index cannot cover the query.",
+        "Name only the two columns that the index contains.",
+        "SELECT employee_id, order_date FROM orders WHERE employee_id = 3"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Products that were never ordered",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `product_id` and `product_name` of products that never appear in `order_details`, using `NOT EXISTS`. Order by `product_id`.",
+      "starter": "SELECT product_id, product_name\nFROM products\nORDER BY product_id;\n",
+      "solution": "SELECT p.product_id, p.product_name\nFROM products AS p\nWHERE NOT EXISTS (SELECT 1 FROM order_details AS od WHERE od.product_id = p.product_id)\nORDER BY p.product_id;\n",
+      "hints": [
+        "NOT EXISTS keeps the outer rows for which the subquery finds nothing.",
+        "The subquery is correlated: it compares od.product_id with p.product_id.",
+        "WHERE NOT EXISTS (SELECT 1 FROM order_details AS od WHERE od.product_id = p.product_id)"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "An expression index",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "In one block: create an index `idx_orders_country_lower` on `orders (lower(ship_country))`, run `SET LOCAL enable_seqscan = off`, and return the `EXPLAIN (COSTS OFF)` plan of `SELECT order_id FROM orders WHERE lower(ship_country) = 'germany'`.",
+      "starter": "SET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT order_id FROM orders WHERE lower(ship_country) = 'germany';\n",
+      "solution": "CREATE INDEX idx_orders_country_lower ON orders (lower(ship_country));\nSET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT order_id FROM orders WHERE lower(ship_country) = 'germany';\n"
+    },
+    {
+      "id": "i2",
+      "title": "Customers with no orders in 1998",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `customer_id` and `company_name` of customers that placed no order dated in 1998 (`order_date >= DATE '1998-01-01' AND order_date < DATE '1999-01-01'`). Use `NOT EXISTS` and a sargable date range. Customers without any order count too. Order by `customer_id`.",
+      "starter": "SELECT customer_id, company_name\nFROM customers\nORDER BY customer_id;\n",
+      "solution": "SELECT c.customer_id, c.company_name\nFROM customers AS c\nWHERE NOT EXISTS (\n  SELECT 1 FROM orders AS o\n  WHERE o.customer_id = c.customer_id\n    AND o.order_date >= DATE '1998-01-01' AND o.order_date < DATE '1999-01-01'\n)\nORDER BY c.customer_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Aggregate first, then join (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Compute revenue per customer for 1997 orders only (`order_date >= DATE '1997-01-01' AND order_date < DATE '1998-01-01'`), where revenue is `ROUND(SUM(unit_price * quantity * (1 - discount))::numeric, 2)`. Aggregate `order_details` per order in a subquery first, then join to `orders` and `customers`. Return `customer_id`, `company_name`, `revenue`, ordered by `revenue` descending, then `customer_id`, limited to the top 5.",
+      "starter": "SELECT c.customer_id, c.company_name, 0 AS revenue\nFROM customers AS c\nORDER BY c.customer_id\nLIMIT 5;\n",
+      "solution": "WITH order_value AS (\n  SELECT order_id, SUM(unit_price * quantity * (1 - discount)) AS value\n  FROM order_details\n  GROUP BY order_id\n)\nSELECT c.customer_id, c.company_name, ROUND(SUM(ov.value)::numeric, 2) AS revenue\nFROM orders AS o\nJOIN order_value AS ov ON ov.order_id = o.order_id\nJOIN customers AS c ON c.customer_id = o.customer_id\nWHERE o.order_date >= DATE '1997-01-01' AND o.order_date < DATE '1998-01-01'\nGROUP BY c.customer_id, c.company_name\nORDER BY revenue DESC, c.customer_id\nLIMIT 5;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which condition can use a plain B-tree index on `order_date`?",
+      "options": [
+        "EXTRACT(YEAR FROM order_date) = 1997",
+        "order_date >= DATE '1997-01-01' AND order_date < DATE '1998-01-01'",
+        "order_date + 30 > CURRENT_DATE",
+        "CAST(order_date AS text) LIKE '1997%'"
+      ],
+      "answer": 1,
+      "explanation": "Only the bare column compared with constants matches the sorted order of the index. The other forms wrap the column in a function or expression, so every row must be computed."
+    },
+    {
+      "id": "c2",
+      "question": "Why is `BETWEEN '1997-01-01' AND '1997-12-31'` risky on a timestamp column?",
+      "options": [
+        "BETWEEN is not allowed for dates",
+        "It excludes the timestamps after midnight on 1997-12-31",
+        "It includes 1998",
+        "It cannot use indexes"
+      ],
+      "answer": 1,
+      "explanation": "'1997-12-31' means midnight at the start of that day, so rows later that day are lost. A half-open range with `< '1998-01-01'` covers the whole last day and is index-friendly."
+    },
+    {
+      "id": "c3",
+      "question": "`NOT IN (SELECT col FROM t)` returns no rows at all although the subquery has non-matching values. What is the likely cause?",
+      "options": [
+        "The subquery returns at least one NULL",
+        "The tables are too small",
+        "The column is indexed",
+        "NOT IN needs ORDER BY"
+      ],
+      "answer": 0,
+      "explanation": "x NOT IN (list containing NULL) is never true: it is false or unknown for every x. NOT EXISTS has no such trap."
+    },
+    {
+      "id": "c4",
+      "question": "Why can listing only the needed columns speed up a query?",
+      "options": [
+        "It lets the index answer the query alone (index-only scan) and moves less data",
+        "It makes SQL case-insensitive",
+        "It removes duplicates",
+        "It forces a Hash Join"
+      ],
+      "answer": 0,
+      "explanation": "If an index holds all required columns the table need not be visited, and fewer columns also reduce memory in sorts and the data sent to the client. It does not change duplicates or join methods."
+    },
+    {
+      "id": "c5",
+      "question": "You rewrote a query and the new plan looks cheaper. What must you still do before using it?",
+      "options": [
+        "Nothing; plans never lie",
+        "Verify that it returns the same result, for example with counts or a checksum",
+        "Add SELECT *",
+        "Run ANALYZE on the result"
+      ],
+      "answer": 1,
+      "explanation": "A rewrite is only an optimisation if the answer is unchanged. Compare row counts or an aggregate of both versions. A cheaper plan for a different result is a bug."
+    }
+  ]
+}

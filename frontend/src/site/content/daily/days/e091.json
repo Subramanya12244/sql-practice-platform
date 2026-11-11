@@ -1,0 +1,181 @@
+{
+  "id": "e091",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-database-connectivity",
+      "primary-foreign-keys"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Insert and read back with placeholders",
+      "kind": "python",
+      "prompt": "On an in-memory `sqlite3` database the table `city(name TEXT, country TEXT)` is created for you. Insert the two rows `(\"Oslo\", \"Norway\")` and `(\"Lyon\", \"France\")` using `?` placeholders, commit, then print every row ordered by `name`, one tuple per line. Expected output: `('Lyon', 'France')` then `('Oslo', 'Norway')`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE city (name TEXT, country TEXT)\")\n# insert two rows with placeholders, commit, then print the rows\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE city (name TEXT, country TEXT)\")\nconn.execute(\"INSERT INTO city VALUES (?, ?)\", (\"Oslo\", \"Norway\"))\nconn.execute(\"INSERT INTO city VALUES (?, ?)\", (\"Lyon\", \"France\"))\nconn.commit()\nfor row in conn.execute(\"SELECT name, country FROM city ORDER BY name\"):\n    print(row)\nconn.close()\n",
+      "hints": [
+        "`sqlite3` marks each value with a `?` and takes the values as a tuple in the second argument of `execute`.",
+        "The statement is `INSERT INTO city VALUES (?, ?)` and it is called once per row.",
+        "Call `conn.commit()` after the inserts, then loop over `conn.execute(\"SELECT name, country FROM city ORDER BY name\")` and print each row."
+      ],
+      "expected": "('Lyon', 'France')\n('Oslo', 'Norway')"
+    },
+    {
+      "id": "g2",
+      "title": "Make a lookup safe",
+      "kind": "python",
+      "prompt": "The function `count_by_name(conn, name)` below builds its SQL with an f-string. Rewrite it so that `name` is passed as a parameter, then print `count_by_name(conn, \"Oslo\")` and `count_by_name(conn, \"x' OR '1'='1\")`. Expected output: `1` then `0`.",
+      "starter": "import sqlite3\n\ndef count_by_name(conn, name):\n    sql = f\"SELECT COUNT(*) FROM city WHERE name = '{name}'\"\n    return conn.execute(sql).fetchone()[0]\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE city (name TEXT)\")\nconn.execute(\"INSERT INTO city VALUES ('Oslo')\")\nconn.execute(\"INSERT INTO city VALUES ('Lyon')\")\nprint(count_by_name(conn, \"Oslo\"))\nprint(count_by_name(conn, \"x' OR '1'='1\"))\n",
+      "solution": "import sqlite3\n\ndef count_by_name(conn, name):\n    sql = \"SELECT COUNT(*) FROM city WHERE name = ?\"\n    return conn.execute(sql, (name,)).fetchone()[0]\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE city (name TEXT)\")\nconn.execute(\"INSERT INTO city VALUES ('Oslo')\")\nconn.execute(\"INSERT INTO city VALUES ('Lyon')\")\nprint(count_by_name(conn, \"Oslo\"))\nprint(count_by_name(conn, \"x' OR '1'='1\"))\n",
+      "hints": [
+        "Replace the quoted `'{name}'` in the SQL text with a single `?` and do not use an f-string.",
+        "Pass the value as the second argument of `execute`, and remember that it must be a tuple.",
+        "`conn.execute(\"SELECT COUNT(*) FROM city WHERE name = ?\", (name,))`: note the comma that makes `(name,)` a tuple."
+      ],
+      "expected": "1\n0"
+    },
+    {
+      "id": "g3",
+      "title": "Roll back a failed batch",
+      "kind": "python",
+      "prompt": "Inside `with conn:` the code inserts `Bergen` and then `Oslo`, which already exists, so the primary key rejects it. Catch `sqlite3.IntegrityError` around the `with` block and print `rolled back`. Afterwards print the number of rows in `city`. Expected output: `rolled back` then `1`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE city (name TEXT PRIMARY KEY)\")\nconn.execute(\"INSERT INTO city VALUES ('Oslo')\")\nconn.commit()\n\nwith conn:\n    conn.execute(\"INSERT INTO city VALUES ('Bergen')\")\n    conn.execute(\"INSERT INTO city VALUES ('Oslo')\")\nprint(conn.execute(\"SELECT COUNT(*) FROM city\").fetchone()[0])\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE city (name TEXT PRIMARY KEY)\")\nconn.execute(\"INSERT INTO city VALUES ('Oslo')\")\nconn.commit()\n\ntry:\n    with conn:\n        conn.execute(\"INSERT INTO city VALUES ('Bergen')\")\n        conn.execute(\"INSERT INTO city VALUES ('Oslo')\")\nexcept sqlite3.IntegrityError:\n    print(\"rolled back\")\nprint(conn.execute(\"SELECT COUNT(*) FROM city\").fetchone()[0])\n",
+      "hints": [
+        "An exception that leaves a `with conn:` block makes `sqlite3` roll back, then the exception continues upward.",
+        "Wrap the whole `with` block in `try` and put `except sqlite3.IntegrityError:` after it.",
+        "The count is 1 because the `Bergen` insert was undone together with the failing one."
+      ],
+      "expected": "rolled back\n1"
+    },
+    {
+      "id": "g4",
+      "title": "Mask a password",
+      "kind": "python",
+      "prompt": "Write `masked(url)` that returns the connection string with the password replaced by `***`. The password is the text between the first `:` after `//` and the `@`. Print `masked(\"postgresql://etl:s3cret@db.example.com:5432/warehouse\")`. Expected output: `postgresql://etl:***@db.example.com:5432/warehouse`.",
+      "starter": "def masked(url):\n    pass\n\nprint(masked(\"postgresql://etl:s3cret@db.example.com:5432/warehouse\"))\n",
+      "solution": "def masked(url):\n    scheme, rest = url.split(\"://\", 1)\n    credentials, host = rest.split(\"@\", 1)\n    user = credentials.split(\":\", 1)[0]\n    return f\"{scheme}://{user}:***@{host}\"\n\nprint(masked(\"postgresql://etl:s3cret@db.example.com:5432/warehouse\"))\n",
+      "hints": [
+        "Split the string in three parts: scheme, credentials and host. `split(sep, 1)` splits only at the first match.",
+        "Split on `\"://\"`, then split the rest on `\"@\"`; the user is before the first `:` of the credentials.",
+        "Return `f\"{scheme}://{user}:***@{host}\"`."
+      ],
+      "expected": "postgresql://etl:***@db.example.com:5432/warehouse"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A helper that returns dictionaries",
+      "kind": "python",
+      "prompt": "Write `fetch_dicts(conn, sql, params=())` that runs the statement with its parameters and returns a list of dictionaries, one per row, keyed by the column names from `cursor.description`. Using it on the table below, print the result of selecting `name, population` where `country = ?` for `\"Norway\"`, ordered by `name`. Expected output: `[{'name': 'Bergen', 'population': 286000}, {'name': 'Oslo', 'population': 709000}]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE city (name TEXT, country TEXT, population INTEGER)\")\nfor row in [(\"Oslo\", \"Norway\", 709000), (\"Bergen\", \"Norway\", 286000), (\"Lyon\", \"France\", 522000)]:\n    conn.execute(\"INSERT INTO city VALUES (?, ?, ?)\", row)\n\ndef fetch_dicts(conn, sql, params=()):\n    pass\n\nprint(fetch_dicts(conn, \"SELECT name, population FROM city WHERE country = ? ORDER BY name\", (\"Norway\",)))\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE city (name TEXT, country TEXT, population INTEGER)\")\nfor row in [(\"Oslo\", \"Norway\", 709000), (\"Bergen\", \"Norway\", 286000), (\"Lyon\", \"France\", 522000)]:\n    conn.execute(\"INSERT INTO city VALUES (?, ?, ?)\", row)\n\ndef fetch_dicts(conn, sql, params=()):\n    cur = conn.execute(sql, params)\n    names = [c[0] for c in cur.description]\n    return [dict(zip(names, row)) for row in cur.fetchall()]\n\nprint(fetch_dicts(conn, \"SELECT name, population FROM city WHERE country = ? ORDER BY name\", (\"Norway\",)))\n",
+      "expected": "[{'name': 'Bergen', 'population': 286000}, {'name': 'Oslo', 'population': 709000}]"
+    },
+    {
+      "id": "i2",
+      "title": "All-or-nothing transfer",
+      "kind": "python",
+      "prompt": "Table `account(owner TEXT PRIMARY KEY, balance INTEGER)` holds Ana 100 and Ben 20. Write `transfer(conn, source, target, amount)` that moves the amount inside one `with conn:` transaction using parameters. It subtracts first, and if the source balance is then below zero it raises `ValueError(\"insufficient funds\")`, which must leave both balances unchanged. Call `transfer(conn, \"Ana\", \"Ben\", 30)` then `transfer(conn, \"Ben\", \"Ana\", 500)` (catch the error and print its message), then print the balances ordered by owner as tuples. Expected output: `insufficient funds`, `('Ana', 70)`, `('Ben', 50)`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE account (owner TEXT PRIMARY KEY, balance INTEGER)\")\nconn.execute(\"INSERT INTO account VALUES ('Ana', 100)\")\nconn.execute(\"INSERT INTO account VALUES ('Ben', 20)\")\nconn.commit()\n\ndef transfer(conn, source, target, amount):\n    pass\n\ntransfer(conn, \"Ana\", \"Ben\", 30)\ntry:\n    transfer(conn, \"Ben\", \"Ana\", 500)\nexcept ValueError as err:\n    print(err)\nfor row in conn.execute(\"SELECT owner, balance FROM account ORDER BY owner\"):\n    print(row)\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE account (owner TEXT PRIMARY KEY, balance INTEGER)\")\nconn.execute(\"INSERT INTO account VALUES ('Ana', 100)\")\nconn.execute(\"INSERT INTO account VALUES ('Ben', 20)\")\nconn.commit()\n\ndef transfer(conn, source, target, amount):\n    with conn:\n        conn.execute(\"UPDATE account SET balance = balance - ? WHERE owner = ?\", (amount, source))\n        left = conn.execute(\"SELECT balance FROM account WHERE owner = ?\", (source,)).fetchone()[0]\n        if left < 0:\n            raise ValueError(\"insufficient funds\")\n        conn.execute(\"UPDATE account SET balance = balance + ? WHERE owner = ?\", (amount, target))\n\ntransfer(conn, \"Ana\", \"Ben\", 30)\ntry:\n    transfer(conn, \"Ben\", \"Ana\", 500)\nexcept ValueError as err:\n    print(err)\nfor row in conn.execute(\"SELECT owner, balance FROM account ORDER BY owner\"):\n    print(row)\n",
+      "expected": "insufficient funds\n('Ana', 70)\n('Ben', 50)"
+    },
+    {
+      "id": "i3",
+      "title": "Validate every setting at once",
+      "kind": "python",
+      "prompt": "Write `connection_settings(env)` that takes a dictionary of environment variables and returns a dictionary with the keys `host`, `port`, `dbname`, `user`, `password` (read from `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`). `PGPORT` is optional and defaults to the integer `5432`; the other four are required. If any required variable is missing, raise `KeyError` whose message is `missing: ` followed by the missing names in alphabetical order, separated by `, `. Print the settings (password replaced by `***` in the printed copy, sorted by key) for a complete environment, then print the message for an environment that has only `PGUSER`. Expected output: `{'dbname': 'warehouse', 'host': 'db', 'password': '***', 'port': 5432, 'user': 'etl'}` then `missing: PGDATABASE, PGHOST, PGPASSWORD`.",
+      "starter": "def connection_settings(env):\n    pass\n\nfull = {\"PGHOST\": \"db\", \"PGDATABASE\": \"warehouse\", \"PGUSER\": \"etl\", \"PGPASSWORD\": \"s3cret\"}\nsettings = connection_settings(full)\nprint(dict(sorted({**settings, \"password\": \"***\"}.items())))\ntry:\n    connection_settings({\"PGUSER\": \"etl\"})\nexcept KeyError as err:\n    print(err.args[0])\n",
+      "solution": "def connection_settings(env):\n    required = {\"PGHOST\": \"host\", \"PGDATABASE\": \"dbname\", \"PGUSER\": \"user\", \"PGPASSWORD\": \"password\"}\n    missing = sorted(name for name in required if name not in env)\n    if missing:\n        raise KeyError(\"missing: \" + \", \".join(missing))\n    settings = {key: env[name] for name, key in required.items()}\n    settings[\"port\"] = int(env.get(\"PGPORT\", 5432))\n    return settings\n\nfull = {\"PGHOST\": \"db\", \"PGDATABASE\": \"warehouse\", \"PGUSER\": \"etl\", \"PGPASSWORD\": \"s3cret\"}\nsettings = connection_settings(full)\nprint(dict(sorted({**settings, \"password\": \"***\"}.items())))\ntry:\n    connection_settings({\"PGUSER\": \"etl\"})\nexcept KeyError as err:\n    print(err.args[0])\n",
+      "expected": "{'dbname': 'warehouse', 'host': 'db', 'password': '***', 'port': 5432, 'user': 'etl'}\nmissing: PGDATABASE, PGHOST, PGPASSWORD",
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [
+      "sqlalchemy"
+    ],
+    "note": "Example 5 uses SQLAlchemy, which the browser cannot import; run it locally after `pip install sqlalchemy pandas`. To run the PostgreSQL code in the untagged blocks you also need `pip install \"psycopg[binary]\"`, a PostgreSQL server and the PG* environment variables set; the browser has no server, so every graded exercise uses the standard-library sqlite3 module as a stand-in. Differences from PostgreSQL: placeholders are ? instead of %s, column types are loosely enforced, there is no network, user or password, and `with conn:` does not close the connection."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `create_engine(\"postgresql+psycopg://u:p@wronghost/db\")` do when it runs?",
+      "options": [
+        "Raises an error straight away because the host cannot be found",
+        "Builds the engine object and opens no connection; an error would appear at the first query",
+        "Opens one connection and keeps it until the program ends",
+        "Creates the database `db` on the server"
+      ],
+      "answer": 1,
+      "explanation": "An engine only records settings and a pool. The first `connect()` or `execute()` makes the real connection, so a wrong host fails there. Option 1 is the common belief; option 3 confuses an engine with a connection."
+    },
+    {
+      "id": "c2",
+      "question": "On `sqlite3`, what does `cur.execute(\"SELECT ... WHERE name = ?\", (\"Ana\"))` do?",
+      "options": [
+        "Finds rows where name is Ana",
+        "Raises `ProgrammingError` about the number of bindings, because `(\"Ana\")` is a string, not a tuple",
+        "Returns every row",
+        "Silently ignores the value"
+      ],
+      "answer": 1,
+      "explanation": "Parentheses alone do not make a tuple; the comma does. `(\"Ana\")` is the string `Ana`, which is read as three separate values for one placeholder. Write `(\"Ana\",)`."
+    },
+    {
+      "id": "c3",
+      "question": "A script inserts 1000 rows with `conn.execute`, prints the right count from a `SELECT` on the same connection and exits. A colleague later finds the table empty. What is the most likely cause?",
+      "options": [
+        "The table was dropped by the driver",
+        "`commit()` was never called, so the transaction was rolled back when the connection closed",
+        "`fetchall` deletes rows",
+        "The placeholders were `?` instead of `%s`"
+      ],
+      "answer": 1,
+      "explanation": "The SELECT sees uncommitted rows because it runs in the same transaction. Without `commit()` they vanish at close. Placeholder style would raise an error, not lose data silently."
+    },
+    {
+      "id": "c4",
+      "question": "Which of these can be passed as a query parameter?",
+      "options": [
+        "A table name",
+        "A column name",
+        "A filter value such as a customer id",
+        "The word `DESC`"
+      ],
+      "answer": 2,
+      "explanation": "Parameters carry values only. Names and keywords are part of the statement structure, so a dynamic table name must be checked against an allowed list and then written into the SQL text."
+    },
+    {
+      "id": "c5",
+      "question": "What does this print? `with sqlite3.connect(\":memory:\") as conn: pass` followed by `conn.execute(\"SELECT 1\").fetchone()`",
+      "options": [
+        "`ProgrammingError: Cannot operate on a closed database`",
+        "`(1,)`, because `with conn:` only ends the transaction and does not close the connection",
+        "`None`",
+        "`OperationalError: no such table`"
+      ],
+      "answer": 1,
+      "explanation": "The sqlite3 connection context manager commits or rolls back but does not close. That differs from `psycopg` 3, whose `with` block also closes the connection."
+    }
+  ]
+}

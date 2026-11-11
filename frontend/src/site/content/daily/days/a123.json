@@ -1,0 +1,194 @@
+{
+  "id": "a123",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "sales-by-month",
+      "csv-sales-report-writer"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": [
+      "month-over-month-growth"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Reconcile the tables",
+      "kind": "python",
+      "prompt": "Write `reconcile(orders)` returning a dict with keys `by_category`, `monthly` and `group_rows` whose values are `True` when the category table adds up to the rounded total within 2, the monthly table within 6, and the group sizes equal `len(orders)`. Print the dict.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\ndef chart_tables(orders):\n    monthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n    by_category = orders.groupby(\"category\")[\"revenue\"].sum().round(0).sort_values(ascending=False)\n    medians = orders.groupby(\"category\")[\"revenue\"].median().sort_values(ascending=False)\n    groups = {name: orders.loc[orders[\"category\"] == name, \"revenue\"] for name in medians.index}\n    return {\"monthly\": monthly, \"by_category\": by_category, \"medians\": medians, \"groups\": groups}\n\n\ndef findings(orders):\n    t = chart_tables(orders)\n    top = t[\"by_category\"].index[0]\n    share = t[\"by_category\"].iloc[0] / t[\"by_category\"].sum() * 100\n    best, worst = int(t[\"monthly\"].idxmax()), int(t[\"monthly\"].idxmin())\n    ratio = t[\"medians\"].iloc[0] / t[\"medians\"].iloc[-1]\n    return [\n        f\"{top} earns {share:.0f}% of revenue, more than any other category.\",\n        f\"Revenue peaked in month {best} ({t['monthly'].max():,.0f}) and was lowest in month {worst} ({t['monthly'].min():,.0f}).\",\n        f\"The median {t['medians'].index[0]} order is {ratio:.1f} times the median {t['medians'].index[-1]} order.\",\n    ]\n\norders = make_orders()\n\ndef reconcile(orders):\n    pass\n\n\nprint(reconcile(orders))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\ndef chart_tables(orders):\n    monthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n    by_category = orders.groupby(\"category\")[\"revenue\"].sum().round(0).sort_values(ascending=False)\n    medians = orders.groupby(\"category\")[\"revenue\"].median().sort_values(ascending=False)\n    groups = {name: orders.loc[orders[\"category\"] == name, \"revenue\"] for name in medians.index}\n    return {\"monthly\": monthly, \"by_category\": by_category, \"medians\": medians, \"groups\": groups}\n\n\ndef findings(orders):\n    t = chart_tables(orders)\n    top = t[\"by_category\"].index[0]\n    share = t[\"by_category\"].iloc[0] / t[\"by_category\"].sum() * 100\n    best, worst = int(t[\"monthly\"].idxmax()), int(t[\"monthly\"].idxmin())\n    ratio = t[\"medians\"].iloc[0] / t[\"medians\"].iloc[-1]\n    return [\n        f\"{top} earns {share:.0f}% of revenue, more than any other category.\",\n        f\"Revenue peaked in month {best} ({t['monthly'].max():,.0f}) and was lowest in month {worst} ({t['monthly'].min():,.0f}).\",\n        f\"The median {t['medians'].index[0]} order is {ratio:.1f} times the median {t['medians'].index[-1]} order.\",\n    ]\n\norders = make_orders()\n\ndef reconcile(orders):\n    t = chart_tables(orders)\n    total = float(orders[\"revenue\"].sum())\n    return {\n        \"by_category\": abs(float(t[\"by_category\"].sum()) - total) <= 2,\n        \"monthly\": abs(float(t[\"monthly\"].sum()) - total) <= 6,\n        \"group_rows\": sum(len(g) for g in t[\"groups\"].values()) == len(orders),\n    }\n\n\nprint(reconcile(orders))\n",
+      "expected": "{'by_category': True, 'monthly': True, 'group_rows': True}",
+      "hints": [
+        "`chart_tables(orders)` gives the three tables.",
+        "Rounding each month or category to 0 decimals can drift the sum, hence the tolerances.",
+        "Compare `sum(len(g) ...)` with `len(orders)`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "A fourth question",
+      "kind": "python",
+      "prompt": "Add the question `Which month had the biggest rise over the previous month?` using `chart_tables`. Print `biggest rise: month <m> (+<pct>%)` with the percentage rounded to 1 decimal, using `pct_change(fill_method=None)` on the monthly table.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\ndef chart_tables(orders):\n    monthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n    by_category = orders.groupby(\"category\")[\"revenue\"].sum().round(0).sort_values(ascending=False)\n    medians = orders.groupby(\"category\")[\"revenue\"].median().sort_values(ascending=False)\n    groups = {name: orders.loc[orders[\"category\"] == name, \"revenue\"] for name in medians.index}\n    return {\"monthly\": monthly, \"by_category\": by_category, \"medians\": medians, \"groups\": groups}\n\n\ndef findings(orders):\n    t = chart_tables(orders)\n    top = t[\"by_category\"].index[0]\n    share = t[\"by_category\"].iloc[0] / t[\"by_category\"].sum() * 100\n    best, worst = int(t[\"monthly\"].idxmax()), int(t[\"monthly\"].idxmin())\n    ratio = t[\"medians\"].iloc[0] / t[\"medians\"].iloc[-1]\n    return [\n        f\"{top} earns {share:.0f}% of revenue, more than any other category.\",\n        f\"Revenue peaked in month {best} ({t['monthly'].max():,.0f}) and was lowest in month {worst} ({t['monthly'].min():,.0f}).\",\n        f\"The median {t['medians'].index[0]} order is {ratio:.1f} times the median {t['medians'].index[-1]} order.\",\n    ]\n\norders = make_orders()\n\n# biggest month-over-month rise\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\ndef chart_tables(orders):\n    monthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n    by_category = orders.groupby(\"category\")[\"revenue\"].sum().round(0).sort_values(ascending=False)\n    medians = orders.groupby(\"category\")[\"revenue\"].median().sort_values(ascending=False)\n    groups = {name: orders.loc[orders[\"category\"] == name, \"revenue\"] for name in medians.index}\n    return {\"monthly\": monthly, \"by_category\": by_category, \"medians\": medians, \"groups\": groups}\n\n\ndef findings(orders):\n    t = chart_tables(orders)\n    top = t[\"by_category\"].index[0]\n    share = t[\"by_category\"].iloc[0] / t[\"by_category\"].sum() * 100\n    best, worst = int(t[\"monthly\"].idxmax()), int(t[\"monthly\"].idxmin())\n    ratio = t[\"medians\"].iloc[0] / t[\"medians\"].iloc[-1]\n    return [\n        f\"{top} earns {share:.0f}% of revenue, more than any other category.\",\n        f\"Revenue peaked in month {best} ({t['monthly'].max():,.0f}) and was lowest in month {worst} ({t['monthly'].min():,.0f}).\",\n        f\"The median {t['medians'].index[0]} order is {ratio:.1f} times the median {t['medians'].index[-1]} order.\",\n    ]\n\norders = make_orders()\n\nm = chart_tables(orders)[\"monthly\"]\nchange = m.pct_change(fill_method=None) * 100\nprint(f\"biggest rise: month {int(change.idxmax())} (+{change.max():.1f}%)\")\n",
+      "expected": "biggest rise: month 2 (+51.1%)",
+      "hints": [
+        "Take the monthly table from `chart_tables`.",
+        "`pct_change(fill_method=None)` gives the relative change.",
+        "`idxmax()` gives the month and `max()` the value."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Order findings by importance",
+      "kind": "python",
+      "prompt": "Sort the three sentences of `findings(orders)` by length, longest first, and print each on its own line with its position (`1. ...`, `2. ...`, `3. ...`). Reports often lead with the finding that needs the most explanation.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\ndef chart_tables(orders):\n    monthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n    by_category = orders.groupby(\"category\")[\"revenue\"].sum().round(0).sort_values(ascending=False)\n    medians = orders.groupby(\"category\")[\"revenue\"].median().sort_values(ascending=False)\n    groups = {name: orders.loc[orders[\"category\"] == name, \"revenue\"] for name in medians.index}\n    return {\"monthly\": monthly, \"by_category\": by_category, \"medians\": medians, \"groups\": groups}\n\n\ndef findings(orders):\n    t = chart_tables(orders)\n    top = t[\"by_category\"].index[0]\n    share = t[\"by_category\"].iloc[0] / t[\"by_category\"].sum() * 100\n    best, worst = int(t[\"monthly\"].idxmax()), int(t[\"monthly\"].idxmin())\n    ratio = t[\"medians\"].iloc[0] / t[\"medians\"].iloc[-1]\n    return [\n        f\"{top} earns {share:.0f}% of revenue, more than any other category.\",\n        f\"Revenue peaked in month {best} ({t['monthly'].max():,.0f}) and was lowest in month {worst} ({t['monthly'].min():,.0f}).\",\n        f\"The median {t['medians'].index[0]} order is {ratio:.1f} times the median {t['medians'].index[-1]} order.\",\n    ]\n\norders = make_orders()\n\n# sort by length, longest first\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\ndef chart_tables(orders):\n    monthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n    by_category = orders.groupby(\"category\")[\"revenue\"].sum().round(0).sort_values(ascending=False)\n    medians = orders.groupby(\"category\")[\"revenue\"].median().sort_values(ascending=False)\n    groups = {name: orders.loc[orders[\"category\"] == name, \"revenue\"] for name in medians.index}\n    return {\"monthly\": monthly, \"by_category\": by_category, \"medians\": medians, \"groups\": groups}\n\n\ndef findings(orders):\n    t = chart_tables(orders)\n    top = t[\"by_category\"].index[0]\n    share = t[\"by_category\"].iloc[0] / t[\"by_category\"].sum() * 100\n    best, worst = int(t[\"monthly\"].idxmax()), int(t[\"monthly\"].idxmin())\n    ratio = t[\"medians\"].iloc[0] / t[\"medians\"].iloc[-1]\n    return [\n        f\"{top} earns {share:.0f}% of revenue, more than any other category.\",\n        f\"Revenue peaked in month {best} ({t['monthly'].max():,.0f}) and was lowest in month {worst} ({t['monthly'].min():,.0f}).\",\n        f\"The median {t['medians'].index[0]} order is {ratio:.1f} times the median {t['medians'].index[-1]} order.\",\n    ]\n\norders = make_orders()\n\nfor i, s in enumerate(sorted(findings(orders), key=len, reverse=True), start=1):\n    print(f\"{i}. {s}\")\n",
+      "expected": "1. Revenue peaked in month 3 (6,418) and was lowest in month 7 (2,312).\n2. The median Electronics order is 6.4 times the median Beauty order.\n3. Electronics earns 46% of revenue, more than any other category.",
+      "hints": [
+        "`sorted(list, key=len, reverse=True)` sorts by length, longest first.",
+        "`enumerate(..., start=1)` numbers them.",
+        "Print with an f-string."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Plan a report",
+      "kind": "written",
+      "prompt": "Write a one-page plan for a sales insight report for a regional manager: three questions with the chart family and chart for each, and three risks that could make the report misleading.",
+      "starter": "Questions:\n1. ...\n\nRisks:\n1. ...",
+      "solution": "Questions: (1) Which region earns the most? Comparison, sorted bar with the top region in the focus colour. (2) How does revenue change through the year? Trend, line with the peak annotated. (3) How large are orders in each region? Distribution, box plots ordered by median.\n\nRisks: (1) Tables that do not reconcile with the source (fix: assertions before drawing). (2) Titles written by hand that go stale after a data refresh (fix: generate them from the tables). (3) Causal claims such as `because of the promotion` (fix: state the association and list the cause as a question in the caveats).",
+      "hints": [
+        "Which family fits each question?",
+        "What can go wrong between table and slide?",
+        "What can the data not tell you?"
+      ],
+      "rubric": [
+        "Three questions each with a family and chart.",
+        "Includes reconciliation as a risk or step.",
+        "Includes stale titles or causal claims as a risk."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Report text builder",
+      "kind": "python",
+      "prompt": "Write `report_text(lines, caveats)` returning the Markdown string: `# Sales insight report`, a blank line, `## Findings`, a blank line, the numbered findings (`1. ...`), a blank line, `## Caveats`, a blank line and the caveats. Print the result for `findings(orders)` with the caveats text `One year of data, no cost data, association only.`",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\ndef chart_tables(orders):\n    monthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n    by_category = orders.groupby(\"category\")[\"revenue\"].sum().round(0).sort_values(ascending=False)\n    medians = orders.groupby(\"category\")[\"revenue\"].median().sort_values(ascending=False)\n    groups = {name: orders.loc[orders[\"category\"] == name, \"revenue\"] for name in medians.index}\n    return {\"monthly\": monthly, \"by_category\": by_category, \"medians\": medians, \"groups\": groups}\n\n\ndef findings(orders):\n    t = chart_tables(orders)\n    top = t[\"by_category\"].index[0]\n    share = t[\"by_category\"].iloc[0] / t[\"by_category\"].sum() * 100\n    best, worst = int(t[\"monthly\"].idxmax()), int(t[\"monthly\"].idxmin())\n    ratio = t[\"medians\"].iloc[0] / t[\"medians\"].iloc[-1]\n    return [\n        f\"{top} earns {share:.0f}% of revenue, more than any other category.\",\n        f\"Revenue peaked in month {best} ({t['monthly'].max():,.0f}) and was lowest in month {worst} ({t['monthly'].min():,.0f}).\",\n        f\"The median {t['medians'].index[0]} order is {ratio:.1f} times the median {t['medians'].index[-1]} order.\",\n    ]\n\norders = make_orders()\n\ndef report_text(lines, caveats):\n    pass\n\n\nprint(report_text(findings(orders), \"One year of data, no cost data, association only.\"))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\ndef chart_tables(orders):\n    monthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n    by_category = orders.groupby(\"category\")[\"revenue\"].sum().round(0).sort_values(ascending=False)\n    medians = orders.groupby(\"category\")[\"revenue\"].median().sort_values(ascending=False)\n    groups = {name: orders.loc[orders[\"category\"] == name, \"revenue\"] for name in medians.index}\n    return {\"monthly\": monthly, \"by_category\": by_category, \"medians\": medians, \"groups\": groups}\n\n\ndef findings(orders):\n    t = chart_tables(orders)\n    top = t[\"by_category\"].index[0]\n    share = t[\"by_category\"].iloc[0] / t[\"by_category\"].sum() * 100\n    best, worst = int(t[\"monthly\"].idxmax()), int(t[\"monthly\"].idxmin())\n    ratio = t[\"medians\"].iloc[0] / t[\"medians\"].iloc[-1]\n    return [\n        f\"{top} earns {share:.0f}% of revenue, more than any other category.\",\n        f\"Revenue peaked in month {best} ({t['monthly'].max():,.0f}) and was lowest in month {worst} ({t['monthly'].min():,.0f}).\",\n        f\"The median {t['medians'].index[0]} order is {ratio:.1f} times the median {t['medians'].index[-1]} order.\",\n    ]\n\norders = make_orders()\n\ndef report_text(lines, caveats):\n    parts = [\"# Sales insight report\", \"\", \"## Findings\", \"\"]\n    parts += [f\"{i}. {s}\" for i, s in enumerate(lines, start=1)]\n    parts += [\"\", \"## Caveats\", \"\", caveats]\n    return \"\\n\".join(parts)\n\n\nprint(report_text(findings(orders), \"One year of data, no cost data, association only.\"))\n",
+      "expected": "# Sales insight report\n\n## Findings\n\n1. Electronics earns 46% of revenue, more than any other category.\n2. Revenue peaked in month 3 (6,418) and was lowest in month 7 (2,312).\n3. The median Electronics order is 6.4 times the median Beauty order.\n\n## Caveats\n\nOne year of data, no cost data, association only."
+    },
+    {
+      "id": "i2",
+      "title": "Self-checking pipeline",
+      "kind": "python",
+      "prompt": "Write `check(total, table_sum, tolerance)` that raises `ValueError('tables do not reconcile')` when the absolute difference exceeds the tolerance, and `build_report(orders)` that checks the category table (tolerance 2) and the monthly table (tolerance 6) against the source total and then returns `findings(orders)`. Print `ok` and the number of findings, then call `check(100, 150, 2)` inside `try` and print `error` when it raises.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\ndef chart_tables(orders):\n    monthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n    by_category = orders.groupby(\"category\")[\"revenue\"].sum().round(0).sort_values(ascending=False)\n    medians = orders.groupby(\"category\")[\"revenue\"].median().sort_values(ascending=False)\n    groups = {name: orders.loc[orders[\"category\"] == name, \"revenue\"] for name in medians.index}\n    return {\"monthly\": monthly, \"by_category\": by_category, \"medians\": medians, \"groups\": groups}\n\n\ndef findings(orders):\n    t = chart_tables(orders)\n    top = t[\"by_category\"].index[0]\n    share = t[\"by_category\"].iloc[0] / t[\"by_category\"].sum() * 100\n    best, worst = int(t[\"monthly\"].idxmax()), int(t[\"monthly\"].idxmin())\n    ratio = t[\"medians\"].iloc[0] / t[\"medians\"].iloc[-1]\n    return [\n        f\"{top} earns {share:.0f}% of revenue, more than any other category.\",\n        f\"Revenue peaked in month {best} ({t['monthly'].max():,.0f}) and was lowest in month {worst} ({t['monthly'].min():,.0f}).\",\n        f\"The median {t['medians'].index[0]} order is {ratio:.1f} times the median {t['medians'].index[-1]} order.\",\n    ]\n\norders = make_orders()\n\ndef check(total, table_sum, tolerance):\n    pass\n\n\ndef build_report(orders):\n    pass\n\n\nresult = build_report(orders)\nprint(\"ok\", len(result))\ntry:\n    check(100, 150, 2)\nexcept ValueError:\n    print(\"error\")\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\ndef chart_tables(orders):\n    monthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n    by_category = orders.groupby(\"category\")[\"revenue\"].sum().round(0).sort_values(ascending=False)\n    medians = orders.groupby(\"category\")[\"revenue\"].median().sort_values(ascending=False)\n    groups = {name: orders.loc[orders[\"category\"] == name, \"revenue\"] for name in medians.index}\n    return {\"monthly\": monthly, \"by_category\": by_category, \"medians\": medians, \"groups\": groups}\n\n\ndef findings(orders):\n    t = chart_tables(orders)\n    top = t[\"by_category\"].index[0]\n    share = t[\"by_category\"].iloc[0] / t[\"by_category\"].sum() * 100\n    best, worst = int(t[\"monthly\"].idxmax()), int(t[\"monthly\"].idxmin())\n    ratio = t[\"medians\"].iloc[0] / t[\"medians\"].iloc[-1]\n    return [\n        f\"{top} earns {share:.0f}% of revenue, more than any other category.\",\n        f\"Revenue peaked in month {best} ({t['monthly'].max():,.0f}) and was lowest in month {worst} ({t['monthly'].min():,.0f}).\",\n        f\"The median {t['medians'].index[0]} order is {ratio:.1f} times the median {t['medians'].index[-1]} order.\",\n    ]\n\norders = make_orders()\n\ndef check(total, table_sum, tolerance):\n    if abs(total - table_sum) > tolerance:\n        raise ValueError(\"tables do not reconcile\")\n\n\ndef build_report(orders):\n    t = chart_tables(orders)\n    total = float(orders[\"revenue\"].sum())\n    check(total, float(t[\"by_category\"].sum()), 2)\n    check(total, float(t[\"monthly\"].sum()), 6)\n    return findings(orders)\n\n\nresult = build_report(orders)\nprint(\"ok\", len(result))\ntry:\n    check(100, 150, 2)\nexcept ValueError:\n    print(\"error\")\n",
+      "expected": "ok 3\nerror"
+    },
+    {
+      "id": "i3",
+      "title": "Extend the report with a fourth chart and narrative",
+      "kind": "written",
+      "prompt": "Add a fourth chart to the report: revenue per month for the top category only, drawn with a focus colour, with a generated insight title and an annotation on the best month. Write the code for the table function, the figure function and the finding sentence, and a three-sentence paragraph for the manager that states the finding, a limit of the data and one question to check next.",
+      "starter": "# table function\n# figure function\n# finding\n# paragraph\n",
+      "solution": "```python\ndef top_category_monthly(orders):\n    top = orders.groupby(\"category\")[\"revenue\"].sum().idxmax()\n    part = orders[orders[\"category\"] == top]\n    return top, part.groupby(part[\"order_date\"].dt.month)[\"revenue\"].sum().round(0)\n\n\ndef figure_top(top, monthly):\n    fig, ax = plt.subplots(figsize=(7, 4))\n    ax.plot(monthly.index, monthly.values, marker=\"o\", color=\"#D55E00\")\n    best = int(monthly.idxmax())\n    ax.annotate(f\"Best: month {best}\", xy=(best, monthly.max()), xytext=(best - 3, monthly.max() * 1.05), arrowprops={\"arrowstyle\": \"->\"})\n    ax.set_title(f\"{top} revenue peaked in month {best}\")\n    ax.set_ylabel(\"Revenue (GBP)\")\n    ax.set_ylim(bottom=0)\n    return fig\n```\n\nParagraph: Electronics revenue is concentrated in a few months, with its best month well above the average. This is based on 240 orders in one year, so one large order could move a month. The next question to check is whether the best month coincides with a promotion or a stock change, which this data does not contain.",
+      "rubric": [
+        "Table, figure and finding are separate functions fed by the same data.",
+        "Focus colour, annotation and a generated insight title.",
+        "Paragraph states a finding, a data limit and a question to check.",
+        "No causal claim."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [
+      "matplotlib",
+      "pandas",
+      "numpy"
+    ],
+    "note": "Examples 3 and 4 use matplotlib, which the browser cannot load: run them on your own computer after `pip install matplotlib pandas numpy`. They print figure properties and file names instead of showing images. Examples 1 and 2 and the graded exercises are pandas only and run in the browser. Written exercises are self-assessed."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why generate chart titles and findings from the tables instead of typing them?",
+      "options": [
+        "So they stay true when the data changes",
+        "Because typing is slow",
+        "Because titles must be short",
+        "So they never contain numbers"
+      ],
+      "answer": 0,
+      "explanation": "A generated sentence uses the same numbers as the chart, so a data refresh cannot leave a stale claim."
+    },
+    {
+      "id": "c2",
+      "question": "What does the reconciliation step check?",
+      "options": [
+        "That each chart table adds up to the source total or row count",
+        "That charts are pretty",
+        "That the colours are accessible",
+        "That figures are saved"
+      ],
+      "answer": 0,
+      "explanation": "A table that does not sum to the source means rows were lost or double counted; stop before drawing."
+    },
+    {
+      "id": "c3",
+      "question": "Which question family fits 'How large are orders in each category?'",
+      "options": [
+        "Distribution",
+        "Trend",
+        "Composition",
+        "Relationship"
+      ],
+      "answer": 0,
+      "explanation": "The question is about the spread of order sizes by group, so box plots or histograms fit; trend would need time."
+    },
+    {
+      "id": "c4",
+      "question": "Which statement belongs in the caveats paragraph?",
+      "options": [
+        "The data cover one year and show association only",
+        "Revenue peaked because of the summer sale",
+        "The charts are interactive",
+        "The report is final"
+      ],
+      "answer": 0,
+      "explanation": "Caveats state limits. A causal reason is a claim the data cannot support, and it belongs as a question for the business."
+    },
+    {
+      "id": "c5",
+      "question": "After `fig.savefig(path, dpi=150, bbox_inches='tight')` in a loop of many charts, what should you call?",
+      "options": [
+        "`plt.close(fig)`",
+        "`plt.show()`",
+        "`fig.clear_all()`",
+        "Nothing"
+      ],
+      "answer": 0,
+      "explanation": "Figures stay in memory until closed; closing them avoids warnings and memory growth."
+    }
+  ]
+}

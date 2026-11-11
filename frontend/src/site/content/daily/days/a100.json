@@ -1,0 +1,196 @@
+{
+  "id": "a100",
+  "time": {
+    "theory": 15,
+    "examples": 20,
+    "guided": 30,
+    "independent": 70,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-transformation",
+      "etl-data-validation",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-clean-dataframe",
+      "sales-by-month"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": [
+      "pivot-report",
+      "unmatched-records"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Clean and count the removals",
+      "kind": "python",
+      "prompt": "Replicate the cleaning steps on the raw export (skip the title line, convert `Date` and `Qty`, trim and capitalise `Region` and `Product`). Print on three lines: the number of raw data rows, the list of `OrderID` values with a text quantity, and the number of rows removed as exact duplicates after the error rows were removed.",
+      "starter": "import io\nimport pandas as pd\n\nraw_text = \"\"\"March export\nOrderID,Date,Region,Product,Qty\n1001,2025-03-02, north ,pen,10\n1002,2025-03-05,South,Book,3\n1003,2025-03-09,NORTH,Pen,x\n1004,2025-03-14,East,Notebook,5\n1004,2025-03-14,East,Notebook,5\n1005,2025-03-20,South,Pen,8\n1006,2025-03-27,North,Book,2\n1007,2025-03-30,East,Marker,4\n1008,2025-03-31,north,Notebook,6\n\"\"\"\nproducts = pd.DataFrame({\"Product\": [\"Pen\", \"Book\", \"Notebook\"], \"Price\": [2.5, 12.0, 4.0], \"Cost\": [1.5, 8.0, 2.5]})\n\n# print: raw rows, error OrderIDs, duplicates removed\n",
+      "solution": "import io\nimport pandas as pd\n\nraw_text = \"\"\"March export\nOrderID,Date,Region,Product,Qty\n1001,2025-03-02, north ,pen,10\n1002,2025-03-05,South,Book,3\n1003,2025-03-09,NORTH,Pen,x\n1004,2025-03-14,East,Notebook,5\n1004,2025-03-14,East,Notebook,5\n1005,2025-03-20,South,Pen,8\n1006,2025-03-27,North,Book,2\n1007,2025-03-30,East,Marker,4\n1008,2025-03-31,north,Notebook,6\n\"\"\"\nproducts = pd.DataFrame({\"Product\": [\"Pen\", \"Book\", \"Notebook\"], \"Price\": [2.5, 12.0, 4.0], \"Cost\": [1.5, 8.0, 2.5]})\ndf = pd.read_csv(io.StringIO(raw_text), skiprows=1)\ndf[\"Qty\"] = pd.to_numeric(df[\"Qty\"], errors=\"coerce\")\ndf[\"Region\"] = df[\"Region\"].str.strip().str.title()\ndf[\"Product\"] = df[\"Product\"].str.strip().str.title()\nprint(len(df))\nprint(df.loc[df[\"Qty\"].isna(), \"OrderID\"].tolist())\nok = df.dropna(subset=[\"Qty\"])\nprint(len(ok) - len(ok.drop_duplicates()))\n",
+      "hints": [
+        "The raw row count is the length after reading, before any removal.",
+        "Rows with a missing Qty after to_numeric are the errors.",
+        "Remove the errors first, then compare the length with and without drop_duplicates()."
+      ],
+      "expected": "9\n[1003]\n1"
+    },
+    {
+      "id": "g2",
+      "title": "Enrich with price and margin",
+      "kind": "python",
+      "prompt": "After cleaning, merge `products` with a Left Outer join on `Product`, add `Amount` and `Margin` (`Amount - Qty*Cost`). Print `Amount` total and `Margin` total (floats), then the list of `OrderID` values with no price, on three lines.",
+      "starter": "import io\nimport pandas as pd\n\nraw_text = \"\"\"March export\nOrderID,Date,Region,Product,Qty\n1001,2025-03-02, north ,pen,10\n1002,2025-03-05,South,Book,3\n1003,2025-03-09,NORTH,Pen,x\n1004,2025-03-14,East,Notebook,5\n1004,2025-03-14,East,Notebook,5\n1005,2025-03-20,South,Pen,8\n1006,2025-03-27,North,Book,2\n1007,2025-03-30,East,Marker,4\n1008,2025-03-31,north,Notebook,6\n\"\"\"\nproducts = pd.DataFrame({\"Product\": [\"Pen\", \"Book\", \"Notebook\"], \"Price\": [2.5, 12.0, 4.0], \"Cost\": [1.5, 8.0, 2.5]})\ndf = pd.read_csv(io.StringIO(raw_text), skiprows=1)\ndf[\"Date\"] = pd.to_datetime(df[\"Date\"])\ndf[\"Qty\"] = pd.to_numeric(df[\"Qty\"], errors=\"coerce\")\ndf[\"Region\"] = df[\"Region\"].str.strip().str.title()\ndf[\"Product\"] = df[\"Product\"].str.strip().str.title()\nclean = df.dropna(subset=[\"Qty\"]).drop_duplicates().reset_index(drop=True)\nclean[\"Qty\"] = clean[\"Qty\"].astype(int)\n# merge, add columns, print three lines\n",
+      "solution": "import io\nimport pandas as pd\n\nraw_text = \"\"\"March export\nOrderID,Date,Region,Product,Qty\n1001,2025-03-02, north ,pen,10\n1002,2025-03-05,South,Book,3\n1003,2025-03-09,NORTH,Pen,x\n1004,2025-03-14,East,Notebook,5\n1004,2025-03-14,East,Notebook,5\n1005,2025-03-20,South,Pen,8\n1006,2025-03-27,North,Book,2\n1007,2025-03-30,East,Marker,4\n1008,2025-03-31,north,Notebook,6\n\"\"\"\nproducts = pd.DataFrame({\"Product\": [\"Pen\", \"Book\", \"Notebook\"], \"Price\": [2.5, 12.0, 4.0], \"Cost\": [1.5, 8.0, 2.5]})\ndf = pd.read_csv(io.StringIO(raw_text), skiprows=1)\ndf[\"Date\"] = pd.to_datetime(df[\"Date\"])\ndf[\"Qty\"] = pd.to_numeric(df[\"Qty\"], errors=\"coerce\")\ndf[\"Region\"] = df[\"Region\"].str.strip().str.title()\ndf[\"Product\"] = df[\"Product\"].str.strip().str.title()\nclean = df.dropna(subset=[\"Qty\"]).drop_duplicates().reset_index(drop=True)\nclean[\"Qty\"] = clean[\"Qty\"].astype(int)\norders = clean.merge(products, on=\"Product\", how=\"left\")\norders[\"Amount\"] = orders[\"Qty\"] * orders[\"Price\"]\norders[\"Margin\"] = orders[\"Amount\"] - orders[\"Qty\"] * orders[\"Cost\"]\nprint(orders[\"Amount\"].sum())\nprint(orders[\"Margin\"].sum())\nprint(orders.loc[orders[\"Price\"].isna(), \"OrderID\"].tolist())\n",
+      "hints": [
+        "A left merge keeps unpriced orders with NaN in Price.",
+        "Amount is Qty * Price; Margin subtracts Qty * Cost.",
+        "Select the unpriced rows with orders[\"Price\"].isna()."
+      ],
+      "expected": "149.0\n54.5\n[1007]"
+    },
+    {
+      "id": "g3",
+      "title": "Pivot and reconciliation",
+      "kind": "python",
+      "prompt": "With the enriched `orders`, print the Amount total per `Region` as a Series (`to_string()`), then print `True` or `False` for each of two checks on separate lines: the regional totals add up to the overall Amount total, and the Qty of the priced rows plus the Qty of the unpriced rows equals the cleaned Qty total.",
+      "starter": "import io\nimport pandas as pd\n\nraw_text = \"\"\"March export\nOrderID,Date,Region,Product,Qty\n1001,2025-03-02, north ,pen,10\n1002,2025-03-05,South,Book,3\n1003,2025-03-09,NORTH,Pen,x\n1004,2025-03-14,East,Notebook,5\n1004,2025-03-14,East,Notebook,5\n1005,2025-03-20,South,Pen,8\n1006,2025-03-27,North,Book,2\n1007,2025-03-30,East,Marker,4\n1008,2025-03-31,north,Notebook,6\n\"\"\"\nproducts = pd.DataFrame({\"Product\": [\"Pen\", \"Book\", \"Notebook\"], \"Price\": [2.5, 12.0, 4.0], \"Cost\": [1.5, 8.0, 2.5]})\ndf = pd.read_csv(io.StringIO(raw_text), skiprows=1)\ndf[\"Date\"] = pd.to_datetime(df[\"Date\"])\ndf[\"Qty\"] = pd.to_numeric(df[\"Qty\"], errors=\"coerce\")\ndf[\"Region\"] = df[\"Region\"].str.strip().str.title()\ndf[\"Product\"] = df[\"Product\"].str.strip().str.title()\nclean = df.dropna(subset=[\"Qty\"]).drop_duplicates().reset_index(drop=True)\nclean[\"Qty\"] = clean[\"Qty\"].astype(int)\norders = clean.merge(products, on=\"Product\", how=\"left\")\norders[\"Amount\"] = orders[\"Qty\"] * orders[\"Price\"]\norders[\"Margin\"] = orders[\"Amount\"] - orders[\"Qty\"] * orders[\"Cost\"]\n# regional totals, then two reconciliation checks\n",
+      "solution": "import io\nimport pandas as pd\n\nraw_text = \"\"\"March export\nOrderID,Date,Region,Product,Qty\n1001,2025-03-02, north ,pen,10\n1002,2025-03-05,South,Book,3\n1003,2025-03-09,NORTH,Pen,x\n1004,2025-03-14,East,Notebook,5\n1004,2025-03-14,East,Notebook,5\n1005,2025-03-20,South,Pen,8\n1006,2025-03-27,North,Book,2\n1007,2025-03-30,East,Marker,4\n1008,2025-03-31,north,Notebook,6\n\"\"\"\nproducts = pd.DataFrame({\"Product\": [\"Pen\", \"Book\", \"Notebook\"], \"Price\": [2.5, 12.0, 4.0], \"Cost\": [1.5, 8.0, 2.5]})\ndf = pd.read_csv(io.StringIO(raw_text), skiprows=1)\ndf[\"Date\"] = pd.to_datetime(df[\"Date\"])\ndf[\"Qty\"] = pd.to_numeric(df[\"Qty\"], errors=\"coerce\")\ndf[\"Region\"] = df[\"Region\"].str.strip().str.title()\ndf[\"Product\"] = df[\"Product\"].str.strip().str.title()\nclean = df.dropna(subset=[\"Qty\"]).drop_duplicates().reset_index(drop=True)\nclean[\"Qty\"] = clean[\"Qty\"].astype(int)\norders = clean.merge(products, on=\"Product\", how=\"left\")\norders[\"Amount\"] = orders[\"Qty\"] * orders[\"Price\"]\norders[\"Margin\"] = orders[\"Amount\"] - orders[\"Qty\"] * orders[\"Cost\"]\nby_region = orders.groupby(\"Region\")[\"Amount\"].sum()\nprint(by_region.to_string())\nprint(bool(abs(by_region.sum() - orders[\"Amount\"].sum()) < 1e-9))\npriced = orders.loc[orders[\"Price\"].notna(), \"Qty\"].sum()\nunpriced = orders.loc[orders[\"Price\"].isna(), \"Qty\"].sum()\nprint(bool(priced + unpriced == clean[\"Qty\"].sum()))\n",
+      "hints": [
+        "groupby sums skip missing amounts, as a pivot does.",
+        "Compare floats with a small tolerance.",
+        "Split the cleaned Qty by whether the price is missing and add the two parts."
+      ],
+      "expected": "Region\nEast     20.0\nNorth    73.0\nSouth    56.0\nTrue\nTrue"
+    },
+    {
+      "id": "g4",
+      "title": "Plan the workbook (written)",
+      "kind": "written",
+      "prompt": "List the sheets of the monthly sales workbook and what each holds, name the Power Query steps that produce the Orders Table, and list three reconciliation checks that belong on the Report sheet.",
+      "starter": "Sheets: ...\nPower Query steps: ...\nChecks: ...",
+      "solution": "Sheets: `Raw` (the export as received, never edited), `Lookups` (Tables `Products` with price and cost, `Regions`), `Orders` (the loaded Power Query output), `Pivots` (PivotTables for region by product and product ranking), `Report` (KPI cells, two charts, exception list, notes). Steps: Source, Remove Top Rows, Use First Row as Headers, Changed Type (Date, Qty), Trim and Capitalize Each Word on Region and Product, Remove Errors, Remove Duplicates, Merge Queries with Products (Left Outer) and expand Price and Cost, Custom Column Amount and Margin, Close & Load to a Table named Orders. Checks: (1) raw rows minus removed error and duplicate rows equals the Orders row count; (2) the pivot grand total equals `=SUM(Orders[Amount])`; (3) the sum of the regional totals equals the grand total, and the count of unpriced rows equals the length of the exception list.",
+      "hints": [
+        "Keep Raw untouched and let Power Query read it.",
+        "Clean, then merge, then add custom columns.",
+        "Each check compares two numbers that must be equal."
+      ],
+      "rubric": [
+        "Five sheets with clear roles and Raw never edited.",
+        "Steps in a sensible order: clean before merge, merge before custom columns.",
+        "At least three reconciliation checks that compare two numbers.",
+        "Mentions loading to a Table named Orders."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "The report data pack",
+      "kind": "python",
+      "prompt": "Using the cleaned and enriched `orders` (priced rows only for revenue), print the report numbers on these lines: `Revenue` and the revenue (rounded to 2 decimals), `Orders` and the number of priced rows, `MarginRate` and margin divided by revenue rounded to 3 decimals, `Top` and the product with the highest revenue, `Unpriced` and the list of unpriced products (sorted, unique). Example format: `Revenue 123.45`.",
+      "starter": "import io\nimport pandas as pd\n\nraw_text = \"\"\"March export\nOrderID,Date,Region,Product,Qty\n1001,2025-03-02, north ,pen,10\n1002,2025-03-05,South,Book,3\n1003,2025-03-09,NORTH,Pen,x\n1004,2025-03-14,East,Notebook,5\n1004,2025-03-14,East,Notebook,5\n1005,2025-03-20,South,Pen,8\n1006,2025-03-27,North,Book,2\n1007,2025-03-30,East,Marker,4\n1008,2025-03-31,north,Notebook,6\n\"\"\"\nproducts = pd.DataFrame({\"Product\": [\"Pen\", \"Book\", \"Notebook\"], \"Price\": [2.5, 12.0, 4.0], \"Cost\": [1.5, 8.0, 2.5]})\ndf = pd.read_csv(io.StringIO(raw_text), skiprows=1)\ndf[\"Date\"] = pd.to_datetime(df[\"Date\"])\ndf[\"Qty\"] = pd.to_numeric(df[\"Qty\"], errors=\"coerce\")\ndf[\"Region\"] = df[\"Region\"].str.strip().str.title()\ndf[\"Product\"] = df[\"Product\"].str.strip().str.title()\nclean = df.dropna(subset=[\"Qty\"]).drop_duplicates().reset_index(drop=True)\nclean[\"Qty\"] = clean[\"Qty\"].astype(int)\norders = clean.merge(products, on=\"Product\", how=\"left\")\norders[\"Amount\"] = orders[\"Qty\"] * orders[\"Price\"]\norders[\"Margin\"] = orders[\"Amount\"] - orders[\"Qty\"] * orders[\"Cost\"]\n# print the five report lines\n",
+      "solution": "import io\nimport pandas as pd\n\nraw_text = \"\"\"March export\nOrderID,Date,Region,Product,Qty\n1001,2025-03-02, north ,pen,10\n1002,2025-03-05,South,Book,3\n1003,2025-03-09,NORTH,Pen,x\n1004,2025-03-14,East,Notebook,5\n1004,2025-03-14,East,Notebook,5\n1005,2025-03-20,South,Pen,8\n1006,2025-03-27,North,Book,2\n1007,2025-03-30,East,Marker,4\n1008,2025-03-31,north,Notebook,6\n\"\"\"\nproducts = pd.DataFrame({\"Product\": [\"Pen\", \"Book\", \"Notebook\"], \"Price\": [2.5, 12.0, 4.0], \"Cost\": [1.5, 8.0, 2.5]})\ndf = pd.read_csv(io.StringIO(raw_text), skiprows=1)\ndf[\"Date\"] = pd.to_datetime(df[\"Date\"])\ndf[\"Qty\"] = pd.to_numeric(df[\"Qty\"], errors=\"coerce\")\ndf[\"Region\"] = df[\"Region\"].str.strip().str.title()\ndf[\"Product\"] = df[\"Product\"].str.strip().str.title()\nclean = df.dropna(subset=[\"Qty\"]).drop_duplicates().reset_index(drop=True)\nclean[\"Qty\"] = clean[\"Qty\"].astype(int)\norders = clean.merge(products, on=\"Product\", how=\"left\")\norders[\"Amount\"] = orders[\"Qty\"] * orders[\"Price\"]\norders[\"Margin\"] = orders[\"Amount\"] - orders[\"Qty\"] * orders[\"Cost\"]\npriced = orders[orders[\"Price\"].notna()]\nrevenue = priced[\"Amount\"].sum()\nprint(\"Revenue\", round(float(revenue), 2))\nprint(\"Orders\", len(priced))\nprint(\"MarginRate\", round(float(priced[\"Margin\"].sum() / revenue), 3))\nprint(\"Top\", priced.groupby(\"Product\")[\"Amount\"].sum().idxmax())\nprint(\"Unpriced\", sorted(orders.loc[orders[\"Price\"].isna(), \"Product\"].unique().tolist()))\n",
+      "expected": "Revenue 149.0\nOrders 6\nMarginRate 0.366\nTop Book\nUnpriced ['Marker']"
+    },
+    {
+      "id": "i2",
+      "title": "Weekly table for the line chart",
+      "kind": "python",
+      "prompt": "Build the data for a line chart of weekly revenue: group the priced orders by the week start (Monday) of `Date` using `Date.dt.to_period(\"W-SUN\").dt.start_time`, sum `Amount`, and print one line per week as `YYYY-MM-DD amount` (amount as a float with one decimal). Then print `Weeks` and the number of weeks.",
+      "starter": "import io\nimport pandas as pd\n\nraw_text = \"\"\"March export\nOrderID,Date,Region,Product,Qty\n1001,2025-03-02, north ,pen,10\n1002,2025-03-05,South,Book,3\n1003,2025-03-09,NORTH,Pen,x\n1004,2025-03-14,East,Notebook,5\n1004,2025-03-14,East,Notebook,5\n1005,2025-03-20,South,Pen,8\n1006,2025-03-27,North,Book,2\n1007,2025-03-30,East,Marker,4\n1008,2025-03-31,north,Notebook,6\n\"\"\"\nproducts = pd.DataFrame({\"Product\": [\"Pen\", \"Book\", \"Notebook\"], \"Price\": [2.5, 12.0, 4.0], \"Cost\": [1.5, 8.0, 2.5]})\ndf = pd.read_csv(io.StringIO(raw_text), skiprows=1)\ndf[\"Date\"] = pd.to_datetime(df[\"Date\"])\ndf[\"Qty\"] = pd.to_numeric(df[\"Qty\"], errors=\"coerce\")\ndf[\"Region\"] = df[\"Region\"].str.strip().str.title()\ndf[\"Product\"] = df[\"Product\"].str.strip().str.title()\nclean = df.dropna(subset=[\"Qty\"]).drop_duplicates().reset_index(drop=True)\nclean[\"Qty\"] = clean[\"Qty\"].astype(int)\norders = clean.merge(products, on=\"Product\", how=\"left\")\norders[\"Amount\"] = orders[\"Qty\"] * orders[\"Price\"]\norders[\"Margin\"] = orders[\"Amount\"] - orders[\"Qty\"] * orders[\"Cost\"]\n# weekly revenue lines, then the number of weeks\n",
+      "solution": "import io\nimport pandas as pd\n\nraw_text = \"\"\"March export\nOrderID,Date,Region,Product,Qty\n1001,2025-03-02, north ,pen,10\n1002,2025-03-05,South,Book,3\n1003,2025-03-09,NORTH,Pen,x\n1004,2025-03-14,East,Notebook,5\n1004,2025-03-14,East,Notebook,5\n1005,2025-03-20,South,Pen,8\n1006,2025-03-27,North,Book,2\n1007,2025-03-30,East,Marker,4\n1008,2025-03-31,north,Notebook,6\n\"\"\"\nproducts = pd.DataFrame({\"Product\": [\"Pen\", \"Book\", \"Notebook\"], \"Price\": [2.5, 12.0, 4.0], \"Cost\": [1.5, 8.0, 2.5]})\ndf = pd.read_csv(io.StringIO(raw_text), skiprows=1)\ndf[\"Date\"] = pd.to_datetime(df[\"Date\"])\ndf[\"Qty\"] = pd.to_numeric(df[\"Qty\"], errors=\"coerce\")\ndf[\"Region\"] = df[\"Region\"].str.strip().str.title()\ndf[\"Product\"] = df[\"Product\"].str.strip().str.title()\nclean = df.dropna(subset=[\"Qty\"]).drop_duplicates().reset_index(drop=True)\nclean[\"Qty\"] = clean[\"Qty\"].astype(int)\norders = clean.merge(products, on=\"Product\", how=\"left\")\norders[\"Amount\"] = orders[\"Qty\"] * orders[\"Price\"]\norders[\"Margin\"] = orders[\"Amount\"] - orders[\"Qty\"] * orders[\"Cost\"]\npriced = orders[orders[\"Price\"].notna()]\nweek = priced[\"Date\"].dt.to_period(\"W-SUN\").dt.start_time\nweekly = priced.groupby(week)[\"Amount\"].sum()\nfor d, a in weekly.items():\n    print(d.strftime(\"%Y-%m-%d\"), round(float(a), 1))\nprint(\"Weeks\", len(weekly))\n",
+      "expected": "2025-02-24 25.0\n2025-03-03 36.0\n2025-03-10 20.0\n2025-03-17 20.0\n2025-03-24 24.0\n2025-03-31 24.0\nWeeks 6"
+    },
+    {
+      "id": "i3",
+      "title": "Handover notes and refresh test (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Next month's export has a new region, a product with a new price, and an extra column. Write the notes a colleague needs to refresh the workbook safely: what to paste where, what to check after Refresh All, which steps may fail and why, and how you would test the new month with a pandas replica.",
+      "starter": "Handover notes: ...",
+      "solution": "Paste the new export into the Raw sheet (replacing the old one) without editing it, then Data, Refresh All. Check that the loaded Orders Table has the expected row count (raw rows minus removed errors and duplicates), that the pivot grand total equals `=SUM(Orders[Amount])` and that the exception list is empty or explained. A new region needs no change because pivots and charts read the Table; a new product with no entry in `Products` appears in the exception list until its price is added to the Lookups Table. A changed price must be added with its own date or replace the old row, and the lookup must keep one row per product. A step may fail if a column named in a Changed Type step was renamed, and an extra column is harmless unless a step refers to column positions. To test, run the pandas pipeline on the same export and compare revenue, order count and exceptions with the Report cells before sending.",
+      "rubric": [
+        "Says to refresh and then run reconciliation checks.",
+        "Explains that a new unpriced product shows up as an exception.",
+        "Identifies a Changed Type step with a renamed column as a failure point.",
+        "Describes comparing the workbook with a pandas replica."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "openpyxl"
+    ],
+    "note": "The workbook needs Excel 2016 or later or Microsoft 365 for Windows (Power Query, PivotTables, charts, slicers); Microsoft 365 for Mac has Power Query with fewer connectors, and LibreOffice Calc can do the formulas and pivots but not Power Query. Example 4 uses openpyxl on your computer to write a workbook with a formula and a chart; openpyxl cannot calculate formulas or draw charts, so open the file in Excel to see the results. The graded exercises replicate the cleaning, lookups, summaries and checks with pandas, which runs in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which sheet should never be edited by hand in the monthly workbook?",
+      "options": [
+        "Report",
+        "Raw",
+        "Pivots",
+        "Lookups"
+      ],
+      "answer": 1,
+      "explanation": "Raw is the export as received. Power Query reads it, so edits would be lost or hide problems. The other sheets are outputs or controlled inputs."
+    },
+    {
+      "id": "c2",
+      "question": "A product has no price in the lookup. What is the right treatment of its order in the report?",
+      "options": [
+        "Count it as revenue of 0 silently",
+        "Exclude it from revenue and list it as an exception",
+        "Delete the order",
+        "Use the average price"
+      ],
+      "answer": 1,
+      "explanation": "A silent 0 hides a data problem, deleting loses an order, and an invented price is a guess. List the exception so that the data owner can fix the source."
+    },
+    {
+      "id": "c3",
+      "question": "Which check proves the PivotTable is complete?",
+      "options": [
+        "Its grand total equals SUM of the Orders Amount column",
+        "It has a chart",
+        "It has a slicer",
+        "It has a title"
+      ],
+      "answer": 0,
+      "explanation": "Equal totals show that no row was dropped or double counted. Charts, slicers and titles say nothing about completeness."
+    },
+    {
+      "id": "c4",
+      "question": "In Example 2 the revenue total ignores the unpriced Marker row. Which Excel behaviour matches that?",
+      "options": [
+        "SUM ignores empty cells",
+        "SUM treats empty as 100",
+        "SUM returns an error",
+        "SUM stops at the first empty cell"
+      ],
+      "answer": 0,
+      "explanation": "SUM and pandas sum skip empty or missing values. That is why the exception count must be reported separately."
+    },
+    {
+      "id": "c5",
+      "question": "Why build the cleaning in Power Query rather than editing the Raw sheet?",
+      "options": [
+        "It looks nicer",
+        "The steps are recorded and repeat on next month's export",
+        "It is faster to type",
+        "Raw sheets cannot be edited"
+      ],
+      "answer": 1,
+      "explanation": "Recorded steps re-run on refresh and are reviewable. Hand edits cannot be repeated or audited."
+    }
+  ]
+}

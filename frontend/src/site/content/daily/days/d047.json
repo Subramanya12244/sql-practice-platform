@@ -1,0 +1,191 @@
+{
+  "id": "d047",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 30,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "union",
+      "union-all",
+      "intersect",
+      "except"
+    ],
+    "questions": [
+      79,
+      81,
+      204
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "set-operators"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Countries of employees and suppliers",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return one column `country` with every distinct country where there is at least one employee or at least one supplier, in alphabetical order. Use `UNION` of the `country` columns of `employees` and `suppliers`.",
+      "starter": "-- Distinct countries of employees or suppliers\nSELECT country FROM employees\nORDER BY country;\n",
+      "solution": "SELECT country FROM employees\nUNION\nSELECT country FROM suppliers\nORDER BY country;\n",
+      "hints": [
+        "The starter only reads one table, and it repeats countries. A set operator combines two queries.",
+        "UNION returns the rows of both queries and removes duplicates. ORDER BY goes at the very end.",
+        "SELECT country FROM employees UNION SELECT country FROM suppliers ORDER BY country"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "German customers and suppliers in one list",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Stack the customers and the suppliers located in Germany into one list with the columns `kind` (the text `customer` or `supplier`), `name` (the `company_name`) and `city`. Keep all rows (use `UNION ALL`) and order by `kind`, then `name`.",
+      "starter": "-- Customers and suppliers in Germany, with a kind label\nSELECT 'customer' AS kind, company_name AS name, city\nFROM customers\nWHERE country = 'Germany'\nORDER BY kind, name;\n",
+      "solution": "SELECT 'customer' AS kind, company_name AS name, city\nFROM customers\nWHERE country = 'Germany'\nUNION ALL\nSELECT 'supplier', company_name, city\nFROM suppliers\nWHERE country = 'Germany'\nORDER BY kind, name;\n",
+      "hints": [
+        "The starter has only the customer part. Add the supplier part as a second query.",
+        "Join the two queries with UNION ALL. The second query needs the same three columns in the same order.",
+        "SELECT 'supplier', company_name, city FROM suppliers WHERE country = 'Germany'"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Countries with customers and suppliers",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return one column `country` listing the countries that have at least one customer and at least one supplier. Use `INTERSECT`. Order by `country`.",
+      "starter": "-- Countries that have both customers and suppliers\nSELECT country FROM customers\nORDER BY country;\n",
+      "solution": "SELECT country FROM customers\nINTERSECT\nSELECT country FROM suppliers\nORDER BY country;\n",
+      "hints": [
+        "The starter lists customer countries with repeats. You need the countries that are also in the suppliers table.",
+        "INTERSECT returns the distinct rows that appear in both queries.",
+        "SELECT country FROM customers INTERSECT SELECT country FROM suppliers ORDER BY country"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Products never ordered, with EXCEPT",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `product_id` for every product that does not appear in `order_details`, using `EXCEPT` between the `product_id` columns of `products` and `order_details`. Order by `product_id`.",
+      "starter": "-- Product ids that never appear in order_details\nSELECT product_id FROM products\nORDER BY product_id;\n",
+      "solution": "SELECT product_id FROM products\nEXCEPT\nSELECT product_id FROM order_details\nORDER BY product_id;\n",
+      "hints": [
+        "The starter returns all products. Subtract the ordered ones.",
+        "EXCEPT returns the rows of the first query that are not in the second. The order of the two queries matters.",
+        "SELECT product_id FROM products EXCEPT SELECT product_id FROM order_details ORDER BY product_id"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A UK directory of three kinds of contacts",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Build one list of contacts located in the UK from three tables, with the columns `kind`, `contact_name`, `company` and `country`, in that order. For customers and suppliers use the label `customer` or `supplier`, `contact_name` and `company_name`. For employees use the label `employee`, the full name `first_name || ' ' || last_name` as `contact_name` and the constant text `Northwind staff` as `company`. Keep every row (`UNION ALL`) and order by `kind`, then `contact_name`.",
+      "starter": "-- UK contacts from customers, suppliers and employees\nSELECT 'customer' AS kind, contact_name, company_name AS company, country\nFROM customers\nWHERE country = 'UK'\nORDER BY kind, contact_name;\n",
+      "solution": "SELECT 'customer' AS kind, contact_name, company_name AS company, country\nFROM customers\nWHERE country = 'UK'\nUNION ALL\nSELECT 'supplier', contact_name, company_name, country\nFROM suppliers\nWHERE country = 'UK'\nUNION ALL\nSELECT 'employee', first_name || ' ' || last_name, 'Northwind staff', country\nFROM employees\nWHERE country = 'UK'\nORDER BY kind, contact_name;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Customers active in 1996 and 1998 but not in 1997",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Find the customers who placed at least one order in 1996 and at least one in 1998 but none in 1997. Combine three queries on `orders` that return `customer_id` with `INTERSECT` and `EXCEPT` (years by `order_date` ranges, for example from 1996-01-01 up to but not including 1997-01-01). Use the result as a list in `customers` so the final output has `customer_id` and `company_name`, ordered by `customer_id`.",
+      "starter": "-- Customers with orders in 1996 and 1998 but not in 1997\nSELECT customer_id, company_name\nFROM customers\nWHERE customer_id IN (SELECT customer_id FROM orders WHERE order_date < '1997-01-01')\nORDER BY customer_id;\n",
+      "solution": "SELECT customer_id, company_name\nFROM customers\nWHERE customer_id IN (\n  SELECT customer_id FROM orders\n  WHERE order_date >= '1996-01-01' AND order_date < '1997-01-01'\n  INTERSECT\n  SELECT customer_id FROM orders\n  WHERE order_date >= '1998-01-01' AND order_date < '1999-01-01'\n  EXCEPT\n  SELECT customer_id FROM orders\n  WHERE order_date >= '1997-01-01' AND order_date < '1998-01-01'\n)\nORDER BY customer_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Which countries host several kinds of contacts?",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. Stack the `country` of every customer (label `customer`), supplier (`supplier`) and employee (`employee`) with `UNION ALL` into a CTE `entities(kind, country)`. Then return, per `country`, the columns `customers`, `suppliers` and `employees` (the number of rows of each kind, use `COUNT(*) FILTER (WHERE kind = ...)`), keeping only countries that have at least 2 different kinds. Order by `country`.",
+      "starter": "-- Contact counts per country and kind (countries with 2+ kinds)\nSELECT country, COUNT(*) AS customers, 0 AS suppliers, 0 AS employees\nFROM customers\nGROUP BY country\nORDER BY country;\n",
+      "solution": "WITH entities AS (\n  SELECT 'customer' AS kind, country FROM customers\n  UNION ALL\n  SELECT 'supplier', country FROM suppliers\n  UNION ALL\n  SELECT 'employee', country FROM employees\n)\nSELECT country,\n       COUNT(*) FILTER (WHERE kind = 'customer') AS customers,\n       COUNT(*) FILTER (WHERE kind = 'supplier') AS suppliers,\n       COUNT(*) FILTER (WHERE kind = 'employee') AS employees\nFROM entities\nGROUP BY country\nHAVING COUNT(DISTINCT kind) >= 2\nORDER BY country;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`customers` has 91 rows and `suppliers` has 29. How many rows does `SELECT country FROM customers UNION ALL SELECT country FROM suppliers` return?",
+      "options": [
+        "25",
+        "29",
+        "91",
+        "120"
+      ],
+      "answer": 3,
+      "explanation": "UNION ALL keeps every row of both queries, so 91 + 29 = 120. Plain UNION would remove duplicates and return only the 25 different countries."
+    },
+    {
+      "id": "c2",
+      "question": "Which statement about `A EXCEPT B` and `B EXCEPT A` is true?",
+      "options": [
+        "They always return the same rows",
+        "They can differ, because EXCEPT returns what is in the first query and not in the second",
+        "Only one of them is allowed in PostgreSQL",
+        "Both return the rows common to A and B"
+      ],
+      "answer": 1,
+      "explanation": "EXCEPT is not symmetric. Customers' countries except suppliers' countries gives 9 rows, whereas suppliers' countries except customers' countries gives 4 rows."
+    },
+    {
+      "id": "c3",
+      "question": "What happens with `SELECT company_name FROM customers UNION SELECT 1`?",
+      "options": [
+        "It returns the names and a row with 1",
+        "It fails with 'UNION types character varying and integer cannot be matched'",
+        "It converts all values to numbers",
+        "It returns only the row with 1"
+      ],
+      "answer": 1,
+      "explanation": "Columns in the same position must have compatible types. Text and integer are not compatible without an explicit cast. SELECT 1::text, or selecting a text constant, would work."
+    },
+    {
+      "id": "c4",
+      "question": "Both `customers.region` and `suppliers.region` are NULL in every row. How many rows does `SELECT region FROM customers UNION SELECT region FROM suppliers` return?",
+      "options": [
+        "0, because NULL never equals NULL",
+        "1, because set operators treat NULLs as equal",
+        "120, because NULLs are never removed",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "For duplicate removal, set operators treat two NULLs as the same value, unlike an = comparison in WHERE. So all the NULL rows collapse into one."
+    },
+    {
+      "id": "c5",
+      "question": "Where does `ORDER BY` belong in `SELECT a FROM t1 UNION SELECT a FROM t2`?",
+      "options": [
+        "After the first query, so that it sorts only t1",
+        "After the last query, where it sorts the whole combined result",
+        "In both queries, otherwise it is ignored",
+        "It cannot be used with UNION"
+      ],
+      "answer": 1,
+      "explanation": "ORDER BY (and LIMIT) apply to the combined result and are written once at the end. To sort only one part you must wrap that query in parentheses."
+    },
+    {
+      "id": "c6",
+      "question": "What does `SELECT x FROM a UNION SELECT y FROM b INTERSECT SELECT z FROM c` compute, without parentheses?",
+      "options": [
+        "(a UNION b) INTERSECT c",
+        "a UNION (b INTERSECT c)",
+        "Left to right, one operator after another",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "INTERSECT binds more tightly than UNION and EXCEPT, in the same way that AND binds before OR. Write parentheses to state your intention explicitly."
+    }
+  ]
+}

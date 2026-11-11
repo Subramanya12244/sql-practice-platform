@@ -1,0 +1,167 @@
+{
+  "time": {
+    "theory": 25,
+    "examples": 25,
+    "guided": 25,
+    "independent": 45,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "python-database-connectivity",
+      "python-pandas",
+      "query-optimization"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Cells moved",
+      "kind": "python",
+      "prompt": "Write `cells(rows, columns)` that returns rows times columns, and print the cells for three plans: fetch everything `(1000, 5)`, two columns `(1000, 2)` and an aggregate `(28, 2)`, one per line as `<name>: <cells>`. Expected output: `everything: 5000`, `two columns: 2000`, `aggregate: 56`.",
+      "starter": "def cells(rows, columns):\n    pass\n\nfor name, shape in [(\"everything\", (1000, 5)), (\"two columns\", (1000, 2)), (\"aggregate\", (28, 2))]:\n    print(f\"{name}: {cells(*shape)}\")\n",
+      "solution": "def cells(rows, columns):\n    return rows * columns\n\nfor name, shape in [(\"everything\", (1000, 5)), (\"two columns\", (1000, 2)), (\"aggregate\", (28, 2))]:\n    print(f\"{name}: {cells(*shape)}\")\n",
+      "hints": [
+        "Cells moved is the number of rows times the number of columns.",
+        "The function body is a single multiplication.",
+        "`return rows * columns`."
+      ],
+      "expected": "everything: 5000\ntwo columns: 2000\naggregate: 56"
+    },
+    {
+      "id": "g2",
+      "title": "Push the aggregate down",
+      "kind": "python",
+      "prompt": "The in-memory table `events(status, amount_cents)` is created for you. Use `pd.read_sql` with one SQL query to get `status` and `cents` (the sum of `amount_cents`) per status ordered by status, then print the frame with `to_string(index=False)`. Expected output has a header and three rows.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE events (status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO events VALUES (?, ?)\", [(\"paid\", 100), (\"paid\", 250), (\"refunded\", 80), (\"failed\", 40), (\"paid\", 50), (\"failed\", 10)])\n# Your code here\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE events (status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO events VALUES (?, ?)\", [(\"paid\", 100), (\"paid\", 250), (\"refunded\", 80), (\"failed\", 40), (\"paid\", 50), (\"failed\", 10)])\ndf = pd.read_sql(\"SELECT status, SUM(amount_cents) AS cents FROM events GROUP BY status ORDER BY status\", conn)\nprint(df.to_string(index=False))\n",
+      "hints": [
+        "The database should do the grouping, so the query contains `GROUP BY`.",
+        "Alias the sum as `cents` and add `ORDER BY status`.",
+        "`pd.read_sql(\"SELECT status, SUM(amount_cents) AS cents FROM events GROUP BY status ORDER BY status\", conn)`"
+      ],
+      "expected": "  status  cents\n  failed     50\n    paid    400\nrefunded     80"
+    },
+    {
+      "id": "g3",
+      "title": "Chunked running total",
+      "kind": "python",
+      "prompt": "Read the paid amounts of the table `events` (created for you, 10 paid rows of 100 cents each plus 2 failed rows) with `pd.read_sql(..., chunksize=4)` and a running total. Print `chunks=<number of chunks> total=<sum of amount_cents>`. Expected output: `chunks=3 total=1000`.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE events (status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO events VALUES (?, ?)\", [(\"paid\", 100)] * 10 + [(\"failed\", 55)] * 2)\n# Your code here\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE events (status TEXT, amount_cents INTEGER)\")\nconn.executemany(\"INSERT INTO events VALUES (?, ?)\", [(\"paid\", 100)] * 10 + [(\"failed\", 55)] * 2)\nchunks, total = 0, 0\nfor chunk in pd.read_sql(\"SELECT amount_cents FROM events WHERE status = 'paid'\", conn, chunksize=4):\n    chunks += 1\n    total += int(chunk[\"amount_cents\"].sum())\nprint(f\"chunks={chunks} total={total}\")\n",
+      "hints": [
+        "Filter to paid rows in the SQL, then loop over the chunks.",
+        "Keep two counters before the loop: one for chunks, one for the total.",
+        "`total += int(chunk[\"amount_cents\"].sum())` inside the loop, `chunks += 1` too."
+      ],
+      "expected": "chunks=3 total=1000"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Hybrid weekday report",
+      "kind": "python",
+      "prompt": "Create the in-memory table `sales(day, cents)` from the starter's rows. Use one SQL query to get total cents per `day` for days with a total of at least 300 (ordered by day), read it with `parse_dates=[\"day\"]`, map the weekday number (`dt.dayofweek`, Monday 0) through the dict in the starter, and print each line as `<weekday> <cents>` in day order. Expected output: three lines.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (day TEXT, cents INTEGER)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?)\", [(\"2025-03-03\", 200), (\"2025-03-03\", 150), (\"2025-03-04\", 90), (\"2025-03-05\", 400), (\"2025-03-06\", 100), (\"2025-03-06\", 250)])\nnames = {0: \"Mon\", 1: \"Tue\", 2: \"Wed\", 3: \"Thu\", 4: \"Fri\", 5: \"Sat\", 6: \"Sun\"}\n# Your code here\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (day TEXT, cents INTEGER)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?)\", [(\"2025-03-03\", 200), (\"2025-03-03\", 150), (\"2025-03-04\", 90), (\"2025-03-05\", 400), (\"2025-03-06\", 100), (\"2025-03-06\", 250)])\nnames = {0: \"Mon\", 1: \"Tue\", 2: \"Wed\", 3: \"Thu\", 4: \"Fri\", 5: \"Sat\", 6: \"Sun\"}\ndf = pd.read_sql(\"SELECT day, SUM(cents) AS cents FROM sales GROUP BY day HAVING SUM(cents) >= 300 ORDER BY day\", conn, parse_dates=[\"day\"])\nfor weekday, cents in zip(df[\"day\"].dt.dayofweek.map(names), df[\"cents\"]):\n    print(weekday, cents)\n",
+      "expected": "Mon 350\nWed 400\nThu 350"
+    },
+    {
+      "id": "i2",
+      "title": "Compare two plans",
+      "kind": "python",
+      "prompt": "Using the table built in the starter (1,000 rows from a loop), compute paid revenue per customer in two plans: plan A fetches all rows and groups in pandas; plan B groups in SQL. Print `A moved <cells> cells`, `B moved <cells> cells` (rows times columns of each fetched frame), and `same: <True or False>` comparing the two results sorted by customer id as lists of `(customer_id, cents)` tuples. Expected output: three lines.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE events (customer_id INTEGER, amount_cents INTEGER, status TEXT)\")\nconn.executemany(\"INSERT INTO events VALUES (?,?,?)\", ((1 + i % 7, 100 + i % 13, \"paid\" if i % 3 else \"failed\") for i in range(1000)))\n# Your code here\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE events (customer_id INTEGER, amount_cents INTEGER, status TEXT)\")\nconn.executemany(\"INSERT INTO events VALUES (?,?,?)\", ((1 + i % 7, 100 + i % 13, \"paid\" if i % 3 else \"failed\") for i in range(1000)))\nall_rows = pd.read_sql(\"SELECT * FROM events\", conn)\na = all_rows[all_rows[\"status\"] == \"paid\"].groupby(\"customer_id\")[\"amount_cents\"].sum().sort_index()\nb_df = pd.read_sql(\"SELECT customer_id, SUM(amount_cents) AS cents FROM events WHERE status = 'paid' GROUP BY customer_id ORDER BY customer_id\", conn)\nprint(\"A moved\", all_rows.shape[0] * all_rows.shape[1], \"cells\")\nprint(\"B moved\", b_df.shape[0] * b_df.shape[1], \"cells\")\nlist_a = [(int(k), int(v)) for k, v in a.items()]\nlist_b = [(int(r.customer_id), int(r.cents)) for r in b_df.itertuples()]\nprint(\"same:\", list_a == list_b)\n",
+      "expected": "A moved 3000 cells\nB moved 14 cells\nsame: True"
+    },
+    {
+      "id": "i3",
+      "title": "Choose the place for each step",
+      "kind": "written",
+      "prompt": "A pipeline must: (1) keep only last month's paid orders from a 200-million-row table, (2) sum revenue per customer, (3) classify each customer's name with a custom Python regular-expression function, (4) add exchange rates from a small config file, (5) draw a chart. For each step say where it should run, SQL or pandas, and give the reason in terms of what moves and where the logic lives. Then state which step you would test first against the other place.",
+      "starter": "Step 1:\nStep 2:\nStep 3:\nStep 4:\nStep 5:\nFirst comparison to test:\n",
+      "solution": "Steps 1 and 2 belong in SQL: a WHERE on the date and status and a GROUP BY by customer shrink 200 million rows to one row per customer before anything moves, and the database can use its indexes and partitions. Step 3 belongs in pandas: the custom regular-expression logic is a Python function, and it runs on the small per-customer result, not on the raw rows. Step 4 is pandas too: the rates are a small in-memory lookup, so `map` or a merge on the small frame is simplest and keeps the config out of the database. Step 5 is pandas and Matplotlib on the finished frame. Test step 2 first: compare the SQL aggregate with a pandas aggregate on a sample, because NULL handling and rounding are where the two places differ.",
+      "required": false,
+      "rubric": [
+        "Steps 1 and 2 are placed in SQL with the reason that rows are reduced before they move.",
+        "Step 3 is placed in pandas because the logic is a Python function applied to a small result.",
+        "The answer treats the small lookup (step 4) and the chart (step 5) as pandas work.",
+        "A comparison of SQL and pandas results (NULL or rounding) is named as the first test."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which plan moves the fewest cells for 'total paid revenue per day' on a 10-million-row table?",
+      "options": [
+        "`SELECT * FROM events`, then pandas groupby",
+        "`SELECT created_at, amount_cents ...` for paid rows, then pandas",
+        "`SELECT created_at, SUM(amount_cents) ... GROUP BY created_at` for paid rows",
+        "They move the same amount"
+      ],
+      "answer": 2,
+      "explanation": "The aggregate returns one row per day, a few dozen rows, while the other plans bring millions of rows into Python."
+    },
+    {
+      "id": "c2",
+      "question": "What does `pd.read_sql(sql, conn, chunksize=5000)` return?",
+      "options": [
+        "A single DataFrame with 5,000 rows",
+        "An iterator of DataFrames with up to 5,000 rows each",
+        "A list of all rows",
+        "A SQL cursor"
+      ],
+      "answer": 1,
+      "explanation": "It returns an iterator, so each loop pass holds one chunk. A single DataFrame would not bound memory, which is the point of chunking."
+    },
+    {
+      "id": "c3",
+      "question": "A job collects every chunk into a list and concatenates them at the end. What has chunking achieved?",
+      "options": [
+        "Bounded memory",
+        "Nothing for memory: the whole result is rebuilt in RAM",
+        "Faster SQL",
+        "Pushdown"
+      ],
+      "answer": 1,
+      "explanation": "Chunking only helps when each chunk is reduced to a running result and then released. Concatenating every chunk rebuilds the entire table in memory."
+    },
+    {
+      "id": "c4",
+      "question": "For an all-NULL group, `SUM(v)` in SQL and `groupby().sum()` in pandas give:",
+      "options": [
+        "Both 0",
+        "NULL in SQL, 0 in pandas",
+        "0 in SQL, NaN in pandas",
+        "Both NULL"
+      ],
+      "answer": 1,
+      "explanation": "SQL returns NULL when no non-NULL value exists, while pandas sums an empty set of values to 0 by default. This is why logic moved between the two places must be compared."
+    },
+    {
+      "id": "c5",
+      "question": "When is doing the work in pandas better than pushing it into SQL?",
+      "options": [
+        "Whenever the table is large",
+        "When the logic needs a Python function or a small in-memory lookup and the data is already small",
+        "Never, SQL is always faster",
+        "When you want an index to be used"
+      ],
+      "answer": 1,
+      "explanation": "Pandas wins for logic that is awkward in SQL, applied to a result already reduced by pushdown. Large tables call for pushdown first, and indexes are a database feature."
+    }
+  ],
+  "id": "e115"
+}

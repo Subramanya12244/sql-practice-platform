@@ -1,0 +1,186 @@
+{
+  "id": "d068",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A labelled Series",
+      "prompt": "Create a Series `stock` from the dictionary `{\"pens\": 40, \"ink\": 12, \"pads\": 25}`. Print the number of `ink` in stock on line 1, the index as a list on line 2, and the total stock on line 3.",
+      "starter": "import pandas as pd\n\ndata = {\"pens\": 40, \"ink\": 12, \"pads\": 25}\n",
+      "solution": "import pandas as pd\n\ndata = {\"pens\": 40, \"ink\": 12, \"pads\": 25}\nstock = pd.Series(data)\nprint(stock[\"ink\"])\nprint(stock.index.tolist())\nprint(stock.sum())\n",
+      "hints": [
+        "`pd.Series(dict)` uses the keys as the index.",
+        "Look a value up by label with `stock[\"ink\"]`; `.index.tolist()` gives the labels.",
+        "`stock = pd.Series(data)`, then print `stock[\"ink\"]`, `stock.index.tolist()` and `stock.sum()`."
+      ],
+      "kind": "python",
+      "expected": "12\n['pens', 'ink', 'pads']\n77"
+    },
+    {
+      "id": "g2",
+      "title": "Build a DataFrame",
+      "prompt": "Build a DataFrame `df` with the columns `name` (`[\"Ana\", \"Ben\", \"Cy\"]`) and `age` (`[31, 25, 47]`). Print `df.shape` on line 1 and `df.columns.tolist()` on line 2, then print the table itself on line 3 onward with `print(df)`.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nnames = [\"Ana\", \"Ben\", \"Cy\"]\nages = [31, 25, 47]\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nnames = [\"Ana\", \"Ben\", \"Cy\"]\nages = [31, 25, 47]\ndf = pd.DataFrame({\"name\": names, \"age\": ages})\nprint(df.shape)\nprint(df.columns.tolist())\nprint(df)\n",
+      "hints": [
+        "Use a dictionary whose keys are the column names.",
+        "`pd.DataFrame({\"name\": names, \"age\": ages})`.",
+        "Store the result in `df`, then print `df.shape`, `df.columns.tolist()` and `df`."
+      ],
+      "kind": "python",
+      "expected": "(3, 2)\n['name', 'age']\n  name  age\n0  Ana   31\n1  Ben   25\n2   Cy   47"
+    },
+    {
+      "id": "g3",
+      "title": "One column or several",
+      "prompt": "The DataFrame `df` below has three columns. Print, on separate lines, the `price` column as a list, the type name of `df[\"price\"]` (use `type(...).__name__`), and the shape of `df[[\"item\", \"price\"]]`.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"item\": [\"a\", \"b\"], \"qty\": [2, 5], \"price\": [1.5, 4.0]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"item\": [\"a\", \"b\"], \"qty\": [2, 5], \"price\": [1.5, 4.0]})\nprint(df[\"price\"].tolist())\nprint(type(df[\"price\"]).__name__)\nprint(df[[\"item\", \"price\"]].shape)\n",
+      "hints": [
+        "A single column name in brackets gives a Series.",
+        "Two or more names must be inside a list: double brackets.",
+        "`df[\"price\"].tolist()`, `type(df[\"price\"]).__name__` and `df[[\"item\", \"price\"]].shape`."
+      ],
+      "kind": "python",
+      "expected": "[1.5, 4.0]\nSeries\n(2, 2)"
+    },
+    {
+      "id": "g4",
+      "title": "Alignment",
+      "prompt": "Add the two Series `a` and `b` and store the result in `total`. Print `total` with `print(total.to_string())`, then on a new line the number of missing values (`NaN`) in `total`.",
+      "starter": "import pandas as pd\n\na = pd.Series([1, 2, 3], index=[\"x\", \"y\", \"z\"])\nb = pd.Series([5, 6], index=[\"y\", \"w\"])\n",
+      "solution": "import pandas as pd\n\na = pd.Series([1, 2, 3], index=[\"x\", \"y\", \"z\"])\nb = pd.Series([5, 6], index=[\"y\", \"w\"])\ntotal = a + b\nprint(total.to_string())\nprint(total.isna().sum())\n",
+      "hints": [
+        "Addition lines up the index labels, not positions.",
+        "Labels that are in only one Series give `NaN`.",
+        "`total = a + b`, then `print(total.to_string())` and `print(total.isna().sum())`."
+      ],
+      "kind": "python",
+      "expected": "w    NaN\nx    NaN\ny    7.0\nz    NaN\n3"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Records to a table",
+      "prompt": "The list `orders` holds three dictionaries; one has no `qty`. Build a DataFrame from it. Print on separate lines: `print(df)` (the table), the shape, the sum of `price * qty` where a missing quantity counts as missing (just use `(df[\"price\"] * df[\"qty\"]).sum()`, rounded to 2 decimals), and the names of the columns whose dtype is `float64` as a list (for example `df.columns[df.dtypes == \"float64\"].tolist()`).",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\norders = [{\"id\": 1, \"price\": 9.5, \"qty\": 2}, {\"id\": 2, \"price\": 4.0}, {\"id\": 3, \"price\": 12.25, \"qty\": 1}]\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\norders = [{\"id\": 1, \"price\": 9.5, \"qty\": 2}, {\"id\": 2, \"price\": 4.0}, {\"id\": 3, \"price\": 12.25, \"qty\": 1}]\ndf = pd.DataFrame(orders)\nprint(df)\nprint(df.shape)\nprint(round((df[\"price\"] * df[\"qty\"]).sum(), 2))\nprint(df.columns[df.dtypes == \"float64\"].tolist())\n",
+      "kind": "python",
+      "expected": "   id  price  qty\n0   1   9.50  2.0\n1   2   4.00  NaN\n2   3  12.25  1.0\n(3, 3)\n31.25\n['price', 'qty']"
+    },
+    {
+      "id": "i2",
+      "title": "Series from two sources",
+      "prompt": "Two regions report sales for overlapping products: `north = {\"pen\": 10, \"ink\": 4, \"pad\": 7}` and `south = {\"ink\": 6, \"pad\": 1, \"cap\": 9}`. Build one Series per region and add them. Print three lines: the combined sales as a plain dict in sorted index order (`total.sort_index().to_dict()`, where products missing in one region show as `nan`); the sum of the combined Series with `total.sum()` (which skips `NaN`); and the sorted list of products that are missing in at least one region.",
+      "starter": "import pandas as pd\n\nnorth = pd.Series({\"pen\": 10, \"ink\": 4, \"pad\": 7})\nsouth = pd.Series({\"ink\": 6, \"pad\": 1, \"cap\": 9})\n",
+      "solution": "import pandas as pd\n\nnorth = pd.Series({\"pen\": 10, \"ink\": 4, \"pad\": 7})\nsouth = pd.Series({\"ink\": 6, \"pad\": 1, \"cap\": 9})\ntotal = north + south\nprint(total.sort_index().to_dict())\nprint(total.sum())\nprint(sorted(total.index[total.isna()].tolist()))\n",
+      "kind": "python",
+      "expected": "{'cap': nan, 'ink': 10.0, 'pad': 8.0, 'pen': nan}\n18.0\n['cap', 'pen']"
+    },
+    {
+      "id": "i3",
+      "title": "Describe a table",
+      "required": false,
+      "prompt": "Build a DataFrame of four employees with the columns `name` (text), `dept` (text), `salary` (whole numbers) and `bonus` (decimals) using any values you like with at least one decimal bonus, and print: the shape, the column names, the number of columns of numeric type (counted with `sum(pd.api.types.is_numeric_dtype(t) for t in df.dtypes)`), and the salary plus bonus per employee as a list rounded to 2 decimals. Use the data `name = [\"Ana\", \"Ben\", \"Cy\", \"Di\"]`, `dept = [\"IT\", \"HR\", \"IT\", \"Ops\"]`, `salary = [5000, 4200, 5300, 3900]`, `bonus = [250.5, 0.0, 300.25, 120.0]`.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nname = [\"Ana\", \"Ben\", \"Cy\", \"Di\"]\ndept = [\"IT\", \"HR\", \"IT\", \"Ops\"]\nsalary = [5000, 4200, 5300, 3900]\nbonus = [250.5, 0.0, 300.25, 120.0]\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nname = [\"Ana\", \"Ben\", \"Cy\", \"Di\"]\ndept = [\"IT\", \"HR\", \"IT\", \"Ops\"]\nsalary = [5000, 4200, 5300, 3900]\nbonus = [250.5, 0.0, 300.25, 120.0]\ndf = pd.DataFrame({\"name\": name, \"dept\": dept, \"salary\": salary, \"bonus\": bonus})\nprint(df.shape)\nprint(df.columns.tolist())\nprint(sum(pd.api.types.is_numeric_dtype(t) for t in df.dtypes))\nprint((df[\"salary\"] + df[\"bonus\"]).round(2).tolist())\n",
+      "kind": "python",
+      "expected": "(4, 4)\n['name', 'dept', 'salary', 'bonus']\n2\n[5250.5, 4200.0, 5600.25, 4020.0]"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nimport pandas as pd\ns = pd.Series({\"a\": 1, \"b\": 2})\nprint(s[\"b\"])\n```",
+      "options": [
+        "1",
+        "2",
+        "b",
+        "It raises a KeyError"
+      ],
+      "answer": 1,
+      "explanation": "A Series built from a dictionary uses the keys as index labels, and `s[\"b\"]` looks up by label, returning 2. The answer 1 would be a position lookup of the wrong item, and the label exists, so there is no error."
+    },
+    {
+      "id": "c2",
+      "question": "What is `df.shape` for a DataFrame with 4 rows and 3 columns?",
+      "options": [
+        "(3, 4)",
+        "(4, 3)",
+        "(12,)",
+        "(4,)"
+      ],
+      "answer": 1,
+      "explanation": "`shape` is `(rows, columns)`. `(3, 4)` swaps them and `(12,)` is the `size`. The index is not counted as a column."
+    },
+    {
+      "id": "c3",
+      "question": "What does `(pd.Series([1, 2], index=[\"a\", \"b\"]) + pd.Series([10, 20], index=[\"b\", \"c\"])).isna().sum()` return?",
+      "options": [
+        "0",
+        "2",
+        "1",
+        "3"
+      ],
+      "answer": 1,
+      "explanation": "Alignment is by label. Only `b` is in both (2 + 10 = 12). Labels `a` and `c` each lack a partner and become NaN, so two missing values. Position-based thinking would give 0."
+    },
+    {
+      "id": "c4",
+      "question": "Which expression gives a DataFrame with two columns, `a` and `b`?",
+      "options": [
+        "df[\"a\", \"b\"]",
+        "df[[\"a\", \"b\"]]",
+        "df(\"a\", \"b\")",
+        "df.a.b"
+      ],
+      "answer": 1,
+      "explanation": "Several columns are selected by passing a list of names, so the brackets are doubled. `df[\"a\", \"b\"]` tries to use a tuple as one column label and raises a KeyError."
+    },
+    {
+      "id": "c5",
+      "question": "What is the type of `df[[\"price\"]]` for a DataFrame `df`?",
+      "options": [
+        "Series",
+        "DataFrame",
+        "list",
+        "ndarray"
+      ],
+      "answer": 1,
+      "explanation": "A list of column names, even a list of one name, returns a DataFrame. Only a single name without the inner list returns a Series."
+    },
+    {
+      "id": "c6",
+      "question": "What happens with `pd.DataFrame({\"a\": [1, 2, 3], \"b\": [4, 5]})`?",
+      "options": [
+        "A table with NaN in the last row of b",
+        "ValueError: All arrays must be of the same length",
+        "A table with 2 rows",
+        "A Series is returned"
+      ],
+      "answer": 1,
+      "explanation": "Columns given as lists must have the same length, otherwise pandas raises a ValueError. It does not pad with NaN. Records (a list of dictionaries) do allow missing keys."
+    }
+  ]
+}

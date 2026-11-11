@@ -1,0 +1,189 @@
+{
+  "id": "d026",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-comprehensions",
+      "python-file-handling"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "chunk-generator",
+      "lazy-pipeline",
+      "filtered-log-reader-generator"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Step through an iterator",
+      "prompt": "Create an iterator over the list `[\"x\", \"y\"]` with `iter`, print the first two values using `next`, then call `next` a third time with the default `\"done\"` and print it. Expected output: `x`, `y`, `done`.",
+      "starter": "letters = [\"x\", \"y\"]\n# Use iter and next\n",
+      "solution": "letters = [\"x\", \"y\"]\nit = iter(letters)\nprint(next(it))\nprint(next(it))\nprint(next(it, \"done\"))\n",
+      "kind": "python",
+      "expected": "x\ny\ndone",
+      "hints": [
+        "`iter(letters)` returns an iterator object.",
+        "Each `next(it)` returns the following value.",
+        "`next(it, \"done\")` returns the default instead of raising `StopIteration`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Your first generator",
+      "prompt": "Write a generator function `squares(n)` that yields the squares of 1 to `n`. Print `list(squares(5))` and then `sum(squares(5))`. Expected output: `[1, 4, 9, 16, 25]` then `55`.",
+      "starter": "def squares(n):\n    pass\n\nprint(list(squares(5)))\nprint(sum(squares(5)))\n",
+      "solution": "def squares(n):\n    for i in range(1, n + 1):\n        yield i * i\n\nprint(list(squares(5)))\nprint(sum(squares(5)))\n",
+      "kind": "python",
+      "expected": "[1, 4, 9, 16, 25]\n55",
+      "hints": [
+        "A generator function contains `yield` instead of `return`.",
+        "Loop over `range(1, n + 1)` and yield the square.",
+        "`for i in range(1, n + 1): yield i * i`; each call to `squares(5)` makes a new generator."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "A generator expression",
+      "prompt": "Using a generator expression inside `sum`, add up the lengths of the words in `words` that start with a vowel (`a`, `e`, `i`, `o`, `u`). Print only the total. Expected output: `14`.",
+      "starter": "words = [\"apple\", \"banana\", \"orange\", \"kiwi\", \"egg\", \"plum\"]\n# Sum the lengths of the words that start with a vowel\n",
+      "solution": "words = [\"apple\", \"banana\", \"orange\", \"kiwi\", \"egg\", \"plum\"]\nprint(sum(len(w) for w in words if w[0] in \"aeiou\"))\n",
+      "kind": "python",
+      "expected": "14",
+      "hints": [
+        "The form is `(expression for item in data if condition)`.",
+        "`w[0] in \"aeiou\"` tests the first letter.",
+        "`sum(len(w) for w in words if w[0] in \"aeiou\")`; no extra brackets are needed."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "itertools basics",
+      "prompt": "Use `islice` and `count` to print the first five multiples of 3 starting at 3 as a list (use `count(3, 3)`), and use `accumulate` to print the running totals of `[2, 4, 6, 8]` as a list. Expected output: `[3, 6, 9, 12, 15]` then `[2, 6, 12, 20]`.",
+      "starter": "from itertools import accumulate, count, islice\n\n# Print the two lists\n",
+      "solution": "from itertools import accumulate, count, islice\n\nprint(list(islice(count(3, 3), 5)))\nprint(list(accumulate([2, 4, 6, 8])))\n",
+      "kind": "python",
+      "expected": "[3, 6, 9, 12, 15]\n[2, 6, 12, 20]",
+      "hints": [
+        "`count(3, 3)` never ends, so something must limit it.",
+        "`islice(iterator, 5)` takes the first five values.",
+        "Wrap each result in `list(...)` to print the values."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Chunk generator",
+      "prompt": "Write a generator `chunks(iterable, size)` that yields lists of up to `size` items taken in order from any iterable (the last list may be shorter) without ever building the whole input as a list; use `islice` and `iter`. Print `list(chunks(range(10), 4))`, then the list of chunk lengths for `chunks(\"abcdefg\", 3)`, and finally the first chunk of `chunks(count(100), 3)` (an infinite input) obtained with `next`.",
+      "starter": "from itertools import count, islice\n\n# Write chunks and print the three results\n",
+      "solution": "from itertools import count, islice\n\ndef chunks(iterable, size):\n    it = iter(iterable)\n    while True:\n        batch = list(islice(it, size))\n        if not batch:\n            return\n        yield batch\n\nprint(list(chunks(range(10), 4)))\nprint([len(c) for c in chunks(\"abcdefg\", 3)])\nprint(next(chunks(count(100), 3)))\n",
+      "kind": "python",
+      "expected": "[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]]\n[3, 3, 1]\n[100, 101, 102]"
+    },
+    {
+      "id": "i2",
+      "title": "Streaming error report",
+      "prompt": "`log` is a `StringIO` with lines such as `2026-03-01 ERROR disk full`. Build a generator pipeline of three functions: `lines(f)` yields stripped non-empty lines; `errors(lines)` yields the message (the text after `ERROR `) for lines whose second word is `ERROR`; `numbered(messages)` yields `(position, message)` starting at 1. Print each numbered error as `N: message`, then print how many errors were found using `sum` over a fresh pipeline built on a new `StringIO`.",
+      "starter": "import io\n\nTEXT = \"2026-03-01 INFO start\\n2026-03-01 ERROR disk full\\n\\n2026-03-02 WARN slow\\n2026-03-02 ERROR timeout\\n2026-03-03 INFO done\\n2026-03-03 ERROR bad row 7\\n\"\n# Write the three generators and print the results\n",
+      "solution": "import io\n\nTEXT = \"2026-03-01 INFO start\\n2026-03-01 ERROR disk full\\n\\n2026-03-02 WARN slow\\n2026-03-02 ERROR timeout\\n2026-03-03 INFO done\\n2026-03-03 ERROR bad row 7\\n\"\n\ndef lines(f):\n    for line in f:\n        line = line.strip()\n        if line:\n            yield line\n\ndef errors(rows):\n    for row in rows:\n        parts = row.split(maxsplit=2)\n        if parts[1] == \"ERROR\":\n            yield parts[2]\n\ndef numbered(messages):\n    for position, message in enumerate(messages, start=1):\n        yield position, message\n\nfor number, message in numbered(errors(lines(io.StringIO(TEXT)))):\n    print(f\"{number}: {message}\")\nprint(sum(1 for _ in errors(lines(io.StringIO(TEXT)))))\n",
+      "kind": "python",
+      "expected": "1: disk full\n2: timeout\n3: bad row 7\n3"
+    },
+    {
+      "id": "i3",
+      "title": "Run lengths and a running maximum",
+      "prompt": "Using `groupby`, print the run-length encoding of `\"aaabccddd\"` as one string such as `a3b1...` (letter followed by run length). Then use `accumulate` with `max` as the function to print the running maximum of `[3, 1, 4, 1, 5, 9, 2, 6]` as a list. Finally write a generator `pairs(seq)` that yields each consecutive pair `(seq[i], seq[i + 1])` and print the list of pairs whose second value is larger than the first for `[1, 3, 2, 5, 4, 6]`.",
+      "starter": "from itertools import accumulate, groupby\n\n# Print the three results\n",
+      "solution": "from itertools import accumulate, groupby\n\ntext = \"aaabccddd\"\nprint(\"\".join(f\"{k}{len(list(g))}\" for k, g in groupby(text)))\nprint(list(accumulate([3, 1, 4, 1, 5, 9, 2, 6], max)))\n\ndef pairs(seq):\n    for i in range(len(seq) - 1):\n        yield seq[i], seq[i + 1]\n\nprint([(a, b) for a, b in pairs([1, 3, 2, 5, 4, 6]) if b > a])\n",
+      "kind": "python",
+      "expected": "a3b1c2d3\n[3, 3, 4, 4, 5, 9, 9, 9]\n[(1, 3), (2, 5), (4, 6)]",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\ngen = (x for x in range(3))\nprint(list(gen), list(gen))\n```",
+      "options": [
+        "[0, 1, 2] [0, 1, 2]",
+        "[0, 1, 2] []",
+        "[] []",
+        "[0, 1, 2] [0]"
+      ],
+      "answer": 1,
+      "explanation": "A generator is used up after one full pass, so the second `list(gen)` finds nothing. A list would give the same values both times."
+    },
+    {
+      "id": "c2",
+      "question": "What does the first call print?\n\n```python\ndef f():\n    print(\"A\")\n    yield 1\n    print(\"B\")\n    yield 2\ng = f()\nprint(\"made\")\nprint(next(g))\n```",
+      "options": [
+        "made, A, 1",
+        "A, made, 1",
+        "made, 1",
+        "A, 1, made"
+      ],
+      "answer": 0,
+      "explanation": "Calling `f()` runs no code. `made` prints first, then `next(g)` runs the body up to the first `yield`, printing `A`, and the value 1 is printed. `B` appears only on the following `next`."
+    },
+    {
+      "id": "c3",
+      "question": "Why does `len((x for x in range(5)))` raise an error?",
+      "options": [
+        "A generator does not know its length because it produces values on demand",
+        "range cannot be used in generators",
+        "len only works on integers",
+        "Generators must be converted to tuples first"
+      ],
+      "answer": 0,
+      "explanation": "A generator holds only a position, not the values, so there is nothing to measure without consuming it. Convert with `list()` if you need the length and the data fits in memory."
+    },
+    {
+      "id": "c4",
+      "question": "What does `list(groupby([\"a\", \"b\", \"a\"]))` produce, in terms of groups?",
+      "options": [
+        "Three groups: a, b, a",
+        "Two groups: a (two items) and b",
+        "One group",
+        "An error"
+      ],
+      "answer": 0,
+      "explanation": "`groupby` groups only consecutive equal items, so the separated `a` values form two different groups. Sorting the input first would merge them into one."
+    },
+    {
+      "id": "c5",
+      "question": "What does `next(it, \"none\")` do when the iterator is exhausted?",
+      "options": [
+        "Returns \"none\"",
+        "Raises StopIteration",
+        "Restarts the iterator",
+        "Returns None"
+      ],
+      "answer": 0,
+      "explanation": "The second argument is the default returned instead of raising `StopIteration`."
+    },
+    {
+      "id": "c6",
+      "question": "Which version of summing squares keeps the least data in memory?",
+      "options": [
+        "sum([x*x for x in data])",
+        "sum(x*x for x in data)",
+        "sum(list(map(lambda x: x*x, data)))",
+        "sum(sorted(x*x for x in data))"
+      ],
+      "answer": 1,
+      "explanation": "The generator expression produces one square at a time and `sum` consumes it. The other forms first build a full list (and `sorted` also builds a list)."
+    }
+  ]
+}

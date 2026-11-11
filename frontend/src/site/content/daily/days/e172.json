@@ -1,0 +1,188 @@
+{
+  "id": "e172",
+  "time": {
+    "theory": 15,
+    "examples": 25,
+    "guided": 25,
+    "independent": 60,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-architecture",
+      "etl-data-validation"
+    ],
+    "questions": [
+      50,
+      149,
+      147
+    ],
+    "pyExercises": [],
+    "projects": [
+      "end-to-end-pipeline",
+      "data-validation-pipeline",
+      "star-schema-warehouse"
+    ],
+    "mindmaps": [
+      "interview-patterns"
+    ],
+    "patterns": [
+      "top-n-per-group"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Weighted score",
+      "kind": "python",
+      "prompt": "Ratings (1 to 4) for one part are correctness 4, approach 3, communication 2, robustness 3 with weights 0.4, 0.25, 0.2, 0.15. Print `score: 3.2` (the weighted sum, rounded to 2 decimals; the value prints as `3.2`) and `weakest: communication`.",
+      "starter": "weights = {'correctness': 0.4, 'approach': 0.25, 'communication': 0.2, 'robustness': 0.15}\nratings = {'correctness': 4, 'approach': 3, 'communication': 2, 'robustness': 3}\n",
+      "solution": "weights = {'correctness': 0.4, 'approach': 0.25, 'communication': 0.2, 'robustness': 0.15}\nratings = {'correctness': 4, 'approach': 3, 'communication': 2, 'robustness': 3}\nscore = sum(weights[k] * ratings[k] for k in weights)\nprint('score:', round(score, 2))\nprint('weakest:', min(ratings, key=ratings.get))\n",
+      "hints": [
+        "Multiply each rating by its weight and add them.",
+        "round(score, 2) gives the printed value.",
+        "min(ratings, key=ratings.get) returns the dimension with the lowest rating."
+      ],
+      "expected": "score: 3.2\nweakest: communication"
+    },
+    {
+      "id": "g2",
+      "title": "Does the plan fit?",
+      "kind": "python",
+      "prompt": "A mock plan has the parts `[('intro', 5), ('SQL', 20), ('Python', 20), ('design', 20), ('wrap-up', 5)]` for a 60-minute slot. Print `total: 70`, then `over by: 10` when the total exceeds the slot (`under by: N` when it is below, `fits` when equal), then the first part whose end time is later than minute 45, as `ends after minute 45: design`.",
+      "starter": "plan = [('intro', 5), ('SQL', 20), ('Python', 20), ('design', 20), ('wrap-up', 5)]\nslot = 60\n",
+      "solution": "plan = [('intro', 5), ('SQL', 20), ('Python', 20), ('design', 20), ('wrap-up', 5)]\nslot = 60\ntotal = sum(m for _, m in plan)\nprint('total:', total)\nif total > slot:\n    print('over by:', total - slot)\nelif total < slot:\n    print('under by:', slot - total)\nelse:\n    print('fits')\nclock = 0\nfor name, m in plan:\n    clock += m\n    if clock > 45:\n        print('ends after minute 45:', name)\n        break\n",
+      "hints": [
+        "Add the minutes of all parts.",
+        "Compare the total with the slot to print over by, under by or fits.",
+        "Keep a running clock and stop at the first part whose end is later than minute 45."
+      ],
+      "expected": "total: 70\nover by: 10\nends after minute 45: design"
+    },
+    {
+      "id": "g3",
+      "title": "Warm-up: a second price per category",
+      "kind": "sql",
+      "prompt": "Time-boxed question: for each category return the second most expensive product by `unit_price` (use `DENSE_RANK`, so equal prices share a rank). Return `category_name`, `product_name` and `unit_price` for rank 2, ordered by `category_name`, then `product_name`.",
+      "starter": "SELECT category_id, MAX(unit_price) AS top_price\nFROM products\nGROUP BY category_id;\n",
+      "solution": "SELECT c.category_name, t.product_name, t.unit_price\nFROM (\n  SELECT category_id, product_name, unit_price,\n         DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_price DESC) AS rnk\n  FROM products\n) t\nJOIN categories c ON c.category_id = t.category_id\nWHERE t.rnk = 2\nORDER BY c.category_name, t.product_name;\n",
+      "ordered": true,
+      "hints": [
+        "Rank the prices inside each category in a subquery.",
+        "DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_price DESC).",
+        "Filter rnk = 2 and join categories for the name."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Portfolio completeness",
+      "kind": "python",
+      "prompt": "The checklist has 5 items: `['problem', 'data', 'code', 'tests', 'readme']`. A project has done `{'problem', 'data', 'code'}`. Print `done: 60%` (rounded to a whole number) and `next: tests` (the first missing item in checklist order).",
+      "starter": "checklist = ['problem', 'data', 'code', 'tests', 'readme']\ndone = {'problem', 'data', 'code'}\n",
+      "solution": "checklist = ['problem', 'data', 'code', 'tests', 'readme']\ndone = {'problem', 'data', 'code'}\nprint('done: ' + str(round(100 * len(done) / len(checklist))) + '%')\nprint('next:', next(item for item in checklist if item not in done))\n",
+      "hints": [
+        "The share done is len(done) over len(checklist).",
+        "Multiply by 100 and round to a whole number.",
+        "next(item for item in checklist if item not in done) gives the first missing item."
+      ],
+      "expected": "done: 60%\nnext: tests"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Timed SQL: top customers with ties",
+      "kind": "sql",
+      "prompt": "Interview question (15 minutes): show the customers with the top 3 revenue ranks, where revenue is the sum of `unit_price * quantity * (1 - discount)` over their orders and ties share a rank (`RANK()`). Return `customer_id`, `revenue` (rounded to 0 decimals) and `rank`, ordered by `rank`, then `customer_id`.",
+      "starter": "SELECT customer_id\nFROM orders\nGROUP BY customer_id\nLIMIT 3;\n",
+      "solution": "WITH c AS (\n  SELECT o.customer_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY o.customer_id\n), r AS (\n  SELECT customer_id, revenue, RANK() OVER (ORDER BY revenue DESC) AS rnk FROM c\n)\nSELECT customer_id, ROUND(revenue::numeric, 0) AS revenue, rnk AS rank\nFROM r\nWHERE rnk <= 3\nORDER BY rnk, customer_id;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Timed Python with a self-test",
+      "kind": "python",
+      "prompt": "Interview question (15 minutes): write `first_unique(s)` returning the first character that appears exactly once in the string `s`, or `None` if there is none. Then write a harness that runs the cases `('leetcode', 'l')`, `('aabb', None)`, `('', None)` and `('swiss', 'w')`, printing `PASS case` or `FAIL case` with the quoted input for each and finally `failures: 0` using the real count.",
+      "starter": "def first_unique(s):\n    pass\n",
+      "solution": "from collections import Counter\n\ndef first_unique(s):\n    counts = Counter(s)\n    for ch in s:\n        if counts[ch] == 1:\n            return ch\n    return None\n\ncases = [('leetcode', 'l'), ('aabb', None), ('', None), ('swiss', 'w')]\nfailures = 0\nfor text, expected in cases:\n    ok = first_unique(text) == expected\n    failures += not ok\n    print(('PASS ' if ok else 'FAIL ') + repr(text))\nprint('failures:', failures)\n",
+      "expected": "PASS 'leetcode'\nPASS 'aabb'\nPASS ''\nPASS 'swiss'\nfailures: 0"
+    },
+    {
+      "id": "i3",
+      "title": "Mock feedback and a portfolio README",
+      "kind": "written",
+      "prompt": "Part A: after a mock interview in which your SQL answer was correct but you were silent for long periods, and your design answer had no failure handling, write feedback in three parts (what worked, what to change with an example, one drill for the week). Part B: write the README (10 to 14 lines) for one project of this programme (for example the incremental ETL or the validation pipeline), covering problem, data, architecture, how to run, tests, results, decisions and limitations.",
+      "starter": "Part A\nWhat worked:\nWhat to change:\nDrill:\n\nPart B\n# Project name\n",
+      "solution": "Part A\nWhat worked: the SQL answer was correct, used a CTE for each step and handled ties explicitly with a tie-break; the design answer began with sensible requirements and a sizing estimate.\nWhat to change: during the SQL part there were two stretches of about a minute with no speech, so the interviewer could not follow the approach; in the design part, failure handling was missing, for example nothing was said about a job that runs twice or a source that is down.\nDrill: this week, solve three window-function questions in 12 minutes each while speaking the plan before typing; and for two design prompts, write a seven-line failure-handling paragraph (retries, idempotent writes, quarantine, checkpoint, alert) in five minutes.\n\nPart B\n# Incremental orders ETL\nProblem: keep a warehouse table of orders up to date from a source that changes every day, without reloading everything.\nData: a generated orders table with `updated_at` (no external data), 120 rows and later changes.\nArchitecture: extract rows above a stored watermark, validate and quarantine bad rows, upsert into the target on `order_id`, store the new watermark with the data.\nRun: `python etl.py --days 3` creates an in-memory database and prints counts per run.\nTests: `pytest` covers the validation rules, the upsert and a re-run that must change nothing.\nResults: after each run, source and target counts and totals reconcile; the second run of the same input loads zero new rows.\nDecisions: upsert instead of append so that retries are safe; watermark stored in the same transaction as the load.\nLimitations: hard deletes in the source are not detected; late updates older than the watermark need a backfill.",
+      "rubric": [
+        "Feedback names what worked and gives a concrete example for what to change",
+        "The drill is specific, time-boxed and could start the next day",
+        "README states problem, data, architecture and how to run it",
+        "README mentions tests and a verifiable result such as reconciliation",
+        "README lists decisions or trade-offs and honest limitations"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "In a 60-minute mock the SQL part is planned for 15 minutes. At minute 22 you are still in it. What is the best response?",
+      "options": [
+        "Simplify, finish a working version and say what you would improve",
+        "Keep polishing the query",
+        "Skip the Python part",
+        "Stop talking to save time"
+      ],
+      "answer": 0,
+      "explanation": "Time boxes protect the other parts. A working simple version with a stated improvement scores better than a perfect query that leaves no time for the rest."
+    },
+    {
+      "id": "c2",
+      "question": "Your mock shows high correctness but low communication scores. What is the right drill?",
+      "options": [
+        "Solve questions while speaking the plan aloud before typing",
+        "Read more solutions silently",
+        "Memorise more syntax",
+        "Avoid timed practice"
+      ],
+      "answer": 0,
+      "explanation": "The weakness is how the answer is explained, so the drill must train speaking while solving. Reading or memorising does not address it."
+    },
+    {
+      "id": "c3",
+      "question": "Why should a mock interview use unseen questions?",
+      "options": [
+        "It tests how you work on a new problem, not recall of an answer",
+        "Unseen questions are easier",
+        "It avoids the need for a timer",
+        "Repeated questions are not allowed"
+      ],
+      "answer": 0,
+      "explanation": "Solving a question you have seen mostly tests memory. Real interviews present new problems, so unseen ones are the realistic test."
+    },
+    {
+      "id": "c4",
+      "question": "Which portfolio is stronger?",
+      "options": [
+        "Three finished projects with tests, results and READMEs",
+        "Ten projects with no README",
+        "One project without a way to run it",
+        "Projects with secrets in the code"
+      ],
+      "answer": 0,
+      "explanation": "A reader needs to understand, run and trust a project. Finished, documented, tested work shows that; unfinished or unexplained work does not."
+    },
+    {
+      "id": "c5",
+      "question": "What does a weighted mock score represent?",
+      "options": [
+        "Your own progress against a fixed rubric, not a prediction of a real result",
+        "A guaranteed outcome",
+        "The employer's formula",
+        "The difficulty of the questions"
+      ],
+      "answer": 0,
+      "explanation": "Employers weigh things differently. The score is useful for comparing your own mocks over time and for finding the weakest dimension."
+    }
+  ]
+}

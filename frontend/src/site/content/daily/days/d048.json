@@ -1,0 +1,190 @@
+{
+  "id": "d048",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "exists-not-exists",
+      "in-not-in",
+      "left-join"
+    ],
+    "questions": [
+      28,
+      207
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "subqueries-ctes",
+      "joins"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Employees with a heavy order",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `employee_id` and `last_name` of the employees who have handled at least one order with `freight` above 150. Use `EXISTS` with a correlated subquery on `orders`, so each employee appears once. Order by `employee_id`.",
+      "starter": "-- Employees who handled at least one order with freight above 150\nSELECT e.employee_id, e.last_name\nFROM employees e\nORDER BY e.employee_id;\n",
+      "solution": "SELECT e.employee_id, e.last_name\nFROM employees e\nWHERE EXISTS (SELECT 1\n              FROM orders o\n              WHERE o.employee_id = e.employee_id\n                AND o.freight > 150)\nORDER BY e.employee_id;\n",
+      "hints": [
+        "The starter lists every employee. Add a WHERE clause that asks whether a matching heavy order exists.",
+        "WHERE EXISTS (SELECT 1 FROM orders o WHERE ...) with the correlation o.employee_id = e.employee_id.",
+        "Add AND o.freight > 150 inside the subquery."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "German customers who never bought an expensive line",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `customer_id` of the customers in Germany who have no order line with a line price above 50 (`order_details.unit_price > 50`). The subquery joins `orders` to `order_details`. Use `NOT EXISTS`. Order by `customer_id`.",
+      "starter": "-- German customers with no order line priced above 50\nSELECT c.customer_id\nFROM customers c\nWHERE c.country = 'Germany'\nORDER BY c.customer_id;\n",
+      "solution": "SELECT c.customer_id\nFROM customers c\nWHERE c.country = 'Germany'\n  AND NOT EXISTS (SELECT 1\n                  FROM orders o\n                  JOIN order_details od ON od.order_id = o.order_id\n                  WHERE o.customer_id = c.customer_id\n                    AND od.unit_price > 50)\nORDER BY c.customer_id;\n",
+      "hints": [
+        "The starter returns all German customers. The extra condition says that something does not exist.",
+        "NOT EXISTS (SELECT 1 FROM orders o JOIN order_details od ON ... WHERE o.customer_id = c.customer_id AND ...).",
+        "Inside the subquery add od.unit_price > 50 and join od.order_id = o.order_id."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Fix the NOT IN trap",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `employee_id` and `last_name` of the employees who have no orders at all. The starter uses `NOT IN` and returns nothing, because one order has a NULL `employee_id`. Rewrite it with `NOT EXISTS`. Order by `employee_id`.",
+      "starter": "-- Employees with no orders (the NOT IN version returns nothing)\nSELECT employee_id, last_name\nFROM employees\nWHERE employee_id NOT IN (SELECT employee_id FROM orders)\nORDER BY employee_id;\n",
+      "solution": "SELECT e.employee_id, e.last_name\nFROM employees e\nWHERE NOT EXISTS (SELECT 1\n                  FROM orders o\n                  WHERE o.employee_id = e.employee_id)\nORDER BY e.employee_id;\n",
+      "hints": [
+        "Run the starter: it returns no rows, because the list produced by the subquery contains a NULL.",
+        "NOT EXISTS with a correlated subquery does not mind NULL values in the other table.",
+        "WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.employee_id = e.employee_id)"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Count customers, not rows",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return one row with the column `customers`: the number of customers who have at least one order whose `ship_country` is Germany. The starter joins and counts rows, so customers with several such orders are counted several times. Use `EXISTS`.",
+      "starter": "-- Number of customers with at least one order shipped to Germany\nSELECT COUNT(*) AS customers\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nWHERE o.ship_country = 'Germany';\n",
+      "solution": "SELECT COUNT(*) AS customers\nFROM customers c\nWHERE EXISTS (SELECT 1\n              FROM orders o\n              WHERE o.customer_id = c.customer_id\n                AND o.ship_country = 'Germany');\n",
+      "hints": [
+        "Run the starter and compare its number with the number of different customers: a join returns one row per order.",
+        "Test the customer row, not the pairs: keep customers for which a matching order exists.",
+        "FROM customers c WHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id AND o.ship_country = 'Germany')"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Customers who arrived in 1997 and stayed",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `customer_id` and `company_name` of the customers who placed at least one order in 1997 (from 1997-01-01 up to but not including 1998-01-01), at least one order from 1998-01-01 on, and no order before 1997-01-01. Use `EXISTS` and `NOT EXISTS`. Order by `customer_id`.",
+      "starter": "-- Customers with orders in 1997 and 1998 and none before 1997\nSELECT c.customer_id, c.company_name\nFROM customers c\nWHERE EXISTS (SELECT 1 FROM orders o\n              WHERE o.customer_id = c.customer_id AND o.order_date >= '1998-01-01')\nORDER BY c.customer_id;\n",
+      "solution": "SELECT c.customer_id, c.company_name\nFROM customers c\nWHERE EXISTS (SELECT 1 FROM orders o\n              WHERE o.customer_id = c.customer_id\n                AND o.order_date >= '1997-01-01' AND o.order_date < '1998-01-01')\n  AND EXISTS (SELECT 1 FROM orders o\n              WHERE o.customer_id = c.customer_id AND o.order_date >= '1998-01-01')\n  AND NOT EXISTS (SELECT 1 FROM orders o\n                  WHERE o.customer_id = c.customer_id AND o.order_date < '1997-01-01')\nORDER BY c.customer_id;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Employees who never shipped late",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `employee_id` and `last_name` of the employees who have at least one order but none shipped late (`shipped_date` after `required_date`). Use one `EXISTS` and one `NOT EXISTS`. Order by `employee_id`.",
+      "starter": "-- Employees with orders, none of them shipped late\nSELECT e.employee_id, e.last_name\nFROM employees e\nWHERE NOT EXISTS (SELECT 1 FROM orders o\n                  WHERE o.employee_id = e.employee_id AND o.shipped_date > o.required_date)\nORDER BY e.employee_id;\n",
+      "solution": "SELECT e.employee_id, e.last_name\nFROM employees e\nWHERE EXISTS (SELECT 1 FROM orders o WHERE o.employee_id = e.employee_id)\n  AND NOT EXISTS (SELECT 1 FROM orders o\n                  WHERE o.employee_id = e.employee_id\n                    AND o.shipped_date > o.required_date)\nORDER BY e.employee_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Products bought in both Germany and France",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. Return `product_id` and `product_name` of the products that appear in order lines of orders placed by a customer in Germany and also in order lines of orders placed by a customer in France (use the customer's `country`). Use two `EXISTS` conditions, each with a subquery joining `order_details`, `orders` and `customers`. Order by `product_id`.",
+      "starter": "-- Products ordered by customers in Germany and also by customers in France\nSELECT p.product_id, p.product_name\nFROM products p\nWHERE EXISTS (SELECT 1\n              FROM order_details od\n              JOIN orders o ON o.order_id = od.order_id\n              JOIN customers c ON c.customer_id = o.customer_id\n              WHERE od.product_id = p.product_id AND c.country = 'Germany')\nORDER BY p.product_id;\n",
+      "solution": "SELECT p.product_id, p.product_name\nFROM products p\nWHERE EXISTS (SELECT 1\n              FROM order_details od\n              JOIN orders o ON o.order_id = od.order_id\n              JOIN customers c ON c.customer_id = o.customer_id\n              WHERE od.product_id = p.product_id AND c.country = 'Germany')\n  AND EXISTS (SELECT 1\n              FROM order_details od\n              JOIN orders o ON o.order_id = od.order_id\n              JOIN customers c ON c.customer_id = o.customer_id\n              WHERE od.product_id = p.product_id AND c.country = 'France')\nORDER BY p.product_id;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "One order (10347) in `orders` has a NULL `employee_id`. What does `SELECT ... FROM employees WHERE employee_id NOT IN (SELECT employee_id FROM orders)` return when employee 5 has no orders?",
+      "options": [
+        "Employee 5 only",
+        "All employees except those with orders, which includes employee 5",
+        "No rows, because the NULL in the list makes NOT IN never true",
+        "An error because of the NULL"
+      ],
+      "answer": 2,
+      "explanation": "x NOT IN (..., NULL) expands to x <> a AND x <> b AND ... AND x <> NULL. The last comparison is unknown, so the whole condition is never true and WHERE keeps nothing. NOT EXISTS has no such problem and returns employee 5."
+    },
+    {
+      "id": "c2",
+      "question": "What does `SELECT customer_id FROM customers c WHERE EXISTS (SELECT 1 FROM orders)` (without a correlation) return?",
+      "options": [
+        "Customers with orders",
+        "Every customer, because the subquery returns rows regardless of the customer",
+        "No customers",
+        "An error, since the subquery is not correlated"
+      ],
+      "answer": 1,
+      "explanation": "Without the correlation o.customer_id = c.customer_id, the subquery returns rows for every outer row, so EXISTS is true for all of them. The query is valid but not what you meant."
+    },
+    {
+      "id": "c3",
+      "question": "Customer BONAP has two orders dated 1998. How many times does BONAP appear in `customers c JOIN orders o ON ... WHERE o.order_date >= '1998-01-01'`, and how many in the `EXISTS` version?",
+      "options": [
+        "Twice and twice",
+        "Once and once",
+        "Twice and once",
+        "Once and twice"
+      ],
+      "answer": 2,
+      "explanation": "A join returns one row per matching order, so BONAP appears twice. EXISTS tests the customer row and returns it once. That is why a semi-join is safer when you count customers."
+    },
+    {
+      "id": "c4",
+      "question": "What does the select list of the subquery in `EXISTS (SELECT 1 FROM orders o WHERE ...)` do?",
+      "options": [
+        "It decides which column is compared",
+        "Nothing important: EXISTS only checks whether any row is returned",
+        "It must match a column of the outer query",
+        "It is returned to the outer query"
+      ],
+      "answer": 1,
+      "explanation": "EXISTS tests for the presence of a row. SELECT 1, SELECT * or SELECT NULL all behave the same. By convention SELECT 1 shows that the values do not matter."
+    },
+    {
+      "id": "c5",
+      "question": "Which of these is a NULL-safe way to list customers without any order?",
+      "options": [
+        "WHERE customer_id NOT IN (SELECT customer_id FROM orders)",
+        "WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)",
+        "WHERE customer_id <> ALL (SELECT customer_id FROM orders)",
+        "WHERE customer_id <> (SELECT customer_id FROM orders)"
+      ],
+      "answer": 1,
+      "explanation": "NOT EXISTS ignores NULL values in the other table. NOT IN and <> ALL have the same NULL trap, and the last form fails when the subquery returns more than one row."
+    },
+    {
+      "id": "c6",
+      "question": "Which expression combines two existence questions: customers with an order in 1998 and no order in 1996?",
+      "options": [
+        "EXISTS (...1998...) OR NOT EXISTS (...1996...)",
+        "EXISTS (...1998...) AND NOT EXISTS (...1996...)",
+        "EXISTS (...1998... AND ...1996...)",
+        "NOT EXISTS (...1998...) AND EXISTS (...1996...)"
+      ],
+      "answer": 1,
+      "explanation": "Both conditions must hold, so they are joined with AND: one EXISTS for 1998 and one NOT EXISTS for 1996. OR would accept customers satisfying either condition, and the last option is the reverse question."
+    }
+  ]
+}

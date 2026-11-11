@@ -106,6 +106,7 @@ function handleWorkerError(e: ErrorEvent | Error | unknown) {
   clearTimeout(current.timer);
 
   const errMsg = e instanceof ErrorEvent ? e.message : (e as Error)?.message || "Unknown worker error occurred.";
+  classifyError(new Error(errMsg), "WORKER_ERROR", "python_workspace", { code: "PY_WORKER_CRASH" });
   terminateWorkerAndSettle("load", `Worker error: ${errMsg}`);
 
   current.req.resolve({

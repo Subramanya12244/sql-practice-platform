@@ -1,0 +1,198 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "spark-sql",
+      "spark-dataframes",
+      "over",
+      "row-number",
+      "running-totals"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "pyspark-transformation"
+    ],
+    "mindmaps": [
+      "spark-track",
+      "window-functions"
+    ],
+    "patterns": [
+      "running-total",
+      "latest-record-per-group"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Totals after a date",
+      "kind": "sql",
+      "prompt": "On the `orders` view (the CTE is given), return `category` and `total` (sum of `amount`) for orders on or after 2025-02-01, one row per category, ordered by `category`.",
+      "starter": "WITH orders(order_id, customer_id, category, amount, order_date) AS (\n  VALUES (1,'c1','books',20,DATE '2025-01-05'),(2,'c2','books',35,DATE '2025-01-18'),(3,'c1','games',60,DATE '2025-02-02'),\n         (4,'c3','games',15,DATE '2025-02-14'),(5,'c2','music',10,DATE '2025-02-20'),(6,'c4','books',45,DATE '2025-03-03'),\n         (7,'c3','music',30,DATE '2025-03-09'),(8,'c1','books',25,DATE '2025-03-21'),(9,'c4','games',80,DATE '2025-04-01'),\n         (10,'c5','music',12,DATE '2025-04-12'),(11,'c2','games',70,DATE '2025-04-25'),(12,'c5','books',18,DATE '2025-05-02')\n)\nSELECT category, amount AS total\nFROM orders\nORDER BY category",
+      "solution": "WITH orders(order_id, customer_id, category, amount, order_date) AS (\n  VALUES (1,'c1','books',20,DATE '2025-01-05'),(2,'c2','books',35,DATE '2025-01-18'),(3,'c1','games',60,DATE '2025-02-02'),\n         (4,'c3','games',15,DATE '2025-02-14'),(5,'c2','music',10,DATE '2025-02-20'),(6,'c4','books',45,DATE '2025-03-03'),\n         (7,'c3','music',30,DATE '2025-03-09'),(8,'c1','books',25,DATE '2025-03-21'),(9,'c4','games',80,DATE '2025-04-01'),\n         (10,'c5','music',12,DATE '2025-04-12'),(11,'c2','games',70,DATE '2025-04-25'),(12,'c5','books',18,DATE '2025-05-02')\n)\nSELECT category, SUM(amount) AS total\nFROM orders\nWHERE order_date >= DATE '2025-02-01'\nGROUP BY category\nORDER BY category",
+      "ordered": true,
+      "hints": [
+        "Filter with WHERE before grouping.",
+        "Compare order_date with DATE '2025-02-01'.",
+        "GROUP BY category and SUM(amount) AS total."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Latest order per customer",
+      "kind": "sql",
+      "prompt": "Return `customer_id`, `order_id` and `order_date` of each customer's most recent order, using `ROW_NUMBER()` over a window partitioned by customer, ordered by `customer_id`.",
+      "starter": "WITH orders(order_id, customer_id, category, amount, order_date) AS (\n  VALUES (1,'c1','books',20,DATE '2025-01-05'),(2,'c2','books',35,DATE '2025-01-18'),(3,'c1','games',60,DATE '2025-02-02'),\n         (4,'c3','games',15,DATE '2025-02-14'),(5,'c2','music',10,DATE '2025-02-20'),(6,'c4','books',45,DATE '2025-03-03'),\n         (7,'c3','music',30,DATE '2025-03-09'),(8,'c1','books',25,DATE '2025-03-21'),(9,'c4','games',80,DATE '2025-04-01'),\n         (10,'c5','music',12,DATE '2025-04-12'),(11,'c2','games',70,DATE '2025-04-25'),(12,'c5','books',18,DATE '2025-05-02')\n)\nSELECT customer_id, order_id, order_date\nFROM orders\nORDER BY customer_id",
+      "solution": "WITH orders(order_id, customer_id, category, amount, order_date) AS (\n  VALUES (1,'c1','books',20,DATE '2025-01-05'),(2,'c2','books',35,DATE '2025-01-18'),(3,'c1','games',60,DATE '2025-02-02'),\n         (4,'c3','games',15,DATE '2025-02-14'),(5,'c2','music',10,DATE '2025-02-20'),(6,'c4','books',45,DATE '2025-03-03'),\n         (7,'c3','music',30,DATE '2025-03-09'),(8,'c1','books',25,DATE '2025-03-21'),(9,'c4','games',80,DATE '2025-04-01'),\n         (10,'c5','music',12,DATE '2025-04-12'),(11,'c2','games',70,DATE '2025-04-25'),(12,'c5','books',18,DATE '2025-05-02')\n)\n, ranked AS (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC) AS rn FROM orders\n)\nSELECT customer_id, order_id, order_date FROM ranked WHERE rn = 1 ORDER BY customer_id",
+      "ordered": true,
+      "hints": [
+        "Number each customer's orders newest first.",
+        "ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC).",
+        "Keep rows with rn = 1 in an outer query or a second CTE."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Running total per category",
+      "kind": "python",
+      "prompt": "Replicate `SUM(amount) OVER (PARTITION BY category ORDER BY order_date)` for the three category groups in `ROWS` by order id order (order ids are in date order). Print the running totals as a dict keyed by category with lists in order id order, keys sorted.",
+      "starter": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\ndf = pd.DataFrame(ROWS, columns=COLS).sort_values(\"order_id\")\n# running total per category\n",
+      "solution": "import zlib\n\nCOLS = [\"order_id\", \"customer_id\", \"category\", \"amount\"]\nROWS = [\n    (1, \"c1\", \"books\", 20), (2, \"c2\", \"books\", 35), (3, \"c1\", \"games\", 60), (4, \"c3\", \"games\", 15),\n    (5, \"c2\", \"music\", 10), (6, \"c4\", \"books\", 45), (7, \"c3\", \"music\", 30), (8, \"c1\", \"books\", 25),\n    (9, \"c4\", \"games\", 80), (10, \"c5\", \"music\", 12), (11, \"c2\", \"games\", 70), (12, \"c5\", \"books\", 18),\n]\n\ndef show(rows, cols, n=20):\n    \"\"\"Format rows the way DataFrame.show() prints them.\"\"\"\n    cells = [[str(v) for v in r] for r in rows[:n]]\n    widths = [max(len(c), *(len(r[i]) for r in cells)) if cells else len(c) for i, c in enumerate(cols)]\n    line = \"+\" + \"+\".join(\"-\" * w for w in widths) + \"+\"\n    out = [line, \"|\" + \"|\".join(c.rjust(w) for c, w in zip(cols, widths)) + \"|\", line]\n    out += [\"|\" + \"|\".join(v.rjust(w) for v, w in zip(r, widths)) + \"|\" for r in cells]\n    return \"\\n\".join(out + [line])\n\ndef slices(rows, n):\n    size = -(-len(rows) // n)\n    return [rows[i * size:(i + 1) * size] for i in range(n)]\n\ndef target(key, n):\n    return zlib.crc32(str(key).encode()) % n\n\n\nimport pandas as pd\n\ndf = pd.DataFrame(ROWS, columns=COLS).sort_values(\"order_id\")\ndf[\"running\"] = df.groupby(\"category\")[\"amount\"].cumsum()\nprint({k: v[\"running\"].tolist() for k, v in sorted(df.groupby(\"category\"))})\n",
+      "hints": [
+        "A window with PARTITION BY is a groupby.",
+        "cumsum within each group gives the running total.",
+        "Build the dict with a comprehension over sorted(df.groupby(\"category\"))."
+      ],
+      "expected": "{'books': [20, 55, 100, 125, 143], 'games': [60, 75, 155, 225], 'music': [10, 40, 52]}"
+    },
+    {
+      "id": "g4",
+      "title": "From DataFrame to SQL (written)",
+      "kind": "written",
+      "prompt": "Rewrite this PySpark code as a temp view and one Spark SQL statement: `orders.filter(F.col('amount') >= 20).groupBy('category').agg(F.sum('amount').alias('total'), F.count('*').alias('orders')).filter(F.col('total') > 100).orderBy(F.desc('total'))`. Say what the result type of `spark.sql` is and whether anything runs when you call it.",
+      "starter": "orders.createOrReplaceTempView(...)\nspark.sql(...)",
+      "solution": "```python\norders.createOrReplaceTempView(\"orders\")\nresult = spark.sql(\"\"\"\n    SELECT category, SUM(amount) AS total, COUNT(*) AS orders\n    FROM orders\n    WHERE amount >= 20\n    GROUP BY category\n    HAVING SUM(amount) > 100\n    ORDER BY total DESC\n\"\"\")\n```\n\nThe first filter becomes `WHERE` (it runs before grouping), the second filter on an aggregate becomes `HAVING`, and the descending order becomes `ORDER BY total DESC`. `spark.sql` returns a DataFrame, and nothing runs when you call it: it is lazy like any transformation, and the plan runs when an action such as `show()` or `write` is called. The temp view only names the DataFrame's plan in this session.",
+      "rubric": [
+        "Registers a temp view and queries it with spark.sql.",
+        "WHERE for the first filter and HAVING for the filter on the aggregate.",
+        "ORDER BY total DESC.",
+        "States it returns a lazy DataFrame."
+      ],
+      "hints": [
+        "Which filter happens before grouping?",
+        "A filter on SUM needs HAVING.",
+        "What does spark.sql return?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Monthly revenue and running total",
+      "kind": "sql",
+      "prompt": "Return `month` (the first day of the month as a date, `date_trunc('month', order_date)::date`), `revenue` (sum of `amount`) and `running_revenue` (running sum of the monthly revenue in month order), ordered by `month`. Aggregate by month first, then apply the window over the monthly rows.",
+      "starter": "WITH orders(order_id, customer_id, category, amount, order_date) AS (\n  VALUES (1,'c1','books',20,DATE '2025-01-05'),(2,'c2','books',35,DATE '2025-01-18'),(3,'c1','games',60,DATE '2025-02-02'),\n         (4,'c3','games',15,DATE '2025-02-14'),(5,'c2','music',10,DATE '2025-02-20'),(6,'c4','books',45,DATE '2025-03-03'),\n         (7,'c3','music',30,DATE '2025-03-09'),(8,'c1','books',25,DATE '2025-03-21'),(9,'c4','games',80,DATE '2025-04-01'),\n         (10,'c5','music',12,DATE '2025-04-12'),(11,'c2','games',70,DATE '2025-04-25'),(12,'c5','books',18,DATE '2025-05-02')\n)\nSELECT date_trunc('month', order_date)::date AS month, SUM(amount) AS revenue\nFROM orders\nGROUP BY 1\nORDER BY 1",
+      "solution": "WITH orders(order_id, customer_id, category, amount, order_date) AS (\n  VALUES (1,'c1','books',20,DATE '2025-01-05'),(2,'c2','books',35,DATE '2025-01-18'),(3,'c1','games',60,DATE '2025-02-02'),\n         (4,'c3','games',15,DATE '2025-02-14'),(5,'c2','music',10,DATE '2025-02-20'),(6,'c4','books',45,DATE '2025-03-03'),\n         (7,'c3','music',30,DATE '2025-03-09'),(8,'c1','books',25,DATE '2025-03-21'),(9,'c4','games',80,DATE '2025-04-01'),\n         (10,'c5','music',12,DATE '2025-04-12'),(11,'c2','games',70,DATE '2025-04-25'),(12,'c5','books',18,DATE '2025-05-02')\n)\n, monthly AS (\n  SELECT date_trunc('month', order_date)::date AS month, SUM(amount) AS revenue FROM orders GROUP BY 1\n)\nSELECT month, revenue, SUM(revenue) OVER (ORDER BY month) AS running_revenue\nFROM monthly\nORDER BY month",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Generate SQL from a spec",
+      "kind": "python",
+      "prompt": "Write `to_sql(spec)` that builds a SQL string from a dict with keys `table`, `select` (list of expressions), `where` (string or None), `group_by` (list or None), `order_by` (string or None). The string is `SELECT <a, b> FROM <table>`, then ` WHERE <where>`, ` GROUP BY <a, b>` and ` ORDER BY <x>` only for parts that are not None. Print the SQL for spec 1: table orders, select category and SUM(amount) AS total, where amount >= 20, group by category, order by total DESC; and for spec 2: table orders, select order_id and amount, nothing else.",
+      "starter": "def to_sql(spec):\n    return \"\"\n\nprint(to_sql({\"table\": \"orders\", \"select\": [\"category\", \"SUM(amount) AS total\"], \"where\": \"amount >= 20\", \"group_by\": [\"category\"], \"order_by\": \"total DESC\"}))\nprint(to_sql({\"table\": \"orders\", \"select\": [\"order_id\", \"amount\"], \"where\": None, \"group_by\": None, \"order_by\": None}))\n",
+      "solution": "def to_sql(spec):\n    sql = f\"SELECT {', '.join(spec['select'])} FROM {spec['table']}\"\n    if spec.get(\"where\"):\n        sql += f\" WHERE {spec['where']}\"\n    if spec.get(\"group_by\"):\n        sql += f\" GROUP BY {', '.join(spec['group_by'])}\"\n    if spec.get(\"order_by\"):\n        sql += f\" ORDER BY {spec['order_by']}\"\n    return sql\n\nprint(to_sql({\"table\": \"orders\", \"select\": [\"category\", \"SUM(amount) AS total\"], \"where\": \"amount >= 20\", \"group_by\": [\"category\"], \"order_by\": \"total DESC\"}))\nprint(to_sql({\"table\": \"orders\", \"select\": [\"order_id\", \"amount\"], \"where\": None, \"group_by\": None, \"order_by\": None}))\n",
+      "expected": "SELECT category, SUM(amount) AS total FROM orders WHERE amount >= 20 GROUP BY category ORDER BY total DESC\nSELECT order_id, amount FROM orders"
+    },
+    {
+      "id": "i3",
+      "title": "Choose SQL or DataFrame API (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Give three situations from a data team's work and say whether you would write them in Spark SQL or with the DataFrame API, with reasons. Include one where mixing both (a temp view and a Python function) is the best answer, and one risk of each style.",
+      "starter": "Situation 1: ...\nSituation 2: ...\nMixing: ...\nRisks: ...",
+      "solution": "A monthly revenue report with joins and a window for analysts is clearest in Spark SQL: analysts can read and review it, and the same text can be run in a notebook or on a warehouse. A job that builds a list of 200 feature columns from a configuration list is clearer with the DataFrame API, because the column expressions are generated with Python loops and are easy to unit test. Mixing: a Python function cleans and enriches a DataFrame, registers it as a temp view, and a SQL statement does the final aggregation, so each part uses the language it is best at. Risks: SQL strings are not checked until they run and are easy to break when column names change; the DataFrame API can become a long chain of calls that is hard for analysts to read, and shared variables hide logic. Both compile to the same plan, so performance is not the reason to choose.",
+      "rubric": [
+        "Gives three concrete situations with a reason each.",
+        "Includes a sensible mixed case with a temp view.",
+        "Names a risk for each style.",
+        "States that both give the same plan."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "pyspark"
+    ],
+    "note": "Spark needs Java 17 or newer; then pip install pyspark and run spark.sql and the DataFrame code with python. Spark cannot run in the course tests or the browser. Each Spark SQL statement shown was verified through the same query in PostgreSQL on PGlite (the sql run blocks and the SQL exercises) or through pandas. Differences between Spark SQL and PostgreSQL (date patterns, datediff argument order, ANSI mode by version) are noted in the lesson."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does spark.sql(\"SELECT ...\") return?",
+      "options": [
+        "A list of rows",
+        "A DataFrame, evaluated lazily",
+        "A pandas DataFrame",
+        "Nothing"
+      ],
+      "answer": 1,
+      "explanation": "spark.sql returns a Spark DataFrame, like a transformation, and the plan runs only when an action is called."
+    },
+    {
+      "id": "c2",
+      "question": "Where is a view created with createOrReplaceTempView visible?",
+      "options": [
+        "In every session of the cluster",
+        "In the current Spark session only",
+        "As a stored table in the warehouse",
+        "In the file system"
+      ],
+      "answer": 1,
+      "explanation": "A temporary view lives in the session that created it. Global temp views are shared inside one application and are named global_temp.name."
+    },
+    {
+      "id": "c3",
+      "question": "A window function has OVER (ORDER BY order_date) with no PARTITION BY on a billion rows. What is the problem?",
+      "options": [
+        "Spark rejects it",
+        "All rows are moved to one partition to be sorted",
+        "The result is wrong",
+        "It needs a join"
+      ],
+      "answer": 1,
+      "explanation": "Without a partition key the whole data set forms a single window, so it goes to a single task. Partition by a key when you can."
+    },
+    {
+      "id": "c4",
+      "question": "Which Spark SQL clause corresponds to a filter after groupBy().agg()?",
+      "options": [
+        "WHERE",
+        "HAVING",
+        "ORDER BY",
+        "LIMIT"
+      ],
+      "answer": 1,
+      "explanation": "A condition on an aggregate is applied after grouping: HAVING in SQL, filter after agg in the DataFrame API. WHERE runs before grouping."
+    },
+    {
+      "id": "c5",
+      "question": "datediff(a, b) in Spark SQL returns:",
+      "options": [
+        "Days from a to b",
+        "Days from b to a, that is a minus b",
+        "Months between a and b",
+        "Always a positive number"
+      ],
+      "answer": 1,
+      "explanation": "Spark's datediff(end, start) returns end minus start in days, so datediff(a, b) is a minus b and can be negative."
+    }
+  ],
+  "id": "e165"
+}

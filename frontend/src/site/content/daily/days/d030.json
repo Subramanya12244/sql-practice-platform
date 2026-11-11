@@ -1,0 +1,200 @@
+{
+  "id": "d030",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-file-handling"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "topological-sort",
+      "log-level-counts"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Parse git log --oneline",
+      "prompt": "The text below is the output of `git log --oneline` (short hash, then the message, newest first). Parse it into a list of `(hash, message)` pairs. Print the number of commits, the message of the oldest commit (the last line) and the list of hashes of commits whose message starts with `Fix`. Expected output: three lines, the third a Python list.",
+      "starter": "log = \"\"\"9f3a1b2 Fix null amounts in loader\n7c0de11 Add currency column\n41ab9e0 Fix typo in README\n0d2f77c Initial commit\"\"\"\n# Parse and print\n",
+      "solution": "log = \"\"\"9f3a1b2 Fix null amounts in loader\n7c0de11 Add currency column\n41ab9e0 Fix typo in README\n0d2f77c Initial commit\"\"\"\ncommits = [tuple(line.split(\" \", 1)) for line in log.splitlines()]\nprint(len(commits))\nprint(commits[-1][1])\nprint([h for h, m in commits if m.startswith(\"Fix\")])\n",
+      "kind": "python",
+      "expected": "4\nInitial commit\n['9f3a1b2', '41ab9e0']",
+      "hints": [
+        "Split each line once, at the first space, to separate the hash from the message.",
+        "`line.split(\" \", 1)` returns a two-element list.",
+        "Build a list of tuples, then use `len`, `commits[-1][1]` and a list comprehension with `startswith`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Ignore patterns",
+      "prompt": "A `.gitignore`-style rule list is `[\"*.log\", \"*.pyc\", \".env\"]`. Using `fnmatch.fnmatch(name, pattern)`, print the files from the list in the starter that are NOT ignored, in the original order, one per line. Expected output: three file names.",
+      "starter": "from fnmatch import fnmatch\n\nrules = [\"*.log\", \"*.pyc\", \".env\"]\nfiles = [\"app.py\", \"run.log\", \".env\", \"utils.pyc\", \"README.md\", \"data.csv\", \"debug.log\"]\n# Print the files that are not ignored\n",
+      "solution": "from fnmatch import fnmatch\n\nrules = [\"*.log\", \"*.pyc\", \".env\"]\nfiles = [\"app.py\", \"run.log\", \".env\", \"utils.pyc\", \"README.md\", \"data.csv\", \"debug.log\"]\nfor name in files:\n    if not any(fnmatch(name, rule) for rule in rules):\n        print(name)\n",
+      "kind": "python",
+      "expected": "app.py\nREADME.md\ndata.csv",
+      "hints": [
+        "A file is ignored when it matches at least one rule.",
+        "`any(...)` over the rules gives that test.",
+        "Print the name when `not any(fnmatch(name, rule) for rule in rules)`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Decode status codes",
+      "prompt": "The `status` text is the output of `git status --short`. Count the lines by kind: untracked (`??`), modified in the working tree but not staged (second character `M`, first a space), and staged (first character `M` or `A`). Print three lines in the form `untracked: N`, `modified: N`, `staged: N`.",
+      "starter": "status = \"\"\"?? notes.txt\n M app.py\nM  config.yml\nA  new.sql\n M README.md\n?? scratch.py\"\"\"\n# Count each kind\n",
+      "solution": "status = \"\"\"?? notes.txt\n M app.py\nM  config.yml\nA  new.sql\n M README.md\n?? scratch.py\"\"\"\nlines = status.splitlines()\nuntracked = sum(1 for l in lines if l.startswith(\"??\"))\nmodified = sum(1 for l in lines if l[0] == \" \" and l[1] == \"M\")\nstaged = sum(1 for l in lines if l[0] in \"MA\")\nprint(f\"untracked: {untracked}\")\nprint(f\"modified: {modified}\")\nprint(f\"staged: {staged}\")\n",
+      "kind": "python",
+      "expected": "untracked: 2\nmodified: 2\nstaged: 2",
+      "hints": [
+        "Each line starts with two status characters, then a space and the file name.",
+        "Untracked lines start with `??`; unstaged modifications have a space first and `M` second.",
+        "Staged files have `M` or `A` as the first character: `l[0] in \"MA\"`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Plan a feature branch",
+      "prompt": "Write the Git commands (one per line with a comment) for this task: start in an existing repository on `main`, create a branch `add-tests`, stage and commit a file `test_load.py` with a message, switch back to `main`, merge the branch, and push `main` to `origin`. Then write two sentences describing how the same work would go through a GitHub pull request instead of a local merge.",
+      "starter": "Write your commands and the two sentences here.",
+      "solution": "```text\ngit switch -c add-tests          # create and enter the branch\ngit add test_load.py             # stage the new file\ngit commit -m \"Add loader tests\" # save the snapshot\ngit switch main                  # go back to main\ngit merge add-tests              # bring the work into main\ngit push origin main             # upload main to the remote\n```\n\nWith a pull request, you would instead run `git push -u origin add-tests` and open a pull request on GitHub that proposes merging `add-tests` into `main`. Teammates review the changes and automated checks run; when it is approved, the merge happens on GitHub, and you update your own copy with `git switch main` and `git pull`.",
+      "kind": "written",
+      "rubric": [
+        "Creates the branch, stages and commits the file in the right order.",
+        "Switches to main before merging, and pushes main to origin.",
+        "Explains that a pull request pushes the branch and is reviewed and merged on GitHub."
+      ],
+      "hints": [
+        "Create the branch with `git switch -c`; commit needs `git add` first.",
+        "Merging is done while standing on `main`: `git merge add-tests`.",
+        "For the pull request description: push the branch, open the PR, review, merge on the website."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Fast-forward or merge commit",
+      "prompt": "The graph in the starter has parent links. Write `ancestors(commit)` that returns the set of a commit and all its ancestors, and `merge_kind(into, other)` that returns `\"already up to date\"` when the tip of `other` is an ancestor of the tip of `into`, `\"fast-forward\"` when the tip of `into` is an ancestor of the tip of `other`, and `\"merge commit\"` otherwise. Print the kind for `merge_kind(\"main\", \"feature\")`, `merge_kind(\"feature\", \"main\")`, `merge_kind(\"main\", \"other\")` and `merge_kind(\"hotfix\", \"main\")`, then the number of commits that are on `main` but not on `feature` (`len(ancestors(main) - ancestors(feature))`).",
+      "starter": "parents = {\"a\": [], \"b\": [\"a\"], \"c\": [\"b\"], \"d\": [\"b\"], \"e\": [\"c\"]}\ntips = {\"main\": \"e\", \"feature\": \"b\", \"other\": \"d\", \"hotfix\": \"c\"}\n# Write ancestors and merge_kind, then print\n",
+      "solution": "parents = {\"a\": [], \"b\": [\"a\"], \"c\": [\"b\"], \"d\": [\"b\"], \"e\": [\"c\"]}\ntips = {\"main\": \"e\", \"feature\": \"b\", \"other\": \"d\", \"hotfix\": \"c\"}\n\ndef ancestors(commit):\n    seen, stack = set(), [commit]\n    while stack:\n        current = stack.pop()\n        if current not in seen:\n            seen.add(current)\n            stack.extend(parents[current])\n    return seen\n\ndef merge_kind(into, other):\n    if tips[other] in ancestors(tips[into]):\n        return \"already up to date\"\n    if tips[into] in ancestors(tips[other]):\n        return \"fast-forward\"\n    return \"merge commit\"\n\nprint(merge_kind(\"main\", \"feature\"))\nprint(merge_kind(\"feature\", \"main\"))\nprint(merge_kind(\"main\", \"other\"))\nprint(merge_kind(\"hotfix\", \"main\"))\nprint(len(ancestors(tips[\"main\"]) - ancestors(tips[\"feature\"])))\n",
+      "kind": "python",
+      "expected": "already up to date\nfast-forward\nmerge commit\nfast-forward\n2"
+    },
+    {
+      "id": "i2",
+      "title": "Three-way merge of a file",
+      "prompt": "Simulate a line-based merge of one file. `base`, `ours` and `theirs` are lists of lines of the same length. For each position: if `ours` and `theirs` are equal use that line; if only one side differs from `base`, use the changed line; if both differ from `base` and from each other, it is a conflict. Print the merged lines in order (for a conflict print `<<<<<<<`, our line, `=======`, their line and `>>>>>>>` as five lines). After the lines print `Conflicts: N`.",
+      "starter": "base   = [\"name: shop\", \"mode: slow\", \"retries: 1\", \"owner: ana\"]\nours   = [\"name: shop\", \"mode: safe\", \"retries: 3\", \"owner: ana\"]\ntheirs = [\"name: store\", \"mode: fast\", \"retries: 1\", \"owner: ana\"]\n# Merge line by line\n",
+      "solution": "base   = [\"name: shop\", \"mode: slow\", \"retries: 1\", \"owner: ana\"]\nours   = [\"name: shop\", \"mode: safe\", \"retries: 3\", \"owner: ana\"]\ntheirs = [\"name: store\", \"mode: fast\", \"retries: 1\", \"owner: ana\"]\nconflicts = 0\nfor b, o, t in zip(base, ours, theirs):\n    if o == t:\n        print(o)\n    elif o == b:\n        print(t)\n    elif t == b:\n        print(o)\n    else:\n        conflicts += 1\n        print(\"<<<<<<<\")\n        print(o)\n        print(\"=======\")\n        print(t)\n        print(\">>>>>>>\")\nprint(f\"Conflicts: {conflicts}\")\n",
+      "kind": "python",
+      "expected": "name: store\n<<<<<<<\nmode: safe\n=======\nmode: fast\n>>>>>>>\nretries: 3\nowner: ana\nConflicts: 1"
+    },
+    {
+      "id": "i3",
+      "title": "Explain and resolve a conflict",
+      "prompt": "Two teammates edited the same line of `pipeline.yml`: one set `schedule: daily`, the other `schedule: hourly`. Git reports a conflict during the merge. Write the sequence of commands you would run from the moment the merge stops until it is finished, explain what the file looks like and what you must do inside it, and explain why you should talk to the other author before choosing a value. Also describe what `git status --short` shows during the conflict.",
+      "starter": "Write your answer here.",
+      "solution": "Run `git status --short`: the file appears with the code `UU` (unmerged, changed on both sides). Open `pipeline.yml`; it contains `<<<<<<< HEAD`, the current branch's `schedule: daily`, a line `=======`, the other branch's `schedule: hourly` and `>>>>>>> other-branch`. Edit the file so it contains only the one line you want, for example `schedule: hourly`, and delete all three marker lines. Then run `git add pipeline.yml` to mark the conflict resolved and `git commit` (the merge message is pre-filled) to finish. Check `git status --short` shows nothing and `git log --format=%s` shows the merge commit. Git cannot know which value is correct, because both are valid text; only the people who changed it know why, so discuss before choosing, since an incorrect choice could change how often a production job runs.",
+      "kind": "written",
+      "rubric": [
+        "States the conflict markers and removes all three marker lines.",
+        "Uses git add and then git commit to finish the merge.",
+        "Mentions UU in the status output.",
+        "Explains that the choice is a human decision and why it matters."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "The bash examples need Git (2.28 or newer for git init -b) and a terminal on your own computer, and they use no network: the remote is a local bare repository created with git init --bare. They are shown read-only in the browser with output captured from a real run, and they print only messages, counts and status codes because commit hashes differ on every machine. GitHub itself (forks, pull requests, the web interface) cannot run here and is covered in text and written exercises. The graded exercises are pure-Python alternatives: parsing git log --oneline text, decoding git status codes, matching ignore patterns, walking a commit graph and simulating a three-way merge."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `git commit -m \"msg\"` do when nothing has been staged?",
+      "options": [
+        "Commits every untracked file",
+        "Nothing is committed; Git reports that there is nothing to commit",
+        "Uploads the files to GitHub",
+        "Creates a branch called msg"
+      ],
+      "answer": 1,
+      "explanation": "Commits record only staged changes. With an empty staging area Git has nothing to save. It also never uploads anything: that needs `git push`."
+    },
+    {
+      "id": "c2",
+      "question": "`main` has no new commits since `feature` was created from it, and you run `git merge feature` on `main`. What happens?",
+      "options": [
+        "A fast-forward: the main pointer moves to the tip of feature",
+        "A merge conflict",
+        "A new empty branch is created",
+        "The feature branch is deleted"
+      ],
+      "answer": 0,
+      "explanation": "Because `main` is an ancestor of `feature`, Git can just move the pointer forward without a merge commit. A conflict needs both branches to change the same lines."
+    },
+    {
+      "id": "c3",
+      "question": "In `git status --short`, what does `?? notes.txt` mean?",
+      "options": [
+        "notes.txt is modified and staged",
+        "notes.txt is untracked",
+        "notes.txt is ignored",
+        "notes.txt has a conflict"
+      ],
+      "answer": 1,
+      "explanation": "`??` marks files Git has never tracked. Staged additions show `A `, modified files ` M`, and conflicts `UU`."
+    },
+    {
+      "id": "c4",
+      "question": "A password was committed in `.env` and removed in the next commit. Is it safe?",
+      "options": [
+        "Yes, the file is gone",
+        "No, it stays in history and the password should be revoked",
+        "Yes, if the branch is merged",
+        "Yes, because .env is hidden"
+      ],
+      "answer": 1,
+      "explanation": "Deleting a file creates a new commit but older commits still contain it, so anyone with the repository can read the password. Revoke the secret, and add the file to `.gitignore` before committing."
+    },
+    {
+      "id": "c5",
+      "question": "What is a pull request?",
+      "options": [
+        "A request on a hosting site such as GitHub to merge one branch into another, with review",
+        "The Git command that downloads commits",
+        "A copy of the repository on your computer",
+        "A backup of the main branch"
+      ],
+      "answer": 0,
+      "explanation": "A pull request is a feature of the hosting platform, not a Git command. `git pull` is the command that downloads and merges commits."
+    },
+    {
+      "id": "c6",
+      "question": "After a failed merge, `git status --short` shows `UU config.txt`. What must you do before committing?",
+      "options": [
+        "Edit the file to remove the markers and choose the content, then `git add` it",
+        "Run git push",
+        "Delete the .git folder",
+        "Nothing, commit directly"
+      ],
+      "answer": 0,
+      "explanation": "`UU` means both sides changed the file and Git could not combine it. You resolve it by editing, mark it resolved with `git add`, and then commit to complete the merge."
+    }
+  ]
+}

@@ -1,0 +1,172 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Parse day-first dates",
+      "prompt": "The series `raw` holds text dates written day first: `\"05/03/2024\"`, `\"20/03/2024\"` and `\"02/04/2024\"`. Convert it with `pd.to_datetime` using an explicit format, then print the earliest date with `print(dates.min().date())`. The output is a single line.",
+      "starter": "import pandas as pd\nraw = pd.Series([\"05/03/2024\", \"20/03/2024\", \"02/04/2024\"])\nprint(raw.min())\n",
+      "solution": "import pandas as pd\nraw = pd.Series([\"05/03/2024\", \"20/03/2024\", \"02/04/2024\"])\ndates = pd.to_datetime(raw, format=\"%d/%m/%Y\")\nprint(dates.min().date())\n",
+      "hints": [
+        "The text is day, month, year, so the format codes are in that order.",
+        "`%d` is the day, `%m` the month, `%Y` the four-digit year, joined by slashes.",
+        "`pd.to_datetime(raw, format=\"%d/%m/%Y\")`, then `.min().date()`."
+      ],
+      "kind": "python",
+      "expected": "2024-03-05"
+    },
+    {
+      "id": "g2",
+      "title": "Count bad dates",
+      "prompt": "The series `raw` holds `\"2024-01-15\"`, `\"soon\"`, `\"2024-02-30\"` and `\"2024-03-01\"`. Convert it with `errors=\"coerce\"` and print two lines: the number of values that became `NaT`, then the number that parsed. The output is `2` then `2`.",
+      "starter": "import pandas as pd\nraw = pd.Series([\"2024-01-15\", \"soon\", \"2024-02-30\", \"2024-03-01\"])\ndates = pd.to_datetime(raw)\nprint(len(dates))\n",
+      "solution": "import pandas as pd\nraw = pd.Series([\"2024-01-15\", \"soon\", \"2024-02-30\", \"2024-03-01\"])\ndates = pd.to_datetime(raw, format=\"%Y-%m-%d\", errors=\"coerce\")\nprint(dates.isna().sum())\nprint(dates.notna().sum())\n",
+      "hints": [
+        "Without `errors=\"coerce\"` the first bad value stops the program.",
+        "`isna()` marks `NaT` values and `sum()` counts the `True` values.",
+        "Print `dates.isna().sum()` and `dates.notna().sum()`."
+      ],
+      "kind": "python",
+      "expected": "2\n2"
+    },
+    {
+      "id": "g3",
+      "title": "Busiest weekday",
+      "prompt": "`sales` has a datetime column `date`. Add a column `weekday` with the weekday name, then print `sales[\"weekday\"].value_counts().to_string()`. Day 70 introduced `value_counts`. The counts must be listed with the most frequent weekday first.",
+      "starter": "import pandas as pd\nsales = pd.DataFrame({\"date\": pd.to_datetime([\"2024-05-06\", \"2024-05-07\", \"2024-05-13\", \"2024-05-14\", \"2024-05-20\", \"2024-05-25\"])})\nprint(sales.to_string())\n",
+      "solution": "import pandas as pd\nsales = pd.DataFrame({\"date\": pd.to_datetime([\"2024-05-06\", \"2024-05-07\", \"2024-05-13\", \"2024-05-14\", \"2024-05-20\", \"2024-05-25\"])})\nsales[\"weekday\"] = sales[\"date\"].dt.day_name()\nprint(sales[\"weekday\"].value_counts().to_string())\n",
+      "hints": [
+        "The `.dt` accessor works on datetime columns only; this one already is one.",
+        "`day_name()` returns the weekday as text.",
+        "`sales[\"weekday\"] = sales[\"date\"].dt.day_name()` and then `value_counts()`."
+      ],
+      "kind": "python",
+      "expected": "weekday\nMonday      3\nTuesday     2\nSaturday    1"
+    },
+    {
+      "id": "g4",
+      "title": "Monthly totals",
+      "prompt": "The table `sales` has datetime `date` and numeric `amount`. Print the monthly totals with `resample(\"MS\")` on the `amount` series (index set to `date`), using `print(monthly.to_string())`. Months without rows must appear with a total of 0.",
+      "starter": "import pandas as pd\nsales = pd.DataFrame({\"date\": pd.to_datetime([\"2024-01-10\", \"2024-01-25\", \"2024-03-05\", \"2024-04-02\"]), \"amount\": [10.0, 20.0, 5.0, 8.0]})\nprint(sales.to_string())\n",
+      "solution": "import pandas as pd\nsales = pd.DataFrame({\"date\": pd.to_datetime([\"2024-01-10\", \"2024-01-25\", \"2024-03-05\", \"2024-04-02\"]), \"amount\": [10.0, 20.0, 5.0, 8.0]})\nmonthly = sales.set_index(\"date\")[\"amount\"].resample(\"MS\").sum()\nprint(monthly.to_string())\n",
+      "hints": [
+        "`resample` needs a datetime index, so move `date` into the index first.",
+        "`set_index(\"date\")[\"amount\"]` gives a series with the right index.",
+        "Finish with `.resample(\"MS\").sum()`."
+      ],
+      "kind": "python",
+      "expected": "date\n2024-01-01    30.0\n2024-02-01     0.0\n2024-03-01     5.0\n2024-04-01     8.0\nFreq: MS"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Slow deliveries by month",
+      "prompt": "A table has text columns `ordered` and `delivered` (format `%Y-%m-%d`); one `delivered` value is `\"pending\"`. Convert both columns (coerce bad values), compute `days = (delivered - ordered).dt.days`, drop rows where `days` is missing, and print two lines: the number of rows kept, then the mean delivery days rounded to 2 places (`print(round(x, 2))`).",
+      "starter": "import pandas as pd\ndf = pd.DataFrame({\"ordered\": [\"2024-05-01\", \"2024-05-03\", \"2024-05-04\", \"2024-05-10\"],\n                   \"delivered\": [\"2024-05-04\", \"2024-05-09\", \"pending\", \"2024-05-12\"]})\nprint(len(df))\n",
+      "solution": "import pandas as pd\ndf = pd.DataFrame({\"ordered\": [\"2024-05-01\", \"2024-05-03\", \"2024-05-04\", \"2024-05-10\"],\n                   \"delivered\": [\"2024-05-04\", \"2024-05-09\", \"pending\", \"2024-05-12\"]})\nfor c in [\"ordered\", \"delivered\"]:\n    df[c] = pd.to_datetime(df[c], format=\"%Y-%m-%d\", errors=\"coerce\")\ndf[\"days\"] = (df[\"delivered\"] - df[\"ordered\"]).dt.days\nkept = df.dropna(subset=[\"days\"])\nprint(len(kept))\nprint(round(kept[\"days\"].mean(), 2))\n",
+      "kind": "python",
+      "expected": "3\n3.67"
+    },
+    {
+      "id": "i2",
+      "title": "Weekend share and quiet months",
+      "prompt": "From the `orders` list of date strings (ISO format), build a datetime series. Print three lines: the share of orders placed on a Saturday or Sunday rounded to 3 places, the number of months with zero orders between the first and last order, and the name of the month start with the most orders as `YYYY-MM-DD` (use `idxmax()` on the monthly counts and `.date()`).",
+      "starter": "import pandas as pd\norders = [\"2024-01-06\", \"2024-01-10\", \"2024-01-21\", \"2024-02-03\", \"2024-04-14\", \"2024-04-15\", \"2024-04-16\", \"2024-05-01\"]\nprint(len(orders))\n",
+      "solution": "import pandas as pd\norders = [\"2024-01-06\", \"2024-01-10\", \"2024-01-21\", \"2024-02-03\", \"2024-04-14\", \"2024-04-15\", \"2024-04-16\", \"2024-05-01\"]\ns = pd.to_datetime(pd.Series(orders))\nprint(round((s.dt.dayofweek >= 5).mean(), 3))\ncounts = pd.Series(1, index=s).resample(\"MS\").sum()\nprint((counts == 0).sum())\nprint(counts.idxmax().date())\n",
+      "kind": "python",
+      "expected": "0.5\n1\n2024-01-01"
+    },
+    {
+      "id": "i3",
+      "title": "Stretch: due dates and lateness",
+      "required": false,
+      "prompt": "Invoices have `issued` (ISO text) and `paid` (ISO text, or `None` for unpaid). Convert both. Due date is `issued + pd.to_timedelta(30, unit=\"D\")`. Print three lines: the number of invoices paid late (paid after due), the number unpaid, and the total days late summed over late invoices (`(paid - due).dt.days`).",
+      "starter": "import pandas as pd\ninv = pd.DataFrame({\"issued\": [\"2024-01-01\", \"2024-01-10\", \"2024-02-01\", \"2024-02-15\"],\n                    \"paid\": [\"2024-01-25\", \"2024-02-20\", None, \"2024-03-30\"]})\nprint(inv.to_string())\n",
+      "solution": "import pandas as pd\ninv = pd.DataFrame({\"issued\": [\"2024-01-01\", \"2024-01-10\", \"2024-02-01\", \"2024-02-15\"],\n                    \"paid\": [\"2024-01-25\", \"2024-02-20\", None, \"2024-03-30\"]})\ninv[\"issued\"] = pd.to_datetime(inv[\"issued\"])\ninv[\"paid\"] = pd.to_datetime(inv[\"paid\"])\ndue = inv[\"issued\"] + pd.to_timedelta(30, unit=\"D\")\nlate = inv[\"paid\"] > due\nprint(late.sum())\nprint(inv[\"paid\"].isna().sum())\nprint((inv[\"paid\"] - due)[late].dt.days.sum())\n",
+      "kind": "python",
+      "expected": "2\n1\n25"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A column was read from a CSV and prints values like `2024-03-05`. `df[\"d\"].dt.year` raises `AttributeError`. What is the most likely cause?",
+      "options": [
+        "The column has dtype object, so it is still text",
+        "The year cannot be extracted from ISO dates",
+        "`.dt` only works on index labels",
+        "The column contains `NaT`"
+      ],
+      "answer": 0,
+      "explanation": "Text that looks like a date is still text until `to_datetime` converts it, and `.dt` needs a datetime dtype. ISO dates have a year like any other, `.dt` works on columns, and `NaT` values are allowed in a datetime column."
+    },
+    {
+      "id": "c2",
+      "question": "`pd.to_datetime(pd.Series([\"03/04/2024\"]), format=\"%d/%m/%Y\")` gives which month?",
+      "options": [
+        "March",
+        "April",
+        "Both, pandas keeps the ambiguity",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "With `%d/%m/%Y` the first number is the day, so 03 is the day and 04 the month: April. March would be correct for `%m/%d/%Y`. pandas never keeps both readings, and the value matches the format, so there is no error."
+    },
+    {
+      "id": "c3",
+      "question": "A delivery took 1 day and 12 hours. What do `gap.dt.days` and `gap.dt.total_seconds() / 86400` return?",
+      "options": [
+        "1 and 1.5",
+        "2 and 1.5",
+        "1 and 1",
+        "1.5 and 1.5"
+      ],
+      "answer": 0,
+      "explanation": "`.dt.days` is the whole-day component only, so 1. Total seconds divided by 86400 seconds per day keeps the half day, so 1.5. The days component is not rounded up to 2."
+    },
+    {
+      "id": "c4",
+      "question": "Daily sales exist only for January and March. What does `s.resample(\"MS\").sum()` return for February?",
+      "options": [
+        "No February row",
+        "A February row with 0",
+        "A February row with NaT",
+        "An error about missing data"
+      ],
+      "answer": 1,
+      "explanation": "Resample creates every period between the first and last date, and an empty period sums to 0. A groupby on the month would have no February row. `NaT` is a missing date, not a sum, and no error is raised."
+    },
+    {
+      "id": "c5",
+      "question": "What does `pd.to_datetime(pd.Series([\"2024-01-15\", \"oops\"]), errors=\"coerce\").isna().sum()` print?",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "It raises ValueError"
+      ],
+      "answer": 1,
+      "explanation": "`oops` cannot be parsed, so coerce turns it into `NaT`, and `isna()` counts one. The valid date stays. With the default errors setting the call would raise, but coerce was given."
+    }
+  ],
+  "id": "d077"
+}

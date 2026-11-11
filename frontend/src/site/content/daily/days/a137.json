@@ -1,0 +1,195 @@
+{
+  "time": {
+    "theory": 15,
+    "examples": 20,
+    "guided": 25,
+    "independent": 75,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "dwh-star-schema",
+      "dwh-fact-tables"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "sales-by-month"
+    ],
+    "projects": [
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "pivot-report"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Find orphan keys",
+      "kind": "python",
+      "prompt": "Simulate a broken dimension: drop customers 1 to 5 from `customers` (keep the rest). Print the number of `sales` rows whose `customer_id` is no longer in the customer table, then the revenue of those rows (2 decimals), on one line as `rows revenue`. These rows would show as a blank customer in a visual.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# keep customers 6 and above, count orphan sales\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nbroken = customers[customers[\"customer_id\"] > 5]\norphans = sales[~sales[\"customer_id\"].isin(broken[\"customer_id\"])]\nprint(len(orphans), round(float(orphans[\"revenue\"].sum()), 2))\n",
+      "hints": [
+        "Create a shortened customer table first.",
+        "Orphans are sales whose customer_id is not in it: use ~isin.",
+        "Print len and the rounded revenue sum on one line."
+      ],
+      "expected": "40 6360.0"
+    },
+    {
+      "id": "g2",
+      "title": "Measure test for one category",
+      "kind": "python",
+      "prompt": "Compute the five measures `Total Revenue`, `Orders`, `Units`, `Average Order Value` and `Price per Unit` for the category `Software` (a visual cell in the category bar). Print one `name value` line each, revenue and ratios rounded to 2 decimals, counts as integers.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# Software only\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ns = fact[fact[\"category\"] == \"Software\"]\nrev = float(s[\"revenue\"].sum())\norders = int(s[\"order_id\"].nunique())\nunits = int(s[\"quantity\"].sum())\nprint(\"Total Revenue\", round(rev, 2))\nprint(\"Orders\", orders)\nprint(\"Units\", units)\nprint(\"Average Order Value\", round(rev / orders, 2))\nprint(\"Price per Unit\", round(rev / units, 2))\n",
+      "hints": [
+        "The category cell filters the fact table.",
+        "Orders is the number of distinct order ids.",
+        "Ratios are revenue divided by orders and by units."
+      ],
+      "expected": "Total Revenue 20835.0\nOrders 126\nUnits 374\nAverage Order Value 165.36\nPrice per Unit 55.71"
+    },
+    {
+      "id": "g3",
+      "title": "Revenue YTD",
+      "kind": "python",
+      "prompt": "Replicate `Revenue YTD = TOTALYTD([Total Revenue], Calendar[date])` for the monthly cells of 2025: build the monthly revenue Series from `fact` using the period of `order_date`, take the cumulative sum and print the YTD values for 2025-06 and 2025-12 as `month value` lines (2 decimals).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# monthly revenue, cumulative sum\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nmonthly = fact.groupby(fact[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\nytd = monthly.cumsum()\nfor m in [\"2025-06\", \"2025-12\"]:\n    print(m, round(float(ytd[m]), 2))\n",
+      "hints": [
+        "Group revenue by the monthly period of order_date.",
+        "With one year of data, YTD is the cumulative sum.",
+        "Index the result with \"2025-06\" and \"2025-12\"."
+      ],
+      "expected": "2025-06 32100.0\n2025-12 67132.5"
+    },
+    {
+      "id": "g4",
+      "title": "Choose the dashboard visuals (written)",
+      "kind": "written",
+      "prompt": "For the sales dashboard, a stakeholder asks for: total revenue, revenue by month, revenue by category, revenue by customer for all 40 customers, and the share of the top five customers. Choose a visual for each, justify it with the rules of Day 133 and say which one would go on a drill-through page instead of the main page.",
+      "starter": "Revenue: ...\nBy month: ...\nBy category: ...\nBy customer: ...\nTop five share: ...",
+      "solution": "Total revenue is a single value, so a card. Revenue by month is a time trend, so a line chart (a column chart is acceptable for twelve points, but the line shows the slope). Revenue by category has three categories, so a column or bar chart sorted by revenue. Revenue by all 40 customers is too long for the main page: a horizontal bar chart limited to the top ten with a table or drill-through page for the rest, so the main page stays uncluttered. The top-five share is one number, so a card, with a short label such as 'Top 5 customers' share of revenue'. The customer-level detail is the item to move to a drill-through page, because it is for investigation and not for the first read.",
+      "rubric": [
+        "Card for the single values.",
+        "Line for the monthly trend.",
+        "Sorted bar or column for categories and top-N bar for customers.",
+        "Moves customer detail to drill-through."
+      ],
+      "hints": [
+        "Single value, trend, comparison, part-to-whole?",
+        "How many customers fit on a page?",
+        "What is for the first read and what for investigation?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Share of category and reconciliation",
+      "kind": "python",
+      "prompt": "Compute `Revenue Share = revenue of the category / revenue of all categories` for each category (DAX: `DIVIDE([Total Revenue], CALCULATE([Total Revenue], ALL(Products[category])))`). Print `category share` lines (share 4 decimals) sorted by share descending, then a line `shares sum` followed by the sum of the shares rounded to 4 decimals. Finally print a line `revenue check` followed by `True` or `False`: whether the category revenues add up (to 2 decimals) to the total revenue of `fact`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# category shares and checks\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nby = fact.groupby(\"category\")[\"revenue\"].sum()\nshare = (by / by.sum()).sort_values(ascending=False, kind=\"stable\")\nfor c, s in share.items():\n    print(c, round(float(s), 4))\nprint(\"shares sum\", round(float(share.sum()), 4))\nprint(\"revenue check\", round(float(by.sum()), 2) == round(float(fact[\"revenue\"].sum()), 2))\n",
+      "expected": "Hardware 0.346\nServices 0.3436\nSoftware 0.3104\nshares sum 1.0\nrevenue check True"
+    },
+    {
+      "id": "i2",
+      "title": "Repair the page specification",
+      "kind": "python",
+      "prompt": "The specification below has layout problems (a visual off the grid, overlaps, and one off the canvas). Change only the numbers in `page` so that `problems(page)` returns an empty list, keeping all four visuals, their order and the sizes as close as possible. Then print `len(page)` and `problems(page)` on separate lines, the second one as the list itself.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\npage = [\n    {\"name\": \"Revenue card\", \"type\": \"card\", \"x\": 40, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Orders card\", \"type\": \"card\", \"x\": 420, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Trend\", \"type\": \"line\", \"x\": 40, \"y\": 190, \"w\": 760, \"h\": 480},\n    {\"name\": \"Mix\", \"type\": \"bar\", \"x\": 760, \"y\": 200, \"w\": 440, \"h\": 520},\n]\n\ndef overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\ndef problems(page):\n    out = []\n    for v in page:\n        if v[\"x\"] + v[\"w\"] > 1280 or v[\"y\"] + v[\"h\"] > 720:\n            out.append(v[\"name\"] + \": off canvas\")\n        if any(v[k] % 40 for k in (\"x\", \"y\", \"w\", \"h\")):\n            out.append(v[\"name\"] + \": not on grid\")\n    out += [f\"{a['name']} overlaps {b['name']}\" for i, a in enumerate(page) for b in page[i + 1:] if overlaps(a, b)]\n    return out\n\n# fix the coordinates in page, then print\nprint(len(page))\nprint(problems(page))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\npage = [\n    {\"name\": \"Revenue card\", \"type\": \"card\", \"x\": 40, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Orders card\", \"type\": \"card\", \"x\": 440, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"Trend\", \"type\": \"line\", \"x\": 40, \"y\": 200, \"w\": 680, \"h\": 480},\n    {\"name\": \"Mix\", \"type\": \"bar\", \"x\": 760, \"y\": 200, \"w\": 440, \"h\": 480},\n]\n\ndef overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\ndef problems(page):\n    out = []\n    for v in page:\n        if v[\"x\"] + v[\"w\"] > 1280 or v[\"y\"] + v[\"h\"] > 720:\n            out.append(v[\"name\"] + \": off canvas\")\n        if any(v[k] % 40 for k in (\"x\", \"y\", \"w\", \"h\")):\n            out.append(v[\"name\"] + \": not on grid\")\n    out += [f\"{a['name']} overlaps {b['name']}\" for i, a in enumerate(page) for b in page[i + 1:] if overlaps(a, b)]\n    return out\n\nprint(len(page))\nprint(problems(page))\n",
+      "expected": "4\n[]"
+    },
+    {
+      "id": "i3",
+      "title": "Handover note (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Write the handover note for the sales dashboard for the analyst who will maintain it: the data model and checks, the measures with their expected values, the visuals and their purpose, the security design and the open publishing items. It should fit on one page.",
+      "starter": "Model: ...\nMeasures: ...\nVisuals: ...\nSecurity: ...\nOpen items: ...",
+      "solution": "Model: star schema with `Sales` (400 orders in 2025) related to `Customers` (40), `Products` (12) and a continuous `Calendar`; checks: unique order ids, all keys resolve, calendar has 365 days. Measures: Total Revenue 67,132.50; Orders 400; Units 1,202; Average Order Value 167.83; Price per Unit 55.85; Revenue YTD at December equals the total; Top 5 Customer Share 0.2148, each tested against pandas. Visuals: three cards (revenue, orders, average order value) for the headline, a monthly line chart for the trend, a category bar for the mix, and a top-customers table, laid out on a 40 pixel grid with the revenue card top left. Security: a dynamic role on Customers that uses a hidden UserSecurity table; the four country views add up to the total. Open items: assign role members in the Service, schedule and test the refresh, publish the app and name an owner for refresh failures.",
+      "rubric": [
+        "Describes the model and its validation checks.",
+        "Lists measures with expected values.",
+        "Explains each visual's purpose and the layout rules used.",
+        "States the RLS design and the reconciliation.",
+        "Lists open publishing items with an owner."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "The dashboard itself is built in Power BI Desktop (Windows-only) and published to the Power BI Service (browser); neither runs in this course. This project produces the verified specification and numbers to build from, and the graded exercises check the model, the measures and the layout rules with pandas and Python."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A customer id in Sales is missing from the Customers table. What happens in a visual by customer name?",
+      "options": [
+        "Power BI stops with an error",
+        "The revenue shows against a blank customer, and the total is still right",
+        "The row is deleted from Sales",
+        "Nothing changes"
+      ],
+      "answer": 1,
+      "explanation": "Power BI keeps the fact row and assigns it to a blank member of the dimension. Totals are unchanged, so the problem is easy to miss without a key check."
+    },
+    {
+      "id": "c2",
+      "question": "Why compute each measure's expected value in pandas?",
+      "options": [
+        "Because DAX cannot sum",
+        "To have an independent check of the measure's filter logic",
+        "To speed up the report",
+        "Because pandas is part of Power BI"
+      ],
+      "answer": 1,
+      "explanation": "An independent calculation catches wrong filters or relationships; copying the measure's own result into a test would prove nothing."
+    },
+    {
+      "id": "c3",
+      "question": "The four country views of a RLS role add up to 66,000 while the total is 67,132.50. What does that mean?",
+      "options": [
+        "The role works",
+        "Some rows are not covered by any role filter, for example a country missing or a customer without a country",
+        "The refresh failed",
+        "Totals are rounded"
+      ],
+      "answer": 1,
+      "explanation": "Restricted views should partition the data. A gap means rows that nobody sees, such as customers with blank or unexpected values in the filter column."
+    },
+    {
+      "id": "c4",
+      "question": "Which layout problem does check_layout report when the trend ends at x = 800 and the bar starts at x = 760?",
+      "options": [
+        "Not on grid",
+        "Off canvas",
+        "Overlap",
+        "Wrong type"
+      ],
+      "answer": 2,
+      "explanation": "The two rectangles share the x range 760 to 800 and the same y range, so they overlap. Moving the bar to x = 800 or less width fixes it."
+    },
+    {
+      "id": "c5",
+      "question": "Which item of the final checklist can only be done in the Service?",
+      "options": [
+        "Measure tests against pandas",
+        "Layout check",
+        "Assigning RLS role members",
+        "Model key validation"
+      ],
+      "answer": 2,
+      "explanation": "Role members and refresh schedules are set in the Service. The other items can be verified before publishing."
+    }
+  ],
+  "id": "a137"
+}

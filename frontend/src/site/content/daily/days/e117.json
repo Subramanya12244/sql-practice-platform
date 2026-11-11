@@ -1,0 +1,180 @@
+{
+  "time": {
+    "theory": 25,
+    "examples": 25,
+    "guided": 25,
+    "independent": 45,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "row-number",
+      "running-totals",
+      "lag",
+      "python-database-connectivity"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "window-functions",
+      "etl-track"
+    ],
+    "patterns": [
+      "latest-record-per-group",
+      "running-total"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Keep the latest version",
+      "kind": "sql",
+      "prompt": "On PGlite the table `item_feed(version_id, sku, price, updated_at)` is created for you. Return the columns `sku` and `price` of the newest row per `sku` (largest `updated_at`; ties broken by the larger `version_id`), ordered by `sku`. Use `ROW_NUMBER()` in a subquery.",
+      "starter": "CREATE TABLE item_feed (version_id int, sku text, price int, updated_at date);\nINSERT INTO item_feed VALUES (1,'A',100,'2025-03-01'),(2,'A',120,'2025-03-05'),(3,'B',50,'2025-03-02'),(4,'B',55,'2025-03-02'),(5,'C',70,'2025-03-03');\nSELECT sku, price FROM item_feed ORDER BY sku, version_id LIMIT 3;\n",
+      "solution": "CREATE TABLE item_feed (version_id int, sku text, price int, updated_at date);\nINSERT INTO item_feed VALUES (1,'A',100,'2025-03-01'),(2,'A',120,'2025-03-05'),(3,'B',50,'2025-03-02'),(4,'B',55,'2025-03-02'),(5,'C',70,'2025-03-03');\nSELECT sku, price\nFROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY sku ORDER BY updated_at DESC, version_id DESC) AS rn FROM item_feed) t\nWHERE rn = 1\nORDER BY sku;\n",
+      "hints": [
+        "Number the versions of each sku, newest first, then keep number 1.",
+        "`ROW_NUMBER() OVER (PARTITION BY sku ORDER BY updated_at DESC, version_id DESC)` inside a subquery.",
+        "Filter `WHERE rn = 1` in the outer query and `ORDER BY sku`."
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g2",
+      "title": "Running total",
+      "kind": "sql",
+      "prompt": "On PGlite the table `daily_sales(day, cents)` is created for you. Return `day`, `cents` and `running` (cumulative sum of `cents` ordered by day, with the frame `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`), ordered by `day`.",
+      "starter": "CREATE TABLE daily_sales (day date, cents int);\nINSERT INTO daily_sales VALUES ('2025-03-01',500),('2025-03-02',300),('2025-03-03',300),('2025-03-04',900);\nSELECT day, cents FROM daily_sales ORDER BY day;\n",
+      "solution": "CREATE TABLE daily_sales (day date, cents int);\nINSERT INTO daily_sales VALUES ('2025-03-01',500),('2025-03-02',300),('2025-03-03',300),('2025-03-04',900);\nSELECT day, cents,\n       SUM(cents) OVER (ORDER BY day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running\nFROM daily_sales\nORDER BY day;\n",
+      "hints": [
+        "A running total is a window `SUM` with an `ORDER BY`.",
+        "`SUM(cents) OVER (ORDER BY day ...)`; add the frame clause from the task.",
+        "`SUM(cents) OVER (ORDER BY day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running`"
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g3",
+      "title": "Change from the previous day",
+      "kind": "python",
+      "prompt": "The in-memory table `daily(day, cents)` is created for you. With one query using `LAG`, print one line per day in the form `<day> <change>` where change is `cents - LAG(cents)`; for the first day print `-` instead of NULL (handle the `None` in Python). Expected output: four lines starting `2025-03-01 -`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE daily (day TEXT, cents INTEGER)\")\nconn.executemany(\"INSERT INTO daily VALUES (?, ?)\", [(\"2025-03-01\", 500), (\"2025-03-02\", 300), (\"2025-03-03\", 300), (\"2025-03-04\", 900)])\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE daily (day TEXT, cents INTEGER)\")\nconn.executemany(\"INSERT INTO daily VALUES (?, ?)\", [(\"2025-03-01\", 500), (\"2025-03-02\", 300), (\"2025-03-03\", 300), (\"2025-03-04\", 900)])\nrows = conn.execute(\"SELECT day, cents - LAG(cents) OVER (ORDER BY day) FROM daily ORDER BY day\").fetchall()\nfor day, change in rows:\n    print(day, \"-\" if change is None else change)\n",
+      "hints": [
+        "`LAG(cents)` is the previous row's value in the window's order.",
+        "`SELECT day, cents - LAG(cents) OVER (ORDER BY day) FROM daily ORDER BY day`.",
+        "In Python, test `change is None` for the first row before printing."
+      ],
+      "expected": "2025-03-01 -\n2025-03-02 -200\n2025-03-03 0\n2025-03-04 600"
+    },
+    {
+      "id": "g4",
+      "title": "Rows by name",
+      "kind": "python",
+      "prompt": "The in-memory table `daily(day, cents)` is created for you. Set `conn.row_factory = sqlite3.Row`, query `SELECT day, cents FROM daily ORDER BY day`, and print for each row `<day>=<cents>` reading the columns by name. Expected output: three lines.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE daily (day TEXT, cents INTEGER)\")\nconn.executemany(\"INSERT INTO daily VALUES (?, ?)\", [(\"2025-03-01\", 500), (\"2025-03-02\", 300), (\"2025-03-03\", 900)])\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE daily (day TEXT, cents INTEGER)\")\nconn.executemany(\"INSERT INTO daily VALUES (?, ?)\", [(\"2025-03-01\", 500), (\"2025-03-02\", 300), (\"2025-03-03\", 900)])\nconn.row_factory = sqlite3.Row\nfor row in conn.execute(\"SELECT day, cents FROM daily ORDER BY day\"):\n    print(f\"{row['day']}={row['cents']}\")\n",
+      "hints": [
+        "Assign `conn.row_factory = sqlite3.Row` before running the query.",
+        "Each row then supports `row[\"day\"]`.",
+        "`for row in conn.execute(...): print(f\"{row['day']}={row['cents']}\")`"
+      ],
+      "expected": "2025-03-01=500\n2025-03-02=300\n2025-03-03=900"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Latest status per order, from Python",
+      "kind": "python",
+      "prompt": "The table `feed(version_id, order_id, status, updated_at)` is created in the starter. Write one `sqlite3` query with `ROW_NUMBER` that returns the newest row per `order_id` (ties by larger `version_id`), and print one line per order as `<order_id> <status>` ordered by `order_id`. Then print `orders: <number of lines>`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE feed (version_id INTEGER, order_id INTEGER, status TEXT, updated_at TEXT)\")\nconn.executemany(\"INSERT INTO feed VALUES (?,?,?,?)\", [(1, 1, \"created\", \"2025-03-01\"), (2, 1, \"paid\", \"2025-03-02\"), (3, 2, \"created\", \"2025-03-02\"), (4, 1, \"refunded\", \"2025-03-05\"), (5, 2, \"paid\", \"2025-03-03\"), (6, 3, \"created\", \"2025-03-04\"), (7, 3, \"failed\", \"2025-03-04\")])\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE feed (version_id INTEGER, order_id INTEGER, status TEXT, updated_at TEXT)\")\nconn.executemany(\"INSERT INTO feed VALUES (?,?,?,?)\", [(1, 1, \"created\", \"2025-03-01\"), (2, 1, \"paid\", \"2025-03-02\"), (3, 2, \"created\", \"2025-03-02\"), (4, 1, \"refunded\", \"2025-03-05\"), (5, 2, \"paid\", \"2025-03-03\"), (6, 3, \"created\", \"2025-03-04\"), (7, 3, \"failed\", \"2025-03-04\")])\nrows = conn.execute(\"\"\"SELECT order_id, status FROM (\n    SELECT *, ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY updated_at DESC, version_id DESC) AS rn FROM feed) WHERE rn = 1 ORDER BY order_id\"\"\").fetchall()\nfor order_id, status in rows:\n    print(order_id, status)\nprint(\"orders:\", len(rows))\n",
+      "expected": "1 refunded\n2 paid\n3 failed\norders: 3"
+    },
+    {
+      "id": "i2",
+      "title": "Window versus pandas",
+      "kind": "python",
+      "prompt": "Using the table in the starter, compute for each day the three-day moving sum of `cents` in SQL (frame `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW`) and in pandas (`rolling(3, min_periods=1).sum()`). Print the SQL values as a list of ints, then `match: True` or `match: False` for whether the two lists are equal.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE daily (day TEXT, cents INTEGER)\")\ndata = [(\"2025-03-01\", 500), (\"2025-03-02\", 300), (\"2025-03-03\", 300), (\"2025-03-04\", 900), (\"2025-03-05\", 100)]\nconn.executemany(\"INSERT INTO daily VALUES (?, ?)\", data)\n# Your code here\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE daily (day TEXT, cents INTEGER)\")\ndata = [(\"2025-03-01\", 500), (\"2025-03-02\", 300), (\"2025-03-03\", 300), (\"2025-03-04\", 900), (\"2025-03-05\", 100)]\nconn.executemany(\"INSERT INTO daily VALUES (?, ?)\", data)\nsql_values = [r[0] for r in conn.execute(\"SELECT SUM(cents) OVER (ORDER BY day ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) FROM daily ORDER BY day\")]\npandas_values = [int(v) for v in pd.DataFrame(data, columns=[\"day\", \"cents\"]).sort_values(\"day\")[\"cents\"].rolling(3, min_periods=1).sum()]\nprint(sql_values)\nprint(\"match:\", sql_values == pandas_values)\n",
+      "expected": "[500, 800, 1100, 1500, 1300]\nmatch: True"
+    },
+    {
+      "id": "i3",
+      "title": "Stream and summarise",
+      "kind": "python",
+      "prompt": "Build the table `events(event_id, cents)` of 1,000 rows from the starter. Run `SELECT event_id, SUM(cents) OVER (ORDER BY event_id) AS running FROM events ORDER BY event_id` and read it with `fetchmany(300)` in a loop. Print `batches=<n> rows=<total rows> final=<last running total>`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE events (event_id INTEGER, cents INTEGER)\")\nconn.executemany(\"INSERT INTO events VALUES (?, ?)\", ((i, 10 + i % 3) for i in range(1, 1001)))\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE events (event_id INTEGER, cents INTEGER)\")\nconn.executemany(\"INSERT INTO events VALUES (?, ?)\", ((i, 10 + i % 3) for i in range(1, 1001)))\ncur = conn.execute(\"SELECT event_id, SUM(cents) OVER (ORDER BY event_id) AS running FROM events ORDER BY event_id\")\nbatches = rows = final = 0\nwhile True:\n    batch = cur.fetchmany(300)\n    if not batch:\n        break\n    batches += 1\n    rows += len(batch)\n    final = batch[-1][1]\nprint(f\"batches={batches} rows={rows} final={final}\")\n",
+      "expected": "batches=4 rows=1000 final=11000"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `WHERE rn = 1` do when `rn` is `ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY updated_at DESC, version_id DESC)` in a subquery?",
+      "options": [
+        "Keeps every row",
+        "Keeps the newest version of each order_id",
+        "Keeps the oldest version of each order",
+        "Keeps only one row in the whole table"
+      ],
+      "answer": 1,
+      "explanation": "Numbering is restarted for each order_id and the newest row is 1, so the filter keeps one current row per order. Only one row overall would need no PARTITION BY."
+    },
+    {
+      "id": "c2",
+      "question": "In the first row of `cents - LAG(cents) OVER (ORDER BY day)`, what does Python receive?",
+      "options": [
+        "0",
+        "The same cents value",
+        "None",
+        "An empty string"
+      ],
+      "answer": 2,
+      "explanation": "There is no previous row, so LAG is NULL and the subtraction is NULL, which Python reads as None. Decide what it means before doing arithmetic with it."
+    },
+    {
+      "id": "c3",
+      "question": "Why add `version_id DESC` as a second ORDER BY column in the `ROW_NUMBER` window?",
+      "options": [
+        "It is required syntax",
+        "It makes ties on the timestamp resolve the same way on every run",
+        "It speeds up the query",
+        "It deduplicates the version ids"
+      ],
+      "answer": 1,
+      "explanation": "Without a tie-breaker, rows with the same timestamp may be numbered in different orders on different runs, so a rerun could keep a different row."
+    },
+    {
+      "id": "c4",
+      "question": "Which Python call reads a large query result without holding all of it in memory?",
+      "options": [
+        "`cur.fetchall()`",
+        "`cur.fetchmany(1000)` in a loop",
+        "`list(cur)`",
+        "`pd.read_sql(sql, conn)` with no chunks"
+      ],
+      "answer": 1,
+      "explanation": "`fetchmany` returns one batch at a time. The other options build the whole result in memory."
+    },
+    {
+      "id": "c5",
+      "question": "The SQL window `SUM(x) OVER (ORDER BY d ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)` equals which pandas expression?",
+      "options": [
+        "`x.cumsum()`",
+        "`x.rolling(3, min_periods=1).sum()`",
+        "`x.rolling(2).sum()`",
+        "`x.shift(2)`"
+      ],
+      "answer": 1,
+      "explanation": "The frame covers the current row and two before it: three rows, with fewer at the start, which is `rolling(3, min_periods=1)`. `rolling(2)` would use two rows."
+    }
+  ],
+  "id": "e117"
+}

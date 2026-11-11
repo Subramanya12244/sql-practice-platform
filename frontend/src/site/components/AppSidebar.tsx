@@ -1,10 +1,11 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { NavLink } from "react-router-dom";
-import { BookOpen, Briefcase, ChevronDown, Code2, FolderKanban, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Sparkles, Users } from "lucide-react";
+import { BookOpen, Briefcase, CalendarDays, ChevronDown, Code2, FolderKanban, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Sparkles, Users } from "lucide-react";
 import { NAV_GROUPS, activeGroup } from "../lib/navigation";
 
 const GROUP_ICON: Record<string, ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
+  daily: CalendarDays,
   learn: BookOpen,
   practice: Code2,
   projects: FolderKanban,

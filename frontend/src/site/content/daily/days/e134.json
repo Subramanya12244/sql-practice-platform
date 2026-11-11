@@ -1,0 +1,187 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "python-csv-json",
+      "etl-error-handling"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "environment": {
+    "packages": [
+      "pydantic"
+    ],
+    "note": "Example 6 uses pydantic (version 2 API: BaseModel, Field, model_validate, ValidationError.errors()), which the browser runner does not load: install it with `pip install pydantic` and run the example on your own computer. It prints only the field and the error type of each problem, because the message texts differ between versions. The graded exercises use hand-written validation with the standard library and pandas, which gives the same field and error-type results."
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Missing and unexpected columns",
+      "kind": "python",
+      "prompt": "Write `column_diff(df, expected)` for a list of expected column names returning a tuple of two sorted lists: the missing columns and the unexpected ones. Print the tuple for the starter frame. Expected output: `(['status'], ['coupon'])`.",
+      "starter": "import pandas as pd\n\ndef column_diff(df, expected):\n    pass\n\ndf = pd.DataFrame({\"order_id\": [1], \"amount\": [5.0], \"coupon\": [\"x\"]})\nprint(column_diff(df, [\"order_id\", \"amount\", \"status\"]))\n",
+      "solution": "import pandas as pd\n\ndef column_diff(df, expected):\n    missing = sorted(set(expected) - set(df.columns))\n    unexpected = sorted(set(df.columns) - set(expected))\n    return missing, unexpected\n\ndf = pd.DataFrame({\"order_id\": [1], \"amount\": [5.0], \"coupon\": [\"x\"]})\nprint(column_diff(df, [\"order_id\", \"amount\", \"status\"]))\n",
+      "hints": [
+        "Use set differences in both directions.",
+        "`set(expected) - set(df.columns)` are the missing ones.",
+        "Return `sorted(...)` of each difference as a tuple."
+      ],
+      "expected": "(['status'], ['coupon'])"
+    },
+    {
+      "id": "g2",
+      "title": "Type kind check",
+      "kind": "python",
+      "prompt": "Write `kind_ok(series, kind)` returning `True` when the Series matches the kind: `\"int\"` with `pd.api.types.is_integer_dtype`, `\"float\"` with `pd.api.types.is_float_dtype`. Print the results for the three starter checks, one per line. Expected output: `True`, `False`, `True`.",
+      "starter": "import pandas as pd\n\ndef kind_ok(series, kind):\n    pass\n\nprint(kind_ok(pd.Series([1, 2]), \"int\"))\nprint(kind_ok(pd.Series([\"1\", \"2\"]), \"int\"))\nprint(kind_ok(pd.Series([1.5, 2.5]), \"float\"))\n",
+      "solution": "import pandas as pd\n\ndef kind_ok(series, kind):\n    checks = {\"int\": pd.api.types.is_integer_dtype, \"float\": pd.api.types.is_float_dtype}\n    return bool(checks[kind](series))\n\nprint(kind_ok(pd.Series([1, 2]), \"int\"))\nprint(kind_ok(pd.Series([\"1\", \"2\"]), \"int\"))\nprint(kind_ok(pd.Series([1.5, 2.5]), \"float\"))\n",
+      "hints": [
+        "Keep the predicates in a dictionary keyed by kind.",
+        "The predicates take the Series and return a boolean.",
+        "`checks = {\"int\": pd.api.types.is_integer_dtype, \"float\": pd.api.types.is_float_dtype}` then `bool(checks[kind](series))`."
+      ],
+      "expected": "True\nFalse\nTrue"
+    },
+    {
+      "id": "g3",
+      "title": "Classify one change",
+      "kind": "python",
+      "prompt": "Write `change_kind(old_cols, new_cols)` for dicts mapping column name to a `(kind, nullable)` tuple. Return `\"breaking\"` if any old column is missing from the new one or has a different tuple, `\"compatible\"` if there are only new nullable columns (nullable is the second item `True`), otherwise `\"none\"`. Print the result for the three starter pairs, one per line. Expected output: `compatible`, `breaking`, `none`.",
+      "starter": "def change_kind(old_cols, new_cols):\n    pass\n\nold = {\"id\": (\"int\", False), \"note\": (\"string\", True)}\nprint(change_kind(old, {**old, \"channel\": (\"string\", True)}))\nprint(change_kind(old, {\"id\": (\"int\", False), \"memo\": (\"string\", True)}))\nprint(change_kind(old, dict(old)))\n",
+      "solution": "def change_kind(old_cols, new_cols):\n    for name, spec in old_cols.items():\n        if new_cols.get(name) != spec:\n            return \"breaking\"\n    added = [spec for name, spec in new_cols.items() if name not in old_cols]\n    if any(not nullable for kind, nullable in added):\n        return \"breaking\"\n    return \"compatible\" if added else \"none\"\n\nold = {\"id\": (\"int\", False), \"note\": (\"string\", True)}\nprint(change_kind(old, {**old, \"channel\": (\"string\", True)}))\nprint(change_kind(old, {\"id\": (\"int\", False), \"memo\": (\"string\", True)}))\nprint(change_kind(old, dict(old)))\n",
+      "hints": [
+        "Check the old columns first: any difference or absence is breaking.",
+        "Then look at the added columns: a required new column is breaking too.",
+        "Return `compatible` only if there are added nullable columns, else `none`."
+      ],
+      "expected": "compatible\nbreaking\nnone"
+    },
+    {
+      "id": "g4",
+      "title": "Next version number",
+      "kind": "python",
+      "prompt": "Write `bump(version, level)` for a version string like `\"1.2\"` and a level `\"major\"` or `\"minor\"`. A major bump increases the first number and sets the second to 0, a minor bump increases the second number. Print `bump(\"1.2\", \"minor\")` and `bump(\"1.2\", \"major\")`. Expected output: `1.3` then `2.0`.",
+      "starter": "def bump(version, level):\n    pass\n\nprint(bump(\"1.2\", \"minor\"))\nprint(bump(\"1.2\", \"major\"))\n",
+      "solution": "def bump(version, level):\n    major, minor = (int(x) for x in version.split(\".\"))\n    return f\"{major + 1}.0\" if level == \"major\" else f\"{major}.{minor + 1}\"\n\nprint(bump(\"1.2\", \"minor\"))\nprint(bump(\"1.2\", \"major\"))\n",
+      "hints": [
+        "Split the string at the dot and convert both parts to integers.",
+        "A major bump resets the minor number to 0.",
+        "`return f\"{major + 1}.0\" if level == \"major\" else f\"{major}.{minor + 1}\"`"
+      ],
+      "expected": "1.3\n2.0"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Schema check with a report",
+      "kind": "python",
+      "prompt": "Complete `check_schema(df, schema)` for the starter schema (column to `{kind, nullable}` with kinds `int`, `float` or `string`). Return a list of messages in column order of the schema: `missing column <c>`, `<c>: expected <kind>` for a wrong kind, `<c>: <n> null(s)` for nulls in a non-nullable column; then `unexpected column <c>` for each extra column in frame order. Use `pd.api.types.is_integer_dtype`, `is_float_dtype` (accepting integers too) and `is_object_dtype`. Print one message per line for the starter delivery, or `ok`.",
+      "starter": "import pandas as pd\n\nSCHEMA = {\n    \"id\": {\"kind\": \"int\", \"nullable\": False},\n    \"amount\": {\"kind\": \"float\", \"nullable\": False},\n    \"status\": {\"kind\": \"string\", \"nullable\": False},\n    \"note\": {\"kind\": \"string\", \"nullable\": True},\n}\n\ndef check_schema(df, schema):\n    return []\n\ndf = pd.DataFrame({\"id\": [1, 2, 3], \"amount\": [\"5\", \"6\", \"7\"], \"status\": [\"paid\", None, \"failed\"], \"coupon\": [\"a\", \"b\", \"c\"]})\nproblems = check_schema(df, SCHEMA)\nprint(\"\\n\".join(problems) if problems else \"ok\")\n",
+      "solution": "import pandas as pd\n\nSCHEMA = {\n    \"id\": {\"kind\": \"int\", \"nullable\": False},\n    \"amount\": {\"kind\": \"float\", \"nullable\": False},\n    \"status\": {\"kind\": \"string\", \"nullable\": False},\n    \"note\": {\"kind\": \"string\", \"nullable\": True},\n}\n\nKINDS = {\n    \"int\": pd.api.types.is_integer_dtype,\n    \"float\": lambda s: pd.api.types.is_float_dtype(s) or pd.api.types.is_integer_dtype(s),\n    \"string\": pd.api.types.is_object_dtype,\n}\n\ndef check_schema(df, schema):\n    problems = []\n    for name, spec in schema.items():\n        if name not in df.columns:\n            problems.append(f\"missing column {name}\")\n            continue\n        if not KINDS[spec[\"kind\"]](df[name]):\n            problems.append(f\"{name}: expected {spec['kind']}\")\n        nulls = int(df[name].isna().sum())\n        if nulls and not spec[\"nullable\"]:\n            problems.append(f\"{name}: {nulls} null(s)\")\n    problems.extend(f\"unexpected column {c}\" for c in df.columns if c not in schema)\n    return problems\n\ndf = pd.DataFrame({\"id\": [1, 2, 3], \"amount\": [\"5\", \"6\", \"7\"], \"status\": [\"paid\", None, \"failed\"], \"coupon\": [\"a\", \"b\", \"c\"]})\nproblems = check_schema(df, SCHEMA)\nprint(\"\\n\".join(problems) if problems else \"ok\")\n",
+      "expected": "amount: expected float\nstatus: 1 null(s)\nmissing column note\nunexpected column coupon"
+    },
+    {
+      "id": "i2",
+      "title": "Validate records and count error kinds",
+      "kind": "python",
+      "prompt": "Write `validate(rec)` returning a list of `(field, error)` pairs for a record dict: `order_id` must convert with `int` (else `int_parsing`, or `missing` when absent), `amount_cents` must convert with `int` (same errors) and be at least 0 (else `greater_than_equal`), and `status` must be in `{\"paid\", \"refunded\", \"failed\"}` (else `literal_error`, also when absent). Then print `valid=<n> invalid=<n>` for the starter records and the sorted list of `(error, count)` pairs over all problems.",
+      "starter": "RECORDS = [\n    {\"order_id\": 1, \"amount_cents\": 100, \"status\": \"paid\"},\n    {\"order_id\": \"2\", \"amount_cents\": \"250\", \"status\": \"failed\"},\n    {\"order_id\": \"x\", \"amount_cents\": -5, \"status\": \"shipped\"},\n    {\"order_id\": 4, \"status\": \"paid\"},\n    {\"order_id\": 5, \"amount_cents\": \"1.5\", \"status\": \"refunded\"},\n]\n\ndef validate(rec):\n    return []\n\nprint(\"valid=0 invalid=0\")\n",
+      "solution": "RECORDS = [\n    {\"order_id\": 1, \"amount_cents\": 100, \"status\": \"paid\"},\n    {\"order_id\": \"2\", \"amount_cents\": \"250\", \"status\": \"failed\"},\n    {\"order_id\": \"x\", \"amount_cents\": -5, \"status\": \"shipped\"},\n    {\"order_id\": 4, \"status\": \"paid\"},\n    {\"order_id\": 5, \"amount_cents\": \"1.5\", \"status\": \"refunded\"},\n]\n\ndef validate(rec):\n    errors = []\n    for name in (\"order_id\", \"amount_cents\"):\n        if name not in rec:\n            errors.append((name, \"missing\"))\n            continue\n        try:\n            value = int(rec[name])\n        except (TypeError, ValueError):\n            errors.append((name, \"int_parsing\"))\n            continue\n        if name == \"amount_cents\" and value < 0:\n            errors.append((name, \"greater_than_equal\"))\n    if rec.get(\"status\") not in {\"paid\", \"refunded\", \"failed\"}:\n        errors.append((\"status\", \"literal_error\"))\n    return errors\n\nall_errors = [validate(r) for r in RECORDS]\ninvalid = sum(1 for e in all_errors if e)\nprint(f\"valid={len(RECORDS) - invalid} invalid={invalid}\")\ncounts = {}\nfor errs in all_errors:\n    for field, kind in errs:\n        counts[kind] = counts.get(kind, 0) + 1\nprint(sorted(counts.items()))\n",
+      "expected": "valid=2 invalid=3\n[('greater_than_equal', 1), ('int_parsing', 2), ('literal_error', 1), ('missing', 1)]"
+    },
+    {
+      "id": "i3",
+      "title": "Write the contract",
+      "kind": "written",
+      "prompt": "Write the data contract for a `payments_clean` table that a finance team reads: the dataset name and version, the owner, the freshness promise, each column with kind, nullability and rules, and the process for a breaking change. Then take three proposed changes and classify each as compatible or breaking with the resulting version: (a) add a nullable column `channel`; (b) rename `paid_at` to `settled_at`; (c) make `method` required where it was optional.",
+      "starter": "Contract:\nChanges:\nBreaking change process:\n",
+      "solution": "Contract: dataset `payments_clean`, version 1.0, owner `data-platform@example.com`, freshness: loaded daily, newest row at most 26 hours old; columns: `payment_id` int not null unique; `order_id` int not null; `amount` float not null, at least 0; `currency` string not null in EUR, USD; `paid_at` datetime not null, not in the future; `method` string nullable, one of card, transfer, cash when present. Changes: (a) adding nullable `channel` is compatible, version 1.1, because no existing query can break; (b) renaming `paid_at` to `settled_at` is breaking, version 2.0, because a query that reads `paid_at` fails; (c) making `method` required is breaking, version 2.0, because producers that send NULL would now be rejected and consumers cannot assume the old behaviour. Breaking change process: announce the change with a date, deliver both versions in parallel during a migration period (the old name as an alias), have consumers confirm, then retire the old version.",
+      "required": false,
+      "rubric": [
+        "The contract names version, owner, freshness and every column with kind, nullability and rules.",
+        "Change (a) is classified compatible with a minor bump.",
+        "Changes (b) and (c) are classified breaking with a major bump, each with a reason.",
+        "Describes a migration process with announcement and parallel delivery."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Renaming a column `paid_at` to `settled_at` in a contract is:",
+      "options": [
+        "Compatible, because the data is the same",
+        "Breaking, because queries that read `paid_at` fail",
+        "A patch change with no effect",
+        "Compatible if documented"
+      ],
+      "answer": 1,
+      "explanation": "To a consumer a rename is a removed column plus a new one. Any query using the old name breaks, so it needs a major version and a migration period."
+    },
+    {
+      "id": "c2",
+      "question": "`pd.read_csv` returns the `amount` column with dtype `object` instead of float. What is the most likely cause?",
+      "options": [
+        "The file is too large",
+        "At least one value in the column is not numeric, such as `pending`",
+        "The column is nullable",
+        "pandas version"
+      ],
+      "answer": 1,
+      "explanation": "A single text value forces the whole column to text. A schema kind check reports it at once."
+    },
+    {
+      "id": "c3",
+      "question": "A nullable integer column contains a missing value and was read with default settings. Its dtype is:",
+      "options": [
+        "int64",
+        "float64, because pandas integers cannot hold NaN",
+        "object",
+        "bool"
+      ],
+      "answer": 1,
+      "explanation": "Missing values force floats unless the nullable Int64 type is requested. A schema check must state which it accepts."
+    },
+    {
+      "id": "c4",
+      "question": "Which change is compatible with existing consumers?",
+      "options": [
+        "Removing the `note` column",
+        "Adding a new nullable column `channel`",
+        "Changing `amount` from float to string",
+        "Making `customer_id` required"
+      ],
+      "answer": 1,
+      "explanation": "An additional optional column breaks no existing query. The others remove, retype or tighten something consumers rely on."
+    },
+    {
+      "id": "c5",
+      "question": "In pydantic's default mode, validating `{\"order_id\": \"2\"}` for a field `order_id: int` gives:",
+      "options": [
+        "An error because it is text",
+        "The integer 2: numeric text is converted",
+        "None",
+        "A warning only"
+      ],
+      "answer": 1,
+      "explanation": "The default mode coerces compatible values. If conversion is not wanted, use strict mode; the hand-written version in the lesson converts the same way."
+    }
+  ],
+  "id": "e134"
+}

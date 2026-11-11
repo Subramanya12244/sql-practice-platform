@@ -1,0 +1,185 @@
+{
+  "id": "a149",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "sum",
+      "group-by"
+    ],
+    "questions": [
+      196,
+      154,
+      2
+    ],
+    "pyExercises": [
+      "price-tier-lookup",
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "pivot-report"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Discount cost per tier",
+      "kind": "sql",
+      "prompt": "Return `discount` and `discount_cost` (the sum of `unit_price * quantity * discount` from `order_details`, cast to numeric and rounded to 2 decimals) for each discount value, ordered by `discount`.",
+      "starter": "SELECT discount, COUNT(*) AS lines\nFROM order_details\nGROUP BY discount\nLIMIT 4;\n",
+      "solution": "SELECT discount,\n       ROUND(SUM(unit_price * quantity * discount)::numeric, 2) AS discount_cost\nFROM order_details\nGROUP BY discount\nORDER BY discount;\n",
+      "ordered": true,
+      "hints": [
+        "Group by discount.",
+        "The discount cost of a line is price times quantity times discount.",
+        "Cast the SUM to numeric before ROUND(..., 2)."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Category revenue share",
+      "kind": "sql",
+      "prompt": "Return `category_name`, `revenue` (net revenue rounded to 0 decimals) and `share_pct` (percent of total net revenue, rounded to 1 decimal) for the three categories with the highest revenue, ordered by revenue descending. The share must be of the total over all categories.",
+      "starter": "SELECT c.category_name\nFROM categories c\nLIMIT 3;\n",
+      "solution": "SELECT category_name, revenue, share_pct\nFROM (\n  SELECT c.category_name,\n         ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 0) AS revenue,\n         ROUND((100 * SUM(od.unit_price * od.quantity * (1 - od.discount)) / SUM(SUM(od.unit_price * od.quantity * (1 - od.discount))) OVER ())::numeric, 1) AS share_pct\n  FROM order_details od\n  JOIN products p ON p.product_id = od.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  GROUP BY c.category_name\n) t\nORDER BY revenue DESC, category_name\nLIMIT 3;\n",
+      "ordered": true,
+      "hints": [
+        "Join order_details to products and categories.",
+        "A window SUM over the grouped SUM gives the total for the share.",
+        "Take the share in a subquery first, then ORDER BY revenue DESC LIMIT 3."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Arc elasticity",
+      "kind": "python",
+      "prompt": "When the price rose from 10 to 12 the units fell from 500 to 380. Compute the arc elasticity: percentage change in units over percentage change in price, both measured against the midpoint of the two values. Print `elasticity: X` rounded to 2 decimals.",
+      "starter": "p1, p2 = 10, 12\nq1, q2 = 500, 380\n",
+      "solution": "p1, p2 = 10, 12\nq1, q2 = 500, 380\ndq = (q2 - q1) / ((q1 + q2) / 2)\ndp = (p2 - p1) / ((p1 + p2) / 2)\nprint('elasticity:', round(dq / dp, 2))\n",
+      "hints": [
+        "Midpoint of units is (q1 + q2) / 2.",
+        "Percentage changes: difference divided by the midpoint.",
+        "Divide the change in units by the change in price and round."
+      ],
+      "expected": "elasticity: -1.5"
+    },
+    {
+      "id": "g4",
+      "title": "Break-even volume",
+      "kind": "python",
+      "prompt": "A product has a gross margin of 40 percent. For discounts of 5, 10 and 20 percent print the required volume increase `d / (m - d)` as a percentage with 1 decimal, one per line, for example `14.3`.",
+      "starter": "m = 0.40\n",
+      "solution": "m = 0.40\nfor d in (0.05, 0.10, 0.20):\n    print(round(d / (m - d) * 100, 1))\n",
+      "hints": [
+        "Loop over the three discounts as fractions.",
+        "The rule is d / (m - d).",
+        "Multiply by 100 and round to 1 decimal."
+      ],
+      "expected": "14.3\n33.3\n100.0"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Elasticity and a pricing verdict",
+      "kind": "python",
+      "prompt": "Prices `[5, 6, 7, 8]` sold units `[1000, 800, 650, 560]`. Fit log(units) against log(price) with `np.polyfit` and print `elasticity: X` (2 decimals). Then print `verdict: raise price` if the elasticity is greater than -1 (inelastic) or `verdict: cut price` if it is below -1 (elastic).",
+      "starter": "import numpy as np\n\nprice = np.array([5, 6, 7, 8])\nunits = np.array([1000, 800, 650, 560])\n",
+      "solution": "import numpy as np\n\nprice = np.array([5, 6, 7, 8])\nunits = np.array([1000, 800, 650, 560])\ne = float(np.polyfit(np.log(price), np.log(units), 1)[0])\nprint('elasticity:', round(e, 2))\nprint('verdict: raise price' if e > -1 else 'verdict: cut price')\n",
+      "expected": "elasticity: -1.25\nverdict: cut price"
+    },
+    {
+      "id": "i2",
+      "title": "Discount cost share by year",
+      "kind": "sql",
+      "prompt": "For each order year return `yr`, `list_revenue` (rounded to 0 decimals), `discount_cost` (rounded to 0 decimals) and `discount_pct` (discount cost as a percent of list revenue, rounded to 1 decimal), ordered by `yr`.",
+      "starter": "SELECT EXTRACT(year FROM order_date)::int AS yr\nFROM orders\nGROUP BY 1\nLIMIT 3;\n",
+      "solution": "SELECT EXTRACT(year FROM o.order_date)::int AS yr,\n       ROUND(SUM(od.unit_price * od.quantity)::numeric, 0) AS list_revenue,\n       ROUND(SUM(od.unit_price * od.quantity * od.discount)::numeric, 0) AS discount_cost,\n       ROUND((100 * SUM(od.unit_price * od.quantity * od.discount) / SUM(od.unit_price * od.quantity))::numeric, 1) AS discount_pct\nFROM orders o JOIN order_details od ON od.order_id = o.order_id\nGROUP BY 1\nORDER BY 1;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Decide on a promotion",
+      "kind": "written",
+      "required": false,
+      "prompt": "A retailer plans a 15 percent discount on a product with a 35 percent gross margin and expects 40 percent more units. Compute the break-even volume increase, say whether the plan pays, and list two risks that could make the real outcome worse than the forecast.",
+      "starter": "Write your answer here.",
+      "solution": "Break-even volume increase is d / (m - d) = 0.15 / (0.35 - 0.15) = 0.75, so units must rise by 75 percent for the same total profit. The plan expects only 40 percent, so profit falls: per unit margin drops from 0.35 to 0.20 of the original price while units rise only 1.4 times, giving 0.28 of the original price per original unit compared with 0.35. Two risks: the extra units may be pulled forward from future weeks, so the permanent gain is smaller than the temporary rise, and the discount may cannibalise sales of nearby products or teach customers to wait for discounts. I would not run the plan as stated, and would test a smaller discount on a sample of stores with a control group.",
+      "rubric": [
+        "Computes the 75 percent break-even uplift",
+        "Concludes that 40 percent is not enough and profit falls",
+        "Names two realistic risks such as pull-forward and cannibalisation",
+        "Suggests a test or a smaller discount"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "The elasticity of a product is -0.4. The price rises 10%. What happens to revenue?",
+      "options": [
+        "It rises, because units fall by only about 4%",
+        "It falls, because units fall",
+        "It stays the same",
+        "It cannot be determined from elasticity"
+      ],
+      "answer": 0,
+      "explanation": "Demand is inelastic (between -1 and 0): units fall by a smaller percentage than price rises, so revenue goes up. Units do fall, but not enough to offset the higher price."
+    },
+    {
+      "id": "c2",
+      "question": "Gross margin is 25% and a 25% discount is offered. How much extra volume restores the original profit?",
+      "options": [
+        "No volume is enough",
+        "25%",
+        "50%",
+        "100%"
+      ],
+      "answer": 0,
+      "explanation": "The rule d / (m - d) divides by zero when the discount equals the margin. Each unit then earns nothing, so more units cannot restore the profit."
+    },
+    {
+      "id": "c3",
+      "question": "Prices and costs of two products are unchanged, but the blended margin falls. What is the most likely cause?",
+      "options": [
+        "Customers bought relatively more of the lower-margin product",
+        "Elasticity changed",
+        "Revenue grew",
+        "Discount cost fell"
+      ],
+      "answer": 0,
+      "explanation": "Blended margin is a revenue-weighted average of product margins, so it falls when the mix shifts toward lower-margin products even if nothing else changes."
+    },
+    {
+      "id": "c4",
+      "question": "A regression of units on price over two years gives a positive slope (higher price, more units). What is the right reaction?",
+      "options": [
+        "Suspect that other causes moved both, such as seasonality or promotions",
+        "Raise prices everywhere",
+        "Conclude that demand is inelastic",
+        "Remove the logarithms"
+      ],
+      "answer": 0,
+      "explanation": "A positive slope usually means price and demand were pushed up together by something else (peak season, new product). It is not evidence that customers like higher prices."
+    },
+    {
+      "id": "c5",
+      "question": "Which price should be used to compute last year's revenue from Northwind order lines?",
+      "options": [
+        "order_details.unit_price",
+        "products.unit_price",
+        "The average of both",
+        "orders.freight"
+      ],
+      "answer": 0,
+      "explanation": "The order line holds the price at the time of sale. The product table holds the current list price, which may be different, and freight is a shipping cost."
+    }
+  ]
+}

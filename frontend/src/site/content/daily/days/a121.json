@@ -1,0 +1,198 @@
+{
+  "id": "a121",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "moving-average-generator",
+      "percent-change",
+      "running-totals"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": [
+      "moving-average",
+      "month-over-month-growth"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Fill the gaps",
+      "kind": "python",
+      "prompt": "Using `orders`, `daily` already has one row per calendar day (empty days are 0). Print `zero days: <n>` and then the longest run of consecutive zero-revenue days as `longest gap: <n>`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ndaily = orders.set_index(\"order_date\")[\"revenue\"].resample(\"D\").sum()\n\n# zero days and longest gap\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ndaily = orders.set_index(\"order_date\")[\"revenue\"].resample(\"D\").sum()\n\nzero = (daily == 0)\nlongest = run = 0\nfor flag in zero:\n    run = run + 1 if flag else 0\n    longest = max(longest, run)\nprint(\"zero days:\", int(zero.sum()))\nprint(\"longest gap:\", longest)\n",
+      "expected": "zero days: 185\nlongest gap: 10",
+      "hints": [
+        "A zero day is `daily == 0`.",
+        "Walk through the booleans and keep a running count that resets on a non-zero day.",
+        "Keep the maximum of the running count."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Rolling mean value",
+      "kind": "python",
+      "prompt": "Compute the 7-day rolling mean of `daily` and print its value on 2025-03-15 rounded to 1 decimal as `rolling on 2025-03-15: <value>`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ndaily = orders.set_index(\"order_date\")[\"revenue\"].resample(\"D\").sum()\n\n# rolling mean on 2025-03-15\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ndaily = orders.set_index(\"order_date\")[\"revenue\"].resample(\"D\").sum()\n\nrolling = daily.rolling(7).mean()\nprint(\"rolling on 2025-03-15:\", round(float(rolling[\"2025-03-15\"]), 1))\n",
+      "expected": "rolling on 2025-03-15: 499.5",
+      "hints": [
+        "`daily.rolling(7).mean()` gives the 7-day mean.",
+        "Select a date with `rolling[\"2025-03-15\"]`.",
+        "Convert with `float` and round to 1 decimal."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Box plot numbers",
+      "kind": "python",
+      "prompt": "For the revenue of each category in `orders` (alphabetical), print `category: whisker low=<..> q1=<..> median=<..> q3=<..> whisker high=<..>` using matplotlib's rule: whiskers reach the most extreme data value within 1.5 x IQR of the quartiles. Round everything to 0 decimals.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ndaily = orders.set_index(\"order_date\")[\"revenue\"].resample(\"D\").sum()\n\n# five numbers per category\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ndaily = orders.set_index(\"order_date\")[\"revenue\"].resample(\"D\").sum()\n\nfor name, part in orders.groupby(\"category\"):\n    v = part[\"revenue\"]\n    q1, med, q3 = v.quantile([0.25, 0.5, 0.75])\n    iqr = q3 - q1\n    low = v[v >= q1 - 1.5 * iqr].min()\n    high = v[v <= q3 + 1.5 * iqr].max()\n    print(f\"{name}: whisker low={low:.0f} q1={q1:.0f} median={med:.0f} q3={q3:.0f} whisker high={high:.0f}\")\n",
+      "expected": "Beauty: whisker low=23 q1=56 median=84 q3=117 whisker high=164\nElectronics: whisker low=161 q1=396 median=538 q3=722 whisker high=941\nHome: whisker low=37 q1=91 median=157 q3=196 whisker high=267\nSports: whisker low=51 q1=84 median=153 q3=244 whisker high=354",
+      "hints": [
+        "Quartiles come from `quantile([0.25, 0.5, 0.75])`.",
+        "Fences are `q1 - 1.5 * iqr` and `q3 + 1.5 * iqr`.",
+        "The whiskers are the min and max of the values inside the fences."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Choose the chart",
+      "kind": "written",
+      "prompt": "For each question choose line, stacked area, histogram, box plot or violin and give one reason: (a) Is daily revenue trending up? (b) How is monthly revenue split across categories? (c) How do delivery times compare across five carriers? (d) Does order value have two humps?",
+      "starter": "(a) ...\n(b) ...\n(c) ...\n(d) ...",
+      "solution": "(a) Line chart with a 7-day rolling mean: slope shows the trend and the rolling mean removes day-to-day noise.\n\n(b) Stacked area: the top edge is the total and the bands show the mix, which is the question; for comparing categories a line chart would be better.\n\n(c) Box plots side by side: five groups are compared by median and spread in little space, and outliers show reliability.\n\n(d) Histogram (or a violin with enough data): only the shape of the distribution can show two humps; a box plot cannot.",
+      "hints": [
+        "What is the reader's question for each?",
+        "Which charts show shape?",
+        "Box plots reduce a distribution to five numbers."
+      ],
+      "rubric": [
+        "Line with rolling mean for trend.",
+        "Stacked area for total and mix, not comparison.",
+        "Box plots for many-group comparison.",
+        "Histogram or violin for shape and two humps."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Month-over-month table",
+      "kind": "python",
+      "prompt": "Compute total revenue per month (month number 1 to 12) from `orders` and the month-over-month percentage change `(this - previous) / previous * 100`, rounded to 1 decimal. Print the months with the largest rise and the largest fall as `rise: month <m> <pct>%` and `fall: month <m> <pct>%`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ndaily = orders.set_index(\"order_date\")[\"revenue\"].resample(\"D\").sum()\n\n# month-over-month change\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ndaily = orders.set_index(\"order_date\")[\"revenue\"].resample(\"D\").sum()\n\nmonthly = orders.groupby(orders[\"order_date\"].dt.month)[\"revenue\"].sum()\nchange = (monthly.pct_change(fill_method=None) * 100).round(1)\nprint(f\"rise: month {int(change.idxmax())} {change.max()}%\")\nprint(f\"fall: month {int(change.idxmin())} {change.min()}%\")\n",
+      "expected": "rise: month 2 51.1%\nfall: month 5 -33.7%"
+    },
+    {
+      "id": "i2",
+      "title": "Which distribution chart",
+      "kind": "python",
+      "prompt": "Write `distribution_chart(n_groups, points_per_group, shape_matters)` returning `'histogram'` when `n_groups == 1`; otherwise `'violin'` if `shape_matters` and `points_per_group >= 30`, else `'box'`. Print the results for `(1, 200, True)`, `(4, 240, True)`, `(4, 10, True)` and `(6, 100, False)`, one per line.",
+      "starter": "def distribution_chart(n_groups, points_per_group, shape_matters):\n    pass\n\n\nfor args in [(1, 200, True), (4, 240, True), (4, 10, True), (6, 100, False)]:\n    print(distribution_chart(*args))\n",
+      "solution": "def distribution_chart(n_groups, points_per_group, shape_matters):\n    if n_groups == 1:\n        return \"histogram\"\n    if shape_matters and points_per_group >= 30:\n        return \"violin\"\n    return \"box\"\n\n\nfor args in [(1, 200, True), (4, 240, True), (4, 10, True), (6, 100, False)]:\n    print(distribution_chart(*args))\n",
+      "expected": "histogram\nviolin\nbox\nbox"
+    },
+    {
+      "id": "i3",
+      "title": "Critique a time-series chart",
+      "kind": "written",
+      "prompt": "A chart shows daily revenue as a stacked area by category, with a y axis starting at 3000, only the days that had orders, and a smooth spline. List four problems using this lesson and Day 114, and write the corrected matplotlib code outline.",
+      "starter": "Problems:\n1. ...\n\nCorrected code:\n",
+      "solution": "Problems: (1) the y axis starts at 3000, which cuts off the area and exaggerates changes, because an area encodes value by size from zero; (2) days without orders are missing, so the line interpolates across gaps and hides zero days; (3) a stacked area makes category trends hard to compare, since only the bottom band has a flat baseline; (4) a smooth spline invents values between the points and hides daily noise; daily data is also too jagged, so weekly or a rolling mean fits better.\n\n```python\ndaily = orders.set_index(\"order_date\")[\"revenue\"].resample(\"D\").sum()\nrolling = daily.rolling(7).mean()\nfig, ax = plt.subplots()\nax.plot(daily.index, daily.values, alpha=0.4, label=\"Daily\")\nax.plot(rolling.index, rolling.values, linewidth=2, label=\"7-day mean\")\nax.set_ylim(bottom=0)\nax.set_ylabel(\"Revenue (GBP)\")\nax.legend()\n```\n\nFor a category comparison I would use one panel per category (small multiples) with a shared y axis.",
+      "rubric": [
+        "Zero baseline for an area or the axis issue.",
+        "Missing days filled with zeros.",
+        "Stacked area is wrong for comparison.",
+        "Uses a rolling mean instead of a spline."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [
+      "matplotlib",
+      "plotly",
+      "pandas",
+      "numpy"
+    ],
+    "note": "Examples 2 to 5 use matplotlib and Plotly, which the browser cannot load: run them on your own computer after `pip install matplotlib plotly pandas numpy`. They print figure properties instead of showing images. Example 1 and the graded exercises are pandas only and run in the browser. Written exercises are self-assessed."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A store has no orders on some days and the table has no rows for them. What does a line chart of the raw table do?",
+      "options": [
+        "Joins the days either side, hiding the zero days",
+        "Draws zero for the missing days",
+        "Leaves a gap in the line",
+        "Raises an error"
+      ],
+      "answer": 0,
+      "explanation": "Matplotlib and Plotly connect the points they are given. Resample to calendar days to make the zeros explicit."
+    },
+    {
+      "id": "c2",
+      "question": "What does `daily.rolling(7).mean()` return for the first 6 values?",
+      "options": [
+        "NaN, because a full window does not exist yet",
+        "0",
+        "The mean of the available values",
+        "The first value repeated"
+      ],
+      "answer": 0,
+      "explanation": "The default requires a full window of 7 values, so the first 6 results are missing."
+    },
+    {
+      "id": "c3",
+      "question": "What is a stacked area chart good at?",
+      "options": [
+        "Showing a total and how it is split",
+        "Comparing the trends of every band",
+        "Showing outliers",
+        "Showing correlation"
+      ],
+      "answer": 0,
+      "explanation": "The top edge is the total and bands show the mix. Only the bottom band has a flat baseline, so band-to-band comparison is distorted."
+    },
+    {
+      "id": "c4",
+      "question": "Which chart can show that a distribution has two humps?",
+      "options": [
+        "Histogram or violin",
+        "Box plot",
+        "Both are equal",
+        "Line chart"
+      ],
+      "answer": 0,
+      "explanation": "A box plot reduces a distribution to five numbers and cannot show two peaks. A histogram or violin keeps the shape."
+    },
+    {
+      "id": "c5",
+      "question": "In matplotlib, `ax.boxplot(groups, tick_labels=cats)` returns a dict. Which key holds the median lines?",
+      "options": [
+        "medians",
+        "means",
+        "quartiles",
+        "centers"
+      ],
+      "answer": 0,
+      "explanation": "The returned dictionary has boxes, medians, whiskers, caps and fliers; reading medians back lets you compare with pandas."
+    }
+  ]
+}

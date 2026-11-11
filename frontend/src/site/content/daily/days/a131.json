@@ -1,0 +1,192 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "running-totals",
+      "lag",
+      "moving-averages",
+      "date-time-functions"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "running-totals",
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "window-functions"
+    ],
+    "patterns": [
+      "running-total",
+      "month-over-month-growth",
+      "year-over-year-growth",
+      "moving-average"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Year to date",
+      "kind": "python",
+      "prompt": "`monthly` is a Series of revenue indexed by month (2024 and 2025). Replicate `TOTALYTD([Total Revenue], Calendar[date])` and print the YTD for 2025-01 to 2025-04, rounded to 2 decimals, with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\n# YTD per year\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\nytd = monthly.groupby(monthly.index.year).cumsum()\nprint(ytd[\"2025-01\":\"2025-04\"].round(2).to_string())\n",
+      "hints": [
+        "YTD restarts each year.",
+        "Group by monthly.index.year and take cumsum().",
+        "Slice \"2025-01\":\"2025-04\" and print."
+      ],
+      "expected": "order_date\n2025-01     5160.0\n2025-02    10635.0\n2025-03    15262.5\n2025-04    20542.5\nFreq: M"
+    },
+    {
+      "id": "g2",
+      "title": "Previous month and change",
+      "kind": "python",
+      "prompt": "Replicate `Revenue PM` and `MoM %` for 2025-05 to 2025-08. Print a DataFrame with columns `revenue`, `previous` and `mom_pct` (percentage with 1 decimal) using `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\n# previous month and mom_pct\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\npm = monthly.shift(1)\nout = pd.DataFrame({\"revenue\": monthly, \"previous\": pm, \"mom_pct\": ((monthly - pm) / pm * 100).round(1)})\nprint(out[\"2025-05\":\"2025-08\"].to_string())\n",
+      "hints": [
+        "shift(1) moves each value to the next month.",
+        "mom = (monthly - previous) / previous * 100.",
+        "Build the DataFrame, slice and print."
+      ],
+      "expected": "            revenue  previous  mom_pct\norder_date                            \n2025-05      5512.5    5280.0      4.4\n2025-06      6045.0    5512.5      9.7\n2025-07      6225.0    6045.0      3.0\n2025-08      5235.0    6225.0    -15.9"
+    },
+    {
+      "id": "g3",
+      "title": "Rolling three months",
+      "kind": "python",
+      "prompt": "Replicate `Revenue Rolling 3M` and print it for 2025-06 to 2025-09, rounded to 2 decimals, as a Series with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\n# rolling 3 month revenue\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\nprint(monthly.rolling(3).sum()[\"2025-06\":\"2025-09\"].round(2).to_string())\n",
+      "hints": [
+        "A rolling window sums the current and two earlier months.",
+        "monthly.rolling(3).sum()",
+        "Slice the months and print."
+      ],
+      "expected": "order_date\n2025-06    16837.5\n2025-07    17782.5\n2025-08    17505.0\n2025-09    17190.0\nFreq: M"
+    },
+    {
+      "id": "g4",
+      "title": "Write the SPLY and YoY measures (written)",
+      "kind": "written",
+      "prompt": "Write the DAX for `Revenue SPLY` and `YoY %` for the sample model. List what the Calendar table must satisfy for them to work, and say what `YoY %` shows for every month of the first year in the data.",
+      "starter": "Revenue SPLY = ...\nYoY % = ...",
+      "solution": "```dax\nRevenue SPLY = CALCULATE([Total Revenue], SAMEPERIODLASTYEAR(Calendar[date]))\nYoY % = DIVIDE([Total Revenue] - [Revenue SPLY], [Revenue SPLY])\n```\n\nThe Calendar must have one row per day with no gaps or duplicates, cover whole years including the earlier year, be related to Sales on the order date and be marked as the date table. For the first year in the data, there are no earlier sales, so `[Revenue SPLY]` is blank and `DIVIDE` returns blank for `YoY %`. Blank is the correct result; zero would suggest the sales fell to nothing.",
+      "rubric": [
+        "SPLY uses CALCULATE with SAMEPERIODLASTYEAR on the Calendar date column.",
+        "YoY uses DIVIDE of the difference by SPLY.",
+        "Names continuity, whole years, relationship and the marked date table.",
+        "Says the first year gives blank."
+      ],
+      "hints": [
+        "Wrap the revenue measure in CALCULATE.",
+        "Growth = (current - prior) divided by prior.",
+        "Think about what has no earlier value."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Year-on-year table",
+      "kind": "python",
+      "prompt": "Print a table for 2025-07 to 2025-12 with columns `revenue`, `sply` and `yoy_pct` (percent, 1 decimal), computed from `monthly` with `shift(12)`, using `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\n# yoy table\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\nsply = monthly.shift(12)\nout = pd.DataFrame({\"revenue\": monthly, \"sply\": sply, \"yoy_pct\": ((monthly - sply) / sply * 100).round(1)})\nprint(out[\"2025-07\":\"2025-12\"].to_string())\n",
+      "expected": "            revenue    sply  yoy_pct\norder_date                          \n2025-07      6225.0  3877.5     60.5\n2025-08      5235.0  2947.5     77.6\n2025-09      5730.0  3435.0     66.8\n2025-10      5122.5  3172.5     61.5\n2025-11      6652.5  4050.0     64.3\n2025-12      6067.5  3735.0     62.4"
+    },
+    {
+      "id": "i2",
+      "title": "Quarter to date and YTD share",
+      "kind": "python",
+      "prompt": "For each quarter of 2025 print the quarter revenue and the YTD revenue at the end of the quarter as `quarter revenue ytd`. Use `monthly[\"2025\"]` grouped by `index.quarter` (sum) and the cumulative sum of the quarter sums. Print with `to_string()`, values rounded to 2 decimals.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\n# quarter revenue and YTD at quarter end\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\nm25 = monthly[\"2025\"]\nq = m25.groupby(m25.index.quarter).sum()\nout = pd.DataFrame({\"revenue\": q, \"ytd\": q.cumsum()}).round(2)\nout.index.name = \"quarter\"\nprint(out.to_string())\n",
+      "expected": "         revenue      ytd\nquarter                  \n1        15262.5  15262.5\n2        16837.5  32100.0\n3        17190.0  49290.0\n4        17842.5  67132.5"
+    },
+    {
+      "id": "i3",
+      "title": "Rolling average and trend flag (stretch)",
+      "kind": "python",
+      "prompt": "Compute the rolling 3-month average of `monthly` for 2025 (average of the current and two earlier months, so January uses November and December 2024). Print `month avg3 trend` lines where `trend` is \"up\" when the average is above the previous month's average, otherwise \"down\", for 2025-02 to 2025-06, average rounded to 2 decimals, e.g. `2025-02 4790.0 up`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\n# rolling average with trend flag\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ns24 = sales.copy()\ns24[\"order_date\"] = s24[\"order_date\"] - pd.DateOffset(years=1)\ns24[\"quantity\"] = (s24[\"quantity\"] + 1) // 2\ns24[\"revenue\"] = s24[\"quantity\"] * s24[\"unit_price\"]\nboth = pd.concat([s24, sales], ignore_index=True)\nmonthly = both.groupby(both[\"order_date\"].dt.to_period(\"M\"))[\"revenue\"].sum()\n\navg3 = monthly.rolling(3).mean()\nfor month in pd.period_range(\"2025-02\", \"2025-06\", freq=\"M\"):\n    now, before = avg3[month], avg3[month - 1]\n    print(month, round(float(now), 2), \"up\" if now > before else \"down\")\n",
+      "required": false,
+      "expected": "2025-02 4790.0 up\n2025-03 5087.5 up\n2025-04 5127.5 up\n2025-05 5140.0 up\n2025-06 5612.5 up"
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Time intelligence functions need Power BI Desktop (Windows-only) with a marked date table, or the Power BI Service in a browser; neither runs in this course. The graded exercises reproduce the results with cumsum, shift and rolling on a monthly pandas Series, so they run in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does TOTALYTD([Total Revenue], Calendar[date]) return in the January 2025 cell?",
+      "options": [
+        "The revenue of December 2024",
+        "The revenue of January 2025 only",
+        "The total of all of 2025",
+        "The revenue of January in both years"
+      ],
+      "answer": 1,
+      "explanation": "Year to date resets on 1 January, so the January cell covers only January. The December cell would hold the whole year. Previous-year values need SAMEPERIODLASTYEAR."
+    },
+    {
+      "id": "c2",
+      "question": "Why can SAMEPERIODLASTYEAR return blank for every month of 2025 when the model only holds sales from 2025?",
+      "options": [
+        "The function needs a Sales column, not a date table",
+        "There is no data for the earlier dates, so the shifted period contains no sales",
+        "SAMEPERIODLASTYEAR only works on quarters",
+        "The relationship points the wrong way"
+      ],
+      "answer": 1,
+      "explanation": "The function shifts the visible dates back a year, but if no sales exist in that earlier year the measure is blank. The date table must also cover the earlier year."
+    },
+    {
+      "id": "c3",
+      "question": "In the sample extension, what is the rolling 3-month revenue for January 2025?",
+      "options": [
+        "5,160.00",
+        "12,945.00",
+        "15,262.50",
+        "3,735.00"
+      ],
+      "answer": 1,
+      "explanation": "The window covers November and December 2024 and January 2025: 4,050.00 + 3,735.00 + 5,160.00 = 12,945.00. 5,160.00 is January alone, and 15,262.50 is the March figure."
+    },
+    {
+      "id": "c4",
+      "question": "Which pandas call mirrors PREVIOUSMONTH on a complete monthly Series?",
+      "options": [
+        "monthly.cumsum()",
+        "monthly.shift(1)",
+        "monthly.rolling(1).sum()",
+        "monthly.shift(12)"
+      ],
+      "answer": 1,
+      "explanation": "shift(1) brings the previous month's value to each month. shift(12) mirrors SAMEPERIODLASTYEAR, cumsum() is a running total, and rolling(1) returns the value itself."
+    },
+    {
+      "id": "c5",
+      "question": "A date table is missing the days 10 to 20 March. What is the likely effect on time intelligence measures?",
+      "options": [
+        "None, DAX fills the gaps",
+        "Wrong or empty results for periods that include the gap",
+        "Only YTD changes",
+        "Power BI refuses to load the model"
+      ],
+      "answer": 1,
+      "explanation": "Time intelligence functions rely on a continuous date column. Gaps lead to missing or wrong date sets and so to wrong measures; the model still loads, which hides the problem."
+    }
+  ],
+  "id": "a131"
+}

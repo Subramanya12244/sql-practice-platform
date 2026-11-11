@@ -1,0 +1,178 @@
+{
+  "id": "d056",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "partition-by",
+      "first-value"
+    ],
+    "questions": [
+      168,
+      167
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "window-functions"
+    ],
+    "patterns": [
+      "inactive-customers"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Cohort size by first-order quarter",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Assign each customer to the quarter of their first order (`date_trunc('quarter', MIN(order_date))::date`). Return `cohort_quarter` and `customers` (customers in that cohort), ordered by `cohort_quarter`.",
+      "starter": "SELECT date_trunc('quarter', order_date)::date AS cohort_quarter, COUNT(*) AS customers\nFROM orders\nGROUP BY 1\nORDER BY 1;\n",
+      "solution": "WITH first_order AS (\n  SELECT customer_id, date_trunc('quarter', MIN(order_date))::date AS cohort_quarter\n  FROM orders\n  GROUP BY customer_id\n)\nSELECT cohort_quarter, COUNT(*) AS customers\nFROM first_order\nGROUP BY cohort_quarter\nORDER BY cohort_quarter;\n",
+      "hints": [
+        "The starter counts orders per quarter, not customers per cohort. Each customer needs exactly one cohort.",
+        "First compute one row per customer with MIN(order_date), truncated to the quarter; then count those rows per quarter.",
+        "Inner step: SELECT customer_id, date_trunc('quarter', MIN(order_date))::date AS cohort_quarter FROM orders GROUP BY customer_id. Outer step: COUNT(*) GROUP BY cohort_quarter."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Customers who ordered again",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For each first-order year return `cohort_year` (integer), `customers` (cohort size) and `ordered_again` (how many of them have at least two orders), ordered by `cohort_year`.",
+      "starter": "SELECT EXTRACT(YEAR FROM MIN(order_date))::int AS cohort_year, COUNT(*) AS customers\nFROM orders\nGROUP BY customer_id\nORDER BY 1;\n",
+      "solution": "WITH per_customer AS (\n  SELECT customer_id, EXTRACT(YEAR FROM MIN(order_date))::int AS cohort_year, COUNT(*) AS n_orders\n  FROM orders\n  GROUP BY customer_id\n)\nSELECT cohort_year, COUNT(*) AS customers, COUNT(*) FILTER (WHERE n_orders >= 2) AS ordered_again\nFROM per_customer\nGROUP BY cohort_year\nORDER BY cohort_year;\n",
+      "hints": [
+        "Compute the cohort year and the order count per customer first, in a CTE.",
+        "In the outer query, COUNT(*) is the cohort size and COUNT(*) FILTER (WHERE ...) counts the customers meeting a condition.",
+        "COUNT(*) FILTER (WHERE n_orders >= 2) AS ordered_again, grouped by cohort_year."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "A three-step order funnel",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Build a funnel of order steps with columns `step`, `orders`, `pct_of_first` (rounded to 1 decimal). Steps in order: `placed` (all orders), `with freight over 50` (orders with `freight` > 50), `with freight over 100` (freight > 100). Order by the step number.",
+      "starter": "SELECT 'placed' AS step, COUNT(*) AS orders, 100.0 AS pct_of_first\nFROM orders;\n",
+      "solution": "WITH steps (step_no, step, orders) AS (\n  SELECT 1, 'placed', COUNT(*) FROM orders\n  UNION ALL SELECT 2, 'with freight over 50', COUNT(*) FROM orders WHERE freight > 50\n  UNION ALL SELECT 3, 'with freight over 100', COUNT(*) FROM orders WHERE freight > 100\n)\nSELECT step, orders,\n       ROUND(100.0 * orders / FIRST_VALUE(orders) OVER (ORDER BY step_no), 1) AS pct_of_first\nFROM steps\nORDER BY step_no;\n",
+      "hints": [
+        "Create one row per step with UNION ALL, giving each a step_no so you can order them.",
+        "Divide by FIRST_VALUE(orders) OVER (ORDER BY step_no) to get the share of the first step.",
+        "Use 100.0 * orders / FIRST_VALUE(orders) OVER (ORDER BY step_no) inside ROUND(..., 1)."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Step conversion with LAG",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Use the same three steps as the previous exercise. Return `step`, `orders` and `pct_of_previous` (the count divided by the previous step's count, rounded to 1 decimal; NULL for the first step), ordered by step number.",
+      "starter": "SELECT 'placed' AS step, COUNT(*) AS orders, NULL::numeric AS pct_of_previous\nFROM orders;\n",
+      "solution": "WITH steps (step_no, step, orders) AS (\n  SELECT 1, 'placed', COUNT(*) FROM orders\n  UNION ALL SELECT 2, 'with freight over 50', COUNT(*) FROM orders WHERE freight > 50\n  UNION ALL SELECT 3, 'with freight over 100', COUNT(*) FROM orders WHERE freight > 100\n)\nSELECT step, orders,\n       ROUND(100.0 * orders / LAG(orders) OVER (ORDER BY step_no), 1) AS pct_of_previous\nFROM steps\nORDER BY step_no;\n",
+      "hints": [
+        "The previous step's count is available through LAG.",
+        "LAG(orders) OVER (ORDER BY step_no) is NULL on the first row, so the division gives NULL there.",
+        "ROUND(100.0 * orders / LAG(orders) OVER (ORDER BY step_no), 1) AS pct_of_previous."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Year-1 retention per cohort",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Using yearly cohorts (year of first order) and yearly activity (distinct years in which a customer ordered), return `cohort_year`, `cohort_size`, `returned_next_year` (distinct customers of the cohort with an order in the year after the cohort year) and `pct_returned` (rounded to 1 decimal). Order by `cohort_year`.",
+      "starter": "SELECT EXTRACT(YEAR FROM order_date)::int AS cohort_year, COUNT(DISTINCT customer_id) AS cohort_size\nFROM orders\nGROUP BY 1\nORDER BY 1;\n",
+      "solution": "WITH first_order AS (\n  SELECT customer_id, EXTRACT(YEAR FROM MIN(order_date))::int AS cohort_year\n  FROM orders\n  GROUP BY customer_id\n), activity AS (\n  SELECT DISTINCT customer_id, EXTRACT(YEAR FROM order_date)::int AS active_year\n  FROM orders\n)\nSELECT f.cohort_year,\n       COUNT(DISTINCT f.customer_id) AS cohort_size,\n       COUNT(DISTINCT a.customer_id) FILTER (WHERE a.active_year = f.cohort_year + 1) AS returned_next_year,\n       ROUND(100.0 * COUNT(DISTINCT a.customer_id) FILTER (WHERE a.active_year = f.cohort_year + 1) / COUNT(DISTINCT f.customer_id), 1) AS pct_returned\nFROM first_order AS f\nJOIN activity AS a ON a.customer_id = f.customer_id\nGROUP BY f.cohort_year\nORDER BY f.cohort_year;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Value funnel by customer revenue",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Compute each customer's revenue as the sum of `unit_price * quantity * (1 - discount)` over their order lines (customers with no orders have revenue 0, keep them). Build four funnel steps counting customers with at least that revenue: `all customers` (any), `revenue over 1000`, `revenue over 5000`, `revenue over 10000`. Return `step`, `customers` and `pct_of_previous` (rounded to 1 decimal, NULL for the first step), ordered by step number.",
+      "starter": "SELECT 'all customers' AS step, COUNT(*) AS customers, NULL::numeric AS pct_of_previous\nFROM customers;\n",
+      "solution": "WITH revenue AS (\n  SELECT c.customer_id,\n         COALESCE(SUM(od.unit_price * od.quantity * (1 - od.discount)), 0) AS revenue\n  FROM customers AS c\n  LEFT JOIN orders AS o ON o.customer_id = c.customer_id\n  LEFT JOIN order_details AS od ON od.order_id = o.order_id\n  GROUP BY c.customer_id\n), steps (step_no, step, customers) AS (\n  SELECT 1, 'all customers', COUNT(*) FROM revenue\n  UNION ALL SELECT 2, 'revenue over 1000', COUNT(*) FROM revenue WHERE revenue > 1000\n  UNION ALL SELECT 3, 'revenue over 5000', COUNT(*) FROM revenue WHERE revenue > 5000\n  UNION ALL SELECT 4, 'revenue over 10000', COUNT(*) FROM revenue WHERE revenue > 10000\n)\nSELECT step, customers,\n       ROUND(100.0 * customers / LAG(customers) OVER (ORDER BY step_no), 1) AS pct_of_previous\nFROM steps\nORDER BY step_no;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Retention grid by employee cohort (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Which employee wins the customers who stay? For each customer find their very first order (earliest `order_date`, ties by smaller `order_id`). Group customers by the `employee_id` who handled that first order (ignore first orders with a NULL employee). For each employee return `employee_id`, `first_orders` (customers whose first order they handled) and `repeat_customers` (how many of those customers have more than one order in total). Order by `employee_id`.",
+      "starter": "SELECT employee_id, COUNT(*) AS first_orders\nFROM orders\nWHERE employee_id IS NOT NULL\nGROUP BY employee_id\nORDER BY employee_id;\n",
+      "solution": "WITH ranked AS (\n  SELECT customer_id, employee_id,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date, order_id) AS rn,\n         COUNT(*) OVER (PARTITION BY customer_id) AS n_orders\n  FROM orders\n)\nSELECT employee_id, COUNT(*) AS first_orders, COUNT(*) FILTER (WHERE n_orders > 1) AS repeat_customers\nFROM ranked\nWHERE rn = 1 AND employee_id IS NOT NULL\nGROUP BY employee_id\nORDER BY employee_id;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why must the cohort be computed with `MIN(order_date)` per customer before grouping?",
+      "options": [
+        "Because GROUP BY needs a MIN",
+        "So that each customer belongs to exactly one cohort, instead of one per order",
+        "To remove NULL dates",
+        "To sort customers"
+      ],
+      "answer": 1,
+      "explanation": "If you took the period from every order row, a customer with orders in three periods would be counted in three cohorts. The first event fixes one cohort per customer."
+    },
+    {
+      "id": "c2",
+      "question": "A cohort of 40 customers has 10 active in the age-1 period. What is the retention rate at age 1, and what is it at age 0?",
+      "options": [
+        "25 percent at age 1 and 100 percent at age 0",
+        "10 percent at age 1 and 0 percent at age 0",
+        "25 percent at both ages",
+        "75 percent at age 1 and 100 percent at age 0"
+      ],
+      "answer": 0,
+      "explanation": "10 divided by 40 is 25 percent. Age 0 is the cohort's own period, in which every member is active by definition, so it is 100 percent."
+    },
+    {
+      "id": "c3",
+      "question": "Why use `COUNT(DISTINCT customer_id)` in a retention query?",
+      "options": [
+        "A customer with several orders in the period is still one active customer",
+        "DISTINCT makes the query faster",
+        "COUNT(*) does not work with joins",
+        "It sorts the customers"
+      ],
+      "answer": 0,
+      "explanation": "Retention counts customers, not orders. Without DISTINCT a customer with five orders in the same period would inflate the active count."
+    },
+    {
+      "id": "c4",
+      "question": "In a funnel, step 3 shows 120 customers and step 2 shows 100. What does that tell you?",
+      "options": [
+        "Conversion of 120 percent",
+        "The steps are not nested subsets; the step definitions or the join are wrong",
+        "The funnel is healthy",
+        "Step 2 must be deleted"
+      ],
+      "answer": 1,
+      "explanation": "Each step must be a subset of the previous one, so counts cannot rise. A larger later step usually means the steps were defined as exactly-this-step or a join duplicated customers."
+    },
+    {
+      "id": "c5",
+      "question": "The 1998 cohort shows 0 in the year_1 column of the grid. Is this churn?",
+      "options": [
+        "Yes, all 1998 customers left",
+        "No, the data ends in 1998, so that cohort has not been observed for a later year",
+        "Yes, because it is the newest cohort",
+        "No, it means the query has an error"
+      ],
+      "answer": 1,
+      "explanation": "A zero can mean not yet observable rather than lost. Check how long each cohort has been observed before comparing it with older cohorts."
+    }
+  ]
+}

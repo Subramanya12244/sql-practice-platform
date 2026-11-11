@@ -1,0 +1,187 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-idempotency",
+      "etl-loading",
+      "primary-foreign-keys",
+      "etl-incremental-load"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "incremental-loading",
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "remove-duplicates",
+      "latest-record-per-group"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A basic upsert",
+      "kind": "python",
+      "prompt": "The table `stock(sku PRIMARY KEY, qty)` is created with two rows. Upsert the rows `(\"A\", 7)` and `(\"C\", 9)` with `INSERT ... ON CONFLICT (sku) DO UPDATE SET qty = excluded.qty`, then print `SELECT * FROM stock ORDER BY sku` as a list. Expected output: `[('A', 7), ('B', 5), ('C', 9)]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE stock (sku TEXT PRIMARY KEY, qty INTEGER)\")\nconn.executemany(\"INSERT INTO stock VALUES (?, ?)\", [(\"A\", 3), (\"B\", 5)])\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE stock (sku TEXT PRIMARY KEY, qty INTEGER)\")\nconn.executemany(\"INSERT INTO stock VALUES (?, ?)\", [(\"A\", 3), (\"B\", 5)])\nconn.executemany(\"INSERT INTO stock VALUES (?, ?) ON CONFLICT (sku) DO UPDATE SET qty = excluded.qty\", [(\"A\", 7), (\"C\", 9)])\nprint(conn.execute(\"SELECT * FROM stock ORDER BY sku\").fetchall())\n",
+      "hints": [
+        "The conflict target is the primary key column `sku`.",
+        "After the VALUES, add `ON CONFLICT (sku) DO UPDATE SET qty = excluded.qty`.",
+        "Use `executemany` with the two rows."
+      ],
+      "expected": "[('A', 7), ('B', 5), ('C', 9)]"
+    },
+    {
+      "id": "g2",
+      "title": "DO NOTHING",
+      "kind": "python",
+      "prompt": "The table `seen(event_id PRIMARY KEY, payload)` holds event 1. Insert the events `(1, \"new copy\")` and `(2, \"second\")` with `ON CONFLICT (event_id) DO NOTHING` and print `SELECT * FROM seen ORDER BY event_id` as a list. Expected output: `[(1, 'first'), (2, 'second')]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE seen (event_id INTEGER PRIMARY KEY, payload TEXT)\")\nconn.execute(\"INSERT INTO seen VALUES (1, 'first')\")\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE seen (event_id INTEGER PRIMARY KEY, payload TEXT)\")\nconn.execute(\"INSERT INTO seen VALUES (1, 'first')\")\nconn.executemany(\"INSERT INTO seen VALUES (?, ?) ON CONFLICT (event_id) DO NOTHING\", [(1, \"new copy\"), (2, \"second\")])\nprint(conn.execute(\"SELECT * FROM seen ORDER BY event_id\").fetchall())\n",
+      "hints": [
+        "`DO NOTHING` skips a row whose key already exists.",
+        "`INSERT INTO seen VALUES (?, ?) ON CONFLICT (event_id) DO NOTHING`.",
+        "Use `executemany` with both events."
+      ],
+      "expected": "[(1, 'first'), (2, 'second')]"
+    },
+    {
+      "id": "g3",
+      "title": "The guard",
+      "kind": "python",
+      "prompt": "The table `orders(order_id PRIMARY KEY, status, updated_at)` holds order 1 as `paid` at `2025-03-05`. Upsert the rows `(1, \"created\", \"2025-03-01\")` and `(2, \"paid\", \"2025-03-04\")` with a guard so that an existing row is only updated when the incoming `updated_at` is greater. Print `SELECT order_id, status FROM orders ORDER BY order_id` as a list. Expected output: `[(1, 'paid'), (2, 'paid')]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, status TEXT, updated_at TEXT)\")\nconn.execute(\"INSERT INTO orders VALUES (1, 'paid', '2025-03-05')\")\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders (order_id INTEGER PRIMARY KEY, status TEXT, updated_at TEXT)\")\nconn.execute(\"INSERT INTO orders VALUES (1, 'paid', '2025-03-05')\")\nconn.executemany(\"\"\"INSERT INTO orders VALUES (?, ?, ?) ON CONFLICT (order_id)\n    DO UPDATE SET status = excluded.status, updated_at = excluded.updated_at\n    WHERE excluded.updated_at > orders.updated_at\"\"\", [(1, \"created\", \"2025-03-01\"), (2, \"paid\", \"2025-03-04\")])\nprint(conn.execute(\"SELECT order_id, status FROM orders ORDER BY order_id\").fetchall())\n",
+      "hints": [
+        "Put a `WHERE` after the `SET` clause of `DO UPDATE`.",
+        "Compare `excluded.updated_at > orders.updated_at`.",
+        "`ON CONFLICT (order_id) DO UPDATE SET status = excluded.status, updated_at = excluded.updated_at WHERE excluded.updated_at > orders.updated_at`"
+      ],
+      "expected": "[(1, 'paid'), (2, 'paid')]"
+    },
+    {
+      "id": "g4",
+      "title": "Upsert in PostgreSQL syntax",
+      "kind": "sql",
+      "prompt": "On PGlite the table `inventory(item PRIMARY KEY, qty)` is created with two rows. Upsert `('apple', 20)` and `('cherry', 5)` using `ON CONFLICT (item) DO UPDATE SET qty = EXCLUDED.qty` and finish with a query returning `item` and `qty` for all rows ordered by `item`.",
+      "starter": "CREATE TABLE inventory (item text PRIMARY KEY, qty int);\nINSERT INTO inventory VALUES ('apple', 10), ('banana', 4);\nSELECT item, qty FROM inventory ORDER BY item;\n",
+      "solution": "CREATE TABLE inventory (item text PRIMARY KEY, qty int);\nINSERT INTO inventory VALUES ('apple', 10), ('banana', 4);\nINSERT INTO inventory VALUES ('apple', 20), ('cherry', 5)\nON CONFLICT (item) DO UPDATE SET qty = EXCLUDED.qty;\nSELECT item, qty FROM inventory ORDER BY item;\n",
+      "hints": [
+        "One INSERT with two value rows can upsert both.",
+        "Add `ON CONFLICT (item) DO UPDATE SET qty = EXCLUDED.qty` after VALUES.",
+        "End with `SELECT item, qty FROM inventory ORDER BY item;`."
+      ],
+      "ordered": true
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Incremental load with an upsert",
+      "kind": "python",
+      "prompt": "Rewrite the load of the incremental pipeline with one guarded upsert. The starter has the table, the state table and a source list of `(order_id, amount_cents, status, updated_at)`. Write `run(conn, source)` that reads rows with `updated_at` greater than the watermark, upserts them with a guard on `updated_at` using `executemany` inside `with conn:`, then sets the watermark to the maximum loaded value, and returns the number of rows read. Run it on the source, on the same source again, and on the source with one changed order added. Print the three counts, then the final rows as a list of `(order_id, status)` tuples.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders_clean (order_id INTEGER PRIMARY KEY, amount_cents INTEGER NOT NULL, status TEXT, updated_at TEXT)\")\nconn.execute(\"CREATE TABLE etl_state (id INTEGER PRIMARY KEY CHECK (id = 1), watermark TEXT NOT NULL)\")\nconn.execute(\"INSERT INTO etl_state VALUES (1, '1970-01-01T00:00:00Z')\")\nsource = [(1, 100, \"paid\", \"2025-03-01T10:00:00Z\"), (2, 200, \"paid\", \"2025-03-01T11:00:00Z\")]\n\ndef run(conn, source):\n    return 0\n\nprint(run(conn, source))\nprint(run(conn, source))\nprint(run(conn, source + [(2, 200, \"refunded\", \"2025-03-02T08:00:00Z\")]))\nprint(conn.execute(\"SELECT order_id, status FROM orders_clean ORDER BY order_id\").fetchall())\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders_clean (order_id INTEGER PRIMARY KEY, amount_cents INTEGER NOT NULL, status TEXT, updated_at TEXT)\")\nconn.execute(\"CREATE TABLE etl_state (id INTEGER PRIMARY KEY CHECK (id = 1), watermark TEXT NOT NULL)\")\nconn.execute(\"INSERT INTO etl_state VALUES (1, '1970-01-01T00:00:00Z')\")\nsource = [(1, 100, \"paid\", \"2025-03-01T10:00:00Z\"), (2, 200, \"paid\", \"2025-03-01T11:00:00Z\")]\n\nUPSERT = \"\"\"INSERT INTO orders_clean VALUES (?, ?, ?, ?) ON CONFLICT (order_id) DO UPDATE\n    SET amount_cents = excluded.amount_cents, status = excluded.status, updated_at = excluded.updated_at\n    WHERE excluded.updated_at > orders_clean.updated_at\"\"\"\n\ndef run(conn, source):\n    watermark = conn.execute(\"SELECT watermark FROM etl_state\").fetchone()[0]\n    new = [r for r in source if r[3] > watermark]\n    if new:\n        with conn:\n            conn.executemany(UPSERT, new)\n            conn.execute(\"UPDATE etl_state SET watermark = ?\", (max(r[3] for r in new),))\n    return len(new)\n\nprint(run(conn, source))\nprint(run(conn, source))\nprint(run(conn, source + [(2, 200, \"refunded\", \"2025-03-02T08:00:00Z\")]))\nprint(conn.execute(\"SELECT order_id, status FROM orders_clean ORDER BY order_id\").fetchall())\n",
+      "expected": "2\n0\n1\n[(1, 'paid'), (2, 'refunded')]"
+    },
+    {
+      "id": "i2",
+      "title": "Keep the stored value when NULL arrives",
+      "kind": "python",
+      "prompt": "The table `customer(customer_id PRIMARY KEY, email, phone)` holds customer 1 with email `a@x.com` and phone `111`. Upsert the incoming rows `(1, None, \"222\")` and `(2, \"b@x.com\", None)` so that an incoming NULL never overwrites a stored value: use `COALESCE(excluded.email, customer.email)` and the same for phone. Print `SELECT * FROM customer ORDER BY customer_id` as a list. Expected output: two tuples.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE customer (customer_id INTEGER PRIMARY KEY, email TEXT, phone TEXT)\")\nconn.execute(\"INSERT INTO customer VALUES (1, 'a@x.com', '111')\")\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE customer (customer_id INTEGER PRIMARY KEY, email TEXT, phone TEXT)\")\nconn.execute(\"INSERT INTO customer VALUES (1, 'a@x.com', '111')\")\nconn.executemany(\"\"\"INSERT INTO customer VALUES (?, ?, ?) ON CONFLICT (customer_id) DO UPDATE SET\n    email = COALESCE(excluded.email, customer.email), phone = COALESCE(excluded.phone, customer.phone)\"\"\", [(1, None, \"222\"), (2, \"b@x.com\", None)])\nprint(conn.execute(\"SELECT * FROM customer ORDER BY customer_id\").fetchall())\n",
+      "expected": "[(1, 'a@x.com', '222'), (2, 'b@x.com', None)]"
+    },
+    {
+      "id": "i3",
+      "title": "Choose the conflict action",
+      "kind": "written",
+      "prompt": "For each target decide between `DO UPDATE` (with or without a guard), `DO NOTHING` or a delete-and-insert, and write the clause or reason: (a) a table of orders loaded incrementally with a lookback window; (b) a log of payment events that can be delivered twice and must never change once written; (c) a customer table where a partial record may arrive with NULL phone; (d) a staging batch that contains three versions of the same order; (e) a table where a source delete must remove the row. Say what each choice does when the same load runs twice.",
+      "starter": "(a)\n(b)\n(c)\n(d)\n(e)\nSecond run:\n",
+      "solution": "(a) `DO UPDATE ... WHERE EXCLUDED.updated_at > orders.updated_at`: changed rows are applied, old versions from the lookback are ignored, and the second run changes nothing. (b) `DO NOTHING`: the first copy wins and a redelivered event creates no second row; the second run changes nothing. (c) `DO UPDATE SET phone = COALESCE(EXCLUDED.phone, customer.phone)`: new data is applied but a missing value does not erase a stored one; the second run writes the same values. (d) Deduplicate first (`dedupe_latest` or `DISTINCT ON (order_id) ... ORDER BY order_id, updated_at DESC`), then upsert, because PostgreSQL refuses to affect one key twice in a statement. (e) An upsert cannot delete; the source delete needs a separate mechanism (a delete event or a soft-delete flag), or a full refresh. Second run: all of (a) to (d) leave the table unchanged, which is the idempotency check.",
+      "required": false,
+      "rubric": [
+        "(a) uses DO UPDATE with an updated_at guard.",
+        "(b) uses DO NOTHING with the reason (first copy wins).",
+        "(c) protects stored values with COALESCE.",
+        "(d) deduplicates the batch before upserting.",
+        "(e) recognises that an upsert cannot delete."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `EXCLUDED.status` refer to in `ON CONFLICT ... DO UPDATE SET status = EXCLUDED.status`?",
+      "options": [
+        "The stored row's status",
+        "The status of the row that was proposed for insertion",
+        "A deleted row",
+        "The previous status"
+      ],
+      "answer": 1,
+      "explanation": "EXCLUDED names the incoming row. The stored row is referred to by the table name, which is how a guard compares both."
+    },
+    {
+      "id": "c2",
+      "question": "An old version of an order arrives after a newer one. Without a guard, a `DO UPDATE` upsert will:",
+      "options": [
+        "Ignore the old version",
+        "Overwrite the newer row with the older values",
+        "Raise an error",
+        "Delete the row"
+      ],
+      "answer": 1,
+      "explanation": "The update applies whenever there is a conflict, so the last write wins even when it is older. A `WHERE EXCLUDED.updated_at > table.updated_at` guard prevents it."
+    },
+    {
+      "id": "c3",
+      "question": "One PostgreSQL `INSERT ... ON CONFLICT DO UPDATE` contains two rows with the same key. What happens?",
+      "options": [
+        "The last row wins quietly",
+        "The statement fails with 'cannot affect row a second time'",
+        "Both rows are stored",
+        "The first row wins"
+      ],
+      "answer": 1,
+      "explanation": "The database refuses to update a row it already touched in the same statement. Deduplicate the batch first, keeping the newest version per key."
+    },
+    {
+      "id": "c4",
+      "question": "What is the difference between `DO NOTHING` and `DO UPDATE` on a duplicate key?",
+      "options": [
+        "Only speed",
+        "`DO NOTHING` keeps the stored row and ignores the new values; `DO UPDATE` applies them",
+        "`DO UPDATE` raises an error",
+        "None"
+      ],
+      "answer": 1,
+      "explanation": "They have different meanings: DO NOTHING means changes are never applied. Use it only for append-only data."
+    },
+    {
+      "id": "c5",
+      "question": "Why is a guarded upsert safe to run twice with the same rows?",
+      "options": [
+        "The database remembers the rows",
+        "On the second run the incoming rows are no longer newer than the stored ones, so nothing changes",
+        "It deletes duplicates",
+        "It locks the table"
+      ],
+      "answer": 1,
+      "explanation": "The guard `EXCLUDED.updated_at > table.updated_at` is false for rows already applied, so the second run writes nothing."
+    }
+  ],
+  "id": "e126"
+}

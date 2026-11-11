@@ -35,6 +35,8 @@ export function SiteApp({ initial }: { initial: InitialPage }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => startActivityTracking(), []);
+  // Set once the app has hydrated: before this, server-rendered buttons are visible but not yet interactive. Used by the browser tests.
+  useEffect(() => { document.documentElement.dataset.hydrated = "true"; }, []);
 
   useEffect(() => {
     if (location.pathname === page.path) return;

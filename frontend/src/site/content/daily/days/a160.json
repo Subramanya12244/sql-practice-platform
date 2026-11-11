@@ -1,0 +1,191 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-csv-json",
+      "etl-data-validation"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-clean-dataframe"
+    ],
+    "projects": [
+      "csv-to-postgres-etl",
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "postgresql-fundamentals"
+    ],
+    "patterns": []
+  },
+  "environment": {
+    "packages": [
+      "openpyxl",
+      "pandas"
+    ],
+    "note": "Example 4 builds and reads an .xlsx file with openpyxl, which the browser Python does not include. Install it with `pip install openpyxl pandas` and run the example in a local Python session; the browser shows it read-only with the verified output. All browser-run examples and graded exercises read CSV text with the same messy structure, and the cleaning code is identical once the data is in a DataFrame. A real PostgreSQL server is not available: the CREATE TABLE of Example 5 runs on the browser's PostgreSQL-compatible database, and the Python database code is not run."
+  },
+  "id": "a160",
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Skip the title rows",
+      "kind": "python",
+      "prompt": "The text `RAW` has a title row and a separator row before the header. Read it with `pd.read_csv(io.StringIO(RAW), ...)` so that the real header is used and every cell is kept as text. Print the list of column names, then the shape as `rows, columns`, for example `(4, 4)`.",
+      "starter": "import io\nimport pandas as pd\n\nRAW = \"\"\"Sales export - Q4\n,,,\nItem Code,Item Name ,Price (USD),Stock\nA1,Pen,\"1,250.00\",10\nA2,book,n/a,5\nA3,Lamp,$30.5,\nTotal,,\"1,280.50\",15\n\"\"\"\ndf = pd.read_csv(io.StringIO(RAW))\nprint(list(df.columns))\n",
+      "solution": "import io\nimport pandas as pd\n\nRAW = \"\"\"Sales export - Q4\n,,,\nItem Code,Item Name ,Price (USD),Stock\nA1,Pen,\"1,250.00\",10\nA2,book,n/a,5\nA3,Lamp,$30.5,\nTotal,,\"1,280.50\",15\n\"\"\"\ndf = pd.read_csv(io.StringIO(RAW), skiprows=2, dtype=str)\nprint(list(df.columns))\nprint(df.shape)\n",
+      "hints": [
+        "The header is on the third line, so two lines must be skipped.",
+        "Use skiprows=2 and dtype=str.",
+        "Print list(df.columns) and then df.shape."
+      ],
+      "expected": "['Item Code', 'Item Name ', 'Price (USD)', 'Stock']\n(4, 4)"
+    },
+    {
+      "id": "g2",
+      "title": "Clean the headers",
+      "kind": "python",
+      "prompt": "Write `clean_header(name)` that strips the name, lower-cases it and replaces every run of characters other than letters and digits by one underscore, with no underscore at either end. Apply it to `['Item Code', 'Item Name ', 'Price (USD)', 'Stock']` and print the resulting list.",
+      "starter": "import re\n\nheaders = ['Item Code', 'Item Name ', 'Price (USD)', 'Stock']\n",
+      "solution": "import re\n\nheaders = ['Item Code', 'Item Name ', 'Price (USD)', 'Stock']\n\ndef clean_header(name):\n    return re.sub(r'[^0-9a-z]+', '_', name.strip().lower()).strip('_')\n\nprint([clean_header(h) for h in headers])\n",
+      "hints": [
+        "Use re.sub on the stripped, lower-cased name.",
+        "The pattern [^0-9a-z]+ matches every run of other characters.",
+        "Remove leftover underscores at the ends with .strip('_')."
+      ],
+      "expected": "['item_code', 'item_name', 'price_usd', 'stock']"
+    },
+    {
+      "id": "g3",
+      "title": "Convert the prices",
+      "kind": "python",
+      "prompt": "Given the price texts `['1,250.00', 'n/a', '$30.5']`, build a Series, remove every character that is not a digit, a point or a minus sign with `str.replace`, convert with `pd.to_numeric(..., errors='coerce')`, and print the numbers as a list and then the count of missing values as `missing: 1`. (Print the list with `.tolist()`.)",
+      "starter": "import pandas as pd\n\nprices = pd.Series(['1,250.00', 'n/a', '$30.5'])\n",
+      "solution": "import pandas as pd\n\nprices = pd.Series(['1,250.00', 'n/a', '$30.5'])\nnums = pd.to_numeric(prices.str.replace(r'[^0-9.\\-]', '', regex=True), errors='coerce')\nprint(nums.tolist())\nprint('missing:', int(nums.isna().sum()))\n",
+      "hints": [
+        "str.replace with regex=True removes the unwanted characters.",
+        "The pattern r'[^0-9.\\-]' and an empty replacement keep digits, point and minus.",
+        "pd.to_numeric(..., errors='coerce'), then nums.isna().sum()."
+      ],
+      "expected": "[1250.0, nan, 30.5]\nmissing: 1"
+    },
+    {
+      "id": "g4",
+      "title": "Fill the merged cells",
+      "kind": "python",
+      "prompt": "A Series `region` holds `['North', None, None, 'South', None]` (merged cells left blanks). Fill each blank with the last value above it and print the result as a list. Then print how many values were filled, as `filled: 3`.",
+      "starter": "import pandas as pd\n\nregion = pd.Series(['North', None, None, 'South', None])\n",
+      "solution": "import pandas as pd\n\nregion = pd.Series(['North', None, None, 'South', None])\nfilled = region.ffill()\nprint(filled.tolist())\nprint('filled:', int(region.isna().sum() - filled.isna().sum()))\n",
+      "hints": [
+        "Series.ffill() copies the last value downwards.",
+        "Count the missing values before and after.",
+        "filled = region.isna().sum() - filled_series.isna().sum()"
+      ],
+      "expected": "['North', 'North', 'North', 'South', 'South']\nfilled: 3"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Load_clean for the export",
+      "kind": "python",
+      "prompt": "Using the text `RAW` below (a title row, a separator row, a header, three items and a totals line), write `load_clean(text)` that returns a DataFrame with snake_case headers (strip, lower-case, runs of other characters become `_`), without the totals line, with `price_usd` converted to numbers (characters other than digits, point and minus removed, unconvertible values missing) and `stock` converted to numbers with `pd.to_numeric(errors='coerce')`, and `item_name` stripped and title-cased. Print the DataFrame with `to_string(index=False)`, then `missing: {...}` as a dict of columns with at least one missing value and the number missing, then the sum of `price_usd` compared with the total from the sheet (the number in the Total row as a float): `matches: True`.",
+      "starter": "import io\nimport re\nimport pandas as pd\n\nRAW = \"\"\"Sales export - Q4\n,,,\nItem Code,Item Name ,Price (USD),Stock\nA1,Pen,\"1,250.00\",10\nA2,book,n/a,5\nA3,Lamp,$30.5,\nTotal,,\"1,280.50\",15\n\"\"\"\n\ndef load_clean(text):\n    pass\n",
+      "solution": "import io\nimport re\nimport pandas as pd\n\nRAW = \"\"\"Sales export - Q4\n,,,\nItem Code,Item Name ,Price (USD),Stock\nA1,Pen,\"1,250.00\",10\nA2,book,n/a,5\nA3,Lamp,$30.5,\nTotal,,\"1,280.50\",15\n\"\"\"\n\ndef load_clean(text):\n    df = pd.read_csv(io.StringIO(text), skiprows=2, dtype=str)\n    df.columns = [re.sub(r'[^0-9a-z]+', '_', c.strip().lower()).strip('_') for c in df.columns]\n    total = float(df.loc[df['item_code'] == 'Total', 'price_usd'].iloc[0].replace(',', ''))\n    df = df[df['item_code'] != 'Total'].copy()\n    df['item_name'] = df['item_name'].str.strip().str.title()\n    df['price_usd'] = pd.to_numeric(df['price_usd'].str.replace(r'[^0-9.\\-]', '', regex=True), errors='coerce')\n    df['stock'] = pd.to_numeric(df['stock'], errors='coerce')\n    return df, total\n\ndf, total = load_clean(RAW)\nprint(df.to_string(index=False))\nprint('missing:', {k: int(v) for k, v in df.isna().sum().items() if v})\nprint('matches:', round(float(df['price_usd'].sum()), 2) == total)\n",
+      "expected": "item_code item_name  price_usd  stock\n       A1       Pen     1250.0   10.0\n       A2      Book        NaN    5.0\n       A3      Lamp       30.5    NaN\nmissing: {'price_usd': 1, 'stock': 1}\nmatches: True"
+    },
+    {
+      "id": "i2",
+      "title": "Describe the target table",
+      "kind": "sql",
+      "prompt": "On the browser database, create a table `xl_items` (drop it first if it exists) with `item_code text PRIMARY KEY`, `item_name text NOT NULL`, `price_usd numeric(10,2) CHECK (price_usd >= 0)` and `stock integer`. Insert `('A1', 'Pen', 1250.00, 10)` and `('A3', 'Lamp', 30.5, NULL)`. Then return `column_name` and `data_type` from `information_schema.columns` for `xl_items`, ordered by `ordinal_position`.",
+      "starter": "SELECT table_name\nFROM information_schema.tables\nWHERE table_name = 'xl_items';\n",
+      "solution": "DROP TABLE IF EXISTS xl_items;\nCREATE TABLE xl_items (\n    item_code text PRIMARY KEY,\n    item_name text NOT NULL,\n    price_usd numeric(10,2) CHECK (price_usd >= 0),\n    stock integer\n);\nINSERT INTO xl_items VALUES ('A1', 'Pen', 1250.00, 10), ('A3', 'Lamp', 30.5, NULL);\nSELECT column_name, data_type\nFROM information_schema.columns\nWHERE table_name = 'xl_items'\nORDER BY ordinal_position;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "A cleaning plan for a new workbook",
+      "kind": "written",
+      "prompt": "You receive a workbook with two sheets (`Orders` and `Notes`), headers on row 4, dates typed as text in two formats, a region merged over groups of rows, and a totals row. In 5 to 8 sentences, describe how you would read and clean it in code, which checks you would run before loading it into PostgreSQL, and which table constraints you would add.",
+      "starter": "Write your answer here.",
+      "solution": "I would read only the Orders sheet with pd.read_excel and sheet_name set, header=3 for the fourth row, and dtype=str so that nothing is guessed. A header-cleaning function would give snake_case names and raise an error on collisions. I would convert the dates with explicit formats, one per known format, and count the rows that match neither, reporting them instead of guessing. The merged region would be forward-filled after confirming with the file owner that blank means same as above. I would take the value from the totals row, drop the row, and after cleaning compare the sum of the amounts with it. Before loading I would check duplicate keys, NOT NULL columns, allowed values and negative amounts with a function that returns a list of problems. The target table would use integer or text keys with PRIMARY KEY, date for dates, numeric(12,2) for money, NOT NULL on required columns and CHECK constraints for the allowed status values and for non-negative amounts.",
+      "required": false,
+      "rubric": [
+        "Reads one sheet with the right header row and reads as text first",
+        "Handles dates with explicit formats and reports failures",
+        "Uses the totals row as a check and removes it",
+        "Names target types and constraints (PRIMARY KEY, NOT NULL, CHECK, numeric for money)"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A column of identifiers such as `00123` is read with `pd.read_csv(...)` and no `dtype`. What is the most likely result?",
+      "options": [
+        "The identifiers become integers and lose their leading zeros",
+        "The identifiers stay as text exactly",
+        "pandas raises an error",
+        "The identifiers become floats with a .0"
+      ],
+      "answer": 0,
+      "explanation": "pandas guesses a numeric type when every value looks like a number, so 00123 becomes 123. Reading with dtype=str keeps the text, and you convert deliberately where you want numbers."
+    },
+    {
+      "id": "c2",
+      "question": "What does `pd.to_numeric(pd.Series(['5', 'x']), errors='coerce').tolist()` return?",
+      "options": [
+        "[5.0, nan]",
+        "[5, 'x']",
+        "It raises ValueError",
+        "[5.0, 0.0]"
+      ],
+      "answer": 0,
+      "explanation": "errors='coerce' turns values that cannot be converted into NaN, and the column becomes float. Zero would hide the problem; the default errors='raise' would raise the error."
+    },
+    {
+      "id": "c3",
+      "question": "Why is `format='%Y-%m-%d'` given to `pd.to_datetime` for a column of dates from an export?",
+      "options": [
+        "So that rows in another format become NaT and can be reported instead of being guessed",
+        "Because to_datetime cannot read dates without it",
+        "To make the conversion faster only",
+        "To change the time zone"
+      ],
+      "answer": 0,
+      "explanation": "Without a stated format an ambiguous text such as 05/02/2025 can be read as 5 February or 2 May. With a format, rows that do not match become NaT, which you can count and send back to the file's owner."
+    },
+    {
+      "id": "c4",
+      "question": "Merged cells in an Excel sheet read with pandas show up as:",
+      "options": [
+        "The value on the first row and missing values on the other rows of the group",
+        "The value repeated on every row",
+        "An error when reading",
+        "A single combined row"
+      ],
+      "answer": 0,
+      "explanation": "Only the top-left cell of a merged range holds the value. The rest are empty, so a forward fill is needed, and only where blank truly means same as above."
+    },
+    {
+      "id": "c5",
+      "question": "Why use `numeric(12,2)` and not `float` for an amount column in the target table?",
+      "options": [
+        "numeric stores decimal values exactly, float can show errors like 0.30000000000000004",
+        "float cannot store negative numbers",
+        "numeric is always smaller on disk",
+        "float is not a PostgreSQL type"
+      ],
+      "answer": 0,
+      "explanation": "Floating point stores binary approximations of decimal fractions, so sums can differ from the exact decimal result in the last digits. numeric(12,2) is exact with two decimals, which is what money needs."
+    }
+  ]
+}

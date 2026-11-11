@@ -1,0 +1,187 @@
+{
+  "id": "d062",
+  "time": {
+    "theory": 30,
+    "examples": 20,
+    "guided": 25,
+    "independent": 40,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-exceptions",
+      "python-file-handling",
+      "python-modules-packages"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "validate-transactions"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Pass the parametrised table",
+      "kind": "python",
+      "prompt": "pytest's `parametrize` runs one test per row of a table. The browser cannot run pytest, so `run_cases` does the same job: it calls `test_cost` once per case and prints `PASS` or `FAIL` with the case. Implement `shipping_cost(weight)` so that every case passes: 5 up to and including 1, 8 above 1 up to and including 5, 12 above 5.",
+      "starter": "def run_cases(test, cases):\n    \"\"\"Mini stand-in for @pytest.mark.parametrize: run test once per case tuple.\"\"\"\n    for case in cases:\n        try:\n            test(*case)\n            print(\"PASS\", test.__name__, case)\n        except AssertionError:\n            print(\"FAIL\", test.__name__, case)\n        except Exception as error:\n            print(\"ERROR\", test.__name__, case, type(error).__name__)\n\n\ndef raises(exc_type, func, *args):\n    \"\"\"True when func(*args) raises exc_type (a tiny stand-in for pytest.raises).\"\"\"\n    try:\n        func(*args)\n    except exc_type:\n        return True\n    except Exception:\n        return False\n    return False\n\n\ndef approx(a, b):\n    return abs(a - b) < 1e-9\n\ndef shipping_cost(weight):\n    pass  # your code here\n\ndef test_cost(weight, expected):\n    assert shipping_cost(weight) == expected\n\nCASES = [(0.5, 5), (1, 5), (1.01, 8), (5, 8), (5.01, 12)]\nrun_cases(test_cost, CASES)\n",
+      "solution": "def run_cases(test, cases):\n    \"\"\"Mini stand-in for @pytest.mark.parametrize: run test once per case tuple.\"\"\"\n    for case in cases:\n        try:\n            test(*case)\n            print(\"PASS\", test.__name__, case)\n        except AssertionError:\n            print(\"FAIL\", test.__name__, case)\n        except Exception as error:\n            print(\"ERROR\", test.__name__, case, type(error).__name__)\n\n\ndef raises(exc_type, func, *args):\n    \"\"\"True when func(*args) raises exc_type (a tiny stand-in for pytest.raises).\"\"\"\n    try:\n        func(*args)\n    except exc_type:\n        return True\n    except Exception:\n        return False\n    return False\n\n\ndef approx(a, b):\n    return abs(a - b) < 1e-9\n\ndef shipping_cost(weight):\n    if weight <= 1:\n        return 5\n    if weight <= 5:\n        return 8\n    return 12\n\ndef test_cost(weight, expected):\n    assert shipping_cost(weight) == expected\n\nCASES = [(0.5, 5), (1, 5), (1.01, 8), (5, 8), (5.01, 12)]\nrun_cases(test_cost, CASES)\n",
+      "hints": [
+        "The cases include the boundaries 1 and 5. Decide whether they belong to the lower or the upper band.",
+        "Check the smallest band first with <= 1, then <= 5, then return 12.",
+        "if weight <= 1: return 5; if weight <= 5: return 8; return 12"
+      ],
+      "expected": "PASS test_cost (0.5, 5)\nPASS test_cost (1, 5)\nPASS test_cost (1.01, 8)\nPASS test_cost (5, 8)\nPASS test_cost (5.01, 12)"
+    },
+    {
+      "id": "g2",
+      "title": "A fixture-style helper",
+      "kind": "python",
+      "prompt": "A fixture is a function that builds the data for a test. Implement `sample_orders()` so that it returns a new list with these three dictionaries: `{\"id\": 1, \"total\": 30}`, `{\"id\": 2, \"total\": 0}`, `{\"id\": 3, \"total\": 45}`. The two tests then print PASS; each test calls `sample_orders()` itself, so the second test is not affected by what the first does to its copy.",
+      "starter": "def run_cases(test, cases):\n    \"\"\"Mini stand-in for @pytest.mark.parametrize: run test once per case tuple.\"\"\"\n    for case in cases:\n        try:\n            test(*case)\n            print(\"PASS\", test.__name__, case)\n        except AssertionError:\n            print(\"FAIL\", test.__name__, case)\n        except Exception as error:\n            print(\"ERROR\", test.__name__, case, type(error).__name__)\n\n\ndef raises(exc_type, func, *args):\n    \"\"\"True when func(*args) raises exc_type (a tiny stand-in for pytest.raises).\"\"\"\n    try:\n        func(*args)\n    except exc_type:\n        return True\n    except Exception:\n        return False\n    return False\n\n\ndef approx(a, b):\n    return abs(a - b) < 1e-9\n\ndef sample_orders():\n    pass  # your code here\n\n\ndef count_paid(orders):\n    return len([o for o in orders if o[\"total\"] > 0])\n\n\ndef test_two_orders_are_paid():\n    orders = sample_orders()\n    assert count_paid(orders) == 2\n\ndef test_fresh_copy_each_time():\n    orders = sample_orders()\n    orders.append({\"id\": 4, \"total\": 10})\n    fresh = sample_orders()\n    assert len(fresh) == 3\n\nfor test in (test_two_orders_are_paid, test_fresh_copy_each_time):\n    try:\n        test()\n        print(\"PASS\", test.__name__)\n    except Exception:\n        print(\"FAIL\", test.__name__)\n",
+      "solution": "def run_cases(test, cases):\n    \"\"\"Mini stand-in for @pytest.mark.parametrize: run test once per case tuple.\"\"\"\n    for case in cases:\n        try:\n            test(*case)\n            print(\"PASS\", test.__name__, case)\n        except AssertionError:\n            print(\"FAIL\", test.__name__, case)\n        except Exception as error:\n            print(\"ERROR\", test.__name__, case, type(error).__name__)\n\n\ndef raises(exc_type, func, *args):\n    \"\"\"True when func(*args) raises exc_type (a tiny stand-in for pytest.raises).\"\"\"\n    try:\n        func(*args)\n    except exc_type:\n        return True\n    except Exception:\n        return False\n    return False\n\n\ndef approx(a, b):\n    return abs(a - b) < 1e-9\n\ndef sample_orders():\n    return [{\"id\": 1, \"total\": 30}, {\"id\": 2, \"total\": 0}, {\"id\": 3, \"total\": 45}]\n\n\ndef count_paid(orders):\n    return len([o for o in orders if o[\"total\"] > 0])\n\n\ndef test_two_orders_are_paid():\n    orders = sample_orders()\n    assert count_paid(orders) == 2\n\ndef test_fresh_copy_each_time():\n    orders = sample_orders()\n    orders.append({\"id\": 4, \"total\": 10})\n    fresh = sample_orders()\n    assert len(fresh) == 3\n\nfor test in (test_two_orders_are_paid, test_fresh_copy_each_time):\n    try:\n        test()\n        print(\"PASS\", test.__name__)\n    except Exception:\n        print(\"FAIL\", test.__name__)\n",
+      "hints": [
+        "The function must build the list inside its body, so every call returns a new list.",
+        "Return a list literal containing the three dictionaries; do not store the list at module level.",
+        "return [{\"id\": 1, \"total\": 30}, {\"id\": 2, \"total\": 0}, {\"id\": 3, \"total\": 45}]"
+      ],
+      "expected": "PASS test_two_orders_are_paid\nPASS test_fresh_copy_each_time"
+    },
+    {
+      "id": "g3",
+      "title": "Replace the network with a Mock",
+      "kind": "python",
+      "prompt": "`price_in_eur(amount_usd, fetch_rate)` must call `fetch_rate(\"USD\")` once, multiply the amount by the returned rate and return the result rounded to 2 decimals. The test passes a `Mock` as `fetch_rate`, so no network is needed. Implement the function; the program must print `12.5`, then `True`.",
+      "starter": "from unittest.mock import Mock\n\ndef price_in_eur(amount_usd, fetch_rate):\n    pass  # your code here\n\nfake_rate = Mock(return_value=1.25)\nprint(price_in_eur(10, fake_rate))\nprint(fake_rate.call_count == 1 and fake_rate.call_args.args == (\"USD\",))\n",
+      "solution": "from unittest.mock import Mock\n\ndef price_in_eur(amount_usd, fetch_rate):\n    rate = fetch_rate(\"USD\")\n    return round(amount_usd * rate, 2)\n\nfake_rate = Mock(return_value=1.25)\nprint(price_in_eur(10, fake_rate))\nprint(fake_rate.call_count == 1 and fake_rate.call_args.args == (\"USD\",))\n",
+      "hints": [
+        "The function receives the rate-fetching function as an argument, so the test can pass a fake.",
+        "Call fetch_rate(\"USD\") exactly once and store the result in a variable.",
+        "rate = fetch_rate(\"USD\"); return round(amount_usd * rate, 2)"
+      ],
+      "expected": "12.5\nTrue"
+    },
+    {
+      "id": "g4",
+      "title": "A file test in a temporary folder",
+      "kind": "python",
+      "prompt": "Implement `save_names(path, names)`: write one name per line to the file at `path` (a `pathlib.Path`), with a newline after each name. The test uses a temporary folder (`tempfile.TemporaryDirectory`, the standard-library cousin of `tmp_path`), writes through your function and reads the file back. It must print `['ana', 'bo']` and then `2`.",
+      "starter": "import tempfile\nfrom pathlib import Path\n\ndef save_names(path, names):\n    pass  # your code here\n\nwith tempfile.TemporaryDirectory() as folder:\n    target = Path(folder) / \"names.txt\"\n    save_names(target, [\"ana\", \"bo\"])\n    lines = target.read_text().splitlines()\n    print(lines)\n    print(len(lines))\n",
+      "solution": "import tempfile\nfrom pathlib import Path\n\ndef save_names(path, names):\n    path.write_text(\"\".join(name + \"\\n\" for name in names))\n\nwith tempfile.TemporaryDirectory() as folder:\n    target = Path(folder) / \"names.txt\"\n    save_names(target, [\"ana\", \"bo\"])\n    lines = target.read_text().splitlines()\n    print(lines)\n    print(len(lines))\n",
+      "hints": [
+        "A Path object has a write_text method that writes a whole string.",
+        "Build one string with a newline after each name, then write it.",
+        "path.write_text(\"\".join(name + \"\\n\" for name in names))"
+      ],
+      "expected": "['ana', 'bo']\n2"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Edge-case table for classify",
+      "kind": "python",
+      "prompt": "Implement `classify(temp_c)`: `\"freezing\"` below 0, `\"cold\"` from 0 up to but not including 15, `\"warm\"` from 15 up to but not including 25, `\"hot\"` from 25 upwards. Text and `None` must raise `TypeError`. All eleven cases (typical values and both sides of every boundary) must print `PASS`.",
+      "starter": "def run_cases(test, cases):\n    \"\"\"Mini stand-in for @pytest.mark.parametrize: run test once per case tuple.\"\"\"\n    for case in cases:\n        try:\n            test(*case)\n            print(\"PASS\", test.__name__, case)\n        except AssertionError:\n            print(\"FAIL\", test.__name__, case)\n        except Exception as error:\n            print(\"ERROR\", test.__name__, case, type(error).__name__)\n\n\ndef raises(exc_type, func, *args):\n    \"\"\"True when func(*args) raises exc_type (a tiny stand-in for pytest.raises).\"\"\"\n    try:\n        func(*args)\n    except exc_type:\n        return True\n    except Exception:\n        return False\n    return False\n\n\ndef approx(a, b):\n    return abs(a - b) < 1e-9\n\ndef classify(temp_c):\n    pass  # your code here\n\n\ndef test_classify(temp, expected):\n    assert classify(temp) == expected\n\ndef test_type_error(value):\n    assert raises(TypeError, classify, value)\n\nrun_cases(test_classify, [(-10, \"freezing\"), (-0.1, \"freezing\"), (0, \"cold\"), (14.9, \"cold\"), (15, \"warm\"),\n                          (24.9, \"warm\"), (25, \"hot\"), (40, \"hot\")])\nrun_cases(test_type_error, [(\"abc\",), (None,), (\"20\",)])\n",
+      "solution": "def run_cases(test, cases):\n    \"\"\"Mini stand-in for @pytest.mark.parametrize: run test once per case tuple.\"\"\"\n    for case in cases:\n        try:\n            test(*case)\n            print(\"PASS\", test.__name__, case)\n        except AssertionError:\n            print(\"FAIL\", test.__name__, case)\n        except Exception as error:\n            print(\"ERROR\", test.__name__, case, type(error).__name__)\n\n\ndef raises(exc_type, func, *args):\n    \"\"\"True when func(*args) raises exc_type (a tiny stand-in for pytest.raises).\"\"\"\n    try:\n        func(*args)\n    except exc_type:\n        return True\n    except Exception:\n        return False\n    return False\n\n\ndef approx(a, b):\n    return abs(a - b) < 1e-9\n\ndef classify(temp_c):\n    if isinstance(temp_c, bool) or not isinstance(temp_c, (int, float)):\n        raise TypeError(\"temperature must be a number\")\n    if temp_c < 0:\n        return \"freezing\"\n    if temp_c < 15:\n        return \"cold\"\n    if temp_c < 25:\n        return \"warm\"\n    return \"hot\"\n\n\ndef test_classify(temp, expected):\n    assert classify(temp) == expected\n\ndef test_type_error(value):\n    assert raises(TypeError, classify, value)\n\nrun_cases(test_classify, [(-10, \"freezing\"), (-0.1, \"freezing\"), (0, \"cold\"), (14.9, \"cold\"), (15, \"warm\"),\n                          (24.9, \"warm\"), (25, \"hot\"), (40, \"hot\")])\nrun_cases(test_type_error, [(\"abc\",), (None,), (\"20\",)])\n",
+      "expected": "PASS test_classify (-10, 'freezing')\nPASS test_classify (-0.1, 'freezing')\nPASS test_classify (0, 'cold')\nPASS test_classify (14.9, 'cold')\nPASS test_classify (15, 'warm')\nPASS test_classify (24.9, 'warm')\nPASS test_classify (25, 'hot')\nPASS test_classify (40, 'hot')\nPASS test_type_error ('abc',)\nPASS test_type_error (None,)\nPASS test_type_error ('20',)"
+    },
+    {
+      "id": "i2",
+      "title": "Parse amounts, with approximate comparison",
+      "kind": "python",
+      "prompt": "Implement `parse_amount(text)`: strip whitespace, remove a leading `$` and any thousands commas, and return the number as a float (a leading minus sign is allowed). Raise `ValueError` for an empty or non-numeric string. Every case of both tables must print `PASS`. The helper `approx` compares floats with a tolerance, like `pytest.approx`.",
+      "starter": "def run_cases(test, cases):\n    \"\"\"Mini stand-in for @pytest.mark.parametrize: run test once per case tuple.\"\"\"\n    for case in cases:\n        try:\n            test(*case)\n            print(\"PASS\", test.__name__, case)\n        except AssertionError:\n            print(\"FAIL\", test.__name__, case)\n        except Exception as error:\n            print(\"ERROR\", test.__name__, case, type(error).__name__)\n\n\ndef raises(exc_type, func, *args):\n    \"\"\"True when func(*args) raises exc_type (a tiny stand-in for pytest.raises).\"\"\"\n    try:\n        func(*args)\n    except exc_type:\n        return True\n    except Exception:\n        return False\n    return False\n\n\ndef approx(a, b):\n    return abs(a - b) < 1e-9\n\ndef parse_amount(text):\n    pass  # your code here\n\n\ndef test_parse(text, expected):\n    assert approx(parse_amount(text), expected)\n\ndef test_rejects(text):\n    assert raises(ValueError, parse_amount, text)\n\nrun_cases(test_parse, [(\"12\", 12.0), (\"$1,234.50\", 1234.5), (\"  7.25 \", 7.25), (\"-3\", -3.0), (\"$0.10\", 0.1)])\nrun_cases(test_rejects, [(\"\",), (\"abc\",), (\"   \",), (\"$\",)])\n",
+      "solution": "def run_cases(test, cases):\n    \"\"\"Mini stand-in for @pytest.mark.parametrize: run test once per case tuple.\"\"\"\n    for case in cases:\n        try:\n            test(*case)\n            print(\"PASS\", test.__name__, case)\n        except AssertionError:\n            print(\"FAIL\", test.__name__, case)\n        except Exception as error:\n            print(\"ERROR\", test.__name__, case, type(error).__name__)\n\n\ndef raises(exc_type, func, *args):\n    \"\"\"True when func(*args) raises exc_type (a tiny stand-in for pytest.raises).\"\"\"\n    try:\n        func(*args)\n    except exc_type:\n        return True\n    except Exception:\n        return False\n    return False\n\n\ndef approx(a, b):\n    return abs(a - b) < 1e-9\n\ndef parse_amount(text):\n    cleaned = text.strip()\n    if cleaned.startswith(\"$\"):\n        cleaned = cleaned[1:]\n    cleaned = cleaned.replace(\",\", \"\")\n    if not cleaned:\n        raise ValueError(\"empty amount\")\n    return float(cleaned)\n\n\ndef test_parse(text, expected):\n    assert approx(parse_amount(text), expected)\n\ndef test_rejects(text):\n    assert raises(ValueError, parse_amount, text)\n\nrun_cases(test_parse, [(\"12\", 12.0), (\"$1,234.50\", 1234.5), (\"  7.25 \", 7.25), (\"-3\", -3.0), (\"$0.10\", 0.1)])\nrun_cases(test_rejects, [(\"\",), (\"abc\",), (\"   \",), (\"$\",)])\n",
+      "expected": "PASS test_parse ('12', 12.0)\nPASS test_parse ('$1,234.50', 1234.5)\nPASS test_parse ('  7.25 ', 7.25)\nPASS test_parse ('-3', -3.0)\nPASS test_parse ('$0.10', 0.1)\nPASS test_rejects ('',)\nPASS test_rejects ('abc',)\nPASS test_rejects ('   ',)\nPASS test_rejects ('$',)"
+    },
+    {
+      "id": "i3",
+      "title": "Plan the tests for a loader (stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A function `load_orders(url, db_path)` downloads a CSV from a web address, drops rows with a missing order id, converts amounts to numbers and inserts the rows into a SQLite database. Plan its pytest suite on your own computer: say what you would mock, which fixtures you would write, which tests you would parametrise, and which cases you would not test.",
+      "starter": "Boundaries to mock, fixtures, parametrised tables, what to leave out, and why.",
+      "solution": "Mock only the boundary that is slow or uncontrolled: the download. Pass the function a fake fetcher or use `monkeypatch.setattr` on the download call so it returns a small CSV string, and never call the real URL. Use `tmp_path` for the database file, so each test gets a clean SQLite file and nothing is left behind (or an in-memory database through a fixture with `yield` that closes the connection). A fixture `sample_csv` returns the standard text; a second fixture `db_path` builds the path in `tmp_path`. Parametrise the cleaning table: rows with a missing id, an empty amount, an amount with a currency symbol, thousands separators and a negative amount, each with the expected stored value, using `pytest.approx` for floats. Add one test per error path (the download failing raises, an empty file inserts nothing) with `pytest.raises` or a count check. Assert on behaviour: the rows read back from the database, and not how many times an internal helper was called. Do not test that SQLite or the csv module work, and do not mock your own cleaning functions, because then the tests would pass while the real code is broken.",
+      "rubric": [
+        "Mocks or monkeypatches the download only, and does not call a real URL",
+        "Uses tmp_path (or a yield fixture with cleanup) for the database",
+        "Parametrises a table of cleaning edge cases and uses approx for floats",
+        "Asserts on stored results, and states what is deliberately not tested"
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "pytest"
+    ],
+    "note": "The bash examples need pytest on your own computer (pip install pytest in a virtual environment) and are shown read-only in the browser, with output captured from real runs; the ones that print test names filter the output with grep because the header lines of -v differ between pytest versions. Run them in an empty folder. The graded exercises use small stand-ins for parametrize, fixtures and pytest.raises that run in the browser, and use the standard library's Mock and tempfile; write the pytest versions locally to compare."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A test function has the parameter `cart`. How does pytest provide it?",
+      "options": [
+        "It reads a global variable named cart",
+        "It looks for a fixture named cart and passes its value",
+        "It asks the user",
+        "It creates an empty object"
+      ],
+      "answer": 1,
+      "explanation": "pytest matches parameter names to fixtures (in the file, in conftest.py or built in) and calls them. A missing fixture is an error: fixture 'cart' not found."
+    },
+    {
+      "id": "c2",
+      "question": "What is the effect of `scope=\"module\"` on a fixture that returns a list the tests append to?",
+      "options": [
+        "Each test gets its own list",
+        "One list is shared by all tests of the file, so one test can change what the next sees",
+        "The list is deleted before the first test",
+        "Nothing; scope only affects teardown"
+      ],
+      "answer": 1,
+      "explanation": "A module-scoped fixture is created once per file. If tests modify a mutable value, they influence each other. Use the default function scope for mutable data."
+    },
+    {
+      "id": "c3",
+      "question": "What does this produce? `@pytest.mark.parametrize(\"x\", [1, 2, 3])` on `test_f(x)`",
+      "options": [
+        "One test that loops over 1, 2, 3",
+        "Three separate tests, each reported on its own",
+        "A fixture named x",
+        "An error, because parametrize needs two arguments"
+      ],
+      "answer": 1,
+      "explanation": "Each value gives its own test case with its own pass or fail result, such as test_f[1], test_f[2] and test_f[3]. A failing case therefore names the exact input."
+    },
+    {
+      "id": "c4",
+      "question": "Which of these is the best candidate for a mock?",
+      "options": [
+        "A pure function that adds two numbers",
+        "The call to a remote web API",
+        "A list comprehension",
+        "The function you are testing"
+      ],
+      "answer": 1,
+      "explanation": "Mocks belong at the boundaries you do not control or that are slow and change between runs: the network, the clock, randomness. Mocking pure logic or the function under test makes the test prove nothing."
+    },
+    {
+      "id": "c5",
+      "question": "Why compare `0.1 + 0.2` with `pytest.approx(0.3)` and not `== 0.3`?",
+      "options": [
+        "approx is faster",
+        "Floating-point results carry tiny rounding errors, and approx allows a small tolerance",
+        "== is not allowed in tests",
+        "approx converts the value to an integer"
+      ],
+      "answer": 1,
+      "explanation": "0.1 + 0.2 is 0.30000000000000004, so the exact comparison fails. pytest.approx checks closeness within a relative tolerance."
+    }
+  ]
+}

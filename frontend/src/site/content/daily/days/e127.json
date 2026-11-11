@@ -1,0 +1,184 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-change-data-capture",
+      "etl-incremental-load",
+      "etl-idempotency"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "incremental-loading"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "latest-record-per-group"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Classify the changes",
+      "kind": "python",
+      "prompt": "Write `diff(old, new)` for two dicts mapping `order_id` to a status. Return a dict `{\"inserts\": [...], \"updates\": [...], \"deletes\": [...]}` of sorted key lists. Print the three lists on separate lines for the starter data in the order inserts, updates, deletes. Expected output: `[4]`, `[2]`, `[3]`.",
+      "starter": "def diff(old, new):\n    pass\n\nold = {1: \"paid\", 2: \"created\", 3: \"paid\"}\nnew = {1: \"paid\", 2: \"refunded\", 4: \"paid\"}\nresult = diff(old, new)\nprint(result[\"inserts\"])\nprint(result[\"updates\"])\nprint(result[\"deletes\"])\n",
+      "solution": "def diff(old, new):\n    return {\n        \"inserts\": sorted(k for k in new if k not in old),\n        \"updates\": sorted(k for k in new if k in old and new[k] != old[k]),\n        \"deletes\": sorted(k for k in old if k not in new),\n    }\n\nold = {1: \"paid\", 2: \"created\", 3: \"paid\"}\nnew = {1: \"paid\", 2: \"refunded\", 4: \"paid\"}\nresult = diff(old, new)\nprint(result[\"inserts\"])\nprint(result[\"updates\"])\nprint(result[\"deletes\"])\n",
+      "hints": [
+        "Compare the key sets first: new minus old, old minus new, and the keys in both.",
+        "Updates are the keys in both whose values differ.",
+        "Three comprehensions: `k not in old`, `k in old and new[k] != old[k]`, `k not in new`; sort each."
+      ],
+      "expected": "[4]\n[2]\n[3]"
+    },
+    {
+      "id": "g2",
+      "title": "Latest event per key",
+      "kind": "python",
+      "prompt": "Write `latest(events)` for tuples `(seq, op, key)` returning a dict `key -> op` of the operation of the event with the highest `seq` per key. Print `sorted(latest(events).items())` for the starter events. Expected output: `[(1, 'U'), (2, 'D'), (3, 'I')]`.",
+      "starter": "def latest(events):\n    pass\n\nevents = [(1, \"I\", 1), (2, \"I\", 2), (3, \"U\", 1), (4, \"D\", 2), (5, \"I\", 3)]\nprint(sorted(latest(events).items()))\n",
+      "solution": "def latest(events):\n    result = {}\n    for seq, op, key in sorted(events):\n        result[key] = op\n    return result\n\nevents = [(1, \"I\", 1), (2, \"I\", 2), (3, \"U\", 1), (4, \"D\", 2), (5, \"I\", 3)]\nprint(sorted(latest(events).items()))\n",
+      "hints": [
+        "Process the events in sequence order so later ones overwrite earlier ones.",
+        "`sorted(events)` orders by the first element, `seq`.",
+        "`for seq, op, key in sorted(events): result[key] = op`"
+      ],
+      "expected": "[(1, 'U'), (2, 'D'), (3, 'I')]"
+    },
+    {
+      "id": "g3",
+      "title": "Apply deletes",
+      "kind": "python",
+      "prompt": "The dict `target` holds order ids mapped to a status. Write `apply(target, events)` for events `(seq, op, key, status)` in the given order: `I` and `U` set `target[key] = status`, `D` removes the key if present (no error when it is missing). Print `sorted(target.items())` after applying the starter events. Expected output: `[(2, 'refunded'), (4, 'paid')]`.",
+      "starter": "def apply(target, events):\n    pass\n\ntarget = {1: \"paid\", 2: \"created\"}\nevents = [(1, \"U\", 2, \"refunded\"), (2, \"D\", 1, None), (3, \"I\", 4, \"paid\"), (4, \"D\", 9, None)]\napply(target, events)\nprint(sorted(target.items()))\n",
+      "solution": "def apply(target, events):\n    for seq, op, key, status in sorted(events):\n        if op == \"D\":\n            target.pop(key, None)\n        else:\n            target[key] = status\n\ntarget = {1: \"paid\", 2: \"created\"}\nevents = [(1, \"U\", 2, \"refunded\"), (2, \"D\", 1, None), (3, \"I\", 4, \"paid\"), (4, \"D\", 9, None)]\napply(target, events)\nprint(sorted(target.items()))\n",
+      "hints": [
+        "Branch on the operation: delete or set.",
+        "`target.pop(key, None)` removes a key without an error when it is missing.",
+        "`if op == \"D\": target.pop(key, None)` and `else: target[key] = status`."
+      ],
+      "expected": "[(2, 'refunded'), (4, 'paid')]"
+    },
+    {
+      "id": "g4",
+      "title": "Delete from a change feed in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the tables `orders_clean(order_id PRIMARY KEY, status)` and `deletes(order_id)` are created for you. Delete from `orders_clean` the orders listed in `deletes`, then return `order_id` and `status` of the remaining rows ordered by `order_id`.",
+      "starter": "CREATE TABLE orders_clean (order_id int PRIMARY KEY, status text);\nCREATE TABLE deletes (order_id int);\nINSERT INTO orders_clean VALUES (1, 'paid'), (2, 'refunded'), (3, 'paid'), (4, 'failed');\nINSERT INTO deletes VALUES (2), (4);\nSELECT order_id, status FROM orders_clean ORDER BY order_id;\n",
+      "solution": "CREATE TABLE orders_clean (order_id int PRIMARY KEY, status text);\nCREATE TABLE deletes (order_id int);\nINSERT INTO orders_clean VALUES (1, 'paid'), (2, 'refunded'), (3, 'paid'), (4, 'failed');\nINSERT INTO deletes VALUES (2), (4);\nDELETE FROM orders_clean WHERE order_id IN (SELECT order_id FROM deletes);\nSELECT order_id, status FROM orders_clean ORDER BY order_id;\n",
+      "hints": [
+        "The deleted keys come from another table.",
+        "`DELETE FROM orders_clean WHERE order_id IN (SELECT order_id FROM deletes);`",
+        "Finish with a select ordered by `order_id`."
+      ],
+      "ordered": true
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Apply a feed with a checkpoint",
+      "kind": "python",
+      "prompt": "Write `apply(conn, events)` for the starter tables: read `last_seq` from `etl_state`, take the events with a larger `seq` in order, apply `I`/`U` as `INSERT ... ON CONFLICT (order_id) DO UPDATE SET status = excluded.status` and `D` as `DELETE`, all inside `with conn:`, and set `last_seq` to the last applied `seq`; return the number applied. Call it with the first three events, with all five and with all five again. Print the three counts, then the table rows as a list and the checkpoint.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders_clean (order_id INTEGER PRIMARY KEY, status TEXT)\")\nconn.execute(\"CREATE TABLE etl_state (id INTEGER PRIMARY KEY CHECK (id = 1), last_seq INTEGER NOT NULL)\")\nconn.execute(\"INSERT INTO etl_state VALUES (1, 0)\")\nconn.commit()\nevents = [(1, \"I\", 1, \"paid\"), (2, \"I\", 2, \"created\"), (3, \"U\", 2, \"paid\"), (4, \"D\", 1, None), (5, \"I\", 3, \"failed\")]\n\ndef apply(conn, events):\n    return 0\n\nprint(apply(conn, events[:3]))\nprint(apply(conn, events))\nprint(apply(conn, events))\nprint(conn.execute(\"SELECT * FROM orders_clean ORDER BY order_id\").fetchall(), conn.execute(\"SELECT last_seq FROM etl_state\").fetchone()[0])\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders_clean (order_id INTEGER PRIMARY KEY, status TEXT)\")\nconn.execute(\"CREATE TABLE etl_state (id INTEGER PRIMARY KEY CHECK (id = 1), last_seq INTEGER NOT NULL)\")\nconn.execute(\"INSERT INTO etl_state VALUES (1, 0)\")\nconn.commit()\nevents = [(1, \"I\", 1, \"paid\"), (2, \"I\", 2, \"created\"), (3, \"U\", 2, \"paid\"), (4, \"D\", 1, None), (5, \"I\", 3, \"failed\")]\n\ndef apply(conn, events):\n    last = conn.execute(\"SELECT last_seq FROM etl_state\").fetchone()[0]\n    new = sorted(e for e in events if e[0] > last)\n    with conn:\n        for seq, op, key, status in new:\n            if op == \"D\":\n                conn.execute(\"DELETE FROM orders_clean WHERE order_id = ?\", (key,))\n            else:\n                conn.execute(\"INSERT INTO orders_clean VALUES (?, ?) ON CONFLICT (order_id) DO UPDATE SET status = excluded.status\", (key, status))\n        if new:\n            conn.execute(\"UPDATE etl_state SET last_seq = ?\", (new[-1][0],))\n    return len(new)\n\nprint(apply(conn, events[:3]))\nprint(apply(conn, events))\nprint(apply(conn, events))\nprint(conn.execute(\"SELECT * FROM orders_clean ORDER BY order_id\").fetchall(), conn.execute(\"SELECT last_seq FROM etl_state\").fetchone()[0])\n",
+      "expected": "3\n2\n0\n[(2, 'paid'), (3, 'failed')] 5"
+    },
+    {
+      "id": "i2",
+      "title": "Trigger-based capture",
+      "kind": "python",
+      "prompt": "Create the table `items(id INTEGER PRIMARY KEY, price INTEGER)` and the table `log(seq INTEGER PRIMARY KEY AUTOINCREMENT, op TEXT, id INTEGER, price INTEGER)` with `AFTER INSERT`, `AFTER UPDATE` and `AFTER DELETE` triggers on `items` (use `NEW`/`OLD`; the delete logs a NULL price). Insert item 1 at 10, update it to 12, insert item 2 at 7, delete item 1, then print each log row as a tuple, one per line. Expected output: four rows with sequence numbers 1 to 4.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.executescript(\"\"\"\nCREATE TABLE items (id INTEGER PRIMARY KEY, price INTEGER);\nCREATE TABLE log (seq INTEGER PRIMARY KEY AUTOINCREMENT, op TEXT, id INTEGER, price INTEGER);\nCREATE TRIGGER a_ins AFTER INSERT ON items BEGIN INSERT INTO log (op, id, price) VALUES ('I', NEW.id, NEW.price); END;\nCREATE TRIGGER a_upd AFTER UPDATE ON items BEGIN INSERT INTO log (op, id, price) VALUES ('U', NEW.id, NEW.price); END;\nCREATE TRIGGER a_del AFTER DELETE ON items BEGIN INSERT INTO log (op, id, price) VALUES ('D', OLD.id, NULL); END;\n\"\"\")\nconn.execute(\"INSERT INTO items VALUES (1, 10)\")\nconn.execute(\"UPDATE items SET price = 12 WHERE id = 1\")\nconn.execute(\"INSERT INTO items VALUES (2, 7)\")\nconn.execute(\"DELETE FROM items WHERE id = 1\")\nfor row in conn.execute(\"SELECT * FROM log ORDER BY seq\"):\n    print(row)\n",
+      "expected": "(1, 'I', 1, 10)\n(2, 'U', 1, 12)\n(3, 'I', 2, 7)\n(4, 'D', 1, None)"
+    },
+    {
+      "id": "i3",
+      "title": "Choose the capture method",
+      "kind": "written",
+      "prompt": "For each case choose watermark, snapshot comparison, soft delete or log-based CDC and give the reason and the main risk: (a) a 2,000-row product table with no timestamps, deletes happen; (b) an orders table of 80 million rows with a reliable `updated_at`, hard deletes rare but must reach the warehouse within a day; (c) a payments table where every status change must be kept for audit; (d) a legacy application table you can only read, with an `updated_at` that the application sometimes forgets to set. Then explain what happens to a delete that arrives twice in the feed.",
+      "starter": "(a)\n(b)\n(c)\n(d)\nDuplicate delete:\n",
+      "solution": "(a) Snapshot comparison: the table is small, so reading it all is cheap and the diff finds inserts, updates and deletes without timestamps; the risk is the cost growing as the table grows. (b) A watermark on `updated_at` for inserts and updates, plus either a soft-delete flag in the source or a periodic key comparison for hard deletes, or log-based CDC if the source can support it; the risk is that hard deletes are invisible to the watermark alone. (c) Log-based CDC (or a trigger-based change table), because every intermediate status must be captured and a poll sees only the latest state; the risk is the operational work and a consumer falling behind the log. (d) Snapshot comparison or a checksum comparison by key, because the timestamp cannot be trusted and only read access is available; the risk is load on the legacy database and stale detection between polls. A duplicate delete is harmless: `DELETE` by key on a missing row does nothing, so applying the feed twice leaves the same state.",
+      "required": false,
+      "rubric": [
+        "(a) uses snapshot comparison with the cost risk.",
+        "(b) combines a watermark with a way to catch deletes.",
+        "(c) chooses log-based or trigger-based capture because every change must be kept.",
+        "(d) does not trust the timestamp and compares snapshots or checksums.",
+        "Explains that a repeated delete by key is idempotent."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why can a watermark load on `updated_at` not see a hard delete?",
+      "options": [
+        "Deleted rows have a wrong timestamp",
+        "A deleted row no longer exists, so there is nothing to read above the watermark",
+        "The watermark is too low",
+        "SQL cannot delete rows"
+      ],
+      "answer": 1,
+      "explanation": "The load only sees rows that are present. A delete needs a soft-delete flag, a snapshot comparison or a change feed."
+    },
+    {
+      "id": "c2",
+      "question": "Between two polls an order changes `created`, `paid`, `refunded`. What does query-based CDC see?",
+      "options": [
+        "Three events",
+        "Only the final state, refunded",
+        "The first state",
+        "Nothing"
+      ],
+      "answer": 1,
+      "explanation": "A poll reads the current state. Intermediate changes are visible only in a log or trigger-based change table."
+    },
+    {
+      "id": "c3",
+      "question": "What does log-based CDC read?",
+      "options": [
+        "The source tables on a schedule",
+        "The database's transaction log of committed changes",
+        "The application's code",
+        "A CSV export"
+      ],
+      "answer": 1,
+      "explanation": "The transaction log (in PostgreSQL the WAL, decoded by logical decoding) records every committed change in order, including intermediate ones."
+    },
+    {
+      "id": "c4",
+      "question": "Events `D(7)` then `I(7)` are applied in the wrong order (insert first, then delete). What is the result for order 7?",
+      "options": [
+        "Present, as it should be",
+        "Absent, which is wrong: the order of events decides the final state",
+        "An error",
+        "Duplicated"
+      ],
+      "answer": 1,
+      "explanation": "Applying events out of order changes the outcome. Always sort by the sequence number."
+    },
+    {
+      "id": "c5",
+      "question": "Why store the highest applied `seq` in the same transaction as the applied changes?",
+      "options": [
+        "It is faster",
+        "A crash can then neither replay nor skip events: both the changes and the checkpoint happen or neither does",
+        "SQL requires it",
+        "To compress the log"
+      ],
+      "answer": 1,
+      "explanation": "If the checkpoint were saved separately, a crash between the two writes would leave the data and the checkpoint disagreeing."
+    }
+  ],
+  "id": "e127"
+}

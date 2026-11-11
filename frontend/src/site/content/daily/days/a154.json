@@ -1,0 +1,185 @@
+{
+  "id": "a154",
+  "time": {
+    "theory": 30,
+    "examples": 35,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "case"
+    ],
+    "questions": [
+      155,
+      183,
+      199
+    ],
+    "pyExercises": [
+      "customer-transaction-stats",
+      "group-and-aggregate"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "inactive-customers",
+      "conditional-aggregation"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Recency buckets",
+      "kind": "sql",
+      "prompt": "With the as-of date 1999-01-01, put each customer who has orders into a recency bucket from the days since their latest order: `0-365`, `366-730` or `731+`. Return `bucket` and `customers`, ordered by `bucket`.",
+      "starter": "SELECT customer_id, MAX(order_date) AS last_order\nFROM orders\nGROUP BY customer_id\nLIMIT 5;\n",
+      "solution": "WITH r AS (\n  SELECT customer_id, DATE '1999-01-01' - MAX(order_date) AS days FROM orders GROUP BY customer_id\n)\nSELECT CASE WHEN days <= 365 THEN '0-365' WHEN days <= 730 THEN '366-730' ELSE '731+' END AS bucket,\n       COUNT(*) AS customers\nFROM r\nGROUP BY 1\nORDER BY 1;\n",
+      "ordered": true,
+      "hints": [
+        "First compute the days since the latest order per customer in a CTE.",
+        "A CASE with three branches gives the bucket.",
+        "Group by the CASE and ORDER BY it."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Single versus repeat value",
+      "kind": "sql",
+      "prompt": "Return `segment` (`repeat` for customers with two or more orders, `single` for one order), `customers` and `avg_monetary` (average of the customers' total spend, rounded to 0 decimals), ordered by `segment`.",
+      "starter": "SELECT customer_id, COUNT(*) AS n\nFROM orders\nGROUP BY customer_id\nLIMIT 5;\n",
+      "solution": "WITH c AS (\n  SELECT o.customer_id, COUNT(DISTINCT o.order_id) AS n,\n         SUM(od.unit_price * od.quantity * (1 - od.discount)) AS monetary\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY o.customer_id\n)\nSELECT CASE WHEN n >= 2 THEN 'repeat' ELSE 'single' END AS segment,\n       COUNT(*) AS customers,\n       ROUND(AVG(monetary)::numeric, 0) AS avg_monetary\nFROM c\nGROUP BY 1\nORDER BY 1;\n",
+      "ordered": true,
+      "hints": [
+        "Build one row per customer with the order count and spend.",
+        "Label with CASE on the order count.",
+        "AVG(monetary) per label, cast to numeric to round."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "A labelling function",
+      "kind": "python",
+      "prompt": "Write the segment rule: two or more orders and recency up to 365 days is `active repeat`, two or more orders otherwise is `lapsed repeat`, one order within 365 days is `recent single`, anything else is `lapsed single`. For the customers `[(3, 100), (4, 500), (1, 200), (1, 700)]` (orders, recency days) print one label per line.",
+      "starter": "customers = [(3, 100), (4, 500), (1, 200), (1, 700)]\n",
+      "solution": "customers = [(3, 100), (4, 500), (1, 200), (1, 700)]\n\ndef label(orders, recency):\n    if orders >= 2:\n        return 'active repeat' if recency <= 365 else 'lapsed repeat'\n    return 'recent single' if recency <= 365 else 'lapsed single'\n\nfor o, r in customers:\n    print(label(o, r))\n",
+      "hints": [
+        "Write a function with the two arguments.",
+        "Test the order count first, then the recency.",
+        "Call it in a loop and print the result."
+      ],
+      "expected": "active repeat\nlapsed repeat\nrecent single\nlapsed single"
+    },
+    {
+      "id": "g4",
+      "title": "Expected profit of a campaign",
+      "kind": "python",
+      "prompt": "A campaign contacts 400 customers at a cost of 2 per contact. Expected response rate is 6 percent, the order value is 120 and the margin is 30 percent. Print `expected profit: X` rounded to 0 decimals, using customers x response x order value x margin minus customers x cost.",
+      "starter": "n, cost, response, value, margin = 400, 2.0, 0.06, 120.0, 0.30\n",
+      "solution": "n, cost, response, value, margin = 400, 2.0, 0.06, 120.0, 0.30\nprofit = n * response * value * margin - n * cost\nprint('expected profit:', round(profit))\n",
+      "hints": [
+        "The expected margin is n x response x value x margin.",
+        "The cost is n x cost per contact.",
+        "Subtract and round."
+      ],
+      "expected": "expected profit: 64"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Value bands",
+      "kind": "sql",
+      "prompt": "Segment customers with orders by their total spend (net revenue from the order lines): `big` for 3000 or more, `mid` for 1000 up to but not including 3000, `small` below 1000. Return `segment`, `customers`, `revenue` (rounded to 0 decimals) and `revenue_share_pct` (rounded to 1 decimal), ordered by `segment`.",
+      "starter": "SELECT customer_id\nFROM orders\nGROUP BY customer_id\nLIMIT 5;\n",
+      "solution": "WITH c AS (\n  SELECT o.customer_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS monetary\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY o.customer_id\n)\nSELECT CASE WHEN monetary >= 3000 THEN 'big' WHEN monetary >= 1000 THEN 'mid' ELSE 'small' END AS segment,\n       COUNT(*) AS customers,\n       ROUND(SUM(monetary)::numeric, 0) AS revenue,\n       ROUND((100 * SUM(monetary) / SUM(SUM(monetary)) OVER ())::numeric, 1) AS revenue_share_pct\nFROM c\nGROUP BY 1\nORDER BY 1;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Transition table",
+      "kind": "python",
+      "prompt": "Segments of eight customers at two dates: early `['A','A','A','B','B','C','C','C']` and late `['A','B','B','B','C','C','C','A']`. Use pandas `crosstab` normalised by row (`normalize='index'`) and print it rounded to 2 decimals, then print `stayed: X` where X is the share of customers whose segment did not change, rounded to 2 decimals.",
+      "starter": "import pandas as pd\n\nearly = ['A', 'A', 'A', 'B', 'B', 'C', 'C', 'C']\nlate = ['A', 'B', 'B', 'B', 'C', 'C', 'C', 'A']\n",
+      "solution": "import pandas as pd\n\nearly = ['A', 'A', 'A', 'B', 'B', 'C', 'C', 'C']\nlate = ['A', 'B', 'B', 'B', 'C', 'C', 'C', 'A']\nprint(pd.crosstab(pd.Series(early, name='early'), pd.Series(late, name='late'), normalize='index').round(2).to_string())\nprint('stayed:', round(sum(a == b for a, b in zip(early, late)) / len(early), 2))\n",
+      "expected": "late      A     B     C\nearly                  \nA      0.33  0.67  0.00\nB      0.00  0.50  0.50\nC      0.33  0.00  0.67\nstayed: 0.5"
+    },
+    {
+      "id": "i3",
+      "title": "Recommendation to marketing",
+      "kind": "written",
+      "prompt": "Marketing can contact 30 customers a week. Using the four segments of this lesson (active repeat, lapsed repeat, recent single, lapsed single) and the idea that response rates are assumptions, write a recommendation of 5 to 8 sentences: which segment you would contact first and why, what you would test and how, what could make the recommendation wrong, and what you would report after four weeks.",
+      "starter": "Write your recommendation here.",
+      "solution": "I would contact the lapsed repeat customers first. They have already shown loyalty by ordering at least twice, so a win-back offer has a better chance than with single-order customers, and unlike the active repeat customers they are not already buying, so an offer has room to create an extra order. I would run it as a test: contact 24 of every 30 selected customers and hold out the rest, so that after four weeks the difference in the order rate between contacted and held-out customers measures the real uplift instead of assuming a response rate. The recommendation could be wrong if the lapsed repeat customers left for a reason an offer cannot fix, such as moving to another supplier, or if the group is too small to give a clear result; with 30 contacts a week the first reading will have a wide interval. After four weeks I would report the number contacted, the order rate in each group, the uplift with an interval, the revenue and margin of the extra orders against the cost of the offers, and a decision to continue, change the segment or stop.",
+      "rubric": [
+        "Chooses a segment and justifies it with the segment's behaviour",
+        "Proposes a test with a holdout group rather than assuming the response rate",
+        "Names a risk or limitation, such as small groups or an unfixable cause of lapsing",
+        "States what will be reported and the decision that follows"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A CASE expression has rules 'frequency >= 2 THEN repeat' then 'recency <= 365 THEN recent'. A customer has 3 orders and last ordered 100 days ago. Which label do they get?",
+      "options": [
+        "repeat, because the first matching branch wins",
+        "recent, because it is the more specific",
+        "Both labels",
+        "NULL"
+      ],
+      "answer": 0,
+      "explanation": "CASE evaluates branches in order and stops at the first one that is true. Order the rules so that each customer matches the intended branch and end with ELSE."
+    },
+    {
+      "id": "c2",
+      "question": "Segment counts add up to 95, but the customer table that was segmented has 89 customers with orders. What does this signal?",
+      "options": [
+        "Some customers are in more than one segment",
+        "The segmentation is exhaustive",
+        "Revenue is wrong",
+        "The as-of date is wrong"
+      ],
+      "answer": 0,
+      "explanation": "A correct segmentation puts each customer in exactly one segment, so the counts must add to the base. A larger total means overlapping rules or a join that repeats customers."
+    },
+    {
+      "id": "c3",
+      "question": "Segments are computed at two dates and only 30% of customers stay in the same segment. What is the best interpretation?",
+      "options": [
+        "The segments are a snapshot and must be refreshed close to campaign time",
+        "The segments are wrong and unusable",
+        "Customers do not change",
+        "The sample is too large"
+      ],
+      "answer": 0,
+      "explanation": "Recency changes as time passes, so customers move between segments. This is expected, and it means that segments are time-dependent rather than fixed types."
+    },
+    {
+      "id": "c4",
+      "question": "A campaign has an assumed response rate of 5%. What should a recommendation do about this?",
+      "options": [
+        "Show it as an assumption and propose a test that measures the real value",
+        "Treat it as a fact",
+        "Hide it",
+        "Replace it with 100%"
+      ],
+      "answer": 0,
+      "explanation": "The response rate is not known before the campaign runs. A holdout test measures it and prevents decisions based on a guess."
+    },
+    {
+      "id": "c5",
+      "question": "Why is a profile based only on the rule variables (recency and frequency) of limited use?",
+      "options": [
+        "Those variables already define the segments, so they teach nothing new",
+        "They cannot be computed",
+        "They are always equal",
+        "Profiles must use dates"
+      ],
+      "answer": 0,
+      "explanation": "Segments differ on the variables used to define them by construction. A profile gains information from other measures such as order value, countries or categories."
+    }
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "id": "d039",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by",
+      "order-by"
+    ],
+    "questions": [
+      159,
+      160,
+      161
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Orders per month in 1998",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Using orders placed in 1998 (`order_date` from 1998-01-01 up to but not including 1999-01-01), return `month` (the first day of the month as a date, from `date_trunc`) and `orders` (the count), ordered by `month`.",
+      "starter": "-- Orders per month in 1998\nSELECT order_date AS month, COUNT(*) AS orders\nFROM orders\nWHERE order_date >= '1998-01-01' AND order_date < '1999-01-01'\nGROUP BY order_date\nORDER BY month;\n",
+      "solution": "SELECT date_trunc('month', order_date)::date AS month, COUNT(*) AS orders\nFROM orders\nWHERE order_date >= '1998-01-01' AND order_date < '1999-01-01'\nGROUP BY 1\nORDER BY month;\n",
+      "hints": [
+        "The starter groups by the exact day, so each day is its own group. You want one group per month.",
+        "date_trunc('month', order_date) turns every date of a month into the first day of that month. Cast the result with ::date.",
+        "SELECT date_trunc('month', order_date)::date AS month ... GROUP BY 1"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Shipping times in the first half of 1997",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For shipped orders (`shipped_date` is not NULL) placed from 1997-01-01 up to but not including 1997-07-01, return `order_id`, `order_date`, `days_to_ship` (`shipped_date - order_date`) and `days_to_spare` (`required_date - shipped_date`), in that order, ordered by `order_id`.",
+      "starter": "-- Shipping time and slack for shipped orders in the first half of 1997\nSELECT order_id, order_date, shipped_date AS days_to_ship, required_date AS days_to_spare\nFROM orders\nWHERE shipped_date IS NOT NULL\n  AND order_date >= '1997-01-01' AND order_date < '1997-07-01'\nORDER BY order_id;\n",
+      "solution": "SELECT order_id, order_date,\n       shipped_date - order_date AS days_to_ship,\n       required_date - shipped_date AS days_to_spare\nFROM orders\nWHERE shipped_date IS NOT NULL\n  AND order_date >= '1997-01-01' AND order_date < '1997-07-01'\nORDER BY order_id;\n",
+      "hints": [
+        "The starter returns dates where numbers of days are expected. Subtracting one date from another gives an integer number of days.",
+        "days_to_ship is the later date minus the earlier one: shipped_date minus order_date.",
+        "shipped_date - order_date AS days_to_ship, required_date - shipped_date AS days_to_spare"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Age at hire",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For every employee return `employee_id`, `last_name` and `age_at_hire` (whole years between `birth_date` and `hire_date`, as an integer), in that order. Use `age` and `EXTRACT`. Order by `employee_id`.",
+      "starter": "-- Whole years between birth_date and hire_date\nSELECT employee_id, last_name, hire_date - birth_date AS age_at_hire\nFROM employees\nORDER BY employee_id;\n",
+      "solution": "SELECT employee_id, last_name,\n       EXTRACT(year FROM age(hire_date, birth_date))::int AS age_at_hire\nFROM employees\nORDER BY employee_id;\n",
+      "hints": [
+        "Subtracting two dates gives days, not years. PostgreSQL has a function that returns an interval in years, months and days.",
+        "age(later_date, earlier_date) returns that interval. EXTRACT(year FROM interval) pulls out the years.",
+        "EXTRACT(year FROM age(hire_date, birth_date))::int AS age_at_hire"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Orders by weekday",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `dow` (the weekday number from `EXTRACT(dow ...)` of `order_date`, cast to integer, where 0 is Sunday) and `orders` (the count) for each weekday, ordered by `dow`.",
+      "starter": "-- Orders per weekday number\nSELECT order_date AS dow, COUNT(*) AS orders\nFROM orders\nGROUP BY order_date\nORDER BY dow;\n",
+      "solution": "SELECT EXTRACT(dow FROM order_date)::int AS dow, COUNT(*) AS orders\nFROM orders\nGROUP BY 1\nORDER BY dow;\n",
+      "hints": [
+        "The starter treats the whole date as the group. You need only the weekday part of the date.",
+        "EXTRACT(dow FROM order_date) returns 0 to 6. Add ::int and group by that expression.",
+        "SELECT EXTRACT(dow FROM order_date)::int AS dow, COUNT(*) AS orders ... GROUP BY 1"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Busy quarters",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For each year and quarter return `yr` and `qtr` (both integers from `EXTRACT`), `orders`, `avg_days_to_ship` (average of `shipped_date - order_date`, rounded to 1 decimal) and `late` (orders shipped after their `required_date`). Keep only quarters with at least 9 orders. Order by `yr`, then `qtr`.",
+      "starter": "-- Quarters with at least 9 orders\nSELECT EXTRACT(year FROM order_date)::int AS yr, EXTRACT(quarter FROM order_date)::int AS qtr, COUNT(*) AS orders\nFROM orders\nGROUP BY 1, 2\nORDER BY 1, 2;\n",
+      "solution": "SELECT EXTRACT(year FROM order_date)::int AS yr,\n       EXTRACT(quarter FROM order_date)::int AS qtr,\n       COUNT(*) AS orders,\n       ROUND(AVG(shipped_date - order_date), 1) AS avg_days_to_ship,\n       COUNT(*) FILTER (WHERE shipped_date > required_date) AS late\nFROM orders\nGROUP BY 1, 2\nHAVING COUNT(*) >= 9\nORDER BY 1, 2;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Tight deadlines",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Look at orders where the customer allowed exactly 14 days (`required_date - order_date = 14`). Return `order_id`, `order_date`, `required_date` and `status`, in that order. `status` is `open` when `shipped_date` is NULL, `late` when it is after `required_date`, and `on time` otherwise. Order by `order_id`.",
+      "starter": "-- Orders with a 14-day deadline and their status\nSELECT order_id, order_date, required_date, 'on time' AS status\nFROM orders\nWHERE required_date - order_date = 14\nORDER BY order_id;\n",
+      "solution": "SELECT order_id, order_date, required_date,\n       CASE\n         WHEN shipped_date IS NULL THEN 'open'\n         WHEN shipped_date > required_date THEN 'late'\n         ELSE 'on time'\n       END AS status\nFROM orders\nWHERE required_date - order_date = 14\nORDER BY order_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Customer lifespans",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. For customers with at least 2 orders return `customer_id`, `first_order` (earliest `order_date`), `last_order` (latest), `span_days` (days between them, as an integer) and `orders` (count), in that order. Order by `span_days` descending, then `customer_id`.",
+      "starter": "-- Customers with 2+ orders: first order, last order and span\nSELECT customer_id, MIN(order_date) AS first_order, MAX(order_date) AS last_order\nFROM orders\nGROUP BY customer_id\nORDER BY customer_id;\n",
+      "solution": "SELECT customer_id,\n       MIN(order_date) AS first_order,\n       MAX(order_date) AS last_order,\n       MAX(order_date) - MIN(order_date) AS span_days,\n       COUNT(*) AS orders\nFROM orders\nGROUP BY customer_id\nHAVING COUNT(*) >= 2\nORDER BY span_days DESC, customer_id;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What type does `DATE '1998-03-31' - DATE '1998-01-01'` have, and what is its value?",
+      "options": [
+        "interval, 2 months 30 days",
+        "integer, 89",
+        "date, 1998-02-28",
+        "integer, 3"
+      ],
+      "answer": 1,
+      "explanation": "Subtracting two dates gives an integer number of days: 31 (January) + 28 (February) + 30 = 89. Subtracting two timestamps would give an interval instead. The result is a count of days, not a date."
+    },
+    {
+      "id": "c2",
+      "question": "What does `SELECT (DATE '1998-01-31' + INTERVAL '1 month')::date` return?",
+      "options": [
+        "1998-03-03",
+        "1998-02-31",
+        "1998-02-28",
+        "An error, because February has no 31st"
+      ],
+      "answer": 2,
+      "explanation": "Interval arithmetic with months clamps to the last valid day of the target month, so the result is 1998-02-28. It does not overflow into March and it does not raise an error."
+    },
+    {
+      "id": "c3",
+      "question": "The dates 1996-02-10 and 1997-02-20 are grouped with `GROUP BY EXTRACT(month FROM order_date)`. How many groups do they form?",
+      "options": [
+        "2, one per year",
+        "1, because both have month 2",
+        "3",
+        "It depends on the day"
+      ],
+      "answer": 1,
+      "explanation": "EXTRACT(month ...) returns 2 for both, so they land in the same group, merging different years. Use date_trunc('month', order_date) or group by year and month to keep them apart."
+    },
+    {
+      "id": "c4",
+      "question": "Order 10249 is dated 1997-02-02, a Sunday. What does `EXTRACT(dow FROM order_date)` return for it?",
+      "options": [
+        "7",
+        "1",
+        "0",
+        "2"
+      ],
+      "answer": 2,
+      "explanation": "In EXTRACT, dow numbers Sunday as 0 and Saturday as 6. isodow numbers Monday as 1 and Sunday as 7, which is why 7 is a tempting but wrong answer."
+    },
+    {
+      "id": "c5",
+      "question": "Which filter selects every order placed in May 1997 and is safe even if the column had a time of day?",
+      "options": [
+        "order_date BETWEEN '1997-05-01' AND '1997-05-31'",
+        "order_date >= '1997-05-01' AND order_date < '1997-06-01'",
+        "EXTRACT(month FROM order_date) = 5",
+        "order_date LIKE '1997-05%'"
+      ],
+      "answer": 1,
+      "explanation": "The half-open range includes all of May, whatever the time of day, and compares the plain column. BETWEEN would lose rows after midnight on 31 May for a timestamp column, EXTRACT(month ...) = 5 also matches May of other years, and LIKE treats the date as text."
+    },
+    {
+      "id": "c6",
+      "question": "What does `SELECT date_trunc('month', DATE '1997-05-17')::date` return?",
+      "options": [
+        "1997-05-17",
+        "1997-05-01",
+        "1997-05-31",
+        "1997-06-01"
+      ],
+      "answer": 1,
+      "explanation": "date_trunc rounds down to the start of the period, here the first day of May. The last day of the month would need extra arithmetic, and the first day of the next month is a different calculation."
+    }
+  ]
+}

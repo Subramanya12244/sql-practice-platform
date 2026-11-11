@@ -1,0 +1,183 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "etl-error-handling",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "find-duplicates"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Completeness rate",
+      "kind": "python",
+      "prompt": "Write `completeness(values)` returning the share of values that are not `None`, rounded to 2 decimals. Print the result for `[10, None, 12, None, 14]` and for `[1, 2, 3]`. Expected output: `0.6` then `1.0`.",
+      "starter": "def completeness(values):\n    pass\n\nprint(completeness([10, None, 12, None, 14]))\nprint(completeness([1, 2, 3]))\n",
+      "solution": "def completeness(values):\n    return round(sum(v is not None for v in values) / len(values), 2)\n\nprint(completeness([10, None, 12, None, 14]))\nprint(completeness([1, 2, 3]))\n",
+      "hints": [
+        "Count the values that are present, then divide by the total.",
+        "`sum(v is not None for v in values)` counts present values.",
+        "`return round(sum(v is not None for v in values) / len(values), 2)`"
+      ],
+      "expected": "0.6\n1.0"
+    },
+    {
+      "id": "g2",
+      "title": "Validity on non-missing values",
+      "kind": "python",
+      "prompt": "Write `validity(values, allowed)` returning the share of the non-missing values (not `None`) that are in the set `allowed`, rounded to 2 decimals. Print the result for `[\"paid\", \"PAID\", None, \"failed\", \"shipped\"]` with the allowed set `{\"paid\", \"refunded\", \"failed\"}`. Expected output: `0.5`.",
+      "starter": "def validity(values, allowed):\n    pass\n\nprint(validity([\"paid\", \"PAID\", None, \"failed\", \"shipped\"], {\"paid\", \"refunded\", \"failed\"}))\n",
+      "solution": "def validity(values, allowed):\n    present = [v for v in values if v is not None]\n    return round(sum(v in allowed for v in present) / len(present), 2)\n\nprint(validity([\"paid\", \"PAID\", None, \"failed\", \"shipped\"], {\"paid\", \"refunded\", \"failed\"}))\n",
+      "hints": [
+        "Remove the missing values first; they belong to completeness.",
+        "Count how many of the rest are in `allowed`.",
+        "`present = [v for v in values if v is not None]` then `sum(v in allowed for v in present) / len(present)`."
+      ],
+      "expected": "0.5"
+    },
+    {
+      "id": "g3",
+      "title": "Repeated keys",
+      "kind": "python",
+      "prompt": "With pandas, print the list of `order_id` values that appear more than once in the starter DataFrame (each listed once, sorted) and then the uniqueness rate `nunique / len` rounded to 2 decimals. Expected output: `['A3']` then `0.8`.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\"order_id\": [\"A1\", \"A2\", \"A3\", \"A3\", \"A5\"]})\n# Your code here\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\"order_id\": [\"A1\", \"A2\", \"A3\", \"A3\", \"A5\"]})\nrepeated = df.loc[df[\"order_id\"].duplicated(keep=False), \"order_id\"].unique().tolist()\nprint(sorted(repeated))\nprint(round(df[\"order_id\"].nunique() / len(df), 2))\n",
+      "hints": [
+        "`duplicated(keep=False)` marks every row of a repeated key.",
+        "Select those rows and take the unique ids.",
+        "`round(df[\"order_id\"].nunique() / len(df), 2)` is the rate."
+      ],
+      "expected": "['A3']\n0.8"
+    },
+    {
+      "id": "g4",
+      "title": "Age against a fixed now",
+      "kind": "python",
+      "prompt": "Write `age_hours(updated_at, now)` for two `datetime` objects returning the age in hours rounded to 1 decimal. Print the result for 2025-03-05 22:00 and 2025-03-06 08:30 against now 2025-03-06 12:00. Expected output: `14.0` then `3.5`.",
+      "starter": "from datetime import datetime\n\ndef age_hours(updated_at, now):\n    pass\n\nnow = datetime(2025, 3, 6, 12, 0)\nprint(age_hours(datetime(2025, 3, 5, 22, 0), now))\nprint(age_hours(datetime(2025, 3, 6, 8, 30), now))\n",
+      "solution": "from datetime import datetime\n\ndef age_hours(updated_at, now):\n    return round((now - updated_at).total_seconds() / 3600, 1)\n\nnow = datetime(2025, 3, 6, 12, 0)\nprint(age_hours(datetime(2025, 3, 5, 22, 0), now))\nprint(age_hours(datetime(2025, 3, 6, 8, 30), now))\n",
+      "hints": [
+        "Subtracting datetimes gives a timedelta.",
+        "`total_seconds()` then divide by 3600.",
+        "`return round((now - updated_at).total_seconds() / 3600, 1)`"
+      ],
+      "expected": "14.0\n3.5"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Three dimensions on one frame",
+      "kind": "python",
+      "prompt": "For the starter DataFrame print three lines: `completeness amount: <rate>` (share of non-missing `amount`, 2 decimals), `validity amount>=0: <rate>` (share of non-missing amounts that are at least 0, 2 decimals) and `uniqueness id: <rate>` (distinct ids over rows, 2 decimals). Expected output: three lines.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\"id\": [1, 2, 3, 3, 5, 6], \"amount\": [10.0, None, -2.0, -2.0, 5.0, 7.5]})\n# Your code here\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\"id\": [1, 2, 3, 3, 5, 6], \"amount\": [10.0, None, -2.0, -2.0, 5.0, 7.5]})\npresent = df[\"amount\"].dropna()\nprint(\"completeness amount:\", round(df[\"amount\"].notna().mean(), 2))\nprint(\"validity amount>=0:\", round((present >= 0).mean(), 2))\nprint(\"uniqueness id:\", round(df[\"id\"].nunique() / len(df), 2))\n",
+      "expected": "completeness amount: 0.83\nvalidity amount>=0: 0.6\nuniqueness id: 0.83"
+    },
+    {
+      "id": "i2",
+      "title": "Build the scorecard",
+      "kind": "python",
+      "prompt": "From the starter DataFrame build a scorecard DataFrame with the columns `check`, `checked`, `failing`, `rate` (2 decimals) and `result` for three checks: `completeness: email` (checked: all rows, failing: missing emails, threshold 0.8), `validity: age 0-120` (checked: non-missing ages, failing: ages outside 0 to 120, threshold 0.9) and `uniqueness: user_id` (checked: all rows, failing: rows sharing a user id, threshold 1.0). The result is `PASS` when the rate is at least the threshold, else `FAIL`. Print the scorecard with `to_string(index=False)`.",
+      "starter": "import pandas as pd\n\nusers = pd.DataFrame({\n    \"user_id\": [1, 2, 3, 3, 5, 6, 7, 8],\n    \"email\": [\"a@x.com\", None, \"c@x.com\", \"c@x.com\", \"e@x.com\", None, \"g@x.com\", \"h@x.com\"],\n    \"age\": [25, 200, 31, 31, None, 44, -3, 52],\n})\n# Your code here\n",
+      "solution": "import pandas as pd\n\nusers = pd.DataFrame({\n    \"user_id\": [1, 2, 3, 3, 5, 6, 7, 8],\n    \"email\": [\"a@x.com\", None, \"c@x.com\", \"c@x.com\", \"e@x.com\", None, \"g@x.com\", \"h@x.com\"],\n    \"age\": [25, 200, 31, 31, None, 44, -3, 52],\n})\nages = users[\"age\"].dropna()\nrows = [\n    (\"completeness: email\", len(users), int(users[\"email\"].isna().sum()), 0.8),\n    (\"validity: age 0-120\", len(ages), int((~ages.between(0, 120)).sum()), 0.9),\n    (\"uniqueness: user_id\", len(users), int(users[\"user_id\"].duplicated(keep=False).sum()), 1.0),\n]\nscore = pd.DataFrame(rows, columns=[\"check\", \"checked\", \"failing\", \"threshold\"])\nscore[\"rate\"] = ((score[\"checked\"] - score[\"failing\"]) / score[\"checked\"]).round(2)\nscore[\"result\"] = [\"PASS\" if r >= t else \"FAIL\" for r, t in zip(score[\"rate\"], score[\"threshold\"])]\nprint(score[[\"check\", \"checked\", \"failing\", \"rate\", \"result\"]].to_string(index=False))\n",
+      "expected": "              check  checked  failing  rate result\ncompleteness: email        8        2  0.75   FAIL\nvalidity: age 0-120        7        2  0.71   FAIL\nuniqueness: user_id        8        2  0.75   FAIL"
+    },
+    {
+      "id": "i3",
+      "title": "Diagnose the defects",
+      "kind": "written",
+      "prompt": "A customer table shows: 12 percent of `phone` values are the text `N/A`; some `birth_date` values are in the year 2090; two rows have the same `customer_id` with different emails; the `country` is `DE` but the `currency` is `GBP` on 30 rows; the newest row is five days old but should be refreshed daily; and the total of `balance` is 3 percent below the finance system's total. Name the dimension of each defect, state how you would measure it as a rate, propose a threshold with a reason for two of them, and say which one needs a reference.",
+      "starter": "Defect to dimension:\nMeasures:\nThresholds:\nNeeds a reference:\n",
+      "solution": "`N/A` phones: completeness (a placeholder standing for missing); measure the share of non-placeholder values in `phone` after normalising `N/A` to missing. Year 2090: validity (range rule `birth_date <= today`); measure the share of non-missing dates inside the allowed range. Same `customer_id` with different emails: uniqueness; measure distinct ids over rows and the number of repeated ids. `DE` with `GBP`: consistency (cross-field rule); measure the share of rows whose currency matches the country's expected currency. Five days old: timeliness; measure the age of the newest row against the one-day expectation (and the share of rows updated within 26 hours). Balance 3 percent below finance: accuracy; measure the difference between the table total and the finance control total, and per-customer matches on a sample. Thresholds: `customer_id` uniqueness 100 percent, because a duplicate key corrupts joins and totals; `phone` completeness around 85 percent, because the field is optional and the business tolerates gaps; both chosen from the cost of the failure and a month of history. Needs a reference: accuracy, the balance total, because only the finance system's figure can show that the table is wrong.",
+      "required": false,
+      "rubric": [
+        "Maps each defect to the right dimension (completeness, validity, uniqueness, consistency, timeliness, accuracy).",
+        "Gives a measure as a rate or a count for each.",
+        "Chooses thresholds for two checks with a reason based on impact.",
+        "Says that accuracy needs a trusted reference."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A `status` column contains the value `paid` for an order that was never paid. Which dimension is violated?",
+      "options": [
+        "Completeness",
+        "Validity",
+        "Accuracy",
+        "Uniqueness"
+      ],
+      "answer": 2,
+      "explanation": "`paid` is present and inside the allowed set, so it is complete and valid. It does not match the truth, which only a reference can reveal: accuracy."
+    },
+    {
+      "id": "c2",
+      "question": "Why should validity be measured on non-missing values only?",
+      "options": [
+        "Missing values are valid",
+        "Missing values are already counted by completeness, so counting them again reports one defect twice",
+        "pandas ignores them",
+        "SQL requires it"
+      ],
+      "answer": 1,
+      "explanation": "Keeping the dimensions independent means each defect is counted once and the fix is clear."
+    },
+    {
+      "id": "c3",
+      "question": "`orders[\"order_id\"].duplicated(keep=False).sum()` returns 2 for a table with id A3 twice. What does 2 mean?",
+      "options": [
+        "Two distinct repeated ids",
+        "Two rows share a key",
+        "Two missing ids",
+        "Two columns"
+      ],
+      "answer": 1,
+      "explanation": "With `keep=False` every row of a repeated key is marked, so one key appearing twice marks two rows. Use `.unique()` for the repeated keys."
+    },
+    {
+      "id": "c4",
+      "question": "An order with `country = US` and `currency = EUR`, both individually allowed values, is a failure of:",
+      "options": [
+        "Validity",
+        "Consistency",
+        "Completeness",
+        "Timeliness"
+      ],
+      "answer": 1,
+      "explanation": "Each value passes its own rule. The combination contradicts a cross-field rule, which is consistency."
+    },
+    {
+      "id": "c5",
+      "question": "Why pass `now` into a timeliness check?",
+      "options": [
+        "It is faster",
+        "The result is reproducible and testable for a fixed moment",
+        "datetime needs it",
+        "It avoids time zones"
+      ],
+      "answer": 1,
+      "explanation": "A check that reads the clock changes every time it runs and cannot be tested with a known answer."
+    }
+  ],
+  "id": "e132"
+}

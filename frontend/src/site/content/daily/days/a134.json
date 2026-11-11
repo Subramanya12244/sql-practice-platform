@@ -1,0 +1,183 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "group-by"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "pivot-report"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Overlap test",
+      "kind": "python",
+      "prompt": "Write `overlaps(a, b)` that returns True when two rectangles (dicts with `x`, `y`, `w`, `h`) share any area (touching edges do not count as overlap). Print the results for the pairs (A, B), (A, C), (B, C), one per line, where A is x 0, y 0, 100 by 100; B is x 100, y 0, 100 by 100; C is x 50, y 50, 100 by 100.",
+      "starter": "def overlaps(a, b):\n    return False\n\nA = {\"x\": 0, \"y\": 0, \"w\": 100, \"h\": 100}\nB = {\"x\": 100, \"y\": 0, \"w\": 100, \"h\": 100}\nC = {\"x\": 50, \"y\": 50, \"w\": 100, \"h\": 100}\nprint(overlaps(A, B))\nprint(overlaps(A, C))\nprint(overlaps(B, C))\n",
+      "solution": "def overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\nA = {\"x\": 0, \"y\": 0, \"w\": 100, \"h\": 100}\nB = {\"x\": 100, \"y\": 0, \"w\": 100, \"h\": 100}\nC = {\"x\": 50, \"y\": 50, \"w\": 100, \"h\": 100}\nprint(overlaps(A, B))\nprint(overlaps(A, C))\nprint(overlaps(B, C))\n",
+      "hints": [
+        "Rectangles overlap when they overlap on both axes.",
+        "On the x axis: a.x < b.x + b.w and b.x < a.x + a.w.",
+        "Combine the x and y tests with and, using strict inequalities."
+      ],
+      "expected": "False\nTrue\nTrue"
+    },
+    {
+      "id": "g2",
+      "title": "Grid and bounds",
+      "kind": "python",
+      "prompt": "Given `page` (below), print the names of visuals that are off the 1280 by 720 canvas or not on the 40 pixel grid, one per line in list order, formatted as `name: problem` where problem is `off canvas` or `not on grid` (a visual with both problems gets `off canvas` first, then `not on grid`, as two lines).",
+      "starter": "CANVAS_W, CANVAS_H, GRID = 1280, 720, 40\n\ndef overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\npage = [\n    {\"name\": \"kpi\", \"type\": \"card\", \"x\": 40, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"trend\", \"type\": \"line\", \"x\": 40, \"y\": 200, \"w\": 760, \"h\": 480},\n    {\"name\": \"mix\", \"type\": \"bar\", \"x\": 760, \"y\": 200, \"w\": 440, \"h\": 480},\n    {\"name\": \"notes\", \"type\": \"table\", \"x\": 440, \"y\": 40, \"w\": 360, \"h\": 100},\n]\n\n# print the problems\n",
+      "solution": "CANVAS_W, CANVAS_H, GRID = 1280, 720, 40\n\ndef overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\npage = [\n    {\"name\": \"kpi\", \"type\": \"card\", \"x\": 40, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"trend\", \"type\": \"line\", \"x\": 40, \"y\": 200, \"w\": 760, \"h\": 480},\n    {\"name\": \"mix\", \"type\": \"bar\", \"x\": 760, \"y\": 200, \"w\": 440, \"h\": 480},\n    {\"name\": \"notes\", \"type\": \"table\", \"x\": 440, \"y\": 40, \"w\": 360, \"h\": 100},\n]\n\nfor v in page:\n    if v[\"x\"] < 0 or v[\"y\"] < 0 or v[\"x\"] + v[\"w\"] > CANVAS_W or v[\"y\"] + v[\"h\"] > CANVAS_H:\n        print(f\"{v['name']}: off canvas\")\n    if any(v[k] % GRID for k in (\"x\", \"y\", \"w\", \"h\")):\n        print(f\"{v['name']}: not on grid\")\n",
+      "hints": [
+        "Check each visual's right and bottom edge against the canvas size.",
+        "The grid test is value % GRID != 0 for x, y, w and h.",
+        "Print f\"{name}: off canvas\" before f\"{name}: not on grid\"."
+      ],
+      "expected": "notes: not on grid"
+    },
+    {
+      "id": "g3",
+      "title": "Contrast check",
+      "kind": "python",
+      "prompt": "Using `contrast(fg, bg)` (given), print `colour ratio verdict` for the foreground colours #1A1A1A, #888888 and #0B3D91 on a #FFFFFF background, with the ratio rounded to 2 decimals and the verdict `pass` for ratios of 4.5 or more, otherwise `fail`, for example `#FF0000 4.0 fail`.",
+      "starter": "def luminance(hex_colour):\n    h = hex_colour.lstrip(\"#\")\n    parts = []\n    for i in (0, 2, 4):\n        c = int(h[i:i + 2], 16) / 255\n        parts.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)\n    return 0.2126 * parts[0] + 0.7152 * parts[1] + 0.0722 * parts[2]\n\ndef contrast(a, b):\n    hi, lo = sorted([luminance(a), luminance(b)], reverse=True)\n    return (hi + 0.05) / (lo + 0.05)\n\n# print colour, ratio, verdict\n",
+      "solution": "def luminance(hex_colour):\n    h = hex_colour.lstrip(\"#\")\n    parts = []\n    for i in (0, 2, 4):\n        c = int(h[i:i + 2], 16) / 255\n        parts.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)\n    return 0.2126 * parts[0] + 0.7152 * parts[1] + 0.0722 * parts[2]\n\ndef contrast(a, b):\n    hi, lo = sorted([luminance(a), luminance(b)], reverse=True)\n    return (hi + 0.05) / (lo + 0.05)\n\nfor fg in [\"#1A1A1A\", \"#888888\", \"#0B3D91\"]:\n    r = contrast(fg, \"#FFFFFF\")\n    print(fg, round(r, 2), \"pass\" if r >= 4.5 else \"fail\")\n",
+      "hints": [
+        "Call contrast(fg, \"#FFFFFF\") for each colour.",
+        "Round the ratio to 2 decimals for printing.",
+        "Compare the unrounded ratio with 4.5."
+      ],
+      "expected": "#1A1A1A 17.4 pass\n#888888 3.54 fail\n#0B3D91 10.04 pass"
+    },
+    {
+      "id": "g4",
+      "title": "Critique a layout (written)",
+      "kind": "written",
+      "prompt": "A page has twelve visuals of equal size in a 4 by 3 grid, all with bright, different colours, and a table of 40 rows in the middle. Slicers are scattered at the corners. Describe the hierarchy problems and redesign the page in words, with the order in which the reader should read it.",
+      "starter": "Problems: ...\nRedesign: ...",
+      "solution": "Equal sizes and equal colours give the reader no entry point, so nothing is read first. Twelve visuals exceed the working limit of six to eight and compete for attention; the 40-row table in the centre takes the best position for the least useful content. Scattered slicers hide the filter state. A redesign: one row of three KPI cards on the top, with the headline measure top left; below, one large trend chart taking about 40% of the canvas; beside it a bar chart of the main breakdown; slicers in one strip along the top. Move the table to a drill-through page. Use one accent colour for the key series and grey for the rest, so one thing stands out. The reading order is KPI cards, trend, breakdown, then the slicers for exploration.",
+      "rubric": [
+        "Names missing hierarchy: equal size and colour, no entry point.",
+        "Reduces the number of visuals and moves detail to drill-through.",
+        "Places KPIs top-left, the main chart largest, slicers in one strip.",
+        "Uses colour deliberately (one accent)."
+      ],
+      "hints": [
+        "What does the eye land on first?",
+        "How many visuals are too many?",
+        "Where would you put the headline number?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Full layout check",
+      "kind": "python",
+      "prompt": "Write `check_layout(visuals)` returning a list of problem strings in this order: for each visual in list order `name: off canvas` then `name: not on grid`; then for each pair (i < j) `a overlaps b`; then `top-left visual is a {type}, not a card` if the visual with the smallest (y, x) is not a card. Run it on `page` (given) and print each problem on its own line, or `no problems` if the list is empty.",
+      "starter": "CANVAS_W, CANVAS_H, GRID = 1280, 720, 40\n\ndef overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\ndef check_layout(visuals):\n    return []\n\npage = [\n    {\"name\": \"kpi\", \"type\": \"card\", \"x\": 40, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"trend\", \"type\": \"line\", \"x\": 40, \"y\": 200, \"w\": 760, \"h\": 480},\n    {\"name\": \"mix\", \"type\": \"bar\", \"x\": 760, \"y\": 200, \"w\": 440, \"h\": 480},\n    {\"name\": \"notes\", \"type\": \"table\", \"x\": 440, \"y\": 40, \"w\": 360, \"h\": 100},\n]\n\nfound = check_layout(page)\nprint(\"\\n\".join(found) if found else \"no problems\")\n",
+      "solution": "CANVAS_W, CANVAS_H, GRID = 1280, 720, 40\n\ndef overlaps(a, b):\n    return (a[\"x\"] < b[\"x\"] + b[\"w\"] and b[\"x\"] < a[\"x\"] + a[\"w\"]\n            and a[\"y\"] < b[\"y\"] + b[\"h\"] and b[\"y\"] < a[\"y\"] + a[\"h\"])\n\ndef check_layout(visuals):\n    problems = []\n    for v in visuals:\n        if v[\"x\"] < 0 or v[\"y\"] < 0 or v[\"x\"] + v[\"w\"] > CANVAS_W or v[\"y\"] + v[\"h\"] > CANVAS_H:\n            problems.append(f\"{v['name']}: off canvas\")\n        if any(v[k] % GRID for k in (\"x\", \"y\", \"w\", \"h\")):\n            problems.append(f\"{v['name']}: not on grid\")\n    for i, a in enumerate(visuals):\n        for b in visuals[i + 1:]:\n            if overlaps(a, b):\n                problems.append(f\"{a['name']} overlaps {b['name']}\")\n    first = min(visuals, key=lambda v: (v[\"y\"], v[\"x\"]))\n    if first[\"type\"] != \"card\":\n        problems.append(f\"top-left visual is a {first['type']}, not a card\")\n    return problems\n\npage = [\n    {\"name\": \"kpi\", \"type\": \"card\", \"x\": 40, \"y\": 40, \"w\": 360, \"h\": 120},\n    {\"name\": \"trend\", \"type\": \"line\", \"x\": 40, \"y\": 200, \"w\": 760, \"h\": 480},\n    {\"name\": \"mix\", \"type\": \"bar\", \"x\": 760, \"y\": 200, \"w\": 440, \"h\": 480},\n    {\"name\": \"notes\", \"type\": \"table\", \"x\": 440, \"y\": 40, \"w\": 360, \"h\": 100},\n]\n\nfound = check_layout(page)\nprint(\"\\n\".join(found) if found else \"no problems\")\n",
+      "expected": "notes: not on grid\ntrend overlaps mix"
+    },
+    {
+      "id": "i2",
+      "title": "Theme audit",
+      "kind": "python",
+      "prompt": "A theme has `text`, `background` and a list of `data_colours`. Using `contrast`, print the contrast of the text on the background (2 decimals, `text 11.59`), then for each data colour print `colour ratio ok` where `ok` is `mark` when its contrast with the background is at least 3.0 (a common threshold for graphics) and `weak` otherwise. Use text #333333, background #F5F5F5 and colours #0B3D91, #118DFF, #F2C811, #6B007B in that order.",
+      "starter": "def luminance(hex_colour):\n    h = hex_colour.lstrip(\"#\")\n    parts = []\n    for i in (0, 2, 4):\n        c = int(h[i:i + 2], 16) / 255\n        parts.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)\n    return 0.2126 * parts[0] + 0.7152 * parts[1] + 0.0722 * parts[2]\n\ndef contrast(a, b):\n    hi, lo = sorted([luminance(a), luminance(b)], reverse=True)\n    return (hi + 0.05) / (lo + 0.05)\n\ntext, background = \"#333333\", \"#F5F5F5\"\ncolours = [\"#0B3D91\", \"#118DFF\", \"#F2C811\", \"#6B007B\"]\n# print the audit\n",
+      "solution": "def luminance(hex_colour):\n    h = hex_colour.lstrip(\"#\")\n    parts = []\n    for i in (0, 2, 4):\n        c = int(h[i:i + 2], 16) / 255\n        parts.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)\n    return 0.2126 * parts[0] + 0.7152 * parts[1] + 0.0722 * parts[2]\n\ndef contrast(a, b):\n    hi, lo = sorted([luminance(a), luminance(b)], reverse=True)\n    return (hi + 0.05) / (lo + 0.05)\n\ntext, background = \"#333333\", \"#F5F5F5\"\ncolours = [\"#0B3D91\", \"#118DFF\", \"#F2C811\", \"#6B007B\"]\nprint(\"text\", round(contrast(text, background), 2))\nfor c in colours:\n    r = contrast(c, background)\n    print(c, round(r, 2), \"mark\" if r >= 3.0 else \"weak\")\n",
+      "expected": "text 11.59\n#0B3D91 9.21 mark\n#118DFF 3.07 mark\n#F2C811 1.48 weak\n#6B007B 10.08 mark"
+    },
+    {
+      "id": "i3",
+      "title": "Phone stacking and budget (stretch)",
+      "kind": "python",
+      "prompt": "Given the `page` list (below, with `h` as desktop height) build a phone order sorted by (y, x). Use phone heights: card 80, line 220, bar 220, table 260. Print the order as `name top` lines (top = cumulative height before it) and then `scroll N`. Drop any visual of type `table` first, because tables are left off the phone.",
+      "starter": "page = [\n    {\"name\": \"kpi\", \"type\": \"card\", \"x\": 40, \"y\": 40},\n    {\"name\": \"trend\", \"type\": \"line\", \"x\": 40, \"y\": 200},\n    {\"name\": \"mix\", \"type\": \"bar\", \"x\": 760, \"y\": 200},\n    {\"name\": \"notes\", \"type\": \"table\", \"x\": 440, \"y\": 40},\n    {\"name\": \"kpi2\", \"type\": \"card\", \"x\": 440, \"y\": 100},\n]\nheights = {\"card\": 80, \"line\": 220, \"bar\": 220, \"table\": 260}\n# phone order and scroll length\n",
+      "solution": "page = [\n    {\"name\": \"kpi\", \"type\": \"card\", \"x\": 40, \"y\": 40},\n    {\"name\": \"trend\", \"type\": \"line\", \"x\": 40, \"y\": 200},\n    {\"name\": \"mix\", \"type\": \"bar\", \"x\": 760, \"y\": 200},\n    {\"name\": \"notes\", \"type\": \"table\", \"x\": 440, \"y\": 40},\n    {\"name\": \"kpi2\", \"type\": \"card\", \"x\": 440, \"y\": 100},\n]\nheights = {\"card\": 80, \"line\": 220, \"bar\": 220, \"table\": 260}\ntop = 0\nfor v in sorted((v for v in page if v[\"type\"] != \"table\"), key=lambda v: (v[\"y\"], v[\"x\"])):\n    print(v[\"name\"], top)\n    top += heights[v[\"type\"]]\nprint(\"scroll\", top)\n",
+      "required": false,
+      "expected": "kpi 0\nkpi2 80\ntrend 160\nmix 380\nscroll 600"
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Page layout, themes and the phone layout are set in Power BI Desktop (Windows-only, View and Format panes), and a theme JSON can be imported there. Menu names can differ between versions. The graded exercises test the layout rules and colour contrast with plain Python, which runs in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Two visuals have x ranges 0 to 100 and 100 to 200 and the same y range. Do they overlap?",
+      "options": [
+        "Yes, they share the x value 100",
+        "No, they only touch at an edge",
+        "Yes, if heights are equal",
+        "Only in the phone layout"
+      ],
+      "answer": 1,
+      "explanation": "Rectangles overlap only if they share area on both axes. Touching edges have no area in common, so the strict inequality in the test returns False."
+    },
+    {
+      "id": "c2",
+      "question": "What contrast ratio does WCAG ask for as a minimum for normal text?",
+      "options": [
+        "2.0",
+        "3.0",
+        "4.5",
+        "21"
+      ],
+      "answer": 2,
+      "explanation": "4.5 is the minimum for normal text; 3.0 is used for large text and graphics. 21 is the maximum, black on white."
+    },
+    {
+      "id": "c3",
+      "question": "Which change gives a page a clearer visual hierarchy?",
+      "options": [
+        "Make every visual the same size",
+        "Give the key trend the largest area and one accent colour",
+        "Use a different bright colour for each visual",
+        "Move the slicers to random corners"
+      ],
+      "answer": 1,
+      "explanation": "Hierarchy comes from size, position, colour contrast and grouping. Equal size and many colours remove the entry point."
+    },
+    {
+      "id": "c4",
+      "question": "A phone layout in Power BI Desktop:",
+      "options": [
+        "Copies the visuals into a second report",
+        "Rearranges the same page's visuals for a narrow screen, sharing measures and filters",
+        "Is created automatically for every page",
+        "Only supports cards"
+      ],
+      "answer": 1,
+      "explanation": "The phone layout shows the same visuals, so data and filters are shared, but the author must place them. A page without one is shown as the scaled desktop page."
+    },
+    {
+      "id": "c5",
+      "question": "What is the problem with #F2C811 (yellow) on a white background?",
+      "options": [
+        "Yellow is not allowed in themes",
+        "Its contrast with white is about 1.6, which is low even for marks and far too low for text",
+        "It prints in grey",
+        "It cannot be exported"
+      ],
+      "answer": 1,
+      "explanation": "Marks should reach about 3.0 and small text 4.5; the yellow, at about 1.6 on white, misses both, so it needs a darker background or a darker colour."
+    }
+  ],
+  "id": "a134"
+}

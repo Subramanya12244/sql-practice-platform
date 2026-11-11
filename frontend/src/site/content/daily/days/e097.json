@@ -1,0 +1,188 @@
+{
+  "id": "e097",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "etl-data-validation",
+      "etl-transformation"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Flatten a two-row header",
+      "kind": "python",
+      "prompt": "The lists `top` and `sub` are the two header rows of a sheet: `top` has merged group labels (empty cells are `None`), `sub` has member labels (`None` where the column has no member label). Build one lowercase name per column: forward-fill `top` yourself (an empty cell takes the previous label), then use `group_member` when a member label exists and the group label alone otherwise. Print the list. Expected output: `['region', 'q1_jan', 'q1_feb', 'q2_mar']`.",
+      "starter": "top = [\"Region\", \"Q1\", None, \"Q2\"]\nsub = [None, \"Jan\", \"Feb\", \"Mar\"]\nnames = []\n# fill and combine\nprint(names)\n",
+      "solution": "top = [\"Region\", \"Q1\", None, \"Q2\"]\nsub = [None, \"Jan\", \"Feb\", \"Mar\"]\nnames = []\nlast = None\nfor group, member in zip(top, sub):\n    if group is not None:\n        last = group\n    names.append(f\"{last}_{member}\".lower() if member else last.lower())\nprint(names)\n",
+      "expected": "['region', 'q1_jan', 'q1_feb', 'q2_mar']",
+      "hints": [
+        "Keep a variable `last` that remembers the most recent non-empty group label.",
+        "For each pair decide: if `member` exists use both labels, else only the group.",
+        "`f\"{last}_{member}\".lower()` when `member` is truthy, otherwise `last.lower()`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Find the header row",
+      "kind": "python",
+      "prompt": "`raw` imitates a sheet read without header. Find the index of the row whose first cell equals `Region` and print it, then print the list of the values of that row. Expected output: `2` then `['Region', 'Units']`.",
+      "starter": "import pandas as pd\n\nraw = pd.DataFrame([[\"Report\", None], [None, None], [\"Region\", \"Units\"], [\"North\", 5]])\nheader_row = None\nprint(header_row)\nprint(raw.iloc[0].tolist())\n",
+      "solution": "import pandas as pd\n\nraw = pd.DataFrame([[\"Report\", None], [None, None], [\"Region\", \"Units\"], [\"North\", 5]])\nheader_row = int(raw.index[raw[0] == \"Region\"][0])\nprint(header_row)\nprint(raw.iloc[header_row].tolist())\n",
+      "expected": "2\n['Region', 'Units']",
+      "hints": [
+        "A comparison such as `raw[0] == \"Region\"` gives a True/False value per row.",
+        "Use that mask to select from `raw.index`.",
+        "`raw.index[raw[0] == \"Region\"][0]` is the label of the first match; wrap it in `int(...)`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Drop subtotal and footer rows",
+      "kind": "python",
+      "prompt": "The DataFrame has one column `label` and one column `amount`. Remove every row whose `label` starts with `Subtotal` or `Total`, and print the remaining labels as a list and the sum of the remaining amounts as an integer. Expected output: `['A', 'B', 'C']` then `60`.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\"label\": [\"A\", \"B\", \"Subtotal AB\", \"C\", \"Total\"], \"amount\": [10, 20, 30, 30, 90]})\nprint(df[\"label\"].tolist())\nprint(0)\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\"label\": [\"A\", \"B\", \"Subtotal AB\", \"C\", \"Total\"], \"amount\": [10, 20, 30, 30, 90]})\ndetail = df[~df[\"label\"].str.startswith((\"Subtotal\", \"Total\"))]\nprint(detail[\"label\"].tolist())\nprint(int(detail[\"amount\"].sum()))\n",
+      "expected": "['A', 'B', 'C']\n60",
+      "hints": [
+        "`str.startswith` accepts a tuple of prefixes and returns a mask.",
+        "Negate the mask with `~` to keep the other rows.",
+        "`detail = df[~df[\"label\"].str.startswith((\"Subtotal\", \"Total\"))]`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Repair accounting amounts",
+      "kind": "python",
+      "prompt": "Write `to_number(text)` for one string: strip spaces, return `None` for `-` and `n/a`, treat `(300.00)` as -300.0, remove `$` and commas, and return a float. Print the results for `[\"$1,250.50\", \"(300.00)\", \" 99 \", \"-\"]`, one per line. Expected output: `1250.5`, `-300.0`, `99.0`, `None`.",
+      "starter": "def to_number(text):\n    pass\n\nfor t in [\"$1,250.50\", \"(300.00)\", \" 99 \", \"-\"]:\n    print(to_number(t))\n",
+      "solution": "def to_number(text):\n    text = text.strip()\n    if text in (\"-\", \"n/a\"):\n        return None\n    negative = text.startswith(\"(\") and text.endswith(\")\")\n    cleaned = text.strip(\"()\").replace(\"$\", \"\").replace(\",\", \"\")\n    value = float(cleaned)\n    return -value if negative else value\n\nfor t in [\"$1,250.50\", \"(300.00)\", \" 99 \", \"-\"]:\n    print(to_number(t))\n",
+      "expected": "1250.5\n-300.0\n99.0\nNone",
+      "hints": [
+        "Handle the marker strings first and return early.",
+        "Remember whether the text was wrapped in parentheses before you strip them.",
+        "Strip `()`, `$` and `,` then `float(...)`, and negate when it was in parentheses."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Whole sheet to long table",
+      "kind": "python",
+      "prompt": "The DataFrame `raw` imitates a budget sheet read with no header: a title, a blank row, a two-row header with merged group `Q1`, two data rows, a `Total` row and a source note. Write code that (1) finds the header by the landmark `Dept`, (2) builds the names `dept`, `q1_jan`, `q1_feb`, `q1_mar`, (3) keeps rows before the `Total` row, (4) repairs the money columns (`$` and commas removed, `(x)` negative, `-` missing), (5) melts to long rows with columns `dept`, `month`, `amount` where month is the lowercase part after `q1_` (`jan`, `feb`, `mar`), and prints the long table with `long.to_string(index=False)`, ordered by `dept` alphabetically and then by month in calendar order (Jan, Feb, Mar), followed by a line `Sum ` and the total of all amounts as a float. The `-` cell stays `NaN` and does not count in the sum.",
+      "starter": "import pandas as pd\n\nnan = float(\"nan\")\nraw = pd.DataFrame([\n    [\"Budget 2026\", nan, nan, nan],\n    [nan, nan, nan, nan],\n    [\"Dept\", \"Q1\", nan, nan],\n    [nan, \"Jan\", \"Feb\", \"Mar\"],\n    [\"Sales\", \"$1,000\", \"(200.00)\", \"300\"],\n    [\"Ops\", \"400\", \"-\", \"$50\"],\n    [\"Total\", \"$1,550\", \"(200.00)\", \"$350\"],\n    [\"Source: finance\", nan, nan, nan],\n])\n# find, flatten, clean, melt\n",
+      "solution": "import pandas as pd\n\nnan = float(\"nan\")\nraw = pd.DataFrame([\n    [\"Budget 2026\", nan, nan, nan],\n    [nan, nan, nan, nan],\n    [\"Dept\", \"Q1\", nan, nan],\n    [nan, \"Jan\", \"Feb\", \"Mar\"],\n    [\"Sales\", \"$1,000\", \"(200.00)\", \"300\"],\n    [\"Ops\", \"400\", \"-\", \"$50\"],\n    [\"Total\", \"$1,550\", \"(200.00)\", \"$350\"],\n    [\"Source: finance\", nan, nan, nan],\n])\nhead = int(raw.index[raw[0] == \"Dept\"][0])\ngroup = raw.iloc[head].ffill()\nmember = raw.iloc[head + 1]\nnames = [f\"{g}_{m}\".lower() if pd.notna(m) else str(g).lower() for g, m in zip(group, member)]\nbody = raw.iloc[head + 2:].copy()\nbody.columns = names\nbody = body[~body[\"dept\"].astype(str).str.startswith((\"Total\", \"Source\"))]\nmoney = [c for c in names if c != \"dept\"]\nfor c in money:\n    text = body[c].astype(str).str.strip()\n    neg = text.str.startswith(\"(\")\n    num = pd.to_numeric(text.str.replace(r\"[()$,]\", \"\", regex=True).replace(\"-\", None), errors=\"coerce\")\n    body[c] = num.where(~neg, -num)\nlong = body.melt(id_vars=\"dept\", var_name=\"month\", value_name=\"amount\")\nlong[\"month\"] = long[\"month\"].str.replace(\"q1_\", \"\", regex=False)\norder = {\"jan\": 0, \"feb\": 1, \"mar\": 2}\nlong = long.sort_values([\"dept\", \"month\"], key=lambda s: s.map(order) if s.name == \"month\" else s, kind=\"stable\")\nprint(long.to_string(index=False))\nprint(\"Sum\", float(long[\"amount\"].sum()))\n",
+      "expected": " dept month  amount\n  Ops   jan   400.0\n  Ops   feb     NaN\n  Ops   mar    50.0\nSales   jan  1000.0\nSales   feb  -200.0\nSales   mar   300.0\nSum 1550.0"
+    },
+    {
+      "id": "i2",
+      "title": "Reconcile against the footer",
+      "kind": "python",
+      "prompt": "The sheet text reports a footer total. Given `rows` (label, amount-as-text) and `reported` (the footer's number), repair the amounts with the rules from guided exercise 4 (strip, `$` and commas, parentheses negative, `-` or `n/a` skipped), then print `ok` when the repaired detail sum equals `reported`, otherwise `mismatch by X` where X is `reported` minus the sum with one decimal. Run it for the two datasets given and print both results. Expected output: `ok` then `mismatch by 100.0`.",
+      "starter": "def repaired_sum(rows):\n    total = 0.0\n    # add the repaired amounts\n    return total\n\ndef reconcile(rows, reported):\n    return \"\"\n\nA = [(\"x\", \"$1,000.00\"), (\"y\", \"(200.00)\"), (\"z\", \"-\")]\nB = [(\"x\", \"500\"), (\"y\", \" 400 \"), (\"z\", \"n/a\")]\nprint(reconcile(A, 800.0))\nprint(reconcile(B, 1000.0))\n",
+      "solution": "def repaired_sum(rows):\n    total = 0.0\n    for _, text in rows:\n        text = text.strip()\n        if text in (\"-\", \"n/a\"):\n            continue\n        negative = text.startswith(\"(\") and text.endswith(\")\")\n        value = float(text.strip(\"()\").replace(\"$\", \"\").replace(\",\", \"\"))\n        total += -value if negative else value\n    return total\n\ndef reconcile(rows, reported):\n    total = repaired_sum(rows)\n    if total == reported:\n        return \"ok\"\n    return f\"mismatch by {reported - total:.1f}\"\n\nA = [(\"x\", \"$1,000.00\"), (\"y\", \"(200.00)\"), (\"z\", \"-\")]\nB = [(\"x\", \"500\"), (\"y\", \" 400 \"), (\"z\", \"n/a\")]\nprint(reconcile(A, 800.0))\nprint(reconcile(B, 1000.0))\n",
+      "expected": "ok\nmismatch by 100.0"
+    },
+    {
+      "id": "i3",
+      "title": "Plan the landmarks",
+      "kind": "written",
+      "prompt": "A partner sends a monthly workbook with a title in rows 1 to 2, a header block on rows 3 to 4 (merged group labels), data, `Subtotal` rows, a `Total` row and a footnote. Write the rules your pipeline would use to find the table, flatten the header, drop non-data rows and check the result, and name two layout changes that your rules should stop on instead of guessing through.",
+      "starter": "List your rules here.",
+      "solution": "Find the header row as the single row whose first cell equals the agreed label (for example `Dept`); stop if there is not exactly one. Forward-fill the group labels in that row and join them with the member labels in the next row into lowercase names. Take the rows below the member row until the first whose first cell starts with `Subtotal`, `Total` or `Source`, and drop subtotal rows. Repair the money columns in a fixed order and list any value that became missing without being a known marker. Finally compare the detail sum with the footer total and fail on a difference. Stop and raise on: the landmark missing or appearing twice, a new column name in the flattened header, the footer total missing, or an unexpected value count above zero. These changes mean the layout changed and guessing would load wrong numbers.",
+      "rubric": [
+        "Finds the header by a landmark and requires it exactly once",
+        "Flattens the header and drops subtotal and footer rows by rule",
+        "Compares the detail sum with the footer total",
+        "Names two layout changes that stop the run"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A merged range B3:D3 holds the label `Q1`. What does a program reading cell values find in C3?",
+      "options": [
+        "`Q1`, because the merge copies the value to every cell",
+        "Nothing: only the top-left cell B3 holds the value",
+        "`Q1` only when read with pandas",
+        "An error because merged cells cannot be read"
+      ],
+      "answer": 1,
+      "explanation": "Excel stores the value in the top-left cell of the range; the other cells are empty. pandas shows them as `NaN`, which is why a forward fill restores the label where the gaps are merges."
+    },
+    {
+      "id": "c2",
+      "question": "When is `ffill()` the right repair for an empty cell?",
+      "options": [
+        "Whenever a numeric column has an empty cell",
+        "When the empty cell is the rest of a merged label that applies to it",
+        "When the cell means the value is not available",
+        "Never, because it changes data"
+      ],
+      "answer": 1,
+      "explanation": "Forward fill copies the previous value, which restores a merged group label. On a numeric column where a blank means no value, it would invent a number and corrupt the totals."
+    },
+    {
+      "id": "c3",
+      "question": "A sheet has detail rows, `Subtotal` rows and a `Total` row, and all of them are loaded into one table. What is the likely symptom?",
+      "options": [
+        "The loader fails on a type error",
+        "Every sum over the table is about double the real total",
+        "Dates become numbers",
+        "The table loses its header"
+      ],
+      "answer": 1,
+      "explanation": "Subtotals and totals repeat detail rows, so summing the loaded column counts the same amounts more than once (twice with one level of subtotals). There is usually no error, which makes the mistake easy to miss."
+    },
+    {
+      "id": "c4",
+      "question": "What does `pd.to_numeric(pd.Series([\"12\", \"twelve\"]), errors=\"coerce\").tolist()` return?",
+      "options": [
+        "`[12, 'twelve']`",
+        "`[12.0, nan]`",
+        "`[12.0, 0.0]`",
+        "It raises `ValueError`"
+      ],
+      "answer": 1,
+      "explanation": "`coerce` turns text that cannot be a number into `NaN`, and the result is a float column. That is why the unexpected values should be counted: coerce hides them otherwise."
+    },
+    {
+      "id": "c5",
+      "question": "Why find the header by a landmark instead of using `skiprows=4`?",
+      "options": [
+        "Landmarks are faster",
+        "The layout changes when someone inserts a line, and a fixed number then reads the wrong row without an error",
+        "`skiprows` only works with CSV",
+        "Landmarks avoid reading the file"
+      ],
+      "answer": 1,
+      "explanation": "A fixed row number is an assumption that silently breaks when rows move. A landmark such as the cell `Dept` moves with the table and can raise an error when it is missing."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "openpyxl",
+      "pandas"
+    ],
+    "note": "Example 1 uses openpyxl to build a workbook with a merged cell in a temporary folder; the browser cannot import openpyxl, so run it locally after `pip install openpyxl pandas`. The browser examples and every graded exercise express the same messy layout as a DataFrame read with no header (title rows, a two-row header with a gap where cells were merged, subtotal and footer rows), which is exactly what `pd.read_excel(path, header=None)` returns for such a sheet."
+  }
+}

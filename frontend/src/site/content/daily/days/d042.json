@@ -1,0 +1,190 @@
+{
+  "id": "d042",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "self-join",
+      "cross-join",
+      "multiple-joins"
+    ],
+    "questions": [
+      61,
+      64,
+      71
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "joins"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Sales representatives and their managers",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For employees whose `title` is `Sales Representative` return `employee_id`, `employee` (the employee's `last_name`) and `manager` (the manager's `last_name`), ordered by `employee_id`. Use a self join on `reports_to`, with aliases `e` and `m`.",
+      "starter": "-- Sales representatives and the last name of their manager\nSELECT e.employee_id, e.last_name AS employee, e.reports_to AS manager\nFROM employees e\nWHERE e.title = 'Sales Representative'\nORDER BY e.employee_id;\n",
+      "solution": "SELECT e.employee_id, e.last_name AS employee, m.last_name AS manager\nFROM employees e\nJOIN employees m ON e.reports_to = m.employee_id\nWHERE e.title = 'Sales Representative'\nORDER BY e.employee_id;\n",
+      "hints": [
+        "The starter shows the manager's id, not the name. The name sits in another row of the same table.",
+        "Join employees to itself: the alias m is the manager's row, found by matching e.reports_to with m.employee_id.",
+        "JOIN employees m ON e.reports_to = m.employee_id, then select m.last_name AS manager"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Customer pairs in Madrid",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "List every pair of different customers located in the city Madrid. Return `customer_a` and `customer_b` (the two `customer_id` values, with `customer_a` alphabetically before `customer_b`), so that each pair appears once. Order by `customer_a`, then `customer_b`.",
+      "starter": "-- Pairs of customers in Madrid\nSELECT a.customer_id AS customer_a, b.customer_id AS customer_b\nFROM customers a\nJOIN customers b ON a.city = b.city\nWHERE a.city = 'Madrid'\nORDER BY customer_a, customer_b;\n",
+      "solution": "SELECT a.customer_id AS customer_a, b.customer_id AS customer_b\nFROM customers a\nJOIN customers b ON a.city = b.city AND a.customer_id < b.customer_id\nWHERE a.city = 'Madrid'\nORDER BY customer_a, customer_b;\n",
+      "hints": [
+        "Run the starter: customers are paired with themselves and every pair appears in both orders.",
+        "One extra comparison on the two ids removes both problems.",
+        "ON a.city = b.city AND a.customer_id < b.customer_id"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Products of two orders with their categories",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For orders 10251 and 10252 return `order_id`, `product_name` and `category_name`, by joining `order_details`, `products` and `categories`. Order by `order_id`, then `product_name`.",
+      "starter": "-- Lines of orders 10251 and 10252 with product and category names\nSELECT od.order_id, p.product_name, p.category_id AS category_name\nFROM order_details od\nJOIN products p ON p.product_id = od.product_id\nWHERE od.order_id IN (10251, 10252)\nORDER BY od.order_id, p.product_name;\n",
+      "solution": "SELECT od.order_id, p.product_name, c.category_name\nFROM order_details od\nJOIN products p ON p.product_id = od.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE od.order_id IN (10251, 10252)\nORDER BY od.order_id, p.product_name;\n",
+      "hints": [
+        "The starter has the category id but not its name. A third table holds the name.",
+        "Join categories to products on category_id.",
+        "JOIN categories c ON c.category_id = p.category_id and select c.category_name"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Category and shipper grid",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Build every combination of the categories with `category_id` 1 or 2 and all shippers. Return `category_name` and `shipper` (the shipper's `company_name`). Order by `category_name`, then `shipper`. The result must have 6 rows.",
+      "starter": "-- Every combination of categories 1 and 2 with every shipper\nSELECT c.category_name, c.description AS shipper\nFROM categories c\nWHERE c.category_id IN (1, 2)\nORDER BY c.category_name;\n",
+      "solution": "SELECT c.category_name, s.company_name AS shipper\nFROM categories c\nCROSS JOIN shippers s\nWHERE c.category_id IN (1, 2)\nORDER BY c.category_name, shipper;\n",
+      "hints": [
+        "The starter has only 2 rows because it never reads the shippers table.",
+        "A join with no condition pairs every row with every row. SQL has a keyword for it.",
+        "FROM categories c CROSS JOIN shippers s"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Colleagues with the same manager",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "List every pair of employees who report to the same manager. Return `employee_a` and `employee_b` (last names, with `employee_a`'s `employee_id` lower than `employee_b`'s, so each pair appears once) and `manager` (the manager's last name). Order by `manager`, then `employee_a`, then `employee_b`.",
+      "starter": "-- Pairs of employees with the same manager\nSELECT a.last_name AS employee_a, b.last_name AS employee_b, a.reports_to AS manager\nFROM employees a\nJOIN employees b ON a.reports_to = b.reports_to\nORDER BY manager, employee_a, employee_b;\n",
+      "solution": "SELECT a.last_name AS employee_a, b.last_name AS employee_b, m.last_name AS manager\nFROM employees a\nJOIN employees b ON a.reports_to = b.reports_to AND a.employee_id < b.employee_id\nJOIN employees m ON m.employee_id = a.reports_to\nORDER BY manager, employee_a, employee_b;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Category revenue in 1997",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Join `orders`, `order_details`, `products` and `categories`. For orders placed in 1997 (from 1997-01-01 up to but not including 1998-01-01) return `category_name`, `orders` (distinct orders containing the category) and `revenue` (sum of `unit_price * quantity * (1 - discount)` of the order lines, `discount` cast to `numeric`, rounded to 2 decimals). Use `od.unit_price` for the line price. Order by `revenue` descending.",
+      "starter": "-- Revenue per category in 1997\nSELECT c.category_name, COUNT(*) AS orders\nFROM categories c\nGROUP BY c.category_name\nORDER BY c.category_name;\n",
+      "solution": "SELECT c.category_name,\n       COUNT(DISTINCT o.order_id) AS orders,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount::numeric)), 2) AS revenue\nFROM orders o\nJOIN order_details od ON od.order_id = o.order_id\nJOIN products p ON p.product_id = od.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE o.order_date >= '1997-01-01' AND o.order_date < '1998-01-01'\nGROUP BY c.category_name\nORDER BY revenue DESC;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Countries served by many employees",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. Join `customers`, `orders` and `employees`. For each customer `country` return `orders`, `employees` (the number of distinct employees who handled its orders) and `customers` (distinct customers who ordered), in that order after `country`. Keep only countries served by at least 3 distinct employees. Order by `employees` descending, then `country`.",
+      "starter": "-- Countries served by at least 3 employees\nSELECT c.country, COUNT(*) AS orders\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.country\nORDER BY c.country;\n",
+      "solution": "SELECT c.country,\n       COUNT(*) AS orders,\n       COUNT(DISTINCT e.employee_id) AS employees,\n       COUNT(DISTINCT c.customer_id) AS customers\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nJOIN employees e ON e.employee_id = o.employee_id\nGROUP BY c.country\nHAVING COUNT(DISTINCT e.employee_id) >= 3\nORDER BY employees DESC, c.country;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why must a self join give each copy of the table an alias?",
+      "options": [
+        "Aliases make the query faster",
+        "Without aliases the two copies cannot be told apart, so PostgreSQL reports that the table name is specified more than once",
+        "Aliases are required for every join",
+        "Aliases are required only for LEFT JOIN"
+      ],
+      "answer": 1,
+      "explanation": "Both copies have the same table name, so column references like employee_id would be ambiguous. Aliases such as e and m name the two roles. They are needed in any self join, not in every join."
+    },
+    {
+      "id": "c2",
+      "question": "There are 8 categories and 3 shippers. How many rows does `categories CROSS JOIN shippers` return?",
+      "options": [
+        "3",
+        "8",
+        "11",
+        "24"
+      ],
+      "answer": 3,
+      "explanation": "A cross join pairs every row of one table with every row of the other, so 8 x 3 = 24. Adding rows (11) is what a UNION would do, a different idea (day 47)."
+    },
+    {
+      "id": "c3",
+      "question": "Six customers live in London. How many rows come from `customers a JOIN customers b ON a.city = b.city AND a.customer_id < b.customer_id` for London?",
+      "options": [
+        "36",
+        "30",
+        "15",
+        "6"
+      ],
+      "answer": 2,
+      "explanation": "The `<` condition keeps each unordered pair once and excludes self pairs: 6 x 5 / 2 = 15. Without it you would get 36 rows (6 x 6), with the `<>` condition 30 (each pair twice)."
+    },
+    {
+      "id": "c4",
+      "question": "What does `employees e JOIN employees m ON e.reports_to = m.employee_id` do with Fuller, whose `reports_to` is NULL?",
+      "options": [
+        "Keeps him with a NULL manager",
+        "Drops him, because NULL matches nothing in an inner join",
+        "Pairs him with every manager",
+        "Raises an error"
+      ],
+      "answer": 1,
+      "explanation": "NULL never equals anything, so Fuller has no partner and an inner join drops him. Use LEFT JOIN to keep him with a NULL manager name."
+    },
+    {
+      "id": "c5",
+      "question": "A query is `customers c LEFT JOIN orders o ON o.customer_id = c.customer_id JOIN order_details od ON od.order_id = o.order_id`. What happens to customers with no orders?",
+      "options": [
+        "They stay, with NULLs",
+        "They are removed by the final inner join",
+        "They are duplicated once per order line",
+        "The query fails"
+      ],
+      "answer": 1,
+      "explanation": "For an unmatched customer o.order_id is NULL, so the inner join condition is unknown and the row disappears. The result is 250 rows and 89 customers instead of 252 rows and 91 customers. Make the second join a LEFT JOIN too."
+    },
+    {
+      "id": "c6",
+      "question": "You join five tables in a chain. How many join conditions are needed for the chain to avoid an accidental cross join?",
+      "options": [
+        "5",
+        "4",
+        "1",
+        "6"
+      ],
+      "answer": 1,
+      "explanation": "Each new table needs a condition linking it to a table already in the chain, so N tables need N-1 conditions: 4 for five tables. A missing condition turns that step into a cross join and multiplies the rows."
+    }
+  ]
+}

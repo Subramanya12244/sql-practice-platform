@@ -1,0 +1,188 @@
+{
+  "id": "d028",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-regex"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "regex-extract-validate",
+      "normalise-text-fields",
+      "extract-error-messages-from-log"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Find the first number",
+      "prompt": "The text `\"Invoice 7731 due 2026-04-30, total 1250\"` contains several numbers. With `re.search` find the first run of digits and print it, then use `re.findall` to print the list of all runs of digits. Expected output: `7731` then `['7731', '2026', '04', '30', '1250']`.",
+      "starter": "import re\n\ntext = \"Invoice 7731 due 2026-04-30, total 1250\"\n# Print the first number and all numbers\n",
+      "solution": "import re\n\ntext = \"Invoice 7731 due 2026-04-30, total 1250\"\nprint(re.search(r\"\\d+\", text).group())\nprint(re.findall(r\"\\d+\", text))\n",
+      "kind": "python",
+      "expected": "7731\n['7731', '2026', '04', '30', '1250']",
+      "hints": [
+        "`\\d` matches one digit and `+` means one or more.",
+        "`re.search(...)` returns a match object; `.group()` gives the text.",
+        "Use the raw string `r\"\\d+\"` for both calls."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Validate product codes",
+      "prompt": "A valid code is two capital letters, a hyphen and exactly four digits. For each code in the list print `code: valid` or `code: invalid` using `re.fullmatch`. Expected output: one line per code.",
+      "starter": "import re\n\ncodes = [\"AB-1234\", \"A-1234\", \"AB-12345\", \"ab-1234\", \"XY-0007\"]\n# Print validity for each\n",
+      "solution": "import re\n\ncodes = [\"AB-1234\", \"A-1234\", \"AB-12345\", \"ab-1234\", \"XY-0007\"]\nfor code in codes:\n    ok = re.fullmatch(r\"[A-Z]{2}-\\d{4}\", code)\n    print(f\"{code}: {'valid' if ok else 'invalid'}\")\n",
+      "kind": "python",
+      "expected": "AB-1234: valid\nA-1234: invalid\nAB-12345: invalid\nab-1234: invalid\nXY-0007: valid",
+      "hints": [
+        "`fullmatch` requires the whole string to match; it returns `None` otherwise.",
+        "Two capitals are `[A-Z]{2}`, then a hyphen, then `\\d{4}`.",
+        "The pattern is `r\"[A-Z]{2}-\\d{4}\"`; test its result for truth."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Reorder a date",
+      "prompt": "Convert every date `YYYY-MM-DD` in the text `\"Start 2026-03-15, end 2026-12-01\"` to `DD.MM.YYYY` with `re.sub` and group references, and print the new text. Expected output: `Start 15.03.2026, end 01.12.2026`.",
+      "starter": "import re\n\ntext = \"Start 2026-03-15, end 2026-12-01\"\n# Reorder the dates with re.sub\n",
+      "solution": "import re\n\ntext = \"Start 2026-03-15, end 2026-12-01\"\nprint(re.sub(r\"(\\d{4})-(\\d{2})-(\\d{2})\", r\"\\3.\\2.\\1\", text))\n",
+      "kind": "python",
+      "expected": "Start 15.03.2026, end 01.12.2026",
+      "hints": [
+        "Capture the year, month and day as three groups with brackets.",
+        "In the replacement, `\\1` is the first group, `\\2` the second and so on.",
+        "Pattern `r\"(\\d{4})-(\\d{2})-(\\d{2})\"`, replacement `r\"\\3.\\2.\\1\"`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Named groups",
+      "prompt": "Using a named-group pattern, parse `\"ana:42:oslo\"` into a dictionary with keys `name`, `age` and `city` (all strings, the pattern splits on colons) using `groupdict()`, and print it. Expected output: `{'name': 'ana', 'age': '42', 'city': 'oslo'}`.",
+      "starter": "import re\n\nline = \"ana:42:oslo\"\n# Parse with a named-group pattern\n",
+      "solution": "import re\n\nline = \"ana:42:oslo\"\nm = re.fullmatch(r\"(?P<name>\\w+):(?P<age>\\d+):(?P<city>\\w+)\", line)\nprint(m.groupdict())\n",
+      "kind": "python",
+      "expected": "{'name': 'ana', 'age': '42', 'city': 'oslo'}",
+      "hints": [
+        "A named group is written `(?P<name>...)`.",
+        "Separate the three groups with literal colons.",
+        "`re.fullmatch(r\"(?P<name>\\w+):(?P<age>\\d+):(?P<city>\\w+)\", line).groupdict()`"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Clean customer names",
+      "prompt": "Clean each raw name: collapse any run of whitespace into one space, strip the ends, remove every character that is not a letter, space, hyphen or apostrophe, and convert to title case. Print the cleaned names in order, then print how many distinct cleaned names there are.",
+      "starter": "import re\n\nraw = [\"  ana   LOPEZ \", \"Bo  Smith!!\", \"cy\\tO'Neil  \", \"ANA lopez#\", \"Dee-Ann   Ray\"]\n# Clean and print\n",
+      "solution": "import re\n\nraw = [\"  ana   LOPEZ \", \"Bo  Smith!!\", \"cy\\tO'Neil  \", \"ANA lopez#\", \"Dee-Ann   Ray\"]\ncleaned = []\nfor name in raw:\n    name = re.sub(r\"[^A-Za-z\\s'-]\", \"\", name)\n    name = re.sub(r\"\\s+\", \" \", name).strip()\n    cleaned.append(name.title())\nfor name in cleaned:\n    print(name)\nprint(len(set(cleaned)))\n",
+      "kind": "python",
+      "expected": "Ana Lopez\nBo Smith\nCy O'Neil\nAna Lopez\nDee-Ann Ray\n4"
+    },
+    {
+      "id": "i2",
+      "title": "Order lines to records",
+      "prompt": "Each line looks like `#<order id> <customer> bought <qty> x <item> at $<price>`. Parse the lines with one compiled pattern with named groups, convert `id` and `qty` to integers and `price` to a float, and skip lines that do not match (counting them). Print one line per parsed order as `id customer item total` where total is `qty * price` with two decimals, then `Skipped: N`.",
+      "starter": "import re\n\nlines = [\n    \"#101 ana bought 2 x pen at $1.50\",\n    \"#102 bo bought 1 x notebook at $4.25\",\n    \"order 103 is missing\",\n    \"#104 cy bought 12 x clip at $0.10\",\n    \"#105 dee bought x pen\",\n]\n# Parse, print and count skipped\n",
+      "solution": "import re\n\nlines = [\n    \"#101 ana bought 2 x pen at $1.50\",\n    \"#102 bo bought 1 x notebook at $4.25\",\n    \"order 103 is missing\",\n    \"#104 cy bought 12 x clip at $0.10\",\n    \"#105 dee bought x pen\",\n]\npattern = re.compile(r\"#(?P<id>\\d+) (?P<customer>\\w+) bought (?P<qty>\\d+) x (?P<item>\\w+) at \\$(?P<price>\\d+(?:\\.\\d+)?)\")\nskipped = 0\nfor line in lines:\n    m = pattern.fullmatch(line)\n    if not m:\n        skipped += 1\n        continue\n    d = m.groupdict()\n    total = int(d[\"qty\"]) * float(d[\"price\"])\n    print(int(d[\"id\"]), d[\"customer\"], d[\"item\"], f\"{total:.2f}\")\nprint(f\"Skipped: {skipped}\")\n",
+      "kind": "python",
+      "expected": "101 ana pen 3.00\n102 bo notebook 4.25\n104 cy clip 1.20\nSkipped: 2"
+    },
+    {
+      "id": "i3",
+      "title": "Mask and count",
+      "prompt": "In the text, replace every email address with `<email>` and every run of 9 or more digits (possibly broken by single spaces or hyphens, such as `4111 2222 3333 4444`) with `<number>`, applying the email rule first. Print the masked text. Then print the sorted list of distinct email domains (the part after the `@`) found in the original text.",
+      "starter": "import re\n\ntext = \"Write to ana@shop.com or bo@mail.org. Card 4111 2222 3333 4444, order 123, id 987-654-321, again ana@shop.com.\"\n# Mask and list the domains\n",
+      "solution": "import re\n\ntext = \"Write to ana@shop.com or bo@mail.org. Card 4111 2222 3333 4444, order 123, id 987-654-321, again ana@shop.com.\"\nemail = r\"[\\w.]+@[\\w.]+\\.\\w+\"\nmasked = re.sub(email, \"<email>\", text)\nmasked = re.sub(r\"\\d(?:[ -]?\\d){8,}\", \"<number>\", masked)\nprint(masked)\nprint(sorted(set(re.findall(r\"@([\\w.]+\\.\\w+)\", text))))\n",
+      "kind": "python",
+      "expected": "Write to <email> or <email>. Card <number>, order 123, id <number>, again <email>.\n['mail.org', 'shop.com']",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nimport re\nprint(re.match(r\"\\d+\", \"ab12\"))\n```",
+      "options": [
+        "12",
+        "None",
+        "ab12",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "`re.match` tests only the start of the text, which is `a`, not a digit, so there is no match and `None` is returned. `re.search` would find `12`."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\nimport re\nprint(re.findall(r\"<.+?>\", \"<a><b>\"))\n```",
+      "options": [
+        "['<a><b>']",
+        "['<a>', '<b>']",
+        "['a', 'b']",
+        "[]"
+      ],
+      "answer": 1,
+      "explanation": "The lazy `.+?` stops at the first `>`, so each tag is a separate match. The greedy `.+` would take everything from the first `<` to the last `>` and return the single string in the first option."
+    },
+    {
+      "id": "c3",
+      "question": "Which call validates that the whole string is a 4-digit code?",
+      "options": [
+        "re.search(r\"\\d{4}\", s)",
+        "re.fullmatch(r\"\\d{4}\", s)",
+        "re.findall(r\"\\d{4}\", s)",
+        "re.match(r\"\\d+\", s)"
+      ],
+      "answer": 1,
+      "explanation": "`fullmatch` requires the entire string to fit the pattern. `search` accepts `abc1234xyz` because it finds four digits inside, and `match` with `+` accepts any number of digits."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\nimport re\nprint(re.sub(r\"(\\w+)@(\\w+)\", r\"\\2 at \\1\", \"ana@shop\"))\n```",
+      "options": [
+        "shop at ana",
+        "ana at shop",
+        "\\2 at \\1",
+        "ana@shop"
+      ],
+      "answer": 0,
+      "explanation": "`\\1` is the first captured group (`ana`) and `\\2` the second (`shop`), so the replacement swaps them into `shop at ana`."
+    },
+    {
+      "id": "c5",
+      "question": "Why is the pattern `\"\\d+\"` (not raw) risky in a normal string?",
+      "options": [
+        "Backslash sequences are processed by Python first; raw strings avoid that",
+        "Raw strings are faster",
+        "\\d is not a valid regex",
+        "It would match only one digit"
+      ],
+      "answer": 0,
+      "explanation": "Python reads escapes in normal strings before the regex engine sees them: `\"\\b\"` is a backspace, and unknown ones like `\"\\d\"` trigger a warning. The `r` prefix passes the text through unchanged."
+    },
+    {
+      "id": "c6",
+      "question": "`m = re.search(r\"x\", \"abc\")` then `m.group()` raises an error. Why?",
+      "options": [
+        "search returned None, which has no group method",
+        "group needs an argument",
+        "search always raises an error",
+        "The pattern is invalid"
+      ],
+      "answer": 0,
+      "explanation": "No `x` is found, so `search` returns `None`, and `None.group()` raises `AttributeError`. Check `if m:` before using the match."
+    }
+  ]
+}

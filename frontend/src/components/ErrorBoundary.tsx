@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { classifyError } from "../site/lib/diagnostics";
 
 interface Props {
   children: ReactNode;
@@ -18,6 +19,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("UI error:", error, info);
+    classifyError(error, "APPLICATION_ERROR", "navigation", { code: "REACT_RENDER_ERROR" });
   }
 
   render() {

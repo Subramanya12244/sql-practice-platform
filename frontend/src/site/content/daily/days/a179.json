@@ -1,0 +1,175 @@
+{
+  "id": "a179",
+  "time": {
+    "theory": 20,
+    "examples": 30,
+    "guided": 25,
+    "independent": 60,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-modules-packages",
+      "python-virtual-environments"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline",
+      "end-to-end-pipeline"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A tiny test runner",
+      "kind": "python",
+      "prompt": "Write `run_tests(tests)` where `tests` is a dict name -> function. It calls each function, counts it as passed unless it raises `AssertionError`, prints `FAILED <name>` for each failure (in dict order), then prints `<p> passed, <f> failed`. Call it with three tests: `t_add` asserting `1 + 1 == 2`, `t_len` asserting `len('abc') == 3` and `t_bad` asserting `round(2.675, 2) == 2.68`.",
+      "starter": "def run_tests(tests):\n    pass\n\n\ndef t_add():\n    assert 1 + 1 == 2\n\n\ndef t_len():\n    assert len('abc') == 3\n\n\ndef t_bad():\n    assert round(2.675, 2) == 2.68\n\n\nrun_tests({'t_add': t_add, 't_len': t_len, 't_bad': t_bad})\n",
+      "solution": "def run_tests(tests):\n    passed = failed = 0\n    for name, fn in tests.items():\n        try:\n            fn()\n            passed += 1\n        except AssertionError:\n            failed += 1\n            print(\"FAILED\", name)\n    print(f\"{passed} passed, {failed} failed\")\n\n\ndef t_add():\n    assert 1 + 1 == 2\n\n\ndef t_len():\n    assert len('abc') == 3\n\n\ndef t_bad():\n    assert round(2.675, 2) == 2.68\n\n\nrun_tests({'t_add': t_add, 't_len': t_len, 't_bad': t_bad})\n",
+      "expected": "FAILED t_bad\n2 passed, 1 failed",
+      "hints": [
+        "Loop over `tests.items()` and wrap the call in `try`/`except AssertionError`.",
+        "Count passes in the `try` after the call, failures in the `except`.",
+        "`round(2.675, 2)` is 2.67 in floating point, so `t_bad` fails: that is why tests compare with care."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "README checker",
+      "kind": "python",
+      "prompt": "Complete `readme_problems(text)`: it returns `missing section: <name>` for each of `Question`, `Data`, `How to run`, `Results`, `Decisions and limits` that is not a level-two heading (`## name`) in the text, in that order. Print the result for a text that has only `## Question` and `## Results`.",
+      "starter": "REQUIRED = ['Question', 'Data', 'How to run', 'Results', 'Decisions and limits']\n\n\ndef readme_problems(text):\n    return []\n\n\nprint(readme_problems('# Title\\n## Question\\nx\\n## Results\\ny\\n'))\n",
+      "solution": "REQUIRED = ['Question', 'Data', 'How to run', 'Results', 'Decisions and limits']\n\n\ndef readme_problems(text):\n    headings = [line[3:].strip() for line in text.splitlines() if line.startswith('## ')]\n    return [f'missing section: {name}' for name in REQUIRED if name not in headings]\n\n\nprint(readme_problems('# Title\\n## Question\\nx\\n## Results\\ny\\n'))\n",
+      "expected": "['missing section: Data', 'missing section: How to run', 'missing section: Decisions and limits']",
+      "hints": [
+        "Collect the headings: lines that start with `## `.",
+        "Cut the first three characters to get the heading text.",
+        "Build the list with a comprehension over `REQUIRED`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Commit message rule",
+      "kind": "python",
+      "prompt": "Write `valid_message(msg)` returning True when the message is at most 50 characters, starts with an uppercase letter and does not end with a full stop. Print the results for `Add cleaning tests`, `add tests`, `Fix country labels.` and a message of 60 characters made with `'A' * 60`, one per line.",
+      "starter": "def valid_message(msg):\n    return False\n\n\nfor m in ['Add cleaning tests', 'add tests', 'Fix country labels.', 'A' * 60]:\n    print(valid_message(m))\n",
+      "solution": "def valid_message(msg):\n    return len(msg) <= 50 and msg[:1].isupper() and not msg.endswith('.')\n\n\nfor m in ['Add cleaning tests', 'add tests', 'Fix country labels.', 'A' * 60]:\n    print(valid_message(m))\n",
+      "expected": "True\nFalse\nFalse\nFalse",
+      "hints": [
+        "Combine three conditions with `and`.",
+        "`msg[:1].isupper()` tests the first character safely.",
+        "`msg.endswith('.')` tests the end; negate it."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Repository check",
+      "kind": "python",
+      "prompt": "Write `repo_problems(files, tracked)` where `files` is the list of files in the folder and `tracked` the list Git tracks. Return, in order: `missing <f>` for each of `README.md`, `requirements.txt`, `.gitignore`, `src/store.py`, `tests/test_store.py` not in `files`; then `tracked data file <f>` for each tracked path that starts with `data/`; then `tracked cache <f>` for each tracked path containing `__pycache__` or `.pytest_cache`. Print the list for `files=['README.md','src/store.py','tests/test_store.py','.gitignore','data/orders.csv']` and `tracked=['README.md','src/store.py','data/orders.csv','src/__pycache__/store.pyc']`.",
+      "starter": "def repo_problems(files, tracked):\n    return []\n\n\nprint(repo_problems(['README.md','src/store.py','tests/test_store.py','.gitignore','data/orders.csv'], ['README.md','src/store.py','data/orders.csv','src/__pycache__/store.pyc']))\n",
+      "solution": "def repo_problems(files, tracked):\n    needed = ['README.md', 'requirements.txt', '.gitignore', 'src/store.py', 'tests/test_store.py']\n    out = [f'missing {f}' for f in needed if f not in files]\n    out += [f'tracked data file {f}' for f in tracked if f.startswith('data/')]\n    out += [f'tracked cache {f}' for f in tracked if '__pycache__' in f or '.pytest_cache' in f]\n    return out\n\n\nprint(repo_problems(['README.md','src/store.py','tests/test_store.py','.gitignore','data/orders.csv'], ['README.md','src/store.py','data/orders.csv','src/__pycache__/store.pyc']))\n",
+      "expected": "['missing requirements.txt', 'tracked data file data/orders.csv', 'tracked cache src/__pycache__/store.pyc']"
+    },
+    {
+      "id": "i2",
+      "title": "Result checks",
+      "kind": "python",
+      "prompt": "On the cleaned data write `run_checks(t, ct, log)` returning a list of `(name, passed)` for: `reproducible` (two `generate(7)` calls equal on every table), `duplicates removed` (`log['raw_orders'] - log['after_duplicates'] == 10`), `no negative quantity`, `no orphan customers`, `countries standard` (all in DE, FR, UK, US) and `net revenue` (`round` of the sum of revenue where not returned equals `52630.99`). Print `<name>: PASS/FAIL` per check and `<p>/<n> checks passed`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\n\ndef clean(t):\n    \"\"\"Apply the quality rules; return cleaned tables and a row-accounting log.\"\"\"\n    log = {}\n    o = t[\"orders\"]\n    log[\"raw_orders\"] = len(o)\n    o = o.drop_duplicates()\n    log[\"after_duplicates\"] = len(o)\n    o = o[o[\"quantity\"] > 0]\n    log[\"after_quantity\"] = len(o)\n    c = t[\"customers\"].copy()\n    c[\"country\"] = c[\"country\"].str.strip().str.upper()\n    o = o[o[\"customer_id\"].isin(c[\"customer_id\"])]\n    log[\"after_customers\"] = len(o)\n    r = t[\"returns\"]\n    log[\"raw_returns\"] = len(r)\n    r = r[r[\"order_id\"].isin(o[\"order_id\"])].drop_duplicates(\"order_id\")\n    log[\"clean_returns\"] = len(r)\n    p = t[\"products\"]\n    o = o.merge(p[[\"product_id\", \"unit_price\"]], on=\"product_id\", how=\"left\")\n    o[\"revenue\"] = (o[\"quantity\"] * o[\"unit_price\"] * (1 - o[\"discount_pct\"] / 100)).round(2)\n    o[\"returned\"] = o[\"order_id\"].isin(r[\"order_id\"])\n    return {\"orders\": o.reset_index(drop=True), \"customers\": c, \"products\": p, \"campaigns\": t[\"campaigns\"], \"returns\": r.reset_index(drop=True)}, log\n\n\nt = generate()\nct, log = clean(t)\n# Your code here\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\n\ndef clean(t):\n    \"\"\"Apply the quality rules; return cleaned tables and a row-accounting log.\"\"\"\n    log = {}\n    o = t[\"orders\"]\n    log[\"raw_orders\"] = len(o)\n    o = o.drop_duplicates()\n    log[\"after_duplicates\"] = len(o)\n    o = o[o[\"quantity\"] > 0]\n    log[\"after_quantity\"] = len(o)\n    c = t[\"customers\"].copy()\n    c[\"country\"] = c[\"country\"].str.strip().str.upper()\n    o = o[o[\"customer_id\"].isin(c[\"customer_id\"])]\n    log[\"after_customers\"] = len(o)\n    r = t[\"returns\"]\n    log[\"raw_returns\"] = len(r)\n    r = r[r[\"order_id\"].isin(o[\"order_id\"])].drop_duplicates(\"order_id\")\n    log[\"clean_returns\"] = len(r)\n    p = t[\"products\"]\n    o = o.merge(p[[\"product_id\", \"unit_price\"]], on=\"product_id\", how=\"left\")\n    o[\"revenue\"] = (o[\"quantity\"] * o[\"unit_price\"] * (1 - o[\"discount_pct\"] / 100)).round(2)\n    o[\"returned\"] = o[\"order_id\"].isin(r[\"order_id\"])\n    return {\"orders\": o.reset_index(drop=True), \"customers\": c, \"products\": p, \"campaigns\": t[\"campaigns\"], \"returns\": r.reset_index(drop=True)}, log\n\n\nt = generate()\nct, log = clean(t)\ndef run_checks(t, ct, log):\n    a, b = generate(7), generate(7)\n    o, c = ct[\"orders\"], ct[\"customers\"]\n    net = round(float(o.loc[~o[\"returned\"], \"revenue\"].sum()), 2)\n    return [\n        (\"reproducible\", all(a[k].equals(b[k]) for k in a)),\n        (\"duplicates removed\", log[\"raw_orders\"] - log[\"after_duplicates\"] == 10),\n        (\"no negative quantity\", bool((o[\"quantity\"] > 0).all())),\n        (\"no orphan customers\", bool(o[\"customer_id\"].isin(c[\"customer_id\"]).all())),\n        (\"countries standard\", set(c[\"country\"]) <= {\"DE\", \"FR\", \"UK\", \"US\"}),\n        (\"net revenue\", net == 52630.99),\n    ]\n\n\nres = run_checks(t, ct, log)\nfor name, ok in res:\n    print(f\"{name}: {'PASS' if ok else 'FAIL'}\")\nprint(f\"{sum(ok for _, ok in res)}/{len(res)} checks passed\")\n",
+      "expected": "reproducible: PASS\nduplicates removed: PASS\nno negative quantity: PASS\nno orphan customers: PASS\ncountries standard: PASS\nnet revenue: PASS\n6/6 checks passed"
+    },
+    {
+      "id": "i3",
+      "title": "Pull request description",
+      "kind": "written",
+      "prompt": "Write the title and description of the pull request that merges `feature/add-tests`: what changed, how to test it, and what a reviewer should check. Add the three commands that publish the repository to GitHub for the first time.",
+      "starter": "Title:\nWhat changed:\nHow to test:\nReviewer checks:\nPublish commands:\n",
+      "solution": "Title: Add tests for cleaning and headline metrics\n\nWhat changed: adds `tests/test_store.py` with five tests (reproducible generator, planted defects, row accounting 510/500/495/489, quality rules after cleaning, net revenue 52630.99) and a requirements file.\n\nHow to test: create a virtual environment, `pip install -r requirements.txt pytest`, then `python -m pytest -q`. All five tests pass.\n\nReviewer checks: the result test pins a number, so confirm that a change to it would be deliberate; confirm `data/` is ignored; read the README run commands in order.\n\nPublish: `git remote add origin https://github.com/<you>/store-analytics.git`, `git push -u origin main`, and push the feature branch with `git push -u origin feature/add-tests` to open the pull request.",
+      "rubric": [
+        "States what changed with the key numbers.",
+        "Gives the exact test command.",
+        "Lists what the reviewer should check.",
+        "Gives the publish commands."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [
+      "numpy",
+      "pandas",
+      "pytest"
+    ],
+    "note": "The pytest and Git examples are bash scripts that create throwaway folders, so they are shown read-only in the browser. Run them on your computer with Python, pandas, pytest and Git installed. Publishing to GitHub needs an account and a network connection, so those commands are shown but not run. The graded exercises reproduce the ideas (a test runner, README and repository checks) in plain Python."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "pytest reports `no tests ran`. What is the most likely cause?",
+      "options": [
+        "Python is too old",
+        "The file or function names do not start with `test`",
+        "The data is wrong",
+        "Git is not installed"
+      ],
+      "answer": 1,
+      "explanation": "pytest collects `test_*.py` files and `test_*` functions by default. Other names are silently ignored, which gives that message."
+    },
+    {
+      "id": "c2",
+      "question": "Why round before comparing net revenue to 52630.99 in a test?",
+      "options": [
+        "Rounding is required by pytest",
+        "Floating-point sums can differ in the last digits across machines",
+        "Integers are faster",
+        "The value is an integer"
+      ],
+      "answer": 1,
+      "explanation": "Summation order and library versions can change the last digits. A rounded comparison states the precision you care about."
+    },
+    {
+      "id": "c3",
+      "question": "What does `git log --format=%s` print?",
+      "options": [
+        "Commit hashes",
+        "One line per commit with the subject only",
+        "The changed files",
+        "The branch names"
+      ],
+      "answer": 1,
+      "explanation": "`%s` is the subject placeholder. It avoids hashes and dates, so the output is stable and reads as the story of the project."
+    },
+    {
+      "id": "c4",
+      "question": "Which README section proves reproducibility?",
+      "options": [
+        "Results",
+        "How to run: exact commands in order from a clean clone",
+        "Data",
+        "The title"
+      ],
+      "answer": 1,
+      "explanation": "A reader who follows the run commands and gets the same results has reproduced the work. The other sections do not let them check."
+    },
+    {
+      "id": "c5",
+      "question": "You commit `data/orders.csv` and then add `data/` to `.gitignore`. Is the file still tracked?",
+      "options": [
+        "No, ignoring untracks it",
+        "Yes, ignore rules do not untrack files already committed",
+        "It is deleted",
+        "Only on GitHub"
+      ],
+      "answer": 1,
+      "explanation": "Ignore rules apply only to untracked files. Use `git rm --cached` to untrack, and add the ignore before the first add next time."
+    }
+  ]
+}

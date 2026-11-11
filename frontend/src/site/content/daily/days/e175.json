@@ -1,0 +1,184 @@
+{
+  "id": "e175",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "etl-error-handling",
+      "etl-transformation"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline",
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "find-duplicates",
+      "unmatched-records"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Normalise one record",
+      "kind": "python",
+      "prompt": "Write `normalise(rec)` that returns a new dictionary with `customer_id` stripped and upper-cased, `status` stripped and lower-cased and `date_key` as the integer `YYYYMMDD` taken from `created_at`. Call it on the given record and print the three values on one line separated by `|`, for example `C1|paid|20260110`. Do not change the input.",
+      "starter": "rec = {\"customer_id\": \" c042 \", \"status\": \" PAID\", \"created_at\": \"2026-03-09T12:00:00Z\"}\n\ndef normalise(rec):\n    return rec\n\nout = normalise(rec)\nprint(out[\"customer_id\"], out[\"status\"], out.get(\"date_key\"), sep=\"|\")\n",
+      "solution": "rec = {\"customer_id\": \" c042 \", \"status\": \" PAID\", \"created_at\": \"2026-03-09T12:00:00Z\"}\n\ndef normalise(rec):\n    return {**rec, \"customer_id\": rec[\"customer_id\"].strip().upper(), \"status\": rec[\"status\"].strip().lower(),\n            \"date_key\": int(rec[\"created_at\"][:10].replace(\"-\", \"\"))}\n\nout = normalise(rec)\nprint(out[\"customer_id\"], out[\"status\"], out.get(\"date_key\"), sep=\"|\")\n",
+      "hints": [
+        "Build a new dictionary with `{**rec, ...}` so the input stays unchanged.",
+        "`.strip().upper()` for the id, `.strip().lower()` for the status.",
+        "The date key is `int(rec[\"created_at\"][:10].replace(\"-\", \"\"))`."
+      ],
+      "expected": "C042|paid|20260309"
+    },
+    {
+      "id": "g2",
+      "title": "First failing rule",
+      "kind": "python",
+      "prompt": "Write `reason(rec)` that returns the first failing rule for an order dictionary, checked in this order: `missing created_at` when `created_at` is empty, `bad amount` when `amount_cents` is not greater than 0, `bad status` when `status` is not `paid`, `refunded` or `failed`, otherwise `ok`. Print the reason for each record in the list, one per line.",
+      "starter": "recs = [\n    {\"created_at\": \"2026-01-01T00:00:00Z\", \"amount_cents\": 100, \"status\": \"paid\"},\n    {\"created_at\": \"\", \"amount_cents\": -5, \"status\": \"paid\"},\n    {\"created_at\": \"2026-01-02T00:00:00Z\", \"amount_cents\": 0, \"status\": \"new\"},\n    {\"created_at\": \"2026-01-03T00:00:00Z\", \"amount_cents\": 50, \"status\": \"new\"},\n]\n\ndef reason(rec):\n    return \"ok\"\n\nfor r in recs:\n    print(reason(r))\n",
+      "solution": "recs = [\n    {\"created_at\": \"2026-01-01T00:00:00Z\", \"amount_cents\": 100, \"status\": \"paid\"},\n    {\"created_at\": \"\", \"amount_cents\": -5, \"status\": \"paid\"},\n    {\"created_at\": \"2026-01-02T00:00:00Z\", \"amount_cents\": 0, \"status\": \"new\"},\n    {\"created_at\": \"2026-01-03T00:00:00Z\", \"amount_cents\": 50, \"status\": \"new\"},\n]\n\ndef reason(rec):\n    if not rec[\"created_at\"]:\n        return \"missing created_at\"\n    if rec[\"amount_cents\"] <= 0:\n        return \"bad amount\"\n    if rec[\"status\"] not in (\"paid\", \"refunded\", \"failed\"):\n        return \"bad status\"\n    return \"ok\"\n\nfor r in recs:\n    print(reason(r))\n",
+      "hints": [
+        "Return as soon as one rule fails, so later rules are not reached.",
+        "Use three `if` tests in the stated order, each with its own return.",
+        "The record with a missing timestamp and a negative amount must report `missing created_at`."
+      ],
+      "expected": "ok\nmissing created_at\nbad amount\nbad status"
+    },
+    {
+      "id": "g3",
+      "title": "Reasons in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the CTE `staging(order_id, amount_cents, status)` holds six rows. Return `reason` and `n` where reason is `bad amount` when `amount_cents <= 0`, otherwise `bad status` when status is not in ('paid','refunded','failed'), otherwise `ok`, and n is the number of rows with that reason. Order by reason.",
+      "starter": "WITH staging(order_id, amount_cents, status) AS (VALUES ('O1',100,'paid'),('O2',-5,'paid'),('O3',50,'new'),('O4',0,'new'),('O5',70,'failed'),('O6',90,'refunded'))\nSELECT order_id FROM staging ORDER BY order_id;\n",
+      "solution": "WITH staging(order_id, amount_cents, status) AS (VALUES ('O1',100,'paid'),('O2',-5,'paid'),('O3',50,'new'),('O4',0,'new'),('O5',70,'failed'),('O6',90,'refunded'))\nSELECT CASE WHEN amount_cents <= 0 THEN 'bad amount'\n            WHEN status NOT IN ('paid','refunded','failed') THEN 'bad status'\n            ELSE 'ok' END AS reason, count(*) AS n\nFROM staging GROUP BY 1 ORDER BY reason;\n",
+      "ordered": true,
+      "hints": [
+        "A CASE expression returns the first branch that matches.",
+        "Put the amount test first, then the status test, then ELSE 'ok'.",
+        "Wrap it as `SELECT CASE ... END AS reason, count(*) AS n FROM staging GROUP BY 1 ORDER BY reason`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Reconcile the stage",
+      "kind": "python",
+      "prompt": "Using `generate()` and the rule `status in (paid, refunded, failed)` and `amount_cents > 0` only, split the orders into `good` and `bad` lists. Print `raw=<n> good=<n> bad=<n> reconciled=<True or False>` where reconciled is whether raw equals good plus bad.",
+      "starter": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\ncustomers, products, orders = generate()\n",
+      "solution": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\ncustomers, products, orders = generate()\ngood, bad = [], []\nfor r in orders:\n    if r[\"amount_cents\"] > 0 and r[\"status\"] in (\"paid\", \"refunded\", \"failed\"):\n        good.append(r)\n    else:\n        bad.append(r)\nprint(f\"raw={len(orders)} good={len(good)} bad={len(bad)} reconciled={len(orders) == len(good) + len(bad)}\")\n",
+      "hints": [
+        "Loop once and append each record to exactly one list.",
+        "Use `if r[\"amount_cents\"] > 0 and r[\"status\"] in (...)` for the good branch.",
+        "Print with an f-string and compare `len(orders)` with the sum of the two lengths."
+      ],
+      "expected": "raw=120 good=118 bad=2 reconciled=True"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Stage report on the generated data",
+      "kind": "python",
+      "prompt": "Run `clean_orders` (given below) on the generated data with the known customers from `generate()`. Print `clean=<n> quarantined=<n>`, then one line per reason `<reason>: <count>` sorted by reason, then `paid orders: <n>` and `paid revenue cents: <sum of amount_cents of clean paid records>`, then `sale_id range: <min>-<max>` over the clean records.",
+      "starter": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nfrom datetime import datetime\n\ndef first_problem(rec, seen, known):\n    \"\"\"The first rule a raw order breaks, or None. `seen` holds the order ids already processed.\"\"\"\n    if rec[\"order_id\"] in seen:\n        return \"duplicate order_id\"\n    if not rec[\"created_at\"]:\n        return \"missing created_at\"\n    try:\n        datetime.strptime(rec[\"created_at\"], \"%Y-%m-%dT%H:%M:%SZ\")\n    except ValueError:\n        return \"bad created_at\"\n    if not isinstance(rec[\"amount_cents\"], int) or rec[\"amount_cents\"] <= 0:\n        return \"bad amount\"\n    if rec[\"customer_id\"].strip().upper() not in known:\n        return \"unknown customer\"\n    if rec[\"currency\"].strip().upper() != \"EUR\":\n        return \"bad currency\"\n    if rec[\"status\"].strip().lower() not in (\"paid\", \"refunded\", \"failed\"):\n        return \"bad status\"\n    return None\n\ndef transform(rec):\n    \"\"\"Typed, normalised copy of a valid raw order.\"\"\"\n    return {\"sale_id\": int(rec[\"order_id\"][1:]), \"order_id\": rec[\"order_id\"],\n            \"customer_id\": rec[\"customer_id\"].strip().upper(), \"product_id\": rec[\"product_id\"],\n            \"quantity\": int(rec[\"quantity\"]), \"amount_cents\": rec[\"amount_cents\"],\n            \"status\": rec[\"status\"].strip().lower(), \"created_at\": rec[\"created_at\"],\n            \"date_key\": int(rec[\"created_at\"][:10].replace(\"-\", \"\"))}\n\ndef clean_orders(raw, known):\n    good, quarantine, seen = [], [], set()\n    for rec in raw:\n        reason = first_problem(rec, seen, known)\n        seen.add(rec[\"order_id\"])\n        if reason:\n            quarantine.append({\"order_id\": rec[\"order_id\"], \"reason\": reason, \"payload\": rec})\n        else:\n            good.append(transform(rec))\n    return good, quarantine\n\ncustomers, products, orders = generate()\nknown = {c[0] for c in customers}\n",
+      "solution": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nfrom datetime import datetime\n\ndef first_problem(rec, seen, known):\n    \"\"\"The first rule a raw order breaks, or None. `seen` holds the order ids already processed.\"\"\"\n    if rec[\"order_id\"] in seen:\n        return \"duplicate order_id\"\n    if not rec[\"created_at\"]:\n        return \"missing created_at\"\n    try:\n        datetime.strptime(rec[\"created_at\"], \"%Y-%m-%dT%H:%M:%SZ\")\n    except ValueError:\n        return \"bad created_at\"\n    if not isinstance(rec[\"amount_cents\"], int) or rec[\"amount_cents\"] <= 0:\n        return \"bad amount\"\n    if rec[\"customer_id\"].strip().upper() not in known:\n        return \"unknown customer\"\n    if rec[\"currency\"].strip().upper() != \"EUR\":\n        return \"bad currency\"\n    if rec[\"status\"].strip().lower() not in (\"paid\", \"refunded\", \"failed\"):\n        return \"bad status\"\n    return None\n\ndef transform(rec):\n    \"\"\"Typed, normalised copy of a valid raw order.\"\"\"\n    return {\"sale_id\": int(rec[\"order_id\"][1:]), \"order_id\": rec[\"order_id\"],\n            \"customer_id\": rec[\"customer_id\"].strip().upper(), \"product_id\": rec[\"product_id\"],\n            \"quantity\": int(rec[\"quantity\"]), \"amount_cents\": rec[\"amount_cents\"],\n            \"status\": rec[\"status\"].strip().lower(), \"created_at\": rec[\"created_at\"],\n            \"date_key\": int(rec[\"created_at\"][:10].replace(\"-\", \"\"))}\n\ndef clean_orders(raw, known):\n    good, quarantine, seen = [], [], set()\n    for rec in raw:\n        reason = first_problem(rec, seen, known)\n        seen.add(rec[\"order_id\"])\n        if reason:\n            quarantine.append({\"order_id\": rec[\"order_id\"], \"reason\": reason, \"payload\": rec})\n        else:\n            good.append(transform(rec))\n    return good, quarantine\n\ncustomers, products, orders = generate()\nknown = {c[0] for c in customers}\ngood, quarantine = clean_orders(orders, known)\nprint(f\"clean={len(good)} quarantined={len(quarantine)}\")\ncounts = {}\nfor q in quarantine:\n    counts[q[\"reason\"]] = counts.get(q[\"reason\"], 0) + 1\nfor reason, n in sorted(counts.items()):\n    print(f\"{reason}: {n}\")\npaid = [g for g in good if g[\"status\"] == \"paid\"]\nprint(\"paid orders: \" + str(len(paid)))\nprint(\"paid revenue cents: \" + str(sum(g[\"amount_cents\"] for g in paid)))\nprint(f\"sale_id range: {min(g['sale_id'] for g in good)}-{max(g['sale_id'] for g in good)}\")\n",
+      "expected": "clean=114 quarantined=6\nbad amount: 1\nbad currency: 1\nbad status: 1\nduplicate order_id: 1\nmissing created_at: 1\nunknown customer: 1\npaid orders: 91\npaid revenue cents: 523500\nsale_id range: 1-119"
+    },
+    {
+      "id": "i2",
+      "title": "Add a rule: no orders from the future",
+      "kind": "python",
+      "prompt": "The business adds a rule: an order dated after `2026-03-15` is `future date` and must be quarantined. The stage uses `clean_orders` below. Wrap it: write `clean_with_cutoff(orders, known, cutoff)` that first runs `clean_orders`, then moves every clean record whose `created_at[:10]` is later than the cutoff into the quarantine with the reason `future date` (payload not needed, only the order id and reason). Print `clean=<n> quarantined=<n>`, then the reason counts sorted by reason as `<reason>: <count>`, and check with `reconciled=<True or False>`.",
+      "starter": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nfrom datetime import datetime\n\ndef first_problem(rec, seen, known):\n    \"\"\"The first rule a raw order breaks, or None. `seen` holds the order ids already processed.\"\"\"\n    if rec[\"order_id\"] in seen:\n        return \"duplicate order_id\"\n    if not rec[\"created_at\"]:\n        return \"missing created_at\"\n    try:\n        datetime.strptime(rec[\"created_at\"], \"%Y-%m-%dT%H:%M:%SZ\")\n    except ValueError:\n        return \"bad created_at\"\n    if not isinstance(rec[\"amount_cents\"], int) or rec[\"amount_cents\"] <= 0:\n        return \"bad amount\"\n    if rec[\"customer_id\"].strip().upper() not in known:\n        return \"unknown customer\"\n    if rec[\"currency\"].strip().upper() != \"EUR\":\n        return \"bad currency\"\n    if rec[\"status\"].strip().lower() not in (\"paid\", \"refunded\", \"failed\"):\n        return \"bad status\"\n    return None\n\ndef transform(rec):\n    \"\"\"Typed, normalised copy of a valid raw order.\"\"\"\n    return {\"sale_id\": int(rec[\"order_id\"][1:]), \"order_id\": rec[\"order_id\"],\n            \"customer_id\": rec[\"customer_id\"].strip().upper(), \"product_id\": rec[\"product_id\"],\n            \"quantity\": int(rec[\"quantity\"]), \"amount_cents\": rec[\"amount_cents\"],\n            \"status\": rec[\"status\"].strip().lower(), \"created_at\": rec[\"created_at\"],\n            \"date_key\": int(rec[\"created_at\"][:10].replace(\"-\", \"\"))}\n\ndef clean_orders(raw, known):\n    good, quarantine, seen = [], [], set()\n    for rec in raw:\n        reason = first_problem(rec, seen, known)\n        seen.add(rec[\"order_id\"])\n        if reason:\n            quarantine.append({\"order_id\": rec[\"order_id\"], \"reason\": reason, \"payload\": rec})\n        else:\n            good.append(transform(rec))\n    return good, quarantine\n\ncustomers, products, orders = generate()\nknown = {c[0] for c in customers}\n",
+      "solution": "import random\nfrom datetime import date, timedelta\n\nCOUNTRIES = [\"DE\", \"FR\", \"IN\", \"US\", \"BR\"]\nCATEGORIES = [\"tools\", \"books\", \"games\"]\n\ndef generate(seed=7):\n    \"\"\"Seeded stand-in data: customers, products and 120 raw order records with planted defects.\"\"\"\n    rng = random.Random(seed)\n    customers = [(f\"C{n:03d}\", f\"Customer {n:02d}\", COUNTRIES[n % 5]) for n in range(1, 21)]\n    products = [(f\"P{n:02d}\", f\"Product {n:02d}\", CATEGORIES[n % 3]) for n in range(1, 9)]\n    price = {pid: 500 * (i + 1) for i, (pid, _, _) in enumerate(products)}\n    orders = []\n    for n in range(1, 121):\n        pid = products[rng.randrange(8)][0]\n        qty = rng.randint(1, 4)\n        day = date(2026, 1, 1) + timedelta(days=(n - 1) * 89 // 119)\n        orders.append({\n            \"order_id\": f\"O{n:04d}\", \"customer_id\": customers[rng.randrange(20)][0], \"product_id\": pid,\n            \"quantity\": qty, \"amount_cents\": price[pid] * qty, \"currency\": \"EUR\",\n            \"status\": rng.choices([\"paid\", \"refunded\", \"failed\"], weights=[8, 1, 1])[0],\n            \"created_at\": f\"{day}T{(n * 7) % 24:02d}:{(n * 13) % 60:02d}:00Z\",\n        })\n    orders[29][\"amount_cents\"] = -1000\n    orders[44][\"customer_id\"] = \"C999\"\n    orders[59][\"created_at\"] = \"\"\n    orders[74][\"currency\"] = \"???\"\n    orders[104][\"status\"] = \"pending\"\n    orders[119] = dict(orders[9])\n    return customers, products, orders\n\nfrom datetime import datetime\n\ndef first_problem(rec, seen, known):\n    \"\"\"The first rule a raw order breaks, or None. `seen` holds the order ids already processed.\"\"\"\n    if rec[\"order_id\"] in seen:\n        return \"duplicate order_id\"\n    if not rec[\"created_at\"]:\n        return \"missing created_at\"\n    try:\n        datetime.strptime(rec[\"created_at\"], \"%Y-%m-%dT%H:%M:%SZ\")\n    except ValueError:\n        return \"bad created_at\"\n    if not isinstance(rec[\"amount_cents\"], int) or rec[\"amount_cents\"] <= 0:\n        return \"bad amount\"\n    if rec[\"customer_id\"].strip().upper() not in known:\n        return \"unknown customer\"\n    if rec[\"currency\"].strip().upper() != \"EUR\":\n        return \"bad currency\"\n    if rec[\"status\"].strip().lower() not in (\"paid\", \"refunded\", \"failed\"):\n        return \"bad status\"\n    return None\n\ndef transform(rec):\n    \"\"\"Typed, normalised copy of a valid raw order.\"\"\"\n    return {\"sale_id\": int(rec[\"order_id\"][1:]), \"order_id\": rec[\"order_id\"],\n            \"customer_id\": rec[\"customer_id\"].strip().upper(), \"product_id\": rec[\"product_id\"],\n            \"quantity\": int(rec[\"quantity\"]), \"amount_cents\": rec[\"amount_cents\"],\n            \"status\": rec[\"status\"].strip().lower(), \"created_at\": rec[\"created_at\"],\n            \"date_key\": int(rec[\"created_at\"][:10].replace(\"-\", \"\"))}\n\ndef clean_orders(raw, known):\n    good, quarantine, seen = [], [], set()\n    for rec in raw:\n        reason = first_problem(rec, seen, known)\n        seen.add(rec[\"order_id\"])\n        if reason:\n            quarantine.append({\"order_id\": rec[\"order_id\"], \"reason\": reason, \"payload\": rec})\n        else:\n            good.append(transform(rec))\n    return good, quarantine\n\ndef clean_with_cutoff(orders, known, cutoff):\n    good, quarantine = clean_orders(orders, known)\n    keep = []\n    for g in good:\n        if g[\"created_at\"][:10] > cutoff:\n            quarantine.append({\"order_id\": g[\"order_id\"], \"reason\": \"future date\"})\n        else:\n            keep.append(g)\n    return keep, quarantine\n\ncustomers, products, orders = generate()\nknown = {c[0] for c in customers}\ngood, quarantine = clean_with_cutoff(orders, known, \"2026-03-15\")\nprint(f\"clean={len(good)} quarantined={len(quarantine)}\")\ncounts = {}\nfor q in quarantine:\n    counts[q[\"reason\"]] = counts.get(q[\"reason\"], 0) + 1\nfor reason, n in sorted(counts.items()):\n    print(f\"{reason}: {n}\")\nprint(\"reconciled=\" + str(len(orders) == len(good) + len(quarantine)))\n",
+      "expected": "clean=95 quarantined=25\nbad amount: 1\nbad currency: 1\nbad status: 1\nduplicate order_id: 1\nfuture date: 19\nmissing created_at: 1\nunknown customer: 1\nreconciled=True"
+    },
+    {
+      "id": "i3",
+      "title": "Repair or quarantine policy (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "For each of the six defect types of the capstone data, decide whether the pipeline should repair the record or quarantine it, and justify each decision in one sentence. Then say what the pipeline should do when the quarantine exceeds 5 percent of the raw records.",
+      "starter": "duplicate order id:\nmissing created_at:\nnon-positive amount:\nunknown customer:\nbad currency:\nbad status:\nQuarantine above 5 percent:",
+      "solution": "Duplicate order id: quarantine the later copy (or keep the latest by timestamp if the source sends updates); an identical re-delivery adds no information. Missing created_at: quarantine, because the date key and the incremental watermark depend on it and guessing a date would put revenue in the wrong month. Non-positive amount: quarantine, since a negative value could be a refund or a typo and repairing it is a guess. Unknown customer: quarantine, because the fact row would have no dimension row; it can be replayed when the customer arrives late. Bad currency: quarantine, since converting needs a rule the project does not have. Bad status: quarantine, because the fact table needs a known status to decide whether the order is a sale. Above 5 percent: fail the run or at least alert and stop the load, because a jump in rejects usually means the source changed, and loading the remainder would give a partial picture.",
+      "rubric": [
+        "Each defect has a decision and a reason.",
+        "Only lossless repairs are proposed.",
+        "States an action for a high quarantine rate (alert or stop) with the reason."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A record has a negative amount and an unknown customer. The rules are checked amount first, then customer. How many quarantine rows does it create and with which reason?",
+      "options": [
+        "Two rows, one per reason",
+        "One row with reason `bad amount`",
+        "One row with reason `unknown customer`",
+        "None, it is repaired"
+      ],
+      "answer": 1,
+      "explanation": "The first failing rule wins and the record is quarantined once, so counts per reason add up to the quarantine size. Two rows would make the identity raw = clean + quarantined fail."
+    },
+    {
+      "id": "c2",
+      "question": "Raw has 120 records, clean has 114 and quarantine has 7. What does the reconciliation say?",
+      "options": [
+        "It passes, 114 + 7 > 120 is fine",
+        "It fails: 121 is not 120, so a record was counted twice",
+        "It passes when the quarantine is bigger than 5",
+        "It cannot be decided"
+      ],
+      "answer": 1,
+      "explanation": "The identity is exact. 114 + 7 = 121, so one record is in both outputs or was invented."
+    },
+    {
+      "id": "c3",
+      "question": "Why is quarantining better than dropping bad records?",
+      "options": [
+        "It uses less storage",
+        "The bad record, its reason and its payload stay available for review and replay, and the counts stay reconcilable",
+        "Dropped records are faster to process",
+        "The warehouse needs them"
+      ],
+      "answer": 1,
+      "explanation": "A dropped record leaves no trace, so a loss cannot be explained or replayed. Quarantine costs a little storage and gives a number to monitor."
+    },
+    {
+      "id": "c4",
+      "question": "Which of these is a safe repair?",
+      "options": [
+        "Replacing a negative amount with its absolute value",
+        "Upper-casing and trimming a customer id",
+        "Using today's date for a missing timestamp",
+        "Setting an unknown status to `paid`"
+      ],
+      "answer": 1,
+      "explanation": "Trimming and upper-casing an id changes only the form. The others guess a meaning (refund, date, status) and can silently put wrong numbers into reports."
+    },
+    {
+      "id": "c5",
+      "question": "What is the result of `first_problem` for a first-time record with currency `USD`, status `pending` and everything else valid, when the rules run in the capstone order?",
+      "options": [
+        "bad status",
+        "bad currency",
+        "None",
+        "both reasons"
+      ],
+      "answer": 1,
+      "explanation": "Currency is checked before status and the function returns at the first failure, so the reason is bad currency. The status problem is not reported."
+    }
+  ]
+}

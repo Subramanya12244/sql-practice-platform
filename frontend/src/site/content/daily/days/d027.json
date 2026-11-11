@@ -1,0 +1,190 @@
+{
+  "id": "d027",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-functions",
+      "python-file-handling"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "timed-step-decorator",
+      "memoize-decorator",
+      "count-calls-decorator",
+      "suppress-context-manager"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Pass a function",
+      "prompt": "Write `apply(func, values)` that returns a list of `func(v)` for each value. Use it with the built-in `len` on `[\"a\", \"bbb\", \"cc\"]` and with a function `negate(x)` that returns `-x` on `[1, -2, 3]`. Print both lists. Expected output: `[1, 3, 2]` then `[-1, 2, -3]`.",
+      "starter": "def negate(x):\n    return -x\n\n# Write apply and print the two lists\n",
+      "solution": "def negate(x):\n    return -x\n\ndef apply(func, values):\n    return [func(v) for v in values]\n\nprint(apply(len, [\"a\", \"bbb\", \"cc\"]))\nprint(apply(negate, [1, -2, 3]))\n",
+      "kind": "python",
+      "expected": "[1, 3, 2]\n[-1, 2, -3]",
+      "hints": [
+        "The function is passed by name, without brackets.",
+        "Inside `apply`, call it as `func(v)`.",
+        "`[func(v) for v in values]` collects the results."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "A logging decorator",
+      "prompt": "Write a decorator `announce` that prints `calling <function name>` before calling the function and returns the function's result. Use `functools.wraps`, decorate `add(a, b)` and print `add(2, 3)`. Expected output: `calling add` then `5`.",
+      "starter": "import functools\n\ndef add(a, b):\n    return a + b\n\nprint(add(2, 3))\n",
+      "solution": "import functools\n\ndef announce(func):\n    @functools.wraps(func)\n    def wrapper(*args, **kwargs):\n        print(\"calling\", func.__name__)\n        return func(*args, **kwargs)\n    return wrapper\n\n@announce\ndef add(a, b):\n    return a + b\n\nprint(add(2, 3))\n",
+      "kind": "python",
+      "expected": "calling add\n5",
+      "hints": [
+        "A decorator is a function that takes a function and returns a function.",
+        "The inner `wrapper(*args, **kwargs)` prints, then calls `func` and returns its result.",
+        "Put `@announce` above `def add` and `@functools.wraps(func)` above `def wrapper`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "A decorator with an argument",
+      "prompt": "Write `repeat(times)` so that a decorated function runs `times` times and the wrapper returns the list of results. Decorate `roll()` which returns the next number of a counter (the starter has the counter) with `@repeat(3)` and print `roll()`. Expected output: `[1, 2, 3]`.",
+      "starter": "import functools\n\ncounter = 0\n\ndef roll():\n    global counter\n    counter += 1\n    return counter\n\nprint(roll())\n",
+      "solution": "import functools\n\ndef repeat(times):\n    def decorator(func):\n        @functools.wraps(func)\n        def wrapper(*args, **kwargs):\n            return [func(*args, **kwargs) for _ in range(times)]\n        return wrapper\n    return decorator\n\ncounter = 0\n\n@repeat(3)\ndef roll():\n    global counter\n    counter += 1\n    return counter\n\nprint(roll())\n",
+      "kind": "python",
+      "expected": "[1, 2, 3]",
+      "hints": [
+        "You need three nested functions: `repeat`, `decorator` and `wrapper`.",
+        "`repeat(times)` returns `decorator`; `decorator(func)` returns `wrapper`.",
+        "`@repeat(3)` above `def roll` with brackets and the number."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "A context manager from a generator",
+      "prompt": "Using `contextlib.contextmanager`, write `section(name)` that prints `start <name>` before the block and `end <name>` after it, even when the block raises. Use it twice: once printing `body` inside, and once raising `RuntimeError` inside a `try` that prints `caught`. Expected output: `start a`, `body`, `end a`, `start b`, `end b`, `caught`.",
+      "starter": "from contextlib import contextmanager\n\n# Write section and use it twice\n",
+      "solution": "from contextlib import contextmanager\n\n@contextmanager\ndef section(name):\n    print(\"start\", name)\n    try:\n        yield\n    finally:\n        print(\"end\", name)\n\nwith section(\"a\"):\n    print(\"body\")\ntry:\n    with section(\"b\"):\n        raise RuntimeError(\"boom\")\nexcept RuntimeError:\n    print(\"caught\")\n",
+      "kind": "python",
+      "expected": "start a\nbody\nend a\nstart b\nend b\ncaught",
+      "hints": [
+        "The generator has one `yield`, which marks where the `with` body runs.",
+        "Put the closing print in a `finally:` so it also runs on errors.",
+        "`try: yield` then `finally: print(\"end\", name)`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Call counter and result log",
+      "prompt": "Write a decorator `traced` that records every call of the decorated function in a list stored on the wrapper as `wrapper.log`, each entry being the string `name(args) -> result` with positional arguments joined by `, `. Keep the name with `wraps`. Decorate `add(a, b)` and `mul(a, b)`, call `add(1, 2)`, `mul(3, 4)` and `add(5, 6)`, then print the log of `add`, the log of `mul` and the total number of calls across both (use `sum` over the two logs).",
+      "starter": "import functools\n\n# Write traced and use it\n",
+      "solution": "import functools\n\ndef traced(func):\n    @functools.wraps(func)\n    def wrapper(*args):\n        result = func(*args)\n        wrapper.log.append(f\"{func.__name__}({', '.join(map(str, args))}) -> {result}\")\n        return result\n    wrapper.log = []\n    return wrapper\n\n@traced\ndef add(a, b):\n    return a + b\n\n@traced\ndef mul(a, b):\n    return a * b\n\nadd(1, 2)\nmul(3, 4)\nadd(5, 6)\nprint(add.log)\nprint(mul.log)\nprint(sum(len(f.log) for f in (add, mul)))\n",
+      "kind": "python",
+      "expected": "['add(1, 2) -> 3', 'add(5, 6) -> 11']\n['mul(3, 4) -> 12']\n3"
+    },
+    {
+      "id": "i2",
+      "title": "Retry decorator",
+      "prompt": "Write `retry(attempts)` that re-calls the decorated function when it raises `ConnectionError`, up to `attempts` calls in total, and re-raises the last `ConnectionError` when all attempts fail. The starter has `flaky(fail_times)` factories that fail a set number of calls. Decorate a function that fails twice and then succeeds with `@retry(3)` and print its result and how many calls were made, then decorate one that always fails with `@retry(2)` and print the error text and the call count.",
+      "starter": "import functools\n\ndef make_flaky(fail_times, state):\n    def call():\n        state[\"calls\"] += 1\n        if state[\"calls\"] <= fail_times:\n            raise ConnectionError(f\"failure {state['calls']}\")\n        return \"ok\"\n    return call\n\n# Write retry and use it with two flaky functions\n",
+      "solution": "import functools\n\ndef make_flaky(fail_times, state):\n    def call():\n        state[\"calls\"] += 1\n        if state[\"calls\"] <= fail_times:\n            raise ConnectionError(f\"failure {state['calls']}\")\n        return \"ok\"\n    return call\n\ndef retry(attempts):\n    def decorator(func):\n        @functools.wraps(func)\n        def wrapper(*args, **kwargs):\n            for attempt in range(1, attempts + 1):\n                try:\n                    return func(*args, **kwargs)\n                except ConnectionError:\n                    if attempt == attempts:\n                        raise\n        return wrapper\n    return decorator\n\nstate1 = {\"calls\": 0}\nfetch1 = retry(3)(make_flaky(2, state1))\nprint(fetch1(), state1[\"calls\"])\n\nstate2 = {\"calls\": 0}\nfetch2 = retry(2)(make_flaky(99, state2))\ntry:\n    fetch2()\nexcept ConnectionError as error:\n    print(error, state2[\"calls\"])\n",
+      "kind": "python",
+      "expected": "ok 3\nfailure 2 2"
+    },
+    {
+      "id": "i3",
+      "title": "Transaction-like context manager",
+      "prompt": "Write a class `Staging` (with `__enter__` and `__exit__`) that wraps a dictionary `store`. On entering it copies the store into `self.pending` and returns it. On a clean exit it replaces the store contents with `pending` (commit). When the block raises any exception it leaves the store untouched (rollback) and lets the exception continue. Use it to apply `{\"a\": 2, \"c\": 3}` updates to `store = {\"a\": 1, \"b\": 1}` and print the store; then start another block that sets `store[\"z\"]` in `pending` and raises `ValueError`, catch the error outside and print the store again.",
+      "starter": "# Write Staging and use it\n",
+      "solution": "class Staging:\n    def __init__(self, store):\n        self.store = store\n        self.pending = None\n\n    def __enter__(self):\n        self.pending = dict(self.store)\n        return self.pending\n\n    def __exit__(self, exc_type, exc, tb):\n        if exc_type is None:\n            self.store.clear()\n            self.store.update(self.pending)\n        return False\n\nstore = {\"a\": 1, \"b\": 1}\nwith Staging(store) as pending:\n    pending.update({\"a\": 2, \"c\": 3})\nprint(store)\ntry:\n    with Staging(store) as pending:\n        pending[\"z\"] = 9\n        raise ValueError(\"fail\")\nexcept ValueError:\n    pass\nprint(store)\n",
+      "kind": "python",
+      "expected": "{'a': 2, 'b': 1, 'c': 3}\n{'a': 2, 'b': 1, 'c': 3}",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `@shout` above `def greet():` do?",
+      "options": [
+        "It is the same as greet = shout(greet)",
+        "It calls shout once with no arguments",
+        "It copies greet into shout",
+        "It runs greet immediately"
+      ],
+      "answer": 0,
+      "explanation": "A decorator line rebinds the name to whatever the decorator returns. The decorator runs once, at definition time, and the wrapper it returns runs on each call."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\ndef d(f):\n    def w(*a):\n        f(*a)\n    return w\n@d\ndef add(x, y):\n    return x + y\nprint(add(1, 2))\n```",
+      "options": [
+        "3",
+        "None",
+        "w",
+        "It raises TypeError"
+      ],
+      "answer": 1,
+      "explanation": "The wrapper calls `f` but does not `return` its result, so it returns `None`. Always return the original's result inside the wrapper."
+    },
+    {
+      "id": "c3",
+      "question": "What is the purpose of `functools.wraps(func)`?",
+      "options": [
+        "It copies the name and docstring of func to the wrapper",
+        "It makes the function faster",
+        "It prevents errors from propagating",
+        "It calls func twice"
+      ],
+      "answer": 0,
+      "explanation": "Without it the decorated function reports its name as `wrapper` and loses its docstring, which confuses debugging and help text."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\nclass C:\n    def __enter__(self):\n        print(\"in\")\n    def __exit__(self, *args):\n        print(\"out\")\nwith C():\n    print(\"body\")\n    1 / 0\n```",
+      "options": [
+        "in, body, out, then a ZeroDivisionError traceback",
+        "in, body, then a ZeroDivisionError and no out",
+        "in, out",
+        "body, ZeroDivisionError"
+      ],
+      "answer": 0,
+      "explanation": "`__exit__` runs even when the body raises, so `out` is printed before the error continues, because `__exit__` returned `None` and did not suppress it."
+    },
+    {
+      "id": "c5",
+      "question": "For `@repeat(3)` to work, what must `repeat(3)` return?",
+      "options": [
+        "A decorator, which takes the function and returns the wrapper",
+        "The wrapper function",
+        "The number 3",
+        "The decorated function's result"
+      ],
+      "answer": 0,
+      "explanation": "`repeat(3)` is evaluated first; its result is then applied to the function, so it must be a decorator that takes a function."
+    },
+    {
+      "id": "c6",
+      "question": "In a `@contextmanager` function, why use `try ... finally` around `yield`?",
+      "options": [
+        "So the clean-up code still runs when the with-block raises an error",
+        "So the generator can yield twice",
+        "To make the function run faster",
+        "To hide the exception"
+      ],
+      "answer": 0,
+      "explanation": "If the body raises, the exception is thrown into the generator at the `yield`. Without `finally`, the code after `yield` is skipped, so the clean-up would not happen."
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "id": "e153",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "airflow-scheduling"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Expand three fields",
+      "kind": "python",
+      "prompt": "The functions `expand_field` and `parse_cron` are given. Print, one per line, the lists returned by `expand_field(\"1-5\", 0, 59)`, `expand_field(\"*/20\", 0, 59)` and `expand_field(\"0,30\", 0, 59)`.",
+      "starter": "from datetime import datetime, timedelta\n\nFIELDS = [(\"minute\", 0, 59), (\"hour\", 0, 23), (\"day\", 1, 31), (\"month\", 1, 12), (\"weekday\", 0, 7)]\n\n\ndef expand_field(text, lo, hi):\n    values = set()\n    for part in text.split(\",\"):\n        step = 1\n        if \"/\" in part:\n            part, step_text = part.split(\"/\", 1)\n            if not step_text.isdigit() or int(step_text) < 1:\n                raise ValueError(f\"bad step {step_text!r}\")\n            step = int(step_text)\n            if part != \"*\" and \"-\" not in part:\n                raise ValueError(f\"a step needs * or a range, got {part!r}\")\n        if part == \"*\":\n            first, last = lo, hi\n        elif \"-\" in part:\n            low_text, high_text = part.split(\"-\", 1)\n            if not (low_text.isdigit() and high_text.isdigit()):\n                raise ValueError(f\"bad range {part!r}\")\n            first, last = int(low_text), int(high_text)\n        elif part.isdigit():\n            first = last = int(part)\n        else:\n            raise ValueError(f\"bad value {part!r}\")\n        if first < lo or last > hi or first > last:\n            raise ValueError(f\"{part!r} is outside {lo}-{hi}\")\n        values.update(range(first, last + 1, step))\n    return sorted(values)\n\n\ndef parse_cron(expression):\n    parts = expression.split()\n    if len(parts) != 5:\n        raise ValueError(f\"expected 5 fields, got {len(parts)}\")\n    parsed = {}\n    for text, (name, lo, hi) in zip(parts, FIELDS):\n        values = expand_field(text, lo, hi)\n        if name == \"weekday\":\n            values = sorted({v % 7 for v in values})\n        parsed[name] = values\n    parsed[\"day_any\"] = parts[2] == \"*\"\n    parsed[\"weekday_any\"] = parts[4] == \"*\"\n    return parsed\n\n\ndef matches(expression, when):\n    c = parse_cron(expression)\n    weekday = (when.weekday() + 1) % 7\n    day_ok = when.day in c[\"day\"]\n    weekday_ok = weekday in c[\"weekday\"]\n    if c[\"day_any\"] or c[\"weekday_any\"]:\n        date_ok = day_ok and weekday_ok\n    else:\n        date_ok = day_ok or weekday_ok\n    return when.minute in c[\"minute\"] and when.hour in c[\"hour\"] and when.month in c[\"month\"] and date_ok\n\n# print the three lists\n",
+      "solution": "from datetime import datetime, timedelta\n\nFIELDS = [(\"minute\", 0, 59), (\"hour\", 0, 23), (\"day\", 1, 31), (\"month\", 1, 12), (\"weekday\", 0, 7)]\n\n\ndef expand_field(text, lo, hi):\n    values = set()\n    for part in text.split(\",\"):\n        step = 1\n        if \"/\" in part:\n            part, step_text = part.split(\"/\", 1)\n            if not step_text.isdigit() or int(step_text) < 1:\n                raise ValueError(f\"bad step {step_text!r}\")\n            step = int(step_text)\n            if part != \"*\" and \"-\" not in part:\n                raise ValueError(f\"a step needs * or a range, got {part!r}\")\n        if part == \"*\":\n            first, last = lo, hi\n        elif \"-\" in part:\n            low_text, high_text = part.split(\"-\", 1)\n            if not (low_text.isdigit() and high_text.isdigit()):\n                raise ValueError(f\"bad range {part!r}\")\n            first, last = int(low_text), int(high_text)\n        elif part.isdigit():\n            first = last = int(part)\n        else:\n            raise ValueError(f\"bad value {part!r}\")\n        if first < lo or last > hi or first > last:\n            raise ValueError(f\"{part!r} is outside {lo}-{hi}\")\n        values.update(range(first, last + 1, step))\n    return sorted(values)\n\n\ndef parse_cron(expression):\n    parts = expression.split()\n    if len(parts) != 5:\n        raise ValueError(f\"expected 5 fields, got {len(parts)}\")\n    parsed = {}\n    for text, (name, lo, hi) in zip(parts, FIELDS):\n        values = expand_field(text, lo, hi)\n        if name == \"weekday\":\n            values = sorted({v % 7 for v in values})\n        parsed[name] = values\n    parsed[\"day_any\"] = parts[2] == \"*\"\n    parsed[\"weekday_any\"] = parts[4] == \"*\"\n    return parsed\n\n\ndef matches(expression, when):\n    c = parse_cron(expression)\n    weekday = (when.weekday() + 1) % 7\n    day_ok = when.day in c[\"day\"]\n    weekday_ok = weekday in c[\"weekday\"]\n    if c[\"day_any\"] or c[\"weekday_any\"]:\n        date_ok = day_ok and weekday_ok\n    else:\n        date_ok = day_ok or weekday_ok\n    return when.minute in c[\"minute\"] and when.hour in c[\"hour\"] and when.month in c[\"month\"] and date_ok\n\nprint(expand_field(\"1-5\", 0, 59))\nprint(expand_field(\"*/20\", 0, 59))\nprint(expand_field(\"0,30\", 0, 59))\n",
+      "hints": [
+        "Call expand_field with the field text and the allowed range 0 and 59.",
+        "print each result on its own line.",
+        "Three print(expand_field(...)) lines."
+      ],
+      "expected": "[1, 2, 3, 4, 5]\n[0, 20, 40]\n[0, 30]"
+    },
+    {
+      "id": "g2",
+      "title": "Runs per day",
+      "kind": "python",
+      "prompt": "For the expression `*/20 8-17 * * *` print the number of times it fires on a day with no other restriction, as a single integer. Use `parse_cron`: the answer is the number of allowed minutes times the number of allowed hours.",
+      "starter": "from datetime import datetime, timedelta\n\nFIELDS = [(\"minute\", 0, 59), (\"hour\", 0, 23), (\"day\", 1, 31), (\"month\", 1, 12), (\"weekday\", 0, 7)]\n\n\ndef expand_field(text, lo, hi):\n    values = set()\n    for part in text.split(\",\"):\n        step = 1\n        if \"/\" in part:\n            part, step_text = part.split(\"/\", 1)\n            if not step_text.isdigit() or int(step_text) < 1:\n                raise ValueError(f\"bad step {step_text!r}\")\n            step = int(step_text)\n            if part != \"*\" and \"-\" not in part:\n                raise ValueError(f\"a step needs * or a range, got {part!r}\")\n        if part == \"*\":\n            first, last = lo, hi\n        elif \"-\" in part:\n            low_text, high_text = part.split(\"-\", 1)\n            if not (low_text.isdigit() and high_text.isdigit()):\n                raise ValueError(f\"bad range {part!r}\")\n            first, last = int(low_text), int(high_text)\n        elif part.isdigit():\n            first = last = int(part)\n        else:\n            raise ValueError(f\"bad value {part!r}\")\n        if first < lo or last > hi or first > last:\n            raise ValueError(f\"{part!r} is outside {lo}-{hi}\")\n        values.update(range(first, last + 1, step))\n    return sorted(values)\n\n\ndef parse_cron(expression):\n    parts = expression.split()\n    if len(parts) != 5:\n        raise ValueError(f\"expected 5 fields, got {len(parts)}\")\n    parsed = {}\n    for text, (name, lo, hi) in zip(parts, FIELDS):\n        values = expand_field(text, lo, hi)\n        if name == \"weekday\":\n            values = sorted({v % 7 for v in values})\n        parsed[name] = values\n    parsed[\"day_any\"] = parts[2] == \"*\"\n    parsed[\"weekday_any\"] = parts[4] == \"*\"\n    return parsed\n\n\ndef matches(expression, when):\n    c = parse_cron(expression)\n    weekday = (when.weekday() + 1) % 7\n    day_ok = when.day in c[\"day\"]\n    weekday_ok = weekday in c[\"weekday\"]\n    if c[\"day_any\"] or c[\"weekday_any\"]:\n        date_ok = day_ok and weekday_ok\n    else:\n        date_ok = day_ok or weekday_ok\n    return when.minute in c[\"minute\"] and when.hour in c[\"hour\"] and when.month in c[\"month\"] and date_ok\n\nexpression = \"*/20 8-17 * * *\"\n# print the number of runs per day\n",
+      "solution": "from datetime import datetime, timedelta\n\nFIELDS = [(\"minute\", 0, 59), (\"hour\", 0, 23), (\"day\", 1, 31), (\"month\", 1, 12), (\"weekday\", 0, 7)]\n\n\ndef expand_field(text, lo, hi):\n    values = set()\n    for part in text.split(\",\"):\n        step = 1\n        if \"/\" in part:\n            part, step_text = part.split(\"/\", 1)\n            if not step_text.isdigit() or int(step_text) < 1:\n                raise ValueError(f\"bad step {step_text!r}\")\n            step = int(step_text)\n            if part != \"*\" and \"-\" not in part:\n                raise ValueError(f\"a step needs * or a range, got {part!r}\")\n        if part == \"*\":\n            first, last = lo, hi\n        elif \"-\" in part:\n            low_text, high_text = part.split(\"-\", 1)\n            if not (low_text.isdigit() and high_text.isdigit()):\n                raise ValueError(f\"bad range {part!r}\")\n            first, last = int(low_text), int(high_text)\n        elif part.isdigit():\n            first = last = int(part)\n        else:\n            raise ValueError(f\"bad value {part!r}\")\n        if first < lo or last > hi or first > last:\n            raise ValueError(f\"{part!r} is outside {lo}-{hi}\")\n        values.update(range(first, last + 1, step))\n    return sorted(values)\n\n\ndef parse_cron(expression):\n    parts = expression.split()\n    if len(parts) != 5:\n        raise ValueError(f\"expected 5 fields, got {len(parts)}\")\n    parsed = {}\n    for text, (name, lo, hi) in zip(parts, FIELDS):\n        values = expand_field(text, lo, hi)\n        if name == \"weekday\":\n            values = sorted({v % 7 for v in values})\n        parsed[name] = values\n    parsed[\"day_any\"] = parts[2] == \"*\"\n    parsed[\"weekday_any\"] = parts[4] == \"*\"\n    return parsed\n\n\ndef matches(expression, when):\n    c = parse_cron(expression)\n    weekday = (when.weekday() + 1) % 7\n    day_ok = when.day in c[\"day\"]\n    weekday_ok = weekday in c[\"weekday\"]\n    if c[\"day_any\"] or c[\"weekday_any\"]:\n        date_ok = day_ok and weekday_ok\n    else:\n        date_ok = day_ok or weekday_ok\n    return when.minute in c[\"minute\"] and when.hour in c[\"hour\"] and when.month in c[\"month\"] and date_ok\n\nexpression = \"*/20 8-17 * * *\"\nc = parse_cron(expression)\nprint(len(c[\"minute\"]) * len(c[\"hour\"]))\n",
+      "hints": [
+        "parse_cron returns a dictionary with the allowed values per field.",
+        "Minutes and hours combine: every allowed minute in every allowed hour.",
+        "len(c[\"minute\"]) * len(c[\"hour\"])."
+      ],
+      "expected": "30"
+    },
+    {
+      "id": "g3",
+      "title": "Lint a list of schedules",
+      "kind": "python",
+      "prompt": "For each expression in the list, print `ok` when `parse_cron` accepts it, or `bad: ` followed by the error message when it raises `ValueError`. Print one line per expression, in list order.",
+      "starter": "from datetime import datetime, timedelta\n\nFIELDS = [(\"minute\", 0, 59), (\"hour\", 0, 23), (\"day\", 1, 31), (\"month\", 1, 12), (\"weekday\", 0, 7)]\n\n\ndef expand_field(text, lo, hi):\n    values = set()\n    for part in text.split(\",\"):\n        step = 1\n        if \"/\" in part:\n            part, step_text = part.split(\"/\", 1)\n            if not step_text.isdigit() or int(step_text) < 1:\n                raise ValueError(f\"bad step {step_text!r}\")\n            step = int(step_text)\n            if part != \"*\" and \"-\" not in part:\n                raise ValueError(f\"a step needs * or a range, got {part!r}\")\n        if part == \"*\":\n            first, last = lo, hi\n        elif \"-\" in part:\n            low_text, high_text = part.split(\"-\", 1)\n            if not (low_text.isdigit() and high_text.isdigit()):\n                raise ValueError(f\"bad range {part!r}\")\n            first, last = int(low_text), int(high_text)\n        elif part.isdigit():\n            first = last = int(part)\n        else:\n            raise ValueError(f\"bad value {part!r}\")\n        if first < lo or last > hi or first > last:\n            raise ValueError(f\"{part!r} is outside {lo}-{hi}\")\n        values.update(range(first, last + 1, step))\n    return sorted(values)\n\n\ndef parse_cron(expression):\n    parts = expression.split()\n    if len(parts) != 5:\n        raise ValueError(f\"expected 5 fields, got {len(parts)}\")\n    parsed = {}\n    for text, (name, lo, hi) in zip(parts, FIELDS):\n        values = expand_field(text, lo, hi)\n        if name == \"weekday\":\n            values = sorted({v % 7 for v in values})\n        parsed[name] = values\n    parsed[\"day_any\"] = parts[2] == \"*\"\n    parsed[\"weekday_any\"] = parts[4] == \"*\"\n    return parsed\n\n\ndef matches(expression, when):\n    c = parse_cron(expression)\n    weekday = (when.weekday() + 1) % 7\n    day_ok = when.day in c[\"day\"]\n    weekday_ok = weekday in c[\"weekday\"]\n    if c[\"day_any\"] or c[\"weekday_any\"]:\n        date_ok = day_ok and weekday_ok\n    else:\n        date_ok = day_ok or weekday_ok\n    return when.minute in c[\"minute\"] and when.hour in c[\"hour\"] and when.month in c[\"month\"] and date_ok\n\nexpressions = [\"0 2 * * *\", \"60 2 * * *\", \"0 2 * *\", \"*/5 * * * 1-5\"]\n# print ok or bad: message per expression\n",
+      "solution": "from datetime import datetime, timedelta\n\nFIELDS = [(\"minute\", 0, 59), (\"hour\", 0, 23), (\"day\", 1, 31), (\"month\", 1, 12), (\"weekday\", 0, 7)]\n\n\ndef expand_field(text, lo, hi):\n    values = set()\n    for part in text.split(\",\"):\n        step = 1\n        if \"/\" in part:\n            part, step_text = part.split(\"/\", 1)\n            if not step_text.isdigit() or int(step_text) < 1:\n                raise ValueError(f\"bad step {step_text!r}\")\n            step = int(step_text)\n            if part != \"*\" and \"-\" not in part:\n                raise ValueError(f\"a step needs * or a range, got {part!r}\")\n        if part == \"*\":\n            first, last = lo, hi\n        elif \"-\" in part:\n            low_text, high_text = part.split(\"-\", 1)\n            if not (low_text.isdigit() and high_text.isdigit()):\n                raise ValueError(f\"bad range {part!r}\")\n            first, last = int(low_text), int(high_text)\n        elif part.isdigit():\n            first = last = int(part)\n        else:\n            raise ValueError(f\"bad value {part!r}\")\n        if first < lo or last > hi or first > last:\n            raise ValueError(f\"{part!r} is outside {lo}-{hi}\")\n        values.update(range(first, last + 1, step))\n    return sorted(values)\n\n\ndef parse_cron(expression):\n    parts = expression.split()\n    if len(parts) != 5:\n        raise ValueError(f\"expected 5 fields, got {len(parts)}\")\n    parsed = {}\n    for text, (name, lo, hi) in zip(parts, FIELDS):\n        values = expand_field(text, lo, hi)\n        if name == \"weekday\":\n            values = sorted({v % 7 for v in values})\n        parsed[name] = values\n    parsed[\"day_any\"] = parts[2] == \"*\"\n    parsed[\"weekday_any\"] = parts[4] == \"*\"\n    return parsed\n\n\ndef matches(expression, when):\n    c = parse_cron(expression)\n    weekday = (when.weekday() + 1) % 7\n    day_ok = when.day in c[\"day\"]\n    weekday_ok = weekday in c[\"weekday\"]\n    if c[\"day_any\"] or c[\"weekday_any\"]:\n        date_ok = day_ok and weekday_ok\n    else:\n        date_ok = day_ok or weekday_ok\n    return when.minute in c[\"minute\"] and when.hour in c[\"hour\"] and when.month in c[\"month\"] and date_ok\n\nexpressions = [\"0 2 * * *\", \"60 2 * * *\", \"0 2 * *\", \"*/5 * * * 1-5\"]\nfor e in expressions:\n    try:\n        parse_cron(e)\n        print(\"ok\")\n    except ValueError as error:\n        print(\"bad: \" + str(error))\n",
+      "hints": [
+        "Wrap parse_cron in try and except ValueError.",
+        "The message is str(error).",
+        "print(\"ok\") after the call, print(\"bad: \" + str(error)) in the except."
+      ],
+      "expected": "ok\nbad: '60' is outside 0-59\nbad: expected 5 fields, got 4\nok"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Count runs in a crontab",
+      "kind": "python",
+      "prompt": "`crontab_text` holds a crontab with comments, blank lines, jobs and one invalid line. For each job line in order, split the first five whitespace-separated fields (the schedule) from the rest (the command). Print `name: count` where name is the first word of the command's file name without its directory (for example `/opt/etl.sh` gives `etl.sh`) and count is the number of minutes of Monday 3 March 2025 (1440 minutes from 00:00) that `matches` the schedule. For an invalid schedule print `invalid: ` followed by the whole line. Skip comments and blank lines.",
+      "starter": "from datetime import datetime, timedelta\n\nFIELDS = [(\"minute\", 0, 59), (\"hour\", 0, 23), (\"day\", 1, 31), (\"month\", 1, 12), (\"weekday\", 0, 7)]\n\n\ndef expand_field(text, lo, hi):\n    values = set()\n    for part in text.split(\",\"):\n        step = 1\n        if \"/\" in part:\n            part, step_text = part.split(\"/\", 1)\n            if not step_text.isdigit() or int(step_text) < 1:\n                raise ValueError(f\"bad step {step_text!r}\")\n            step = int(step_text)\n            if part != \"*\" and \"-\" not in part:\n                raise ValueError(f\"a step needs * or a range, got {part!r}\")\n        if part == \"*\":\n            first, last = lo, hi\n        elif \"-\" in part:\n            low_text, high_text = part.split(\"-\", 1)\n            if not (low_text.isdigit() and high_text.isdigit()):\n                raise ValueError(f\"bad range {part!r}\")\n            first, last = int(low_text), int(high_text)\n        elif part.isdigit():\n            first = last = int(part)\n        else:\n            raise ValueError(f\"bad value {part!r}\")\n        if first < lo or last > hi or first > last:\n            raise ValueError(f\"{part!r} is outside {lo}-{hi}\")\n        values.update(range(first, last + 1, step))\n    return sorted(values)\n\n\ndef parse_cron(expression):\n    parts = expression.split()\n    if len(parts) != 5:\n        raise ValueError(f\"expected 5 fields, got {len(parts)}\")\n    parsed = {}\n    for text, (name, lo, hi) in zip(parts, FIELDS):\n        values = expand_field(text, lo, hi)\n        if name == \"weekday\":\n            values = sorted({v % 7 for v in values})\n        parsed[name] = values\n    parsed[\"day_any\"] = parts[2] == \"*\"\n    parsed[\"weekday_any\"] = parts[4] == \"*\"\n    return parsed\n\n\ndef matches(expression, when):\n    c = parse_cron(expression)\n    weekday = (when.weekday() + 1) % 7\n    day_ok = when.day in c[\"day\"]\n    weekday_ok = weekday in c[\"weekday\"]\n    if c[\"day_any\"] or c[\"weekday_any\"]:\n        date_ok = day_ok and weekday_ok\n    else:\n        date_ok = day_ok or weekday_ok\n    return when.minute in c[\"minute\"] and when.hour in c[\"hour\"] and when.month in c[\"month\"] and date_ok\n\ncrontab_text = \"\"\"\n# nightly\n30 2 * * * /opt/etl.sh >> /var/log/etl.log 2>&1\n\n*/15 9-17 * * 1-5 /opt/poll.sh\n0 0 31 2 * /opt/never.sh\n99 * * * * /opt/broken.sh\n0 6 * * 0 /opt/weekly.sh\n\"\"\"\n# your code here\n",
+      "solution": "from datetime import datetime, timedelta\n\nFIELDS = [(\"minute\", 0, 59), (\"hour\", 0, 23), (\"day\", 1, 31), (\"month\", 1, 12), (\"weekday\", 0, 7)]\n\n\ndef expand_field(text, lo, hi):\n    values = set()\n    for part in text.split(\",\"):\n        step = 1\n        if \"/\" in part:\n            part, step_text = part.split(\"/\", 1)\n            if not step_text.isdigit() or int(step_text) < 1:\n                raise ValueError(f\"bad step {step_text!r}\")\n            step = int(step_text)\n            if part != \"*\" and \"-\" not in part:\n                raise ValueError(f\"a step needs * or a range, got {part!r}\")\n        if part == \"*\":\n            first, last = lo, hi\n        elif \"-\" in part:\n            low_text, high_text = part.split(\"-\", 1)\n            if not (low_text.isdigit() and high_text.isdigit()):\n                raise ValueError(f\"bad range {part!r}\")\n            first, last = int(low_text), int(high_text)\n        elif part.isdigit():\n            first = last = int(part)\n        else:\n            raise ValueError(f\"bad value {part!r}\")\n        if first < lo or last > hi or first > last:\n            raise ValueError(f\"{part!r} is outside {lo}-{hi}\")\n        values.update(range(first, last + 1, step))\n    return sorted(values)\n\n\ndef parse_cron(expression):\n    parts = expression.split()\n    if len(parts) != 5:\n        raise ValueError(f\"expected 5 fields, got {len(parts)}\")\n    parsed = {}\n    for text, (name, lo, hi) in zip(parts, FIELDS):\n        values = expand_field(text, lo, hi)\n        if name == \"weekday\":\n            values = sorted({v % 7 for v in values})\n        parsed[name] = values\n    parsed[\"day_any\"] = parts[2] == \"*\"\n    parsed[\"weekday_any\"] = parts[4] == \"*\"\n    return parsed\n\n\ndef matches(expression, when):\n    c = parse_cron(expression)\n    weekday = (when.weekday() + 1) % 7\n    day_ok = when.day in c[\"day\"]\n    weekday_ok = weekday in c[\"weekday\"]\n    if c[\"day_any\"] or c[\"weekday_any\"]:\n        date_ok = day_ok and weekday_ok\n    else:\n        date_ok = day_ok or weekday_ok\n    return when.minute in c[\"minute\"] and when.hour in c[\"hour\"] and when.month in c[\"month\"] and date_ok\n\ncrontab_text = \"\"\"\n# nightly\n30 2 * * * /opt/etl.sh >> /var/log/etl.log 2>&1\n\n*/15 9-17 * * 1-5 /opt/poll.sh\n0 0 31 2 * /opt/never.sh\n99 * * * * /opt/broken.sh\n0 6 * * 0 /opt/weekly.sh\n\"\"\"\nstart = datetime(2025, 3, 3)\nfor line in crontab_text.splitlines():\n    line = line.strip()\n    if not line or line.startswith(\"#\"):\n        continue\n    parts = line.split(None, 5)\n    schedule = \" \".join(parts[:5])\n    command = parts[5]\n    try:\n        parse_cron(schedule)\n    except ValueError:\n        print(\"invalid: \" + line)\n        continue\n    name = command.split()[0].split(\"/\")[-1]\n    count = sum(1 for m in range(1440) if matches(schedule, start + timedelta(minutes=m)))\n    print(f\"{name}: {count}\")\n",
+      "expected": "etl.sh: 1\npoll.sh: 36\nnever.sh: 0\ninvalid: 99 * * * * /opt/broken.sh\nweekly.sh: 0"
+    },
+    {
+      "id": "i2",
+      "title": "Next run",
+      "kind": "python",
+      "prompt": "Write `next_run(expression, after)` that returns the first `datetime` strictly after `after` (with seconds zero) that `matches` the expression, by stepping one minute at a time. Print `next_run(\"30 2 * * 1-5\", datetime(2025, 3, 7, 2, 30))`, `next_run(\"*/15 * * * *\", datetime(2025, 3, 3, 10, 7))` and `next_run(\"0 0 1 * *\", datetime(2025, 3, 3, 0, 0))`, each as `str(...)`, one per line.",
+      "starter": "from datetime import datetime, timedelta\n\nFIELDS = [(\"minute\", 0, 59), (\"hour\", 0, 23), (\"day\", 1, 31), (\"month\", 1, 12), (\"weekday\", 0, 7)]\n\n\ndef expand_field(text, lo, hi):\n    values = set()\n    for part in text.split(\",\"):\n        step = 1\n        if \"/\" in part:\n            part, step_text = part.split(\"/\", 1)\n            if not step_text.isdigit() or int(step_text) < 1:\n                raise ValueError(f\"bad step {step_text!r}\")\n            step = int(step_text)\n            if part != \"*\" and \"-\" not in part:\n                raise ValueError(f\"a step needs * or a range, got {part!r}\")\n        if part == \"*\":\n            first, last = lo, hi\n        elif \"-\" in part:\n            low_text, high_text = part.split(\"-\", 1)\n            if not (low_text.isdigit() and high_text.isdigit()):\n                raise ValueError(f\"bad range {part!r}\")\n            first, last = int(low_text), int(high_text)\n        elif part.isdigit():\n            first = last = int(part)\n        else:\n            raise ValueError(f\"bad value {part!r}\")\n        if first < lo or last > hi or first > last:\n            raise ValueError(f\"{part!r} is outside {lo}-{hi}\")\n        values.update(range(first, last + 1, step))\n    return sorted(values)\n\n\ndef parse_cron(expression):\n    parts = expression.split()\n    if len(parts) != 5:\n        raise ValueError(f\"expected 5 fields, got {len(parts)}\")\n    parsed = {}\n    for text, (name, lo, hi) in zip(parts, FIELDS):\n        values = expand_field(text, lo, hi)\n        if name == \"weekday\":\n            values = sorted({v % 7 for v in values})\n        parsed[name] = values\n    parsed[\"day_any\"] = parts[2] == \"*\"\n    parsed[\"weekday_any\"] = parts[4] == \"*\"\n    return parsed\n\n\ndef matches(expression, when):\n    c = parse_cron(expression)\n    weekday = (when.weekday() + 1) % 7\n    day_ok = when.day in c[\"day\"]\n    weekday_ok = weekday in c[\"weekday\"]\n    if c[\"day_any\"] or c[\"weekday_any\"]:\n        date_ok = day_ok and weekday_ok\n    else:\n        date_ok = day_ok or weekday_ok\n    return when.minute in c[\"minute\"] and when.hour in c[\"hour\"] and when.month in c[\"month\"] and date_ok\n\ndef next_run(expression, after):\n    pass\n\n\nprint(next_run(\"30 2 * * 1-5\", datetime(2025, 3, 7, 2, 30)))\n# print the other two\n",
+      "solution": "from datetime import datetime, timedelta\n\nFIELDS = [(\"minute\", 0, 59), (\"hour\", 0, 23), (\"day\", 1, 31), (\"month\", 1, 12), (\"weekday\", 0, 7)]\n\n\ndef expand_field(text, lo, hi):\n    values = set()\n    for part in text.split(\",\"):\n        step = 1\n        if \"/\" in part:\n            part, step_text = part.split(\"/\", 1)\n            if not step_text.isdigit() or int(step_text) < 1:\n                raise ValueError(f\"bad step {step_text!r}\")\n            step = int(step_text)\n            if part != \"*\" and \"-\" not in part:\n                raise ValueError(f\"a step needs * or a range, got {part!r}\")\n        if part == \"*\":\n            first, last = lo, hi\n        elif \"-\" in part:\n            low_text, high_text = part.split(\"-\", 1)\n            if not (low_text.isdigit() and high_text.isdigit()):\n                raise ValueError(f\"bad range {part!r}\")\n            first, last = int(low_text), int(high_text)\n        elif part.isdigit():\n            first = last = int(part)\n        else:\n            raise ValueError(f\"bad value {part!r}\")\n        if first < lo or last > hi or first > last:\n            raise ValueError(f\"{part!r} is outside {lo}-{hi}\")\n        values.update(range(first, last + 1, step))\n    return sorted(values)\n\n\ndef parse_cron(expression):\n    parts = expression.split()\n    if len(parts) != 5:\n        raise ValueError(f\"expected 5 fields, got {len(parts)}\")\n    parsed = {}\n    for text, (name, lo, hi) in zip(parts, FIELDS):\n        values = expand_field(text, lo, hi)\n        if name == \"weekday\":\n            values = sorted({v % 7 for v in values})\n        parsed[name] = values\n    parsed[\"day_any\"] = parts[2] == \"*\"\n    parsed[\"weekday_any\"] = parts[4] == \"*\"\n    return parsed\n\n\ndef matches(expression, when):\n    c = parse_cron(expression)\n    weekday = (when.weekday() + 1) % 7\n    day_ok = when.day in c[\"day\"]\n    weekday_ok = weekday in c[\"weekday\"]\n    if c[\"day_any\"] or c[\"weekday_any\"]:\n        date_ok = day_ok and weekday_ok\n    else:\n        date_ok = day_ok or weekday_ok\n    return when.minute in c[\"minute\"] and when.hour in c[\"hour\"] and when.month in c[\"month\"] and date_ok\n\ndef next_run(expression, after):\n    t = after.replace(second=0, microsecond=0) + timedelta(minutes=1)\n    while not matches(expression, t):\n        t += timedelta(minutes=1)\n    return t\n\n\nprint(next_run(\"30 2 * * 1-5\", datetime(2025, 3, 7, 2, 30)))\nprint(next_run(\"*/15 * * * *\", datetime(2025, 3, 3, 10, 7)))\nprint(next_run(\"0 0 1 * *\", datetime(2025, 3, 3, 0, 0)))\n",
+      "expected": "2025-03-10 02:30:00\n2025-03-03 10:15:00\n2025-04-01 00:00:00"
+    },
+    {
+      "id": "i3",
+      "title": "Schedule a nightly load",
+      "kind": "written",
+      "required": false,
+      "prompt": "Write the crontab line that runs `/opt/jobs/load_orders.sh` at 01:15 every day, appending stdout and stderr to `/var/log/load_orders.log`. Then list the script's first three lines and explain, in two or three sentences, why each of those options makes the job safer.",
+      "starter": "Crontab line:\n\nScript header:\n\nWhy:\n",
+      "solution": "Crontab line: `15 1 * * * /opt/jobs/load_orders.sh >> /var/log/load_orders.log 2>&1`.\n\nScript header:\n\n```text\n#!/usr/bin/env bash\nset -euo pipefail\ntrap 'rm -rf \"$tmp\"' EXIT\n```\n\nThe shebang names the interpreter so cron runs the file with Bash. `set -euo pipefail` stops at the first failing command, at an unset variable and at a failing pipeline stage, so a broken step cannot be followed by a half-finished load that exits 0. The trap removes temporary files whether the script ends well or badly. The `>>` keeps earlier runs in the log and `2>&1` makes sure error messages reach it.",
+      "rubric": [
+        "The schedule fields are 15 1 * * *.",
+        "Output is appended (>>) with 2>&1 and uses an absolute path.",
+        "The script uses set -euo pipefail or an equivalent and explains the effect.",
+        "The explanation links failure behaviour to the exit code seen by the scheduler."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "The bash examples need a Unix shell with Bash, coreutils and awk (macOS, Linux or WSL) and run in a throwaway folder; the browser cannot run them, so they are shown with the output produced when the lesson was tested. cron itself is not available in the browser: the Python functions in Example 5 and in the exercises model the field syntax, which is graded here. Use `crontab -e` on your own machine to install a real schedule."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A script prints \"load failed\" but its last command is echo. What exit code does the scheduler see?",
+      "options": [
+        "1, because the text says failed",
+        "0, because the last command succeeded",
+        "It depends on the text printed",
+        "255"
+      ],
+      "answer": 1,
+      "explanation": "The exit code is that of the last command (or an explicit exit). echo succeeds, so the job is reported as success. Use exit 1 or set -e to signal failure."
+    },
+    {
+      "id": "c2",
+      "question": "Without pipefail, what does `false | true; echo $?` print?",
+      "options": [
+        "0",
+        "1",
+        "true",
+        "Nothing"
+      ],
+      "answer": 0,
+      "explanation": "A pipeline's status is the status of its last stage. true returns 0, so the failure of false is hidden unless set -o pipefail is on."
+    },
+    {
+      "id": "c3",
+      "question": "Which cron expression means 02:30 on weekdays only?",
+      "options": [
+        "30 2 * * 1-5",
+        "2 30 * * 1-5",
+        "30 2 1-5 * *",
+        "*/30 2 * * 1-5"
+      ],
+      "answer": 0,
+      "explanation": "Fields are minute, hour, day of month, month, day of week, so minute 30, hour 2, weekday 1-5. Option B swaps minute and hour; C restricts the day of month; D runs at 02:00 and 02:30."
+    },
+    {
+      "id": "c4",
+      "question": "What does the cron line `0 0 13 * 5` do under the standard rule?",
+      "options": [
+        "Runs only on Friday the 13th",
+        "Runs on the 13th of every month and on every Friday",
+        "Runs on the 5th at 13:00",
+        "Never runs"
+      ],
+      "answer": 1,
+      "explanation": "When both day of month and day of week are restricted, cron matches if either field matches. Friday-the-13th-only needs a check inside the script."
+    },
+    {
+      "id": "c5",
+      "question": "Why should a log redirect use >> rather than >?",
+      "options": [
+        "`>` is not allowed in cron",
+        "`>` replaces the file on every run, so earlier history is lost",
+        "`>>` also captures stderr",
+        "`>>` makes the job faster"
+      ],
+      "answer": 1,
+      "explanation": "`>` truncates the file before writing. `>>` appends. Capturing stderr needs 2>&1 in either case."
+    }
+  ]
+}

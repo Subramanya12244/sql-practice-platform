@@ -1,0 +1,197 @@
+{
+  "id": "d022",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-modules-packages",
+      "python-virtual-environments"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "parse-config"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Use three import forms",
+      "prompt": "Using `math`, print the square root of 144 with `import math`, the ceiling of 7.2 with `from math import ceil`, and the floor of 7.8 with `import math as m` (use the alias `m`). Expected output: `12.0`, `8`, `7` on separate lines.",
+      "starter": "# Three import styles\n",
+      "solution": "import math\nfrom math import ceil\nimport math as m\n\nprint(math.sqrt(144))\nprint(ceil(7.2))\nprint(m.floor(7.8))\n",
+      "kind": "python",
+      "expected": "12.0\n8\n7",
+      "hints": [
+        "`import math` makes `math.sqrt` available.",
+        "`from math import ceil` lets you call `ceil` without the prefix.",
+        "`import math as m` gives the alias; call `m.floor(7.8)`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Count with the standard library",
+      "prompt": "Use `collections.Counter` on the list `words` and print the two most common words as a list of pairs with `most_common(2)`. Then use `statistics.median` on the list `[7, 1, 5, 3]` and print it. Expected output: `[('a', 3), ('b', 2)]` then `4.0`.",
+      "starter": "from collections import Counter\nimport statistics\n\nwords = [\"a\", \"b\", \"a\", \"c\", \"b\", \"a\"]\n# Print the two most common words and the median\n",
+      "solution": "from collections import Counter\nimport statistics\n\nwords = [\"a\", \"b\", \"a\", \"c\", \"b\", \"a\"]\nprint(Counter(words).most_common(2))\nprint(statistics.median([7, 1, 5, 3]))\n",
+      "kind": "python",
+      "expected": "[('a', 3), ('b', 2)]\n4.0",
+      "hints": [
+        "`Counter(words)` counts each distinct item.",
+        "`most_common(2)` returns the two highest counts as pairs.",
+        "`statistics.median` sorts internally; for an even number of values it averages the middle two."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Write and import a module",
+      "prompt": "Write a module file `geometry.py` (use `open(...).write`) with a function `area(w, h)` returning `w * h`, add the current folder to `sys.path`, import it with `importlib.import_module(\"geometry\")` (the same as `import geometry`) and print `geometry.area(3, 4)` and `geometry.__name__`. The starter already prepares `sys.path`. Expected output: `12` then `geometry`.",
+      "starter": "import importlib\nimport os\nimport sys\n\nsys.path.insert(0, os.getcwd())\n# Write geometry.py, then import it and print\n",
+      "solution": "import importlib\nimport os\nimport sys\n\nsys.path.insert(0, os.getcwd())\nwith open(\"geometry.py\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"def area(w, h):\\n    return w * h\\n\")\nimportlib.invalidate_caches()\ngeometry = importlib.import_module(\"geometry\")\nprint(geometry.area(3, 4))\nprint(geometry.__name__)\n",
+      "kind": "python",
+      "expected": "12\ngeometry",
+      "hints": [
+        "A module is just a text file that ends in `.py`; write it first.",
+        "Call `importlib.invalidate_caches()` after creating the file so Python notices it.",
+        "Then `geometry = importlib.import_module(\"geometry\")` and print `geometry.area(3, 4)` and `geometry.__name__`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Read a requirement line",
+      "prompt": "Write a function `split_req(line)` that returns a tuple `(name, version)` for a pinned line such as `requests==2.31.0`, and `(name, None)` when the line has no `==`. Print the results for `pandas==2.2.1` and `pytest`. Expected output: `('pandas', '2.2.1')` then `('pytest', None)`.",
+      "starter": "def split_req(line):\n    pass\n\nprint(split_req(\"pandas==2.2.1\"))\nprint(split_req(\"pytest\"))\n",
+      "solution": "def split_req(line):\n    if \"==\" in line:\n        name, version = line.split(\"==\")\n        return (name, version)\n    return (line, None)\n\nprint(split_req(\"pandas==2.2.1\"))\nprint(split_req(\"pytest\"))\n",
+      "kind": "python",
+      "expected": "('pandas', '2.2.1')\n('pytest', None)",
+      "hints": [
+        "Check whether `==` appears in the line first.",
+        "`line.split(\"==\")` gives a list of two parts when it is present.",
+        "Return `(name, version)` or `(line, None)`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Requirements checker",
+      "prompt": "The starter has requirement lines (including a comment and a blank line) and a dictionary of installed versions. Ignore comments and blank lines. For every pinned line (`name==version`) print `name: ok` when the installed version equals the pin, `name: mismatch (installed X, pinned Y)` when it differs, and `name: missing` when the package is not installed. For unpinned lines print `name: ok` when installed, otherwise `name: missing`. Print in file order.",
+      "starter": "lines = [\"# deps\", \"pandas==2.2.1\", \"\", \"requests==2.31.0\", \"pytest\", \"rich\", \"numpy==1.26.4\"]\ninstalled = {\"pandas\": \"2.2.1\", \"requests\": \"2.30.0\", \"pytest\": \"8.0.0\"}\n# Compare each line with installed\n",
+      "solution": "lines = [\"# deps\", \"pandas==2.2.1\", \"\", \"requests==2.31.0\", \"pytest\", \"rich\", \"numpy==1.26.4\"]\ninstalled = {\"pandas\": \"2.2.1\", \"requests\": \"2.30.0\", \"pytest\": \"8.0.0\"}\nfor line in lines:\n    line = line.strip()\n    if not line or line.startswith(\"#\"):\n        continue\n    name, _, pinned = line.partition(\"==\")\n    if name not in installed:\n        print(f\"{name}: missing\")\n    elif pinned and installed[name] != pinned:\n        print(f\"{name}: mismatch (installed {installed[name]}, pinned {pinned})\")\n    else:\n        print(f\"{name}: ok\")\n",
+      "kind": "python",
+      "expected": "pandas: ok\nrequests: mismatch (installed 2.30.0, pinned 2.31.0)\npytest: ok\nrich: missing\nnumpy: missing"
+    },
+    {
+      "id": "i2",
+      "title": "A small package built in code",
+      "prompt": "Create a package folder `report` containing `__init__.py` and `fmt.py` by writing the files from Python. `fmt.py` defines `money(x)` returning the text with a `$` and two decimals (for example `$1,234.50` using the format `{:,.2f}`) and `__init__.py` re-exports it with `from report.fmt import money`. Add the working folder to `sys.path`, get `money` from the package with `importlib.import_module(\"report\").money`, and print `money(1234.5)`, `money(7)` and the value of `money.__module__`.",
+      "starter": "import importlib\nimport os\nimport sys\n\nsys.path.insert(0, os.getcwd())\n# Build the package and use it\n",
+      "solution": "import importlib\nimport os\nimport sys\n\nsys.path.insert(0, os.getcwd())\nos.makedirs(\"report\", exist_ok=True)\nwith open(os.path.join(\"report\", \"fmt.py\"), \"w\", encoding=\"utf-8\") as f:\n    f.write('def money(x):\\n    return \"${:,.2f}\".format(x)\\n')\nwith open(os.path.join(\"report\", \"__init__.py\"), \"w\", encoding=\"utf-8\") as f:\n    f.write(\"from report.fmt import money\\n\")\nimportlib.invalidate_caches()\nmoney = importlib.import_module(\"report\").money\nprint(money(1234.5))\nprint(money(7))\nprint(money.__module__)\n",
+      "kind": "python",
+      "expected": "$1,234.50\n$7.00\nreport.fmt"
+    },
+    {
+      "id": "i3",
+      "title": "Plan a project environment",
+      "prompt": "Write the shell commands, in order, that you would use for a new project folder `sales_etl`: create and activate a virtual environment named `.venv`, install `pandas` and `requests`, save the installed versions to a file, deactivate, and then recreate the same environment on a new machine from that file. After each command add one sentence about what it does. Also say which folder or file you would put in `.gitignore` and why.",
+      "starter": "Write your commands and explanations here.",
+      "solution": "```text\ncd sales_etl\npython -m venv .venv            # creates the environment folder\nsource .venv/bin/activate       # python and pip now refer to .venv (Windows: .venv\\Scripts\\activate)\npip install pandas requests     # installs both packages and their dependencies into .venv only\npip freeze > requirements.txt   # records exact installed versions\ndeactivate                      # leaves the environment\n\n# on the new machine, in the cloned project:\npython -m venv .venv\nsource .venv/bin/activate\npip install -r requirements.txt # installs the same versions\n```\n\nPut `.venv/` in `.gitignore`: it holds machine-specific installed files that are large and can be rebuilt from `requirements.txt`, which is the file you commit instead.",
+      "kind": "written",
+      "rubric": [
+        "Commands appear in a sensible order: create, activate, install, freeze, then the rebuild commands with `-r`.",
+        "Each command is explained in one clear sentence.",
+        "`.venv/` is named for `.gitignore` with the reason that it is rebuilt from `requirements.txt`."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [
+      "pip"
+    ],
+    "note": "The two bash examples need a shell with python on the PATH and no network: they create a throwaway virtual environment with python -m venv and print only stable facts. Installing real packages from PyPI needs internet access and cannot run in the browser, so the lesson shows those commands as text. The graded exercises are pure-Python alternatives: parsing requirement lines, comparing them with installed versions, and building modules and packages from code. The written exercise covers the real shell session."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A file you wrote is named `json.py` and you run `import json; json.loads('1')`. What is the most likely result?",
+      "options": [
+        "It works as normal",
+        "It imports your own file, and fails with an AttributeError because it has no `loads`",
+        "It imports the standard library anyway",
+        "It prints 1"
+      ],
+      "answer": 1,
+      "explanation": "Your own file is found before the standard library, so `import json` loads it instead. Your file has no `loads`, so you see `AttributeError`. Never name a file after a standard module."
+    },
+    {
+      "id": "c2",
+      "question": "What does `if __name__ == \"__main__\":` do?",
+      "options": [
+        "Runs the block only when the file is started directly, not when imported",
+        "Runs the block every time the file is imported",
+        "Marks the file as a package",
+        "Prevents the file from being imported"
+      ],
+      "answer": 0,
+      "explanation": "`__name__` is `\"__main__\"` for the script that was started and the module name when imported, so the guard separates script behaviour from reusable functions."
+    },
+    {
+      "id": "c3",
+      "question": "What is a virtual environment?",
+      "options": [
+        "A folder with its own interpreter link and installed packages for one project",
+        "A copy of your project's source code",
+        "A faster version of Python",
+        "A cloud server"
+      ],
+      "answer": 0,
+      "explanation": "It holds an isolated set of installed packages so projects do not conflict. It contains no project code, and it is not faster, just separate."
+    },
+    {
+      "id": "c4",
+      "question": "Which command recreates an environment from a saved list?",
+      "options": [
+        "pip freeze requirements.txt",
+        "pip install -r requirements.txt",
+        "pip list > requirements.txt",
+        "python -m venv requirements.txt"
+      ],
+      "answer": 1,
+      "explanation": "`pip install -r FILE` installs every requirement in the file. `freeze` with a redirect writes such a file, but it does not install, and `venv` creates folders, not installs."
+    },
+    {
+      "id": "c5",
+      "question": "What does this print?\n\n```python\nimport statistics\nprint(statistics.mean([2, 4, 9]))\n```",
+      "options": [
+        "5",
+        "5.0",
+        "4",
+        "15"
+      ],
+      "answer": 0,
+      "explanation": "The mean of 2, 4 and 9 is 15/3 = 5. `statistics.mean` returns an `int` when all inputs are integers and the result is whole, so it prints 5 and not 5.0."
+    },
+    {
+      "id": "c6",
+      "question": "Why should `.venv` not be committed to Git?",
+      "options": [
+        "It is large and machine-specific, and can be rebuilt from requirements.txt",
+        "Git cannot store folders",
+        "It contains passwords",
+        "It is read-only"
+      ],
+      "answer": 0,
+      "explanation": "The environment is easy to rebuild and differs by operating system and Python version. The requirements file is the small portable record you commit."
+    }
+  ]
+}

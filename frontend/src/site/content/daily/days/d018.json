@@ -1,0 +1,176 @@
+{
+  "id": "d018",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-comprehensions",
+      "python-collections"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "filter-valid-records",
+      "average-ignoring-none"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Doubles",
+      "prompt": "`nums` is `[3, 5, 8, 10]`. Use a list comprehension to build the list of each number doubled, and print it.",
+      "starter": "nums = [3, 5, 8, 10]\n",
+      "solution": "nums = [3, 5, 8, 10]\ndoubled = [n * 2 for n in nums]\nprint(doubled)\n",
+      "hints": [
+        "The shape is `[expression for item in collection]`.",
+        "The expression is `n * 2` and the collection is `nums`.",
+        "`doubled = [n * 2 for n in nums]`, then print it."
+      ],
+      "kind": "python",
+      "expected": "[6, 10, 16, 20]"
+    },
+    {
+      "id": "g2",
+      "title": "Filter long names",
+      "prompt": "`names` is `[\"Ada\", \"Grace\", \"Bo\", \"Margaret\", \"Cy\"]`. Use a comprehension with a trailing `if` to keep only the names with more than 3 letters, and print the list.",
+      "starter": "names = [\"Ada\", \"Grace\", \"Bo\", \"Margaret\", \"Cy\"]\n",
+      "solution": "names = [\"Ada\", \"Grace\", \"Bo\", \"Margaret\", \"Cy\"]\nlong_names = [n for n in names if len(n) > 3]\nprint(long_names)\n",
+      "hints": [
+        "A condition at the end of a comprehension drops items.",
+        "The condition is `len(n) > 3`; the expression is just `n`.",
+        "`[n for n in names if len(n) > 3]`."
+      ],
+      "kind": "python",
+      "expected": "['Grace', 'Margaret']"
+    },
+    {
+      "id": "g3",
+      "title": "Label each temperature",
+      "prompt": "`temps` is `[12, 25, 31, 18, 5]`. Build a list with `\"warm\"` for temperatures of 20 or more and `\"cool\"` otherwise, one label per temperature, using a conditional expression at the front of the comprehension. Print the list.",
+      "starter": "temps = [12, 25, 31, 18, 5]\n",
+      "solution": "temps = [12, 25, 31, 18, 5]\nlabels = [\"warm\" if t >= 20 else \"cool\" for t in temps]\nprint(labels)\n",
+      "hints": [
+        "Every temperature needs a label, so the choice goes at the front, not at the end.",
+        "The front part is `\"warm\" if t >= 20 else \"cool\"`.",
+        "`[\"warm\" if t >= 20 else \"cool\" for t in temps]`."
+      ],
+      "kind": "python",
+      "expected": "['cool', 'warm', 'warm', 'cool', 'cool']"
+    },
+    {
+      "id": "g4",
+      "title": "Dictionary of lengths",
+      "prompt": "`words` is `[\"data\", \"sql\", \"python\"]`. Use a dictionary comprehension to build a dictionary that maps each word to its length, and print it.",
+      "starter": "words = [\"data\", \"sql\", \"python\"]\n",
+      "solution": "words = [\"data\", \"sql\", \"python\"]\nlengths = {w: len(w) for w in words}\nprint(lengths)\n",
+      "hints": [
+        "A dictionary comprehension has a `key: value` pair at the front.",
+        "Curly brackets, key `w`, value `len(w)`.",
+        "`{w: len(w) for w in words}`."
+      ],
+      "kind": "python",
+      "expected": "{'data': 4, 'sql': 3, 'python': 6}"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Parse and summarise",
+      "prompt": "`lines` is `[\"Ada:90\", \"Bo:x\", \"Cy:75\", \"Di:\", \"Ed:60\", \"Fay:75\"]`. Using comprehensions, build `pairs` (split each line on `\":\"`), keep only the pairs whose second part is made of digits (`isdigit()`), and build a dictionary `scores` from name to integer score. Print on separate lines: the number of valid scores; the dictionary; the sorted list of distinct scores (a set comprehension over the dictionary values); and the names with a score of at least 75 as a list.",
+      "starter": "lines = [\"Ada:90\", \"Bo:x\", \"Cy:75\", \"Di:\", \"Ed:60\", \"Fay:75\"]\n",
+      "solution": "lines = [\"Ada:90\", \"Bo:x\", \"Cy:75\", \"Di:\", \"Ed:60\", \"Fay:75\"]\npairs = [line.split(\":\") for line in lines]\nvalid = [p for p in pairs if p[1].isdigit()]\nscores = {p[0]: int(p[1]) for p in valid}\nprint(len(scores))\nprint(scores)\nprint(sorted({s for s in scores.values()}))\nprint([name for name, s in scores.items() if s >= 75])\n",
+      "kind": "python",
+      "expected": "4\n{'Ada': 90, 'Cy': 75, 'Ed': 60, 'Fay': 75}\n[60, 75, 90]\n['Ada', 'Cy', 'Fay']"
+    },
+    {
+      "id": "i2",
+      "title": "Flatten and clean a table",
+      "prompt": "`table` is `[[\" a\", \"B \", \"\"], [\"c\", \" \", \"D\"], [\"e\", \"F\", \"g\"]]`. Use one comprehension with two `for` clauses to build a flat list of the cleaned cells (stripped and lower-cased), keeping only the cells that are not empty after stripping. Print the flat list. Then print the diagonal of the original table as a list (cells `table[i][i]`, stripped) using `range(len(table))`.",
+      "starter": "table = [[\" a\", \"B \", \"\"], [\"c\", \" \", \"D\"], [\"e\", \"F\", \"g\"]]\n",
+      "solution": "table = [[\" a\", \"B \", \"\"], [\"c\", \" \", \"D\"], [\"e\", \"F\", \"g\"]]\nflat = [cell.strip().lower() for row in table for cell in row if cell.strip()]\nprint(flat)\nprint([table[i][i].strip() for i in range(len(table))])\n",
+      "kind": "python",
+      "expected": "['a', 'b', 'c', 'd', 'e', 'f', 'g']\n['a', '', 'g']"
+    },
+    {
+      "id": "i3",
+      "title": "Invert a mapping and group (stretch)",
+      "prompt": "`capitals` is `{\"France\": \"Paris\", \"Spain\": \"Madrid\", \"Italy\": \"Rome\", \"Portugal\": \"Lisbon\"}`. With a dictionary comprehension, build the inverted dictionary (capital to country) and print the countries whose capital starts with a letter from `\"L\"` to `\"R\"` inclusive, sorted, as a list (use a comparison on the first letter). Then print, using a conditional expression inside a comprehension, the list of strings `Country*` for countries whose name has 6 or more letters and `Country` otherwise, in the dictionary's order.",
+      "starter": "capitals = {\"France\": \"Paris\", \"Spain\": \"Madrid\", \"Italy\": \"Rome\", \"Portugal\": \"Lisbon\"}\n",
+      "solution": "capitals = {\"France\": \"Paris\", \"Spain\": \"Madrid\", \"Italy\": \"Rome\", \"Portugal\": \"Lisbon\"}\ninverse = {city: country for country, city in capitals.items()}\nprint(sorted([country for city, country in inverse.items() if \"L\" <= city[0] <= \"R\"]))\nprint([c + \"*\" if len(c) >= 6 else c for c in capitals])\n",
+      "kind": "python",
+      "expected": "['France', 'Italy', 'Portugal', 'Spain']\n['France*', 'Spain', 'Italy', 'Portugal*']",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nprint([x * 2 for x in range(4)])\n```",
+      "options": [
+        "`[0, 2, 4, 6]`",
+        "`[2, 4, 6, 8]`",
+        "`[0, 1, 2, 3]`",
+        "`[0, 2, 4]`"
+      ],
+      "answer": 0,
+      "explanation": "`range(4)` gives 0, 1, 2, 3, and each is doubled, so the result is `[0, 2, 4, 6]`."
+    },
+    {
+      "id": "c2",
+      "question": "Which comprehension keeps every number but replaces negatives with 0?",
+      "options": [
+        "`[n for n in nums if n >= 0 else 0]`",
+        "`[n if n >= 0 else 0 for n in nums]`",
+        "`[n for n in nums if n >= 0]`",
+        "`[0 for n in nums if n < 0]`"
+      ],
+      "answer": 1,
+      "explanation": "Choosing between two values for every item uses a conditional expression at the front. A trailing `if` drops items, and the first option is a `SyntaxError` because `else` cannot follow a trailing `if`."
+    },
+    {
+      "id": "c3",
+      "question": "What does `{x % 3 for x in range(7)}` create?",
+      "options": [
+        "A list `[0, 1, 2, 0, 1, 2, 0]`",
+        "A set `{0, 1, 2}`",
+        "A dictionary",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "Curly brackets with a single expression make a set, and the repeated remainders collapse into the three distinct values 0, 1 and 2."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\ntable = [[1, 2], [3, 4]]\nprint([x for row in table for x in row])\n```",
+      "options": [
+        "`[[1, 2], [3, 4]]`",
+        "`[1, 2, 3, 4]`",
+        "`[1, 3, 2, 4]`",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "The `for` clauses run like nested loops, outer loop first, so the rows are walked in order and each row's cells are collected in a flat list."
+    },
+    {
+      "id": "c5",
+      "question": "Why is `[print(x) for x in items]` poor style?",
+      "options": [
+        "`print` cannot be used in a comprehension",
+        "It builds a list of `None` values that nobody uses; a `for` loop is the right tool",
+        "It is a `SyntaxError`",
+        "It prints in reverse order"
+      ],
+      "answer": 1,
+      "explanation": "The comprehension works but creates a throwaway list of `None` results. Use a comprehension to build a collection and a loop to perform actions."
+    }
+  ]
+}

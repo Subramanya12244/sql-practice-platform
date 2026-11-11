@@ -1,0 +1,190 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-api-integration",
+      "etl-retries",
+      "etl-extraction"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "retry-with-backoff",
+      "cursor-api-extract"
+    ],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "environment": {
+    "packages": [
+      "requests"
+    ],
+    "note": "Example 6 starts a throwaway http.server on 127.0.0.1 in a thread and calls it with the requests library, which the browser Python does not include and cannot use for sockets. Install it with `pip install requests` and run the example in a local Python session; the browser shows it read-only with the verified output. All browser-run examples and graded exercises call a stand-in function with canned JSON instead of the network. No real API, key or remote service is used anywhere in this lesson."
+  },
+  "id": "a163",
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Collect every page",
+      "kind": "python",
+      "prompt": "`get_page(page)` returns one page of a stand-in API (`data`, `page`, `total_pages`). Write a loop driven by `total_pages` that collects all items into one list. Print `items: 25` and then `sum: 325`.",
+      "starter": "def get_page(page):\n    items = list(range(1, 26))\n    return {\"data\": items[(page - 1) * 10: page * 10], \"page\": page, \"total_pages\": 3}\n\nitems = []\n",
+      "solution": "def get_page(page):\n    items = list(range(1, 26))\n    return {\"data\": items[(page - 1) * 10: page * 10], \"page\": page, \"total_pages\": 3}\n\nitems = []\npage = 1\nwhile True:\n    body = get_page(page)\n    items += body['data']\n    if page >= body['total_pages']:\n        break\n    page += 1\nprint('items:', len(items))\nprint('sum:', sum(items))\n",
+      "hints": [
+        "Start with page = 1 and call get_page(page) inside a while True loop.",
+        "Add body['data'] to the list; stop when page >= body['total_pages'].",
+        "Otherwise increase page by 1. Print len(items) and sum(items)."
+      ],
+      "expected": "items: 25\nsum: 325"
+    },
+    {
+      "id": "g2",
+      "title": "Key from the environment, masked",
+      "kind": "python",
+      "prompt": "Set `os.environ['API_KEY'] = 'abcd1234'` (for the exercise only), read it back with `os.environ['API_KEY']`, build the header dict `{'X-Api-Key': key}` and print the masked key: the first two characters, one `*` for every character between the first two and the last two, then the last two. Expected: `ab****34`.",
+      "starter": "import os\n",
+      "solution": "import os\n\nos.environ['API_KEY'] = 'abcd1234'\nkey = os.environ['API_KEY']\nheaders = {'X-Api-Key': key}\nsecret = headers['X-Api-Key']\nprint(secret[:2] + '*' * (len(secret) - 4) + secret[-2:])\n",
+      "hints": [
+        "Read the value with os.environ['API_KEY'] after setting it.",
+        "The middle part has len(secret) - 4 characters.",
+        "secret[:2] + '*' * (len(secret) - 4) + secret[-2:]"
+      ],
+      "expected": "ab****34"
+    },
+    {
+      "id": "g3",
+      "title": "Retry or fail?",
+      "kind": "python",
+      "prompt": "Write `classify(code)` returning `'ok'` for codes below 400, `'retry'` for 429 and for codes of 500 and above, and `'fail'` for every other code. Print `[classify(c) for c in [200, 401, 404, 429, 500, 503]]`.",
+      "starter": "codes = [200, 401, 404, 429, 500, 503]\n",
+      "solution": "codes = [200, 401, 404, 429, 500, 503]\n\ndef classify(code):\n    if code < 400:\n        return 'ok'\n    if code == 429 or code >= 500:\n        return 'retry'\n    return 'fail'\n\nprint([classify(c) for c in codes])\n",
+      "hints": [
+        "Check the success range first.",
+        "429 and everything from 500 up is worth retrying.",
+        "Everything else (400, 401, 403, 404) is a failure to raise."
+      ],
+      "expected": "['ok', 'fail', 'fail', 'retry', 'retry', 'retry']"
+    },
+    {
+      "id": "g4",
+      "title": "Capped exponential backoff",
+      "kind": "python",
+      "prompt": "Write `delays(tries, base=1.0, cap=5.0)` returning the list of waits `min(cap, base * 2 ** attempt)` for attempts `0` to `tries - 1`. Print `delays(5)` and `delays(3, base=0.5)`. Expected lines: `[1.0, 2.0, 4.0, 5.0, 5.0]` and `[0.5, 1.0, 2.0]`.",
+      "starter": "def delays(tries, base=1.0, cap=5.0):\n    pass\n",
+      "solution": "def delays(tries, base=1.0, cap=5.0):\n    return [min(cap, base * 2 ** attempt) for attempt in range(tries)]\n\nprint(delays(5))\nprint(delays(3, base=0.5))\n",
+      "hints": [
+        "Use a list comprehension over range(tries).",
+        "The wait for attempt n is base * 2 ** n.",
+        "Wrap it in min(cap, ...)."
+      ],
+      "expected": "[1.0, 2.0, 4.0, 5.0, 5.0]\n[0.5, 1.0, 2.0]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A fetch loop with retries",
+      "kind": "python",
+      "prompt": "`send(page)` returns `(status, headers, body)` from a scripted stand-in: some responses are 429 with `Retry-After` or 503. Write `fetch_all(send, sleep)` that collects `body['data']` for pages 1 to `body['total_pages']`. On 429 call `sleep(float(headers['Retry-After']))` and retry the same page; on a status of 500 or more call `sleep(1.0 * 2 ** attempt)` where `attempt` counts the failed tries of the current page starting at 0 (reset for every page); any other status of 400 or more raises `RuntimeError`. Call it with `waits.append` as `sleep`, then print the items list and the waits list: `[1, 2, 3, 4, 5, 6, 7, 8]` and `[3.0, 1.0, 2.0]`.",
+      "starter": "pages = {\n    1: {\"data\": [1, 2, 3], \"page\": 1, \"total_pages\": 3},\n    2: {\"data\": [4, 5, 6], \"page\": 2, \"total_pages\": 3},\n    3: {\"data\": [7, 8], \"page\": 3, \"total_pages\": 3},\n}\nscript = iter([(200, {}, pages[1]), (429, {\"Retry-After\": \"3\"}, None), (200, {}, pages[2]),\n               (503, {}, None), (503, {}, None), (200, {}, pages[3])])\n\ndef send(page):\n    return next(script)\n\nwaits = []\n\ndef fetch_all(send, sleep):\n    pass\n",
+      "solution": "pages = {\n    1: {\"data\": [1, 2, 3], \"page\": 1, \"total_pages\": 3},\n    2: {\"data\": [4, 5, 6], \"page\": 2, \"total_pages\": 3},\n    3: {\"data\": [7, 8], \"page\": 3, \"total_pages\": 3},\n}\nscript = iter([(200, {}, pages[1]), (429, {\"Retry-After\": \"3\"}, None), (200, {}, pages[2]),\n               (503, {}, None), (503, {}, None), (200, {}, pages[3])])\n\ndef send(page):\n    return next(script)\n\nwaits = []\n\ndef fetch_all(send, sleep):\n    items, page = [], 1\n    while True:\n        attempt = 0\n        while True:\n            status, headers, body = send(page)\n            if status < 400:\n                break\n            if status == 429:\n                sleep(float(headers['Retry-After']))\n            elif status >= 500:\n                sleep(1.0 * 2 ** attempt)\n                attempt += 1\n            else:\n                raise RuntimeError(f'HTTP {status}')\n        items += body['data']\n        if page >= body['total_pages']:\n            return items\n        page += 1\n\nprint(fetch_all(send, waits.append))\nprint(waits)\n",
+      "expected": "[1, 2, 3, 4, 5, 6, 7, 8]\n[3.0, 1.0, 2.0]"
+    },
+    {
+      "id": "i2",
+      "title": "Offset pages that drifted",
+      "kind": "python",
+      "prompt": "`get_offset(offset)` returns the rows at that offset, 4 per page, newest first, but new rows arrived after the first request so pages overlap. Write a loop that reads offsets 0, 4, 8, ... until a page has fewer than 4 rows, collecting every row. Print `raw 10 unique 8`, then the list of rows with duplicates removed, keeping the first occurrence of each, as `[10, 9, 8, 7, 6, 5, 4, 3]`.",
+      "starter": "pages = {0: [10, 9, 8, 7], 4: [8, 7, 6, 5], 8: [4, 3]}   # new rows arrived after the first request\n\ndef get_offset(offset):\n    return pages[offset]\n\nrows = []\n",
+      "solution": "pages = {0: [10, 9, 8, 7], 4: [8, 7, 6, 5], 8: [4, 3]}   # new rows arrived after the first request\n\ndef get_offset(offset):\n    return pages[offset]\n\nrows = []\noffset = 0\nwhile True:\n    page = get_offset(offset)\n    rows += page\n    if len(page) < 4:\n        break\n    offset += 4\nunique = list(dict.fromkeys(rows))\nprint('raw', len(rows), 'unique', len(unique))\nprint(unique)\n",
+      "expected": "raw 10 unique 8\n[10, 9, 8, 7, 6, 5, 4, 3]"
+    },
+    {
+      "id": "i3",
+      "title": "Plan an extraction",
+      "kind": "written",
+      "prompt": "A provider's API allows 60 requests per minute, returns at most 100 records per page and uses offset pagination. You must extract 400,000 historical records and keep them up to date daily. In 5 to 8 sentences, estimate the minimum duration of the first full extraction, describe how you would authenticate, paginate and handle limits and failures, and say how you would check that the extract is complete.",
+      "starter": "Write your answer here.",
+      "solution": "At 100 records per page the extraction needs 4,000 requests, and at 60 requests per minute that takes at least 4000 / 60, about 67 minutes, so the job must run unattended and be restartable. The key is read from an environment variable set by the scheduler and never logged. I would paginate in a loop driven by the response, ask the provider whether a cursor or a date filter exists because offsets can repeat or skip rows while data changes, and otherwise deduplicate by the record id. On a 429 the job waits the Retry-After seconds, on 5xx errors and timeouts it retries with exponential backoff and jitter up to a limit, and on 400, 401, 403 or 404 it stops with a clear error. Every request has a timeout and the job saves the last completed page or cursor so a failed run can resume. After the run I would compare the number of unique ids with the total reported by the API, check that the date range is covered, and for the daily updates request only records changed since the last successful run.",
+      "required": false,
+      "rubric": [
+        "Computes about 4,000 requests and about 67 minutes at 60 per minute",
+        "Keeps the key in an environment variable",
+        "Retries 429/5xx with Retry-After or backoff and does not retry 4xx errors",
+        "Checks completeness (unique ids, totals) and can resume"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A response has status 404 for `/ordrs` (a typo). What should an extraction job do?",
+      "options": [
+        "Raise an error at once, because retrying cannot make the path exist",
+        "Retry with exponential backoff up to five times",
+        "Wait for Retry-After and try again",
+        "Switch to the next page"
+      ],
+      "answer": 0,
+      "explanation": "404 means the resource does not exist. It will be 404 on every try, so retrying only wastes time and quota. Only 429, 5xx errors and timeouts are worth retrying."
+    },
+    {
+      "id": "c2",
+      "question": "A loop fetches page 1 of an API that returns 50 rows per page and stops because 'the page has data'. The API has 120 orders. What does the job produce?",
+      "options": [
+        "50 rows with no error, which looks plausible",
+        "120 rows",
+        "An error from the API",
+        "0 rows"
+      ],
+      "answer": 0,
+      "explanation": "Nothing in the response forces you to continue. The loop must continue until total_pages, an empty page or a missing cursor says it is done, and the final count should be checked."
+    },
+    {
+      "id": "c3",
+      "question": "Five new orders arrive while you read an offset-paginated, newest-first list. What happens to the later pages?",
+      "options": [
+        "They repeat five rows already fetched",
+        "They skip five rows",
+        "Nothing, offsets are fixed positions in time",
+        "The server returns a 409 error"
+      ],
+      "answer": 0,
+      "explanation": "Offsets are positions in the current list. New rows at the front push old rows down, so the next page starts with rows you have already seen. A cursor, or deduplication by key, fixes it."
+    },
+    {
+      "id": "c4",
+      "question": "What is the purpose of jitter in a backoff delay?",
+      "options": [
+        "Clients that failed together do not all retry at the same instant",
+        "It makes the wait shorter",
+        "It hides the API key",
+        "It guarantees the next call succeeds"
+      ],
+      "answer": 0,
+      "explanation": "If many clients wait exactly 1, 2, 4 seconds they retry in lockstep and overload the server again. A small random addition spreads the retries out."
+    },
+    {
+      "id": "c5",
+      "question": "Where should an API key live in a scheduled analytics job?",
+      "options": [
+        "In an environment variable or secret store read at run time",
+        "In the notebook, in a variable at the top",
+        "In the repository's README",
+        "In the URL of every request, written in the code"
+      ],
+      "answer": 0,
+      "explanation": "Anything in the code is copied with the code. Environment variables or a secret store keep it out of the repository and let you rotate it without editing the program."
+    }
+  ]
+}

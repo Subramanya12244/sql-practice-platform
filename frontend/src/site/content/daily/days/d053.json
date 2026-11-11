@@ -1,0 +1,177 @@
+{
+  "id": "d053",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "first-value",
+      "last-value",
+      "window-order-by"
+    ],
+    "questions": [
+      183,
+      168
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "window-functions"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Freight terciles",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Label every order with a freight tercile: `NTILE(3)` over `freight` ascending with `order_id` as tie-breaker. Return `tercile`, `orders` (count), `lowest` (minimum freight) and `highest` (maximum freight) per tercile, ordered by `tercile`.",
+      "starter": "SELECT freight\nFROM orders\nORDER BY freight;\n",
+      "solution": "SELECT tercile, COUNT(*) AS orders, MIN(freight) AS lowest, MAX(freight) AS highest\nFROM (\n  SELECT freight, NTILE(3) OVER (ORDER BY freight, order_id) AS tercile\n  FROM orders\n) AS t\nGROUP BY tercile\nORDER BY tercile;\n",
+      "hints": [
+        "Compute the tercile in a subquery, then summarise it with GROUP BY in the outer query.",
+        "NTILE(3) OVER (ORDER BY freight, order_id) AS tercile inside; COUNT, MIN and MAX outside.",
+        "SELECT tercile, COUNT(*) AS orders, MIN(freight) AS lowest, MAX(freight) AS highest FROM (...) AS t GROUP BY tercile."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Cheapest product of each supplier",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For products of suppliers 1 to 3 return `supplier_id`, `product_name`, `unit_price` and `cheapest_in_supplier` (the `product_name` of the supplier's cheapest product, using `product_id` as tie-breaker). Order by `supplier_id`, `unit_price`, `product_id`.",
+      "starter": "SELECT supplier_id, product_name, unit_price\nFROM products\nWHERE supplier_id IN (1, 2, 3)\nORDER BY supplier_id, unit_price, product_id;\n",
+      "solution": "SELECT supplier_id, product_name, unit_price,\n       FIRST_VALUE(product_name) OVER (PARTITION BY supplier_id ORDER BY unit_price, product_id) AS cheapest_in_supplier\nFROM products\nWHERE supplier_id IN (1, 2, 3)\nORDER BY supplier_id, unit_price, product_id;\n",
+      "hints": [
+        "FIRST_VALUE returns a column of the first row of the window.",
+        "Order the window by price so that the first row is the cheapest, and partition by supplier.",
+        "FIRST_VALUE(product_name) OVER (PARTITION BY supplier_id ORDER BY unit_price, product_id)."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Most expensive in the category",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For products in categories 1 and 2 return `category_id`, `product_name`, `unit_price` and `top_price` (the highest `unit_price` of the row's category) using `LAST_VALUE`. Remember the frame. Order by `category_id`, `unit_price`, `product_id`.",
+      "starter": "SELECT category_id, product_name, unit_price\nFROM products\nWHERE category_id IN (1, 2)\nORDER BY category_id, unit_price, product_id;\n",
+      "solution": "SELECT category_id, product_name, unit_price,\n       LAST_VALUE(unit_price) OVER (PARTITION BY category_id ORDER BY unit_price, product_id\n                                    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS top_price\nFROM products\nWHERE category_id IN (1, 2)\nORDER BY category_id, unit_price, product_id;\n",
+      "hints": [
+        "With ORDER BY ascending, the last row of each partition is the most expensive product.",
+        "The default frame stops at the current row, so you must write a frame clause.",
+        "LAST_VALUE(unit_price) OVER (PARTITION BY category_id ORDER BY unit_price, product_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS top_price."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Median freight per shipper",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For each `ship_via` return `ship_via`, `orders` (count), `mean_freight` and `median_freight`, both rounded to 2 decimals. The median uses `percentile_cont(0.5)`. Order by `ship_via`.",
+      "starter": "SELECT ship_via, COUNT(*) AS orders\nFROM orders\nGROUP BY ship_via\nORDER BY ship_via;\n",
+      "solution": "SELECT ship_via, COUNT(*) AS orders,\n       ROUND(AVG(freight), 2) AS mean_freight,\n       ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY freight)::numeric, 2) AS median_freight\nFROM orders\nGROUP BY ship_via\nORDER BY ship_via;\n",
+      "hints": [
+        "percentile_cont is an aggregate, so GROUP BY ship_via works.",
+        "The syntax is percentile_cont(0.5) WITHIN GROUP (ORDER BY freight). Cast the result to numeric before ROUND.",
+        "ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY freight)::numeric, 2) AS median_freight."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Product price deciles",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Label products with `NTILE(10)` over `unit_price` ascending (tie-breaker `product_id`) as `decile`. For each decile return `decile`, `products` (count) and `avg_price` (rounded to 2 decimals). Then keep only deciles 1, 5 and 10. Order by `decile`.",
+      "starter": "SELECT unit_price\nFROM products\nORDER BY unit_price;\n",
+      "solution": "SELECT decile, COUNT(*) AS products, ROUND(AVG(unit_price), 2) AS avg_price\nFROM (\n  SELECT unit_price, NTILE(10) OVER (ORDER BY unit_price, product_id) AS decile\n  FROM products\n) AS t\nWHERE decile IN (1, 5, 10)\nGROUP BY decile\nORDER BY decile;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Employees' first and latest order",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For orders with an `employee_id` return one row per employee: `employee_id`, `first_order_date` (the earliest `order_date`) and `last_order_date` (the latest), `orders` (the number of orders), all computed with window functions (`FIRST_VALUE`, `LAST_VALUE` with a full frame, `COUNT`) and reduced to one row per employee with `DISTINCT`. Order by `employee_id`.",
+      "starter": "SELECT DISTINCT employee_id, COUNT(*) OVER (PARTITION BY employee_id) AS orders\nFROM orders\nWHERE employee_id IS NOT NULL\nORDER BY employee_id;\n",
+      "solution": "SELECT DISTINCT employee_id,\n       FIRST_VALUE(order_date) OVER w AS first_order_date,\n       LAST_VALUE(order_date) OVER w AS last_order_date,\n       COUNT(*) OVER (PARTITION BY employee_id) AS orders\nFROM orders\nWHERE employee_id IS NOT NULL\nWINDOW w AS (PARTITION BY employee_id ORDER BY order_date, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\nORDER BY employee_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Orders above the country's 90th percentile (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For each `ship_country`, compute the 90th percentile of `freight` with `percentile_cont(0.9)`. Return `order_id`, `ship_country`, `freight` and `p90` (rounded to 2 decimals) for the orders whose `freight` is strictly greater than the unrounded 90th percentile of their country. Order by `ship_country`, `order_id`.",
+      "starter": "SELECT order_id, ship_country, freight\nFROM orders\nORDER BY ship_country, order_id;\n",
+      "solution": "WITH p AS (\n  SELECT ship_country, percentile_cont(0.9) WITHIN GROUP (ORDER BY freight) AS p90\n  FROM orders\n  GROUP BY ship_country\n)\nSELECT o.order_id, o.ship_country, o.freight, ROUND(p.p90::numeric, 2) AS p90\nFROM orders AS o\nJOIN p ON p.ship_country = o.ship_country\nWHERE o.freight > p.p90\nORDER BY o.ship_country, o.order_id;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "77 rows are split with `NTILE(4)`. How many rows are in each bucket?",
+      "options": [
+        "19, 19, 19, 20 in any order",
+        "20, 19, 19, 19, because the extra row goes to the first bucket",
+        "Exactly 19.25 on average, so the query fails",
+        "One bucket has 77 rows"
+      ],
+      "answer": 1,
+      "explanation": "NTILE gives the leftover rows to the first buckets, so 77 = 20 + 19 + 19 + 19. It never fails because of uneven division."
+    },
+    {
+      "id": "c2",
+      "question": "`LAST_VALUE(x) OVER (PARTITION BY g ORDER BY y)` with no frame clause returns what?",
+      "options": [
+        "The last x of the partition",
+        "The x of the current row (or its last peer), because the default frame ends at the current row",
+        "NULL",
+        "The first x"
+      ],
+      "answer": 1,
+      "explanation": "With an ORDER BY, the default frame runs from the partition start to the current row and its peers, so the last row of that frame is the current row. Add ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING for the partition's last value."
+    },
+    {
+      "id": "c3",
+      "question": "Which expression returns the median price?",
+      "options": [
+        "percentile_cont(50) WITHIN GROUP (ORDER BY unit_price)",
+        "percentile_cont(0.5) WITHIN GROUP (ORDER BY unit_price)",
+        "MEDIAN(unit_price)",
+        "percentile_cont(0.5) OVER (ORDER BY unit_price)"
+      ],
+      "answer": 1,
+      "explanation": "The fraction must be between 0 and 1 (50 raises an error), the ordering goes in WITHIN GROUP and PostgreSQL has no MEDIAN function. Ordered-set aggregates do not take OVER."
+    },
+    {
+      "id": "c4",
+      "question": "The mean price of a group is 25 and its median is 16. What does it suggest?",
+      "options": [
+        "The data are symmetric",
+        "A few high values pull the mean above the median (right-skewed data)",
+        "The group has an error",
+        "The median should be recalculated with NTILE"
+      ],
+      "answer": 1,
+      "explanation": "When the mean exceeds the median, large values stretch the mean upward. For symmetric data the two are close. Nothing is wrong with the data."
+    },
+    {
+      "id": "c5",
+      "question": "What does `NTILE(4)` guarantee about the buckets?",
+      "options": [
+        "Each covers an equal range of values",
+        "Each has the same (or nearly the same) number of rows",
+        "Equal values always stay in one bucket",
+        "Bucket 1 holds the highest values"
+      ],
+      "answer": 1,
+      "explanation": "NTILE splits by row position, so counts are equal within one row, but value ranges are not equal and ties can be split. Bucket 1 holds the first rows in the window's ORDER BY, the lowest for ascending order."
+    }
+  ]
+}

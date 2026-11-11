@@ -1,0 +1,189 @@
+{
+  "id": "d021",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-exceptions",
+      "python-logging"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "custom-exception-hierarchy",
+      "etl-run-logger",
+      "structured-run-logging"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Handle a bad number",
+      "prompt": "The function `to_int(text)` should return the integer for the text, or `-1` when the text is not a valid integer. Complete it with `try` and `except`, then print the results for `\"42\"`, `\"4x\"` and `\"\"`. Expected output: `42`, `-1`, `-1` on separate lines.",
+      "starter": "def to_int(text):\n    return int(text)\n\nfor t in [\"42\", \"4x\", \"\"]:\n    print(to_int(t))\n",
+      "solution": "def to_int(text):\n    try:\n        return int(text)\n    except ValueError:\n        return -1\n\nfor t in [\"42\", \"4x\", \"\"]:\n    print(to_int(t))\n",
+      "kind": "python",
+      "expected": "42\n-1\n-1",
+      "hints": [
+        "Put the risky `int(text)` call inside `try`.",
+        "`int(\"4x\")` raises `ValueError`; catch exactly that type.",
+        "`except ValueError:` followed by `return -1`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Safe dictionary lookups",
+      "prompt": "For each key in `[\"a\", \"z\", \"b\"]`, look it up in `prices` using `prices[key]` inside `try`. Print `key=value` on success and `key missing` when a `KeyError` is raised. Expected output: three lines.",
+      "starter": "prices = {\"a\": 3, \"b\": 8}\nfor key in [\"a\", \"z\", \"b\"]:\n    print(key, prices[key])\n",
+      "solution": "prices = {\"a\": 3, \"b\": 8}\nfor key in [\"a\", \"z\", \"b\"]:\n    try:\n        value = prices[key]\n    except KeyError:\n        print(f\"{key} missing\")\n    else:\n        print(f\"{key}={value}\")\n",
+      "kind": "python",
+      "expected": "a=3\nz missing\nb=8",
+      "hints": [
+        "The error for a missing dictionary key is `KeyError`.",
+        "Use `else` for the print that should happen only on success.",
+        "Print `f\"{key}={value}\"` in `else` and `f\"{key} missing\"` in `except KeyError`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Raise a custom error",
+      "prompt": "Define `class NegativeAmount(Exception)` and a function `check(amount)` that raises it with the message `amount must be >= 0` when the amount is below zero, and otherwise returns the amount. Call it for `5` and `-3` inside `try` and print either the value or `Error: ` plus the message. Expected output: `5` then `Error: amount must be >= 0`.",
+      "starter": "# Define NegativeAmount and check(), then test 5 and -3\n",
+      "solution": "class NegativeAmount(Exception):\n    pass\n\ndef check(amount):\n    if amount < 0:\n        raise NegativeAmount(\"amount must be >= 0\")\n    return amount\n\nfor value in [5, -3]:\n    try:\n        print(check(value))\n    except NegativeAmount as error:\n        print(\"Error:\", error)\n",
+      "kind": "python",
+      "expected": "5\nError: amount must be >= 0",
+      "hints": [
+        "A custom exception is a class that inherits from `Exception`; its body can be `pass`.",
+        "`raise NegativeAmount(\"...\")` inside an `if` raises it.",
+        "Catch with `except NegativeAmount as error:` and print `\"Error:\", error`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Log to standard output",
+      "prompt": "Create a logger named `app` at level INFO that writes to `sys.stdout` with the format `%(levelname)s: %(message)s` (set `propagate = False`). Log the INFO message `started`, the DEBUG message `details` and the WARNING message `low disk`. Expected output: `INFO: started` and `WARNING: low disk`.",
+      "starter": "import logging\nimport sys\n\n# Configure the logger and log the three messages\n",
+      "solution": "import logging\nimport sys\n\nlogger = logging.getLogger(\"app\")\nlogger.handlers.clear()   # drop handlers left by an earlier run\nlogger.setLevel(logging.INFO)\nlogger.propagate = False\nhandler = logging.StreamHandler(sys.stdout)\nhandler.setFormatter(logging.Formatter(\"%(levelname)s: %(message)s\"))\nlogger.addHandler(handler)\n\nlogger.info(\"started\")\nlogger.debug(\"details\")\nlogger.warning(\"low disk\")\n",
+      "kind": "python",
+      "expected": "INFO: started\nWARNING: low disk",
+      "hints": [
+        "You need a logger, a handler and a formatter.",
+        "`logging.StreamHandler(sys.stdout)` sends output to the screen; attach the formatter with `handler.setFormatter(...)`.",
+        "DEBUG is below the INFO level, so it is dropped on its own; just make the three calls."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Validate and summarise orders",
+      "prompt": "Each order is a dict. Write `validate(order)` that raises `ValueError(\"missing customer\")` when `customer` is missing or empty, and `ValueError(\"bad qty\")` when `qty` is not a positive integer. Apply it to the list in the starter. Print `ok: <customer>` for each valid order and `rejected: <message>` for each invalid one, then `Valid 2 of 5` using counted values.",
+      "starter": "orders = [\n    {\"customer\": \"Ana\", \"qty\": 2},\n    {\"customer\": \"\", \"qty\": 1},\n    {\"customer\": \"Bo\", \"qty\": 0},\n    {\"qty\": 4},\n    {\"customer\": \"Cy\", \"qty\": 7},\n]\n# validate, count and print\n",
+      "solution": "orders = [\n    {\"customer\": \"Ana\", \"qty\": 2},\n    {\"customer\": \"\", \"qty\": 1},\n    {\"customer\": \"Bo\", \"qty\": 0},\n    {\"qty\": 4},\n    {\"customer\": \"Cy\", \"qty\": 7},\n]\n\ndef validate(order):\n    if not order.get(\"customer\"):\n        raise ValueError(\"missing customer\")\n    qty = order.get(\"qty\")\n    if not isinstance(qty, int) or qty <= 0:\n        raise ValueError(\"bad qty\")\n\nvalid = 0\nfor order in orders:\n    try:\n        validate(order)\n    except ValueError as error:\n        print(\"rejected:\", error)\n    else:\n        valid += 1\n        print(\"ok:\", order[\"customer\"])\nprint(f\"Valid {valid} of {len(orders)}\")\n",
+      "kind": "python",
+      "expected": "ok: Ana\nrejected: missing customer\nrejected: bad qty\nrejected: missing customer\nok: Cy\nValid 2 of 5"
+    },
+    {
+      "id": "i2",
+      "title": "Retry with logging",
+      "prompt": "The function `flaky(n)` fails with `ConnectionError` on its first two calls and succeeds on the third (the starter has a counter for this). Write `fetch_with_retry(max_attempts)` that calls `flaky`, logs a WARNING `attempt N failed` for each failure (N starts at 1), returns the result on success, and raises `RuntimeError(\"gave up\")` after `max_attempts` failures. Log to stdout with the format `%(levelname)s %(message)s` on logger `retry`. Print the result of `fetch_with_retry(3)`, then reset the counter by calling `reset()` and print the message of the `RuntimeError` raised by `fetch_with_retry(2)`.",
+      "starter": "import logging\nimport sys\n\ncalls = 0\n\ndef reset():\n    global calls\n    calls = 0\n\ndef flaky():\n    global calls\n    calls += 1\n    if calls < 3:\n        raise ConnectionError(\"down\")\n    return \"data\"\n\n# Configure the logger and write fetch_with_retry\n",
+      "solution": "import logging\nimport sys\n\ncalls = 0\n\ndef reset():\n    global calls\n    calls = 0\n\ndef flaky():\n    global calls\n    calls += 1\n    if calls < 3:\n        raise ConnectionError(\"down\")\n    return \"data\"\n\nlogger = logging.getLogger(\"retry\")\nlogger.handlers.clear()   # drop handlers left by an earlier run\nlogger.setLevel(logging.INFO)\nlogger.propagate = False\nhandler = logging.StreamHandler(sys.stdout)\nhandler.setFormatter(logging.Formatter(\"%(levelname)s %(message)s\"))\nlogger.addHandler(handler)\n\ndef fetch_with_retry(max_attempts):\n    for attempt in range(1, max_attempts + 1):\n        try:\n            return flaky()\n        except ConnectionError:\n            logger.warning(\"attempt %d failed\", attempt)\n    raise RuntimeError(\"gave up\")\n\nprint(fetch_with_retry(3))\nreset()\ntry:\n    fetch_with_retry(2)\nexcept RuntimeError as error:\n    print(error)\n",
+      "kind": "python",
+      "expected": "WARNING attempt 1 failed\nWARNING attempt 2 failed\ndata\nWARNING attempt 1 failed\nWARNING attempt 2 failed\ngave up"
+    },
+    {
+      "id": "i3",
+      "title": "Clean-up with finally",
+      "prompt": "Write a function `process(values)` that sums a list of numeric strings. It must print `start` first, return the sum as a float when all values parse, raise the original `ValueError` when one does not (do not catch it inside `process`), and always print `end` last, even when it fails. Call it for `[\"1\", \"2.5\"]` and print the result, then for `[\"1\", \"x\"]` inside a `try` that prints `failed: ` and the error message.",
+      "starter": "# Write process() with try/finally\n",
+      "solution": "def process(values):\n    print(\"start\")\n    try:\n        return sum(float(v) for v in values)\n    finally:\n        print(\"end\")\n\nprint(process([\"1\", \"2.5\"]))\ntry:\n    process([\"1\", \"x\"])\nexcept ValueError as error:\n    print(\"failed:\", error)\n",
+      "kind": "python",
+      "expected": "start\nend\n3.5\nstart\nend\nfailed: could not convert string to float: 'x'",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\ndef f():\n    try:\n        return 1\n    finally:\n        print(\"cleanup\")\nprint(f())\n```",
+      "options": [
+        "1",
+        "cleanup then 1",
+        "1 then cleanup",
+        "cleanup"
+      ],
+      "answer": 1,
+      "explanation": "`finally` always runs before the function really returns, so `cleanup` is printed first and then `print(f())` shows 1. The return value is kept, not replaced."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\ntry:\n    {}[\"a\"]\nexcept LookupError:\n    print(\"lookup\")\nexcept KeyError:\n    print(\"key\")\n```",
+      "options": [
+        "key",
+        "lookup",
+        "lookup and key",
+        "Nothing; it raises KeyError"
+      ],
+      "answer": 1,
+      "explanation": "`KeyError` is a child of `LookupError`, and Python uses the first matching `except`. The second handler can never run, which is why specific types go first."
+    },
+    {
+      "id": "c3",
+      "question": "A logger has level WARNING. Which call produces output?",
+      "options": [
+        "logger.info(\"x\")",
+        "logger.debug(\"x\")",
+        "logger.error(\"x\")",
+        "none of them"
+      ],
+      "answer": 2,
+      "explanation": "Only messages at or above the logger's level are emitted. ERROR is above WARNING, while INFO and DEBUG are below it and are dropped."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print?\n\n```python\ntry:\n    x = int(\"7\")\nexcept ValueError:\n    print(\"bad\")\nelse:\n    print(\"good\")\nfinally:\n    print(\"end\")\n```",
+      "options": [
+        "bad, end",
+        "good, end",
+        "good",
+        "end"
+      ],
+      "answer": 1,
+      "explanation": "No exception is raised, so `except` is skipped, `else` prints `good` and `finally` prints `end`. `bad` would only print if `int` failed."
+    },
+    {
+      "id": "c5",
+      "question": "Why is `except Exception: pass` around a whole loop a bad habit?",
+      "options": [
+        "It hides real bugs such as typos, so the program silently gives wrong results",
+        "It makes the loop slower than any other handler",
+        "It is a syntax error",
+        "It stops the loop at the first error"
+      ],
+      "answer": 0,
+      "explanation": "It swallows every error, including mistakes in your own code, with no message. It is valid syntax, and the loop would continue, which is exactly why wrong output goes unnoticed."
+    },
+    {
+      "id": "c6",
+      "question": "What is the purpose of a bare `raise` inside an `except` block?",
+      "options": [
+        "It re-raises the exception being handled so callers can still see it",
+        "It ends the program with exit code 0",
+        "It creates a new empty exception",
+        "It clears the exception"
+      ],
+      "answer": 0,
+      "explanation": "A bare `raise` passes the same exception on after you have done something such as logging. It does not clear or replace the error."
+    }
+  ]
+}

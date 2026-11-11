@@ -1,0 +1,185 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "query-optimization",
+      "indexes",
+      "dwh-star-schema"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "filter-valid-records"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "indexing-optimization"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Cardinality of the Customers table",
+      "kind": "python",
+      "prompt": "Print the distinct count and the ratio to the row count (3 decimals) for each column of `customers`, as a table with columns `distinct` and `ratio`, using `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\n# distinct counts and ratios\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\nt = pd.DataFrame({\"distinct\": customers.nunique()})\nt[\"ratio\"] = (t[\"distinct\"] / len(customers)).round(3)\nprint(t.to_string())\n",
+      "hints": [
+        "Series.nunique per column is DataFrame.nunique().",
+        "Divide by len(customers) and round to 3 decimals.",
+        "Build a DataFrame with the columns distinct and ratio and print it."
+      ],
+      "expected": "               distinct  ratio\ncustomer_id          40   1.00\ncustomer_name        40   1.00\ncountry               4   0.10\nsegment               2   0.05"
+    },
+    {
+      "id": "g2",
+      "title": "Run the DAX linter",
+      "kind": "python",
+      "prompt": "Using `rules` (given), write `lint(text)` returning the list of messages for every rule whose pattern matches (in rule order). Print `lint(\"[A] / [B]\")`, `lint(\"CALCULATE([X], FILTER(Sales, Sales[quantity] > 3))\")` and `lint(\"[X]\")` on three lines (the lists themselves).",
+      "starter": "import re\n\nrules = [\n    (r\"FILTER\\(\\s*(Sales|Products|Customers)\\b\", \"filter a column, not a table\"),\n    (r\"\\bIF\\(\\s*[\\w\\[\\]\\. ]+=\\s*0\", \"use DIVIDE\"),\n    (r\"\\]\\s*/\\s*\\[\", \"use DIVIDE\"),\n]\n\ndef lint(text):\n    return []\n\nprint(lint(\"[A] / [B]\"))\nprint(lint(\"CALCULATE([X], FILTER(Sales, Sales[quantity] > 3))\"))\nprint(lint(\"[X]\"))\n",
+      "solution": "import re\n\nrules = [\n    (r\"FILTER\\(\\s*(Sales|Products|Customers)\\b\", \"filter a column, not a table\"),\n    (r\"\\bIF\\(\\s*[\\w\\[\\]\\. ]+=\\s*0\", \"use DIVIDE\"),\n    (r\"\\]\\s*/\\s*\\[\", \"use DIVIDE\"),\n]\n\ndef lint(text):\n    return [msg for pattern, msg in rules if re.search(pattern, text)]\n\nprint(lint(\"[A] / [B]\"))\nprint(lint(\"CALCULATE([X], FILTER(Sales, Sales[quantity] > 3))\"))\nprint(lint(\"[X]\"))\n",
+      "hints": [
+        "Test each pattern with re.search on the text.",
+        "Collect the message of each rule that matches.",
+        "[msg for pattern, msg in rules if re.search(pattern, text)]"
+      ],
+      "expected": "['use DIVIDE']\n['filter a column, not a table']\n[]"
+    },
+    {
+      "id": "g3",
+      "title": "Slowest part per visual",
+      "kind": "python",
+      "prompt": "Using `log` (given), print for each visual in the order of the log `visual: part` where part is the name of the largest of `dax_ms`, `display_ms` and `other_ms` (first one on ties).",
+      "starter": "import pandas as pd\n\nlog = pd.DataFrame({\n    \"visual\": [\"Revenue card\", \"Monthly trend\", \"Category bar\", \"Customer table\", \"Map\", \"Detail matrix\"],\n    \"dax_ms\": [12, 85, 40, 640, 95, 300],\n    \"display_ms\": [5, 30, 20, 150, 700, 90],\n    \"other_ms\": [8, 10, 12, 20, 15, 400],\n})\nlog[\"total_ms\"] = log[[\"dax_ms\", \"display_ms\", \"other_ms\"]].sum(axis=1)\n\n# slowest part per visual\n",
+      "solution": "import pandas as pd\n\nlog = pd.DataFrame({\n    \"visual\": [\"Revenue card\", \"Monthly trend\", \"Category bar\", \"Customer table\", \"Map\", \"Detail matrix\"],\n    \"dax_ms\": [12, 85, 40, 640, 95, 300],\n    \"display_ms\": [5, 30, 20, 150, 700, 90],\n    \"other_ms\": [8, 10, 12, 20, 15, 400],\n})\nlog[\"total_ms\"] = log[[\"dax_ms\", \"display_ms\", \"other_ms\"]].sum(axis=1)\n\nfor _, row in log.iterrows():\n    part = row[[\"dax_ms\", \"display_ms\", \"other_ms\"]].astype(int).idxmax()\n    print(f\"{row['visual']}: {part}\")\n",
+      "hints": [
+        "idxmax over the three columns gives the name of the largest.",
+        "Select the three duration columns of each row.",
+        "Loop with log.iterrows() and print visual: part."
+      ],
+      "expected": "Revenue card: dax_ms\nMonthly trend: dax_ms\nCategory bar: dax_ms\nCustomer table: dax_ms\nMap: display_ms\nDetail matrix: other_ms"
+    },
+    {
+      "id": "g4",
+      "title": "Triage a slow report (written)",
+      "kind": "written",
+      "prompt": "A report page takes 9 seconds to load. Performance Analyzer shows one table with a DAX query of 6 seconds, a map with display time of 2 seconds, and 12 other visuals with small times but a large 'other' column. Explain what you would change for each of the three findings and in which order.",
+      "starter": "Table: ...\nMap: ...\nOther visuals: ...\nOrder: ...",
+      "solution": "Start with the table, the largest cost: a 6-second DAX query points at the measure or the model behind it. Look at its measures for table-wide FILTER, nested iterators and repeated expressions, rewrite them with column filters and variables, and check for high-cardinality columns or bidirectional relationships in the model; record again afterwards. The map spends its time drawing, so a better measure will not help: reduce the number of points (aggregate to country or region), or use a simpler visual. The high 'other' time on many visuals indicates waiting for other visuals; reduce the number of visuals on the page, merge cards into a multi-row card or move detail to a drill-through page. The order follows the size of the saving and the certainty of the cause: table first, then the page's visual count, then the map, and a new recording after each change to confirm it helped.",
+      "rubric": [
+        "Treats the DAX query time as a measure or model problem and names concrete fixes.",
+        "Treats display time as a visual problem and reduces the points or changes the visual.",
+        "Reduces visuals per page for high other time.",
+        "Orders by impact and re-measures."
+      ],
+      "hints": [
+        "Which of the three durations is each finding?",
+        "Is the cost in calculating or in drawing?",
+        "What do many visuals on one page do to waiting time?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Column pruning plan",
+      "kind": "python",
+      "prompt": "Write `plan(df, used)` returning a dict column to action: `drop` if the column is not in `used`; `review` if it is used and its distinct ratio is above 0.5; otherwise `keep`. Apply it to `sales` with `used = [\"order_id\", \"order_date\", \"customer_id\", \"product_id\", \"quantity\", \"unit_price\"]` and print `column action` for each column of `sales` in the table order.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef plan(df, used):\n    return {}\n\nused = [\"order_id\", \"order_date\", \"customer_id\", \"product_id\", \"quantity\", \"unit_price\"]\nfor c, a in plan(sales, used).items():\n    print(c, a)\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\n\ndef plan(df, used):\n    out = {}\n    for c in df.columns:\n        if c not in used:\n            out[c] = \"drop\"\n        elif df[c].nunique() / len(df) > 0.5:\n            out[c] = \"review\"\n        else:\n            out[c] = \"keep\"\n    return out\n\nused = [\"order_id\", \"order_date\", \"customer_id\", \"product_id\", \"quantity\", \"unit_price\"]\nfor c, a in plan(sales, used).items():\n    print(c, a)\n",
+      "expected": "order_id review\norder_date review\ncustomer_id keep\nproduct_id keep\nquantity keep\nunit_price keep\nrevenue drop"
+    },
+    {
+      "id": "i2",
+      "title": "Naming audit",
+      "kind": "python",
+      "prompt": "Write `audit(kind, name)` returning a list of problems: for `kind == \"measure\"` the name must be Title Case words separated by single spaces (each word starts with an uppercase letter or digit; `%` allowed) with no underscore; for `kind == \"column\"` the name must be lower snake case (`[a-z][a-z0-9_]*`). Messages: `measure format`, `column format`. Print `kind name: ok` or `kind name: problem` for the pairs (measure, \"Total Revenue\"), (measure, \"total_revenue\"), (column, \"unit_price\"), (column, \"UnitPrice\"), (measure, \"Gross Margin %\"), in that order.",
+      "starter": "import re\n\ndef audit(kind, name):\n    return []\n\nfor kind, name in [(\"measure\", \"Total Revenue\"), (\"measure\", \"total_revenue\"), (\"column\", \"unit_price\"), (\"column\", \"UnitPrice\"), (\"measure\", \"Gross Margin %\")]:\n    p = audit(kind, name)\n    print(f\"{kind} {name}: {', '.join(p) if p else 'ok'}\")\n",
+      "solution": "import re\n\ndef audit(kind, name):\n    if kind == \"measure\":\n        ok = re.fullmatch(r\"[A-Z0-9][A-Za-z0-9%]*( [A-Z0-9%][A-Za-z0-9%]*)*\", name) is not None\n        return [] if ok else [\"measure format\"]\n    ok = re.fullmatch(r\"[a-z][a-z0-9_]*\", name) is not None\n    return [] if ok else [\"column format\"]\n\nfor kind, name in [(\"measure\", \"Total Revenue\"), (\"measure\", \"total_revenue\"), (\"column\", \"unit_price\"), (\"column\", \"UnitPrice\"), (\"measure\", \"Gross Margin %\")]:\n    p = audit(kind, name)\n    print(f\"{kind} {name}: {', '.join(p) if p else 'ok'}\")\n",
+      "expected": "measure Total Revenue: ok\nmeasure total_revenue: measure format\ncolumn unit_price: ok\ncolumn UnitPrice: column format\nmeasure Gross Margin %: ok"
+    },
+    {
+      "id": "i3",
+      "title": "Page time budget (stretch)",
+      "kind": "python",
+      "prompt": "Using `log` (given) with `total_ms` per visual, the page budget is 1500 ms. Remove visuals, largest `total_ms` first (stable order on ties), until the sum of the remaining totals is at most the budget. Print `removed: names` (comma separated, in removal order) and `remaining N ms` with N the new sum.",
+      "starter": "import pandas as pd\n\nlog = pd.DataFrame({\n    \"visual\": [\"Revenue card\", \"Monthly trend\", \"Category bar\", \"Customer table\", \"Map\", \"Detail matrix\"],\n    \"dax_ms\": [12, 85, 40, 640, 95, 300],\n    \"display_ms\": [5, 30, 20, 150, 700, 90],\n    \"other_ms\": [8, 10, 12, 20, 15, 400],\n})\nlog[\"total_ms\"] = log[[\"dax_ms\", \"display_ms\", \"other_ms\"]].sum(axis=1)\n\nbudget = 1500\n# remove the slowest visuals until the page fits\n",
+      "solution": "import pandas as pd\n\nlog = pd.DataFrame({\n    \"visual\": [\"Revenue card\", \"Monthly trend\", \"Category bar\", \"Customer table\", \"Map\", \"Detail matrix\"],\n    \"dax_ms\": [12, 85, 40, 640, 95, 300],\n    \"display_ms\": [5, 30, 20, 150, 700, 90],\n    \"other_ms\": [8, 10, 12, 20, 15, 400],\n})\nlog[\"total_ms\"] = log[[\"dax_ms\", \"display_ms\", \"other_ms\"]].sum(axis=1)\n\nbudget = 1500\norder = log.sort_values(\"total_ms\", ascending=False, kind=\"stable\")\nremaining = int(log[\"total_ms\"].sum())\nremoved = []\nfor _, row in order.iterrows():\n    if remaining <= budget:\n        break\n    removed.append(row[\"visual\"])\n    remaining -= int(row[\"total_ms\"])\nprint(\"removed:\", \", \".join(removed))\nprint(\"remaining\", remaining, \"ms\")\n",
+      "required": false,
+      "expected": "removed: Customer table, Map\nremaining 1012 ms"
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Performance Analyzer is a pane in Power BI Desktop (Windows-only, View tab); the Service in a browser has its own performance tools. Neither runs here. The timings used are invented, and the graded exercises analyse them, the column cardinalities and the DAX text with pandas and regular expressions."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which column in a 10-million-row fact table is usually the most expensive to store?",
+      "options": [
+        "A column with 5 distinct values",
+        "A unique order id or a timestamp to the second",
+        "A product id with 12 values",
+        "A column of one repeated number"
+      ],
+      "answer": 1,
+      "explanation": "A column store compresses repeated values well. A column with nearly one distinct value per row cannot be compressed, so it costs most."
+    },
+    {
+      "id": "c2",
+      "question": "Performance Analyzer shows a map with 40 ms of DAX query and 900 ms of visual display. What should you change?",
+      "options": [
+        "Rewrite the measure with variables",
+        "The visual: reduce the points drawn or choose a simpler visual",
+        "The refresh schedule",
+        "Nothing, display time is not important"
+      ],
+      "answer": 1,
+      "explanation": "The cost is in drawing, so a faster measure will not help. Reduce the number of marks, aggregate the data or use a lighter visual."
+    },
+    {
+      "id": "c3",
+      "question": "Which form is preferred for a filter on Products[category] = \"Hardware\" inside CALCULATE?",
+      "options": [
+        "FILTER(Products, Products[category] = \"Hardware\")",
+        "Products[category] = \"Hardware\"",
+        "FILTER(ALL(Products), TRUE())",
+        "Both are always identical in cost"
+      ],
+      "answer": 1,
+      "explanation": "The column condition filters only the values of one column; wrapping a whole table in FILTER makes the engine iterate rows. The results can be the same, but the cost is not."
+    },
+    {
+      "id": "c4",
+      "question": "Why delete an unused column in Power Query instead of hiding it?",
+      "options": [
+        "Hidden columns break measures",
+        "Hidden columns still load and take memory",
+        "Hiding is not possible in Desktop",
+        "Deleting speeds up drawing only"
+      ],
+      "answer": 1,
+      "explanation": "A hidden column is only hidden from the report view; it stays in the model and uses memory and refresh time. Deleting it before load removes the cost."
+    },
+    {
+      "id": "c5",
+      "question": "A measure is named Measure 3 and passes a Title Case format check. What does that tell you?",
+      "options": [
+        "The name is good",
+        "Only the format rule passes; the name still has no meaning and should be renamed",
+        "The measure is slow",
+        "The measure is hidden"
+      ],
+      "answer": 1,
+      "explanation": "A format check cannot judge meaning. Names should say what the measure returns, such as Total Revenue."
+    }
+  ],
+  "id": "a136"
+}

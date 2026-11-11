@@ -1,0 +1,189 @@
+{
+  "id": "a092",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "conditional-aggregation",
+      "logical-operators",
+      "null-handling"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "cart-line-total"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Replica of IF with AND",
+      "kind": "python",
+      "prompt": "Replicate `=IF(AND(C2>=100, A2=\"North\"), \"Bonus\", \"None\")` for the table. Add a column `Bonus` with `np.where`, then print the `Bonus` column as a list. Excel compares text ignoring case, so compare the lowercased region.",
+      "starter": "import numpy as np\nimport pandas as pd\n\no = pd.DataFrame({\n    \"Region\": [\"North\", \"East\", \"North\", \"South\", \"East\"],\n    \"Qty\": [5, 1, 2, 8, 3],\n    \"Amount\": [320.0, 90.0, 140.0, 75.0, 510.0],\n})\n\n# add Bonus, print the list\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\no = pd.DataFrame({\n    \"Region\": [\"North\", \"East\", \"North\", \"South\", \"East\"],\n    \"Qty\": [5, 1, 2, 8, 3],\n    \"Amount\": [320.0, 90.0, 140.0, 75.0, 510.0],\n})\n\no[\"Bonus\"] = np.where((o[\"Amount\"] >= 100) & (o[\"Region\"].str.lower() == \"north\"), \"Bonus\", \"None\")\nprint(o[\"Bonus\"].tolist())\n",
+      "hints": [
+        "np.where(test, value_if_true, value_if_false) is the replica of IF.",
+        "AND becomes the & operator, and each condition needs its own brackets.",
+        "(o[\"Amount\"] >= 100) & (o[\"Region\"].str.lower() == \"north\")"
+      ],
+      "expected": "['Bonus', 'None', 'Bonus', 'None', 'None']"
+    },
+    {
+      "id": "g2",
+      "title": "Replica of IFS tiers",
+      "kind": "python",
+      "prompt": "Replicate `=IFS(C2>=500,\"Gold\", C2>=200,\"Silver\", TRUE,\"Standard\")` on `Amount`. Add a column `Tier` with `np.select` and print the tier of each row as a list.",
+      "starter": "import numpy as np\nimport pandas as pd\n\no = pd.DataFrame({\n    \"Region\": [\"North\", \"East\", \"North\", \"South\", \"East\"],\n    \"Qty\": [5, 1, 2, 8, 3],\n    \"Amount\": [320.0, 90.0, 140.0, 75.0, 510.0],\n})\n\n# add Tier with np.select, print the list\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\no = pd.DataFrame({\n    \"Region\": [\"North\", \"East\", \"North\", \"South\", \"East\"],\n    \"Qty\": [5, 1, 2, 8, 3],\n    \"Amount\": [320.0, 90.0, 140.0, 75.0, 510.0],\n})\n\nconds = [o[\"Amount\"] >= 500, o[\"Amount\"] >= 200]\no[\"Tier\"] = np.select(conds, [\"Gold\", \"Silver\"], default=\"Standard\")\nprint(o[\"Tier\"].tolist())\n",
+      "hints": [
+        "np.select takes a list of conditions, a list of values and a default.",
+        "The conditions are checked in order; the first true one wins, like IFS.",
+        "The closing TRUE, \"Standard\" of IFS becomes default=\"Standard\"."
+      ],
+      "expected": "['Silver', 'Standard', 'Standard', 'Standard', 'Gold']"
+    },
+    {
+      "id": "g3",
+      "title": "Rounding the Excel way",
+      "kind": "python",
+      "prompt": "Use the helper `xl_round` (rounds halves away from zero, like Excel `ROUND`). Print on one line, separated by spaces, the results of `xl_round` for the values 0.5, 1.5, 2.5 and -1.5 with 0 digits, then on a second line `xl_round(1.005, 2)`, and on a third line Python's `round(0.5)`, `round(1.5)` and `round(2.5)` separated by spaces.",
+      "starter": "from decimal import Decimal, ROUND_HALF_UP\n\ndef xl_round(x, digits):\n    q = Decimal(1).scaleb(-digits)\n    return float(Decimal(str(x)).quantize(q, rounding=ROUND_HALF_UP))\n\n# print the three lines\n",
+      "solution": "from decimal import Decimal, ROUND_HALF_UP\n\ndef xl_round(x, digits):\n    q = Decimal(1).scaleb(-digits)\n    return float(Decimal(str(x)).quantize(q, rounding=ROUND_HALF_UP))\n\nprint(*[xl_round(v, 0) for v in [0.5, 1.5, 2.5, -1.5]])\nprint(xl_round(1.005, 2))\nprint(round(0.5), round(1.5), round(2.5))\n",
+      "hints": [
+        "print(*list) prints the items separated by spaces.",
+        "Build the first list with a comprehension over [0.5, 1.5, 2.5, -1.5].",
+        "print(*[xl_round(v, 0) for v in [0.5, 1.5, 2.5, -1.5]]) then the other two prints."
+      ],
+      "expected": "1.0 2.0 3.0 -2.0\n1.01\n0 2 2"
+    },
+    {
+      "id": "g4",
+      "title": "Write the formulas (written)",
+      "kind": "written",
+      "prompt": "In Excel, column A holds Region, B holds Qty, C holds Amount, and the cell F1 holds a discount rate. Write formula text for (a) a column returning `Review` when Region is `East` or Qty is 1, otherwise `OK`; (b) a column returning `Amount*(1-discount)` rounded to 2 decimals that keeps copying correctly down the column; (c) a safe `Amount/Qty` that shows 0 when Qty is 0 without hiding other errors.",
+      "starter": "(a) ...\n(b) ...\n(c) ...",
+      "solution": "(a) `=IF(OR(A2=\"East\", B2=1), \"Review\", \"OK\")`.\n\n(b) `=ROUND(C2*(1-$F$1), 2)`. The dollar signs fix the discount cell so that it stays `$F$1` in every row when the formula is filled down; `C2` is relative so it moves to `C3`, `C4`, and so on.\n\n(c) `=IF(B2=0, 0, C2/B2)`. It tests the one cause we expect (a zero divisor), so a `#NAME?` or `#VALUE!` caused by a typo or text still shows. `IFERROR(C2/B2, 0)` also works but would hide those errors.",
+      "hints": [
+        "OR takes separate tests as separate arguments.",
+        "Use $F$1 for the discount so the address does not move.",
+        "Test the divisor with IF(B2=0, ...) instead of wrapping everything in IFERROR."
+      ],
+      "rubric": [
+        "(a) uses OR with two separate tests inside IF and both branches.",
+        "(b) uses an absolute reference for the discount and ROUND with 2 digits.",
+        "(c) tests the divisor for zero and divides in the other branch.",
+        "Formulas are syntactically valid Excel text starting with =."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Rule engine: tier, flag and rounded commission",
+      "kind": "python",
+      "prompt": "For the table below replicate three Excel columns: `Tier` = `IFS(Amount>=500,\"Gold\", Amount>=200,\"Silver\", TRUE,\"Standard\")`; `Flag` = `IF(OR(Region=\"East\", Qty=1), \"Review\", \"OK\")`; `Commission` = `ROUND(Amount*rate, 2)` where the rate is 0.05 for Gold, 0.03 for Silver and 0.01 otherwise (use half-up rounding via the helper). Print `o[[\"Tier\",\"Flag\",\"Commission\"]].to_string(index=False)`.",
+      "starter": "import numpy as np\nimport pandas as pd\nfrom decimal import Decimal, ROUND_HALF_UP\n\no = pd.DataFrame({\n    \"Region\": [\"North\", \"East\", \"North\", \"South\", \"East\"],\n    \"Qty\": [5, 1, 2, 8, 3],\n    \"Amount\": [320.0, 90.0, 140.0, 75.0, 510.0],\n})\n\ndef xl_round(x, digits):\n    q = Decimal(1).scaleb(-digits)\n    return float(Decimal(str(x)).quantize(q, rounding=ROUND_HALF_UP))\n\n# add Tier, Flag, Commission, then print\n",
+      "solution": "import numpy as np\nimport pandas as pd\nfrom decimal import Decimal, ROUND_HALF_UP\n\no = pd.DataFrame({\n    \"Region\": [\"North\", \"East\", \"North\", \"South\", \"East\"],\n    \"Qty\": [5, 1, 2, 8, 3],\n    \"Amount\": [320.0, 90.0, 140.0, 75.0, 510.0],\n})\n\ndef xl_round(x, digits):\n    q = Decimal(1).scaleb(-digits)\n    return float(Decimal(str(x)).quantize(q, rounding=ROUND_HALF_UP))\n\no[\"Tier\"] = np.select([o[\"Amount\"] >= 500, o[\"Amount\"] >= 200], [\"Gold\", \"Silver\"], default=\"Standard\")\no[\"Flag\"] = np.where((o[\"Region\"] == \"East\") | (o[\"Qty\"] == 1), \"Review\", \"OK\")\nrate = o[\"Tier\"].map({\"Gold\": 0.05, \"Silver\": 0.03, \"Standard\": 0.01})\no[\"Commission\"] = [xl_round(a * r, 2) for a, r in zip(o[\"Amount\"], rate)]\nprint(o[[\"Tier\", \"Flag\", \"Commission\"]].to_string(index=False))\n",
+      "expected": "    Tier   Flag  Commission\n  Silver     OK        9.60\nStandard Review        0.90\nStandard     OK        1.40\nStandard     OK        0.75\n    Gold Review       25.50"
+    },
+    {
+      "id": "i2",
+      "title": "Safe ratios by group",
+      "kind": "python",
+      "prompt": "Replicate `=IF(Visits=0, 0, ROUND(Orders/Visits*100, 1))` for each row (a conversion rate in percent with one decimal, 0 when there are no visits), using the helper for half-up rounding. Then add the total of the rounded rates per channel. Print the channel totals with `to_string()` (the Series, sorted by channel).",
+      "starter": "import pandas as pd\nfrom decimal import Decimal, ROUND_HALF_UP\n\ndef xl_round(x, digits):\n    q = Decimal(1).scaleb(-digits)\n    return float(Decimal(str(x)).quantize(q, rounding=ROUND_HALF_UP))\n\nd = pd.DataFrame({\n    \"Channel\": [\"Email\", \"Email\", \"Ads\", \"Ads\", \"Ads\"],\n    \"Orders\": [3, 5, 1, 0, 7],\n    \"Visits\": [40, 0, 16, 25, 90],\n})\n# per-row rate, then total by channel\n",
+      "solution": "import pandas as pd\nfrom decimal import Decimal, ROUND_HALF_UP\n\ndef xl_round(x, digits):\n    q = Decimal(1).scaleb(-digits)\n    return float(Decimal(str(x)).quantize(q, rounding=ROUND_HALF_UP))\n\nd = pd.DataFrame({\n    \"Channel\": [\"Email\", \"Email\", \"Ads\", \"Ads\", \"Ads\"],\n    \"Orders\": [3, 5, 1, 0, 7],\n    \"Visits\": [40, 0, 16, 25, 90],\n})\nd[\"Rate\"] = [0 if v == 0 else xl_round(o / v * 100, 1) for o, v in zip(d[\"Orders\"], d[\"Visits\"])]\nprint(d.groupby(\"Channel\")[\"Rate\"].sum().round(1).to_string())\n",
+      "expected": "Channel\nAds      14.1\nEmail     7.5"
+    },
+    {
+      "id": "i3",
+      "title": "Fill-down bug hunt (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A colleague wrote `=B2*C2*F1` in D2 (price, quantity, tax rate in F1) and filled it down 100 rows. Rows 2 to 5 look right in the first check but row 3 onward show zero. Explain what happened to the formula text, give the corrected formula, and describe two other reference fixes (mixed references) for a multiplication table where the row header is in B1:F1 and the column header in A2:A6.",
+      "starter": "Explanation and fixes: ...",
+      "solution": "Filling down moves every relative reference by one row per row, so `F1` became `F2`, `F3` and so on, which are empty and count as zero; the row where it still worked was the first. The fix is to freeze the tax cell: `=B2*C2*$F$1`. In a multiplication table with column headers in `B1:F1` and row headers in `A2:A6`, the formula in B2 is `=$A2*B$1`: the dollar before `A` keeps the column when copied right, and the dollar before `1` keeps the header row when copied down. Pressing F4 while the cursor is on a reference cycles through the four forms.",
+      "rubric": [
+        "Explains that F1 drifted to F2, F3 and that empty cells count as zero.",
+        "Gives =B2*C2*$F$1.",
+        "Gives a mixed-reference formula such as =$A2*B$1 and explains which part each dollar sign fixes."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "The formulas need Excel 2016 or later; IFS needs Excel 2019 or Microsoft 365 (LibreOffice Calc 5.2 and later also has IFS). Regional settings may require semicolons instead of commas. The graded exercises replicate the logic in pandas and run in the browser, using the decimal module to match Excel's half-away-from-zero ROUND."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `=IFS(B2>=80,\"B\", B2>=90,\"A\", TRUE,\"C\")` return when B2 is 95?",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "#N/A"
+      ],
+      "answer": 1,
+      "explanation": "IFS returns the value of the first true test, and B2>=80 is true for 95 and is listed first. Test order matters, so the highest threshold must come first. #N/A would appear only if no test were true."
+    },
+    {
+      "id": "c2",
+      "question": "What does `=ROUND(-2.5,0)` return in Excel?",
+      "options": [
+        "-2",
+        "-3",
+        "-2.5",
+        "0"
+      ],
+      "answer": 1,
+      "explanation": "Excel rounds halves away from zero, so -2.5 becomes -3. Python's round(-2.5) returns -2, because Python rounds halves to the nearest even number; that is the common wrong answer."
+    },
+    {
+      "id": "c3",
+      "question": "`=B2*F1` in C2, filled down to C4, becomes what in C4?",
+      "options": [
+        "=B4*F1",
+        "=B4*F3",
+        "=B2*F3",
+        "=B4*$F$1"
+      ],
+      "answer": 1,
+      "explanation": "Both references are relative, so both move down two rows: B2 becomes B4 and F1 becomes F3. Only a $ keeps a reference fixed."
+    },
+    {
+      "id": "c4",
+      "question": "Which formula correctly tests that Qty is at least 5 and Region is North?",
+      "options": [
+        "=IF(C2>=5 AND A2=\"North\",1,0)",
+        "=IF(AND(C2>=5, A2=\"North\"),1,0)",
+        "=IF(5<=C2=\"North\",1,0)",
+        "=IF(C2>=5, A2=\"North\",1,0)"
+      ],
+      "answer": 1,
+      "explanation": "AND takes each test as a separate argument. The first and third are not valid syntax, and the fourth treats the second test as the value for TRUE rather than combining the tests."
+    },
+    {
+      "id": "c5",
+      "question": "A cell contains `=SUMM(B2:B6)`. What does it show?",
+      "options": [
+        "#NAME?",
+        "#REF!",
+        "#VALUE!",
+        "0"
+      ],
+      "answer": 0,
+      "explanation": "Excel does not recognise SUMM as a function, which gives #NAME?. #REF! is for deleted references and #VALUE! for wrong types; a typo never silently returns 0."
+    }
+  ]
+}

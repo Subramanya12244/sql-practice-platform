@@ -1,0 +1,174 @@
+{
+  "id": "d007",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-conditionals",
+      "python-fundamentals"
+    ],
+    "questions": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Pass or fail",
+      "prompt": "The variable `mark` is `58`. Print `pass` if the mark is 50 or more, otherwise print `fail`. Then, on a separate line outside the `if`, print `checked`.",
+      "starter": "mark = 58\n# if / else here\nprint(\"checked\")\n",
+      "solution": "mark = 58\nif mark >= 50:\n    print(\"pass\")\nelse:\n    print(\"fail\")\nprint(\"checked\")\n",
+      "hints": [
+        "Start with `if mark >= 50:` and indent the next line by four spaces.",
+        "Add an `else:` at the same indentation as the `if`, with its own indented `print()`.",
+        "The `print(\"checked\")` line stays at the left margin so it always runs."
+      ],
+      "kind": "python",
+      "expected": "pass\nchecked"
+    },
+    {
+      "id": "g2",
+      "title": "Shipping band",
+      "prompt": "The variable `weight` is `3.5` (kilograms). Print `light` if it is under 1, `standard` if it is under 5, and `heavy` otherwise. Print one word only.",
+      "starter": "weight = 3.5\n",
+      "solution": "weight = 3.5\nif weight < 1:\n    band = \"light\"\nelif weight < 5:\n    band = \"standard\"\nelse:\n    band = \"heavy\"\nprint(band)\n",
+      "hints": [
+        "You need three outcomes, so use `if`, `elif` and `else`.",
+        "Test the smallest limit first: `if weight < 1:`. A later `elif weight < 5:` is only reached when the weight is at least 1.",
+        "Store the word in `band` in each branch, then `print(band)` once at the end."
+      ],
+      "kind": "python",
+      "expected": "standard"
+    },
+    {
+      "id": "g3",
+      "title": "Stock label with a conditional expression",
+      "prompt": "The variable `stock` is `0`. In one assignment using a conditional expression, set `label` to `\"available\"` when `stock` is above zero and to `\"sold out\"` otherwise. Print `label`.",
+      "starter": "stock = 0\n",
+      "solution": "stock = 0\nlabel = \"available\" if stock > 0 else \"sold out\"\nprint(label)\n",
+      "hints": [
+        "The shape is `value_if_true if condition else value_if_false`.",
+        "The condition is `stock > 0` and the true value is `\"available\"`.",
+        "Write `label = \"available\" if stock > 0 else \"sold out\"`."
+      ],
+      "kind": "python",
+      "expected": "sold out"
+    },
+    {
+      "id": "g4",
+      "title": "Flatten a nested check",
+      "prompt": "This rule is written with nesting: a customer gets free delivery only if the basket is at least 50 and the customer is a member. Rewrite it with a single `if` that uses `and`, printing `free delivery` or `paid delivery`. The variables are `basket = 65` and `member = True`.",
+      "starter": "basket = 65\nmember = True\n# rewrite the rule below with one if and 'and'\nprint(\"todo\")\n",
+      "solution": "basket = 65\nmember = True\nif basket >= 50 and member:\n    print(\"free delivery\")\nelse:\n    print(\"paid delivery\")\n",
+      "hints": [
+        "Both conditions must hold for the free delivery, which is what `and` expresses.",
+        "Everything else leads to the same message, so one `else` is enough.",
+        "`if basket >= 50 and member:` then the free message, `else:` the paid message."
+      ],
+      "kind": "python",
+      "expected": "free delivery"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Ticket price",
+      "prompt": "Read an age from `input()` as a whole number. Print `Error: invalid age` if the text is not digits only. Otherwise print the ticket price as `Price: ` followed by the number: 0 for ages under 5, 8 for ages 5 to 17, 15 for ages 18 to 64, and 10 for 65 and over. Use guard clauses for the invalid case and an `elif` chain for the prices.",
+      "starter": "text = input()\n",
+      "solution": "text = input()\nif not text.isdigit():\n    print(\"Error: invalid age\")\nelse:\n    age = int(text)\n    if age < 5:\n        price = 0\n    elif age < 18:\n        price = 8\n    elif age < 65:\n        price = 15\n    else:\n        price = 10\n    print(\"Price:\", price)\n",
+      "kind": "python",
+      "expected": "Price: 8",
+      "stdin": "17"
+    },
+    {
+      "id": "i2",
+      "title": "Order status message",
+      "prompt": "An order is given by `status = \"shipped\"`, `total = 120.0` and `express = True`. Print one line built like this: the status in upper case, a space, then `PRIORITY` if the order is shipped or pending and express, otherwise `NORMAL`, then (separated by a space) `BIG` if the total is at least 100, otherwise `SMALL`. For the data given the line is `SHIPPED PRIORITY BIG`. Use conditional expressions for the two labels, and build the line with `+` or an f-string.",
+      "starter": "status = \"shipped\"\ntotal = 120.0\nexpress = True\n",
+      "solution": "status = \"shipped\"\ntotal = 120.0\nexpress = True\npriority = \"PRIORITY\" if (status == \"shipped\" or status == \"pending\") and express else \"NORMAL\"\nsize = \"BIG\" if total >= 100 else \"SMALL\"\nprint(status.upper(), priority, size)\n",
+      "kind": "python",
+      "expected": "SHIPPED PRIORITY BIG"
+    },
+    {
+      "id": "i3",
+      "title": "Leap year (stretch)",
+      "prompt": "Read a year from `input()` as a whole number and print `leap` or `not leap`. A year is a leap year if it is divisible by 4, except that years divisible by 100 are not leap years unless they are also divisible by 400. (Use the modulo operator from Day 3.) Print only the one word.",
+      "starter": "year = int(input())\n",
+      "solution": "year = int(input())\nif year % 400 == 0:\n    print(\"leap\")\nelif year % 100 == 0:\n    print(\"not leap\")\nelif year % 4 == 0:\n    print(\"leap\")\nelse:\n    print(\"not leap\")\n",
+      "kind": "python",
+      "expected": "not leap",
+      "stdin": "1900",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nx = 15\nif x > 10:\n    print(\"A\")\nelif x > 5:\n    print(\"B\")\nelse:\n    print(\"C\")\n```",
+      "options": [
+        "`A`",
+        "`B`",
+        "`A` and then `B`",
+        "`C`"
+      ],
+      "answer": 0,
+      "explanation": "Python runs the first branch whose condition is true and skips the rest. `x > 10` is true, so only `A` prints. `B` does not print even though `x > 5` is also true, because the `elif` is never tested."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\nx = 15\nif x > 10:\n    print(\"A\")\nif x > 5:\n    print(\"B\")\nelse:\n    print(\"C\")\n```",
+      "options": [
+        "`A`",
+        "`A` then `B`",
+        "`A` then `C`",
+        "`B`"
+      ],
+      "answer": 1,
+      "explanation": "These are two separate `if` statements, so both run. The `else` belongs only to the second one, and `x > 5` is true, so it prints `B`, not `C`."
+    },
+    {
+      "id": "c3",
+      "question": "What does `print(\"yes\" if 0 else \"no\")` print?",
+      "options": [
+        "`yes`, because 0 is a number",
+        "`no`, because 0 is falsy",
+        "`0`",
+        "A `SyntaxError`"
+      ],
+      "answer": 1,
+      "explanation": "A conditional expression tests truthiness like `if` does. `0` is falsy, so the value after `else` is chosen."
+    },
+    {
+      "id": "c4",
+      "question": "A score of 95 is graded with `if s >= 70: ... elif s >= 90: ...`. What is the problem?",
+      "options": [
+        "`elif` cannot test numbers",
+        "The `s >= 70` branch matches first, so the `s >= 90` branch is never reached for 95",
+        "Python runs both branches and the last one wins",
+        "Nothing: 95 gets the higher grade"
+      ],
+      "answer": 1,
+      "explanation": "Only the first true branch runs. Because 95 is at least 70, the first branch wins and the stricter test is skipped. Put `s >= 90` first."
+    },
+    {
+      "id": "c5",
+      "question": "What does Python do with this line?\n\n```python nocheck\nif count > 3\n    print(\"many\")\n```",
+      "options": [
+        "Prints `many` when `count` is above 3",
+        "Raises a `SyntaxError` because the colon is missing",
+        "Raises an `IndentationError`",
+        "Ignores the `if`"
+      ],
+      "answer": 1,
+      "explanation": "Every `if` line must end with a colon. Without it Python reports `SyntaxError: expected ':'` before running anything."
+    }
+  ]
+}

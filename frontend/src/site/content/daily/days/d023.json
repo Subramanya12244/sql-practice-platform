@@ -1,0 +1,194 @@
+{
+  "id": "d023",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "date-time-functions"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "parse-iso-order-timestamps",
+      "normalize-timestamps-utc",
+      "filter-orders-date-range"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Parts of a date",
+      "prompt": "Create `d = date(2026, 7, 4)` (the starter imports `date`) and print four lines: the ISO text of the date, the weekday name (use `strftime(\"%A\")`), the weekday number from `weekday()`, and the month. Expected output: `2026-07-04`, `Saturday`, `5`, `7`.",
+      "starter": "from datetime import date\n\n# Create the date and print four lines\n",
+      "solution": "from datetime import date\n\nd = date(2026, 7, 4)\nprint(d)\nprint(d.strftime(\"%A\"))\nprint(d.weekday())\nprint(d.month)\n",
+      "kind": "python",
+      "expected": "2026-07-04\nSaturday\n5\n7",
+      "hints": [
+        "Create the value with `date(2026, 7, 4)`; printing it shows the ISO form.",
+        "`%A` is the format code for the weekday name; `weekday()` returns a number with Monday as 0.",
+        "`d.month` is an attribute, so it has no brackets."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Days until a deadline",
+      "prompt": "Compute how many days there are from `2026-03-20` to `2026-04-10` and print `Days left: N`. Then print the date 10 days after the deadline in ISO form. Expected output: `Days left: 21` then `2026-04-20`.",
+      "starter": "from datetime import date, timedelta\n\nstart = date(2026, 3, 20)\ndeadline = date(2026, 4, 10)\n# Print days left and the date 10 days later\n",
+      "solution": "from datetime import date, timedelta\n\nstart = date(2026, 3, 20)\ndeadline = date(2026, 4, 10)\nprint(f\"Days left: {(deadline - start).days}\")\nprint(deadline + timedelta(days=10))\n",
+      "kind": "python",
+      "expected": "Days left: 21\n2026-04-20",
+      "hints": [
+        "Subtracting two dates gives a `timedelta`.",
+        "Its `.days` attribute is the number of whole days.",
+        "Add `timedelta(days=10)` to `deadline` and print the date."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Parse and reformat",
+      "prompt": "The text `\"07-11-2026 08:05\"` is day-month-year with a 24-hour time. Parse it into a datetime with the right format and print it in the form `2026-11-07 08:05` using `strftime`, then print the name of the month with `%B`. Expected output: `2026-11-07 08:05` then `November`.",
+      "starter": "from datetime import datetime\n\ntext = \"07-11-2026 08:05\"\n# Parse, then print two lines\n",
+      "solution": "from datetime import datetime\n\ntext = \"07-11-2026 08:05\"\ndt = datetime.strptime(text, \"%d-%m-%Y %H:%M\")\nprint(dt.strftime(\"%Y-%m-%d %H:%M\"))\nprint(dt.strftime(\"%B\"))\n",
+      "kind": "python",
+      "expected": "2026-11-07 08:05\nNovember",
+      "hints": [
+        "`strptime` takes the text and a format that matches it exactly, hyphens included.",
+        "Day first, then month, then four-digit year: `%d-%m-%Y`; minutes are `%M`.",
+        "The format is `\"%d-%m-%Y %H:%M\"`; output it with `strftime(\"%Y-%m-%d %H:%M\")`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Convert a zone",
+      "prompt": "The aware time `meeting` is 09:00 in a zone two hours ahead of UTC (offset `+02:00`) on 2026-05-20. Print it converted to UTC, then print the difference between the two values, which should show that the moment is the same. Expected output: `2026-05-20 07:00:00+00:00` then `0:00:00`.",
+      "starter": "from datetime import datetime, timedelta, timezone\n\nplus2 = timezone(timedelta(hours=2))\nmeeting = datetime(2026, 5, 20, 9, 0, tzinfo=plus2)\n# Convert to UTC and print\n",
+      "solution": "from datetime import datetime, timedelta, timezone\n\nplus2 = timezone(timedelta(hours=2))\nmeeting = datetime(2026, 5, 20, 9, 0, tzinfo=plus2)\nutc = meeting.astimezone(timezone.utc)\nprint(utc)\nprint(meeting - utc)\n",
+      "kind": "python",
+      "expected": "2026-05-20 07:00:00+00:00\n0:00:00",
+      "hints": [
+        "`astimezone` converts an aware datetime to another zone.",
+        "The target zone is `timezone.utc`.",
+        "Print `utc`, then `meeting - utc`: the same moment gives a zero timedelta."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Weekly order counts",
+      "prompt": "The list holds order timestamps as ISO text. Count how many orders fall on each ISO week number (use `date.isocalendar()[1]` on the parsed date). Print one line per week in increasing order as `Week N: count`. Then print `Busiest: Week N` for the week with the most orders (the earliest week wins a tie).",
+      "starter": "from datetime import datetime\n\nstamps = [\"2026-03-02T10:00\", \"2026-03-03T11:30\", \"2026-03-09T09:15\", \"2026-03-10T18:00\", \"2026-03-11T08:45\", \"2026-03-12T12:00\", \"2026-03-20T16:20\"]\n# Count per ISO week\n",
+      "solution": "from datetime import datetime\n\nstamps = [\"2026-03-02T10:00\", \"2026-03-03T11:30\", \"2026-03-09T09:15\", \"2026-03-10T18:00\", \"2026-03-11T08:45\", \"2026-03-12T12:00\", \"2026-03-20T16:20\"]\ncounts = {}\nfor text in stamps:\n    week = datetime.fromisoformat(text).date().isocalendar()[1]\n    counts[week] = counts.get(week, 0) + 1\nfor week in sorted(counts):\n    print(f\"Week {week}: {counts[week]}\")\nbusiest = max(sorted(counts), key=lambda w: counts[w])\nprint(f\"Busiest: Week {busiest}\")\n",
+      "kind": "python",
+      "expected": "Week 10: 2\nWeek 11: 4\nWeek 12: 1\nBusiest: Week 11"
+    },
+    {
+      "id": "i2",
+      "title": "Add months safely",
+      "prompt": "Write `add_months(d, n)` that returns the date `n` months after `d`. When the target month is shorter than the day of `d`, use the last day of the target month (so 31 January plus 1 month is the last day of February). Use `calendar.monthrange(year, month)[1]` for the number of days in a month. Print `add_months(date(2026, 1, 31), 1)`, `add_months(date(2026, 3, 31), 1)`, `add_months(date(2026, 11, 15), 3)` and `add_months(date(2024, 1, 31), 1)` (a leap year), each on its own line in ISO form.",
+      "starter": "import calendar\nfrom datetime import date\n\n# Write add_months and print the four results\n",
+      "solution": "import calendar\nfrom datetime import date\n\ndef add_months(d, n):\n    index = d.year * 12 + (d.month - 1) + n\n    year, month = divmod(index, 12)\n    month += 1\n    day = min(d.day, calendar.monthrange(year, month)[1])\n    return date(year, month, day)\n\nprint(add_months(date(2026, 1, 31), 1))\nprint(add_months(date(2026, 3, 31), 1))\nprint(add_months(date(2026, 11, 15), 3))\nprint(add_months(date(2024, 1, 31), 1))\n",
+      "kind": "python",
+      "expected": "2026-02-28\n2026-04-30\n2027-02-15\n2024-02-29"
+    },
+    {
+      "id": "i3",
+      "title": "Session lengths in UTC",
+      "prompt": "Each event is `(user, local ISO timestamp with offset)`. For every user, take their earliest and latest event after converting to UTC, and print `user: H:MM` for the length of the span, where H is whole hours and MM is zero-padded minutes (use `total_seconds()`). Print the users in alphabetical order.\n\nUse the data in the starter.",
+      "starter": "from datetime import datetime, timezone\n\nevents = [\n    (\"bo\", \"2026-03-15T10:00:00+01:00\"),\n    (\"ana\", \"2026-03-15T09:00:00+00:00\"),\n    (\"bo\", \"2026-03-15T07:30:00-05:00\"),\n    (\"ana\", \"2026-03-15T11:45:00+02:00\"),\n    (\"ana\", \"2026-03-15T09:20:00+00:00\"),\n]\n# Span per user in UTC\n",
+      "solution": "from datetime import datetime, timezone\n\nevents = [\n    (\"bo\", \"2026-03-15T10:00:00+01:00\"),\n    (\"ana\", \"2026-03-15T09:00:00+00:00\"),\n    (\"bo\", \"2026-03-15T07:30:00-05:00\"),\n    (\"ana\", \"2026-03-15T11:45:00+02:00\"),\n    (\"ana\", \"2026-03-15T09:20:00+00:00\"),\n]\nmoments = {}\nfor user, text in events:\n    moments.setdefault(user, []).append(datetime.fromisoformat(text).astimezone(timezone.utc))\nfor user in sorted(moments):\n    seconds = (max(moments[user]) - min(moments[user])).total_seconds()\n    minutes = int(seconds // 60)\n    print(f\"{user}: {minutes // 60}:{minutes % 60:02d}\")\n",
+      "kind": "python",
+      "expected": "ana: 0:45\nbo: 3:30",
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [
+      "tzdata"
+    ],
+    "note": "Example 5 uses zoneinfo.ZoneInfo, which reads the operating system's time-zone database, so it is tagged python local and shown with its verified output. The browser runner may not have that database, so every graded exercise and the other examples use fixed offsets with datetime.timezone, which behave the same everywhere. On Windows, install the tzdata package (pip install tzdata) so ZoneInfo works."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nfrom datetime import date, timedelta\nprint(date(2026, 1, 31) + timedelta(days=30))\n```",
+      "options": [
+        "2026-02-28",
+        "2026-03-02",
+        "2026-03-01",
+        "2026-02-30"
+      ],
+      "answer": 1,
+      "explanation": "A `timedelta` adds exact days. 31 January plus 30 days passes the 28 days left in February (2026 is not a leap year) and lands on 2 March. There is no such thing as 30 February, and there is no 'one month' in `timedelta`."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\nfrom datetime import timedelta\nprint(timedelta(hours=36).days)\n```",
+      "options": [
+        "1",
+        "1.5",
+        "36",
+        "2"
+      ],
+      "answer": 0,
+      "explanation": "`.days` is only the whole-days part of the duration: 36 hours is 1 day and 12 hours. Use `total_seconds() / 3600` for 36.0 hours."
+    },
+    {
+      "id": "c3",
+      "question": "Which format string correctly parses `\"2026-03-15 14:30\"`?",
+      "options": [
+        "%Y-%m-%d %H:%M",
+        "%y-%M-%D %h:%m",
+        "%d-%m-%Y %H:%M",
+        "%Y/%m/%d %H:%M"
+      ],
+      "answer": 0,
+      "explanation": "Year first, then month, day, hour and minute, with the same hyphens, space and colon as the text. `%M` is minutes and `%m` is month, so swapping them (second option) is a classic mistake."
+    },
+    {
+      "id": "c4",
+      "question": "What happens here?\n\n```python\nfrom datetime import datetime, timezone\na = datetime(2026, 3, 15, 12, 0)\nb = datetime(2026, 3, 15, 12, 0, tzinfo=timezone.utc)\nprint(b - a)\n```",
+      "options": [
+        "0:00:00",
+        "TypeError, because one value is naive and the other aware",
+        "A timedelta of 12 hours",
+        "ValueError"
+      ],
+      "answer": 1,
+      "explanation": "Python refuses to compare or subtract a naive and an aware datetime because the naive one does not say which moment it means. The fix is to give both a time zone."
+    },
+    {
+      "id": "c5",
+      "question": "`utc.astimezone(timezone(timedelta(hours=2)))` returns a value that prints `14:00+02:00` when `utc` is `12:00+00:00`. How does it compare with `utc`?",
+      "options": [
+        "It is two hours later",
+        "It is the same moment",
+        "It is two hours earlier",
+        "They cannot be compared"
+      ],
+      "answer": 1,
+      "explanation": "Only the displayed clock changes. Both values name the same instant, so they compare equal and subtracting them gives a zero timedelta."
+    },
+    {
+      "id": "c6",
+      "question": "What does `datetime(2026, 3, 16).weekday()` return? (16 March 2026 is a Monday.)",
+      "options": [
+        "1",
+        "0",
+        "6",
+        "16"
+      ],
+      "answer": 1,
+      "explanation": "`weekday()` counts from Monday as 0. `isoweekday()` is the version that starts at 1."
+    }
+  ]
+}

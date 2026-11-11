@@ -1,0 +1,182 @@
+{
+  "id": "e149",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "dwh-partitioning",
+      "indexes",
+      "query-optimization"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "star-schema-warehouse"
+    ],
+    "mindmaps": [
+      "warehousing-track",
+      "indexing-optimization"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Rows per partition",
+      "kind": "sql",
+      "prompt": "Return the columns `part` (`tableoid::regclass::text`) and `rows` (row count) for each partition of `fact_sales_p`, ordered by `part`.",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE fact_sales_p (\n    sale_id integer NOT NULL, date_key integer NOT NULL, customer_key integer NOT NULL, product_key integer NOT NULL,\n    quantity integer NOT NULL, amount_cents integer NOT NULL,\n    PRIMARY KEY (sale_id, date_key)\n) PARTITION BY RANGE (date_key);\nCREATE TABLE fact_sales_2026_01 PARTITION OF fact_sales_p FOR VALUES FROM (20260101) TO (20260201);\nCREATE TABLE fact_sales_2026_02 PARTITION OF fact_sales_p FOR VALUES FROM (20260201) TO (20260301);\nINSERT INTO fact_sales_p SELECT * FROM fact_sales;\nSELECT 'x' AS part, 0 AS rows;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE fact_sales_p (\n    sale_id integer NOT NULL, date_key integer NOT NULL, customer_key integer NOT NULL, product_key integer NOT NULL,\n    quantity integer NOT NULL, amount_cents integer NOT NULL,\n    PRIMARY KEY (sale_id, date_key)\n) PARTITION BY RANGE (date_key);\nCREATE TABLE fact_sales_2026_01 PARTITION OF fact_sales_p FOR VALUES FROM (20260101) TO (20260201);\nCREATE TABLE fact_sales_2026_02 PARTITION OF fact_sales_p FOR VALUES FROM (20260201) TO (20260301);\nINSERT INTO fact_sales_p SELECT * FROM fact_sales;\nSELECT tableoid::regclass::text AS part, count(*) AS rows FROM fact_sales_p GROUP BY 1 ORDER BY 1;\n",
+      "ordered": true,
+      "hints": [
+        "`tableoid::regclass` names the partition a row is stored in.",
+        "Group by that expression.",
+        "`SELECT tableoid::regclass::text AS part, count(*) AS rows FROM fact_sales_p GROUP BY 1 ORDER BY 1`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "A pruned query",
+      "kind": "sql",
+      "prompt": "Return one row with the column `feb_cents`: the sum of `amount_cents` of `fact_sales_p` for `date_key >= 20260201 AND date_key < 20260301`.",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE fact_sales_p (\n    sale_id integer NOT NULL, date_key integer NOT NULL, customer_key integer NOT NULL, product_key integer NOT NULL,\n    quantity integer NOT NULL, amount_cents integer NOT NULL,\n    PRIMARY KEY (sale_id, date_key)\n) PARTITION BY RANGE (date_key);\nCREATE TABLE fact_sales_2026_01 PARTITION OF fact_sales_p FOR VALUES FROM (20260101) TO (20260201);\nCREATE TABLE fact_sales_2026_02 PARTITION OF fact_sales_p FOR VALUES FROM (20260201) TO (20260301);\nINSERT INTO fact_sales_p SELECT * FROM fact_sales;\nSELECT 0 AS feb_cents;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE fact_sales_p (\n    sale_id integer NOT NULL, date_key integer NOT NULL, customer_key integer NOT NULL, product_key integer NOT NULL,\n    quantity integer NOT NULL, amount_cents integer NOT NULL,\n    PRIMARY KEY (sale_id, date_key)\n) PARTITION BY RANGE (date_key);\nCREATE TABLE fact_sales_2026_01 PARTITION OF fact_sales_p FOR VALUES FROM (20260101) TO (20260201);\nCREATE TABLE fact_sales_2026_02 PARTITION OF fact_sales_p FOR VALUES FROM (20260201) TO (20260301);\nINSERT INTO fact_sales_p SELECT * FROM fact_sales;\nSELECT sum(amount_cents) AS feb_cents FROM fact_sales_p WHERE date_key >= 20260201 AND date_key < 20260301;\n",
+      "ordered": true,
+      "hints": [
+        "Filter on the partition key itself.",
+        "Use a half-open range: start inclusive, end exclusive.",
+        "`WHERE date_key >= 20260201 AND date_key < 20260301`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Route a row to its partition",
+      "kind": "python",
+      "prompt": "Write `partition_for(date_key)` returning `\"2026_01\"` for keys from 20260101 up to but excluding 20260201, `\"2026_02\"` for 20260201 up to but excluding 20260301, and raising `ValueError(\"no partition\")` otherwise. Print the result for `20260131`, `20260201`, and the error text for `20260301`. Expected output: `2026_01`, `2026_02`, `no partition`.",
+      "starter": "def partition_for(date_key):\n    return \"\"\n\nprint(partition_for(20260131))\nprint(partition_for(20260201))\ntry:\n    partition_for(20260301)\nexcept ValueError as err:\n    print(err)\n",
+      "solution": "def partition_for(date_key):\n    if 20260101 <= date_key < 20260201:\n        return \"2026_01\"\n    if 20260201 <= date_key < 20260301:\n        return \"2026_02\"\n    raise ValueError(\"no partition\")\n\nprint(partition_for(20260131))\nprint(partition_for(20260201))\ntry:\n    partition_for(20260301)\nexcept ValueError as err:\n    print(err)\n",
+      "expected": "2026_01\n2026_02\nno partition",
+      "hints": [
+        "Each partition covers a half-open range: start inclusive, end exclusive.",
+        "Use chained comparisons such as `a <= x < b`.",
+        "Raise the error after both ranges fail."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Retention",
+      "kind": "sql",
+      "prompt": "Detach the partition `fact_sales_2026_01` from `fact_sales_p` and return one row with the columns `kept` (rows left in the parent) and `archived` (rows in the detached table).",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE fact_sales_p (\n    sale_id integer NOT NULL, date_key integer NOT NULL, customer_key integer NOT NULL, product_key integer NOT NULL,\n    quantity integer NOT NULL, amount_cents integer NOT NULL,\n    PRIMARY KEY (sale_id, date_key)\n) PARTITION BY RANGE (date_key);\nCREATE TABLE fact_sales_2026_01 PARTITION OF fact_sales_p FOR VALUES FROM (20260101) TO (20260201);\nCREATE TABLE fact_sales_2026_02 PARTITION OF fact_sales_p FOR VALUES FROM (20260201) TO (20260301);\nINSERT INTO fact_sales_p SELECT * FROM fact_sales;\nSELECT 0 AS kept, 0 AS archived;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE fact_sales_p (\n    sale_id integer NOT NULL, date_key integer NOT NULL, customer_key integer NOT NULL, product_key integer NOT NULL,\n    quantity integer NOT NULL, amount_cents integer NOT NULL,\n    PRIMARY KEY (sale_id, date_key)\n) PARTITION BY RANGE (date_key);\nCREATE TABLE fact_sales_2026_01 PARTITION OF fact_sales_p FOR VALUES FROM (20260101) TO (20260201);\nCREATE TABLE fact_sales_2026_02 PARTITION OF fact_sales_p FOR VALUES FROM (20260201) TO (20260301);\nINSERT INTO fact_sales_p SELECT * FROM fact_sales;\nALTER TABLE fact_sales_p DETACH PARTITION fact_sales_2026_01;\nSELECT (SELECT count(*) FROM fact_sales_p) AS kept, (SELECT count(*) FROM fact_sales_2026_01) AS archived;\n",
+      "ordered": true,
+      "hints": [
+        "`ALTER TABLE ... DETACH PARTITION` takes the partition's name.",
+        "The detached partition remains as an ordinary table.",
+        "Count the rows of both tables in one query."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Add a March partition",
+      "kind": "sql",
+      "prompt": "Create a partition `fact_sales_2026_03` of `fact_sales_p` for `date_key` from 20260301 up to but excluding 20260401, insert the rows `(901, 20260305, 1, 1, 1, 750)` and `(902, 20260318, 2, 2, 2, 2000)` into the parent, and return `part` and `rows` for every partition, ordered by `part`.",
+      "starter": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE fact_sales_p (\n    sale_id integer NOT NULL, date_key integer NOT NULL, customer_key integer NOT NULL, product_key integer NOT NULL,\n    quantity integer NOT NULL, amount_cents integer NOT NULL,\n    PRIMARY KEY (sale_id, date_key)\n) PARTITION BY RANGE (date_key);\nCREATE TABLE fact_sales_2026_01 PARTITION OF fact_sales_p FOR VALUES FROM (20260101) TO (20260201);\nCREATE TABLE fact_sales_2026_02 PARTITION OF fact_sales_p FOR VALUES FROM (20260201) TO (20260301);\nINSERT INTO fact_sales_p SELECT * FROM fact_sales;\nSELECT 'x' AS part, 0 AS rows;\n",
+      "solution": "CREATE TABLE dim_date (date_key integer PRIMARY KEY, full_date date NOT NULL, year integer NOT NULL, month integer NOT NULL);\nCREATE TABLE dim_customer (customer_key integer PRIMARY KEY, customer_id text NOT NULL, customer_name text NOT NULL, country text NOT NULL,\n    valid_from date NOT NULL, valid_to date, is_current boolean NOT NULL);\nCREATE TABLE dim_product (product_key integer PRIMARY KEY, product_id text NOT NULL, product_name text NOT NULL, category text NOT NULL);\nCREATE TABLE fact_sales (sale_id integer PRIMARY KEY, date_key integer NOT NULL REFERENCES dim_date, customer_key integer NOT NULL REFERENCES dim_customer,\n    product_key integer NOT NULL REFERENCES dim_product, quantity integer NOT NULL, amount_cents integer NOT NULL);\nINSERT INTO dim_date SELECT to_char(d, 'YYYYMMDD')::int, d::date, extract(year FROM d)::int, extract(month FROM d)::int\nFROM generate_series(date '2026-01-01', date '2026-02-28', interval '1 day') AS d;\nINSERT INTO dim_customer SELECT i, 'C' || lpad(i::text, 3, '0'), 'Customer ' || lpad(i::text, 2, '0'),\n    (ARRAY['PT', 'ES', 'FR', 'DE'])[i % 4 + 1], date '2026-01-01', NULL, true FROM generate_series(1, 12) AS i;\nINSERT INTO dim_product SELECT i, 'P' || lpad(i::text, 3, '0'), 'Product ' || i,\n    (ARRAY['Stationery', 'Books', 'Tools', 'Toys'])[i % 4 + 1] FROM generate_series(1, 8) AS i;\nINSERT INTO fact_sales SELECT i, to_char(date '2026-01-01' + i * 3 % 59, 'YYYYMMDD')::int, i * 5 % 12 + 1, i * 3 % 8 + 1, i % 4 + 1,\n    (i % 4 + 1) * (500 + (i * 3 % 8 + 1) * 250) FROM generate_series(1, 60) AS i;\nCREATE TABLE fact_sales_p (\n    sale_id integer NOT NULL, date_key integer NOT NULL, customer_key integer NOT NULL, product_key integer NOT NULL,\n    quantity integer NOT NULL, amount_cents integer NOT NULL,\n    PRIMARY KEY (sale_id, date_key)\n) PARTITION BY RANGE (date_key);\nCREATE TABLE fact_sales_2026_01 PARTITION OF fact_sales_p FOR VALUES FROM (20260101) TO (20260201);\nCREATE TABLE fact_sales_2026_02 PARTITION OF fact_sales_p FOR VALUES FROM (20260201) TO (20260301);\nINSERT INTO fact_sales_p SELECT * FROM fact_sales;\nCREATE TABLE fact_sales_2026_03 PARTITION OF fact_sales_p FOR VALUES FROM (20260301) TO (20260401);\nINSERT INTO fact_sales_p VALUES (901, 20260305, 1, 1, 1, 750), (902, 20260318, 2, 2, 2, 2000);\nSELECT tableoid::regclass::text AS part, count(*) AS rows FROM fact_sales_p GROUP BY 1 ORDER BY 1;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Count the rows a quarter query touches",
+      "kind": "python",
+      "prompt": "`months` holds 24 months with 1,000 rows each as a dictionary `{month: rows}` where each row is its month number. Compute and print, for a query that needs months 7 to 9: the rows a full scan reads, the rows a pruned scan reads (only partitions 7 to 9), and the sum of the values the query returns (all rows of those months), then the ratio full to pruned as an integer. Expected: `24000 3000 24000` then `8`.",
+      "starter": "partitions = {m: [m] * 1000 for m in range(1, 25)}\nwanted = range(7, 10)\n# count and print\n",
+      "solution": "partitions = {m: [m] * 1000 for m in range(1, 25)}\nwanted = range(7, 10)\nfull = sum(len(rows) for rows in partitions.values())\npruned = sum(len(partitions[m]) for m in wanted)\ntotal = sum(sum(partitions[m]) for m in wanted)\nprint(full, pruned, total)\nprint(full // pruned)\n",
+      "expected": "24000 3000 24000\n8"
+    },
+    {
+      "id": "i3",
+      "title": "Design the physical layout",
+      "kind": "written",
+      "prompt": "The sales fact table gets 40 million rows a month. Dashboards ask for the current and previous month; customer service looks up all sales of one customer; the business keeps 5 years of history. Propose partitioning, indexes, retention and maintenance, and justify each choice.",
+      "starter": "Write your design here.",
+      "solution": "Partition by month on the date key (60 partitions for 5 years, a handful per year of work); create next month's partition before the month begins and keep a default partition to catch strays. Dashboards for the current and previous month filter on the key and prune to two partitions, so they need scans and no index. Customer service lookups are selective, so add an index on `(customer_key, date_key)`; created on the parent it exists in every partition. Add other indexes only for named queries, since each slows the nightly load. Retention: detach and archive the 61st month instead of deleting rows. Maintenance: ANALYZE after each large load so the planner has current statistics, VACUUM as needed for tables that receive updates, REINDEX if an index bloats; for an append-only fact table most partitions are never changed after their month ends.",
+      "rubric": [
+        "Partitions by month on the date key with creation ahead of time",
+        "Index for the selective customer lookup and none for scans",
+        "Retention by detach",
+        "Maintenance commands with a reason"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which filter lets PostgreSQL prune partitions of a table partitioned by `date_key`?",
+      "options": [
+        "`WHERE customer_key = 3`",
+        "`WHERE date_key >= 20260201 AND date_key < 20260301`",
+        "`WHERE amount_cents > 100`",
+        "`WHERE to_char(date_key, 'FM99999999') = '20260201'`"
+      ],
+      "answer": 1,
+      "explanation": "Pruning needs a filter that compares the partition key itself with constants. A filter on another column cannot prune, and a function of the key usually cannot either."
+    },
+    {
+      "id": "c2",
+      "question": "What are the bounds of `FOR VALUES FROM (20260201) TO (20260301)`?",
+      "options": [
+        "Both inclusive",
+        "Start inclusive, end exclusive",
+        "Start exclusive, end inclusive",
+        "Both exclusive"
+      ],
+      "answer": 1,
+      "explanation": "The partition holds 20260201 up to but not including 20260301, so monthly partitions chain without gaps or overlaps."
+    },
+    {
+      "id": "c3",
+      "question": "Why do analytical queries that read 40 percent of a table usually not use an index?",
+      "options": [
+        "Indexes cannot be used on facts",
+        "A sequential scan is cheaper than jumping to 40 percent of the rows through the index",
+        "The index is always corrupt",
+        "Partitioned tables cannot be indexed"
+      ],
+      "answer": 1,
+      "explanation": "Index lookups cost random access per row; once a large share of rows is needed, reading the table straight through is faster and the planner chooses it."
+    },
+    {
+      "id": "c4",
+      "question": "What is the advantage of `DETACH PARTITION` over `DELETE` for removing a month?",
+      "options": [
+        "It keeps the rows",
+        "It removes the month at once without writing a version for every row or leaving bloat",
+        "It updates the statistics",
+        "It is reversible only in SQLite"
+      ],
+      "answer": 1,
+      "explanation": "Detaching changes the table structure, not each row. A DELETE of millions of rows is slow and leaves dead rows to vacuum."
+    },
+    {
+      "id": "c5",
+      "question": "A table is partitioned by `date_key`. Which primary key is allowed?",
+      "options": [
+        "`PRIMARY KEY (sale_id)`",
+        "`PRIMARY KEY (sale_id, date_key)`",
+        "Any, constraints are ignored",
+        "`PRIMARY KEY (customer_key)`"
+      ],
+      "answer": 1,
+      "explanation": "Uniqueness is enforced inside each partition, so the key must contain the partition key columns."
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "id": "a148",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "conditional-aggregation",
+      "avg"
+    ],
+    "questions": [
+      196,
+      40
+    ],
+    "pyExercises": [
+      "group-and-aggregate",
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "conditional-aggregation"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Last-touch credit",
+      "kind": "python",
+      "prompt": "Journeys: `[(['ads','email'], 50.0), (['social','ads'], 30.0), (['email'], 20.0)]` (touch list and revenue). Give each sale entirely to the last touch. Print one line per channel in alphabetical order as `channel: revenue`, for example `ads: 10.0`.",
+      "starter": "journeys = [(['ads', 'email'], 50.0), (['social', 'ads'], 30.0), (['email'], 20.0)]\n",
+      "solution": "journeys = [(['ads', 'email'], 50.0), (['social', 'ads'], 30.0), (['email'], 20.0)]\ncredit = {}\nfor touches, revenue in journeys:\n    credit[touches[-1]] = credit.get(touches[-1], 0.0) + revenue\nfor channel in sorted(credit):\n    print(channel + ': ' + str(credit[channel]))\n",
+      "hints": [
+        "The last touch is touches[-1].",
+        "Add the revenue to a dictionary entry for that channel.",
+        "Loop over sorted(credit) and print channel and value."
+      ],
+      "expected": "ads: 30.0\nemail: 70.0"
+    },
+    {
+      "id": "g2",
+      "title": "ROAS and ROI",
+      "kind": "python",
+      "prompt": "A campaign spent 2000 and produced revenue of 7000 with a gross margin of 35 percent. Print `roas: 3.5` and `roi: 0.22` (ROI on gross profit, both rounded to 2 decimals).",
+      "starter": "spend, revenue, margin = 2000, 7000, 0.35\n",
+      "solution": "spend, revenue, margin = 2000, 7000, 0.35\nprint('roas:', round(revenue / spend, 2))\nprint('roi:', round((revenue * margin - spend) / spend, 2))\n",
+      "hints": [
+        "ROAS is revenue over spend.",
+        "Gross profit is revenue times margin.",
+        "ROI is (profit - spend) / spend."
+      ],
+      "expected": "roas: 3.5\nroi: 0.23"
+    },
+    {
+      "id": "g3",
+      "title": "Discounted lines in Northwind",
+      "kind": "sql",
+      "prompt": "Compare discounted and full-price order lines. Return `discounted` (true when `discount > 0`), `lines` (number of order lines) and `avg_quantity` (average quantity rounded to 2 decimals), ordered by `discounted`.",
+      "starter": "SELECT discount, COUNT(*) AS lines\nFROM order_details\nGROUP BY discount\nLIMIT 4;\n",
+      "solution": "SELECT discount > 0 AS discounted,\n       COUNT(*) AS lines,\n       ROUND(AVG(quantity)::numeric, 2) AS avg_quantity\nFROM order_details\nGROUP BY discount > 0\nORDER BY discounted;\n",
+      "ordered": true,
+      "hints": [
+        "discount > 0 is a boolean expression you can group by.",
+        "COUNT(*) and AVG(quantity) per group.",
+        "Cast AVG to numeric before ROUND."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Uplift",
+      "kind": "python",
+      "prompt": "Treatment: 400 conversions out of 8000. Control: 300 out of 8000. Print `treatment rate: 5.0%`, `control rate: 3.75%` (use the shortest form that `round(x, 2)` gives for the percentages) and `uplift: 1.25 points`.",
+      "starter": "t_conv, t_n = 400, 8000\nc_conv, c_n = 300, 8000\n",
+      "solution": "t_conv, t_n = 400, 8000\nc_conv, c_n = 300, 8000\npt, pc = t_conv / t_n * 100, c_conv / c_n * 100\nprint('treatment rate: ' + str(round(pt, 2)) + '%')\nprint('control rate: ' + str(round(pc, 2)) + '%')\nprint('uplift: ' + str(round(pt - pc, 2)) + ' points')\n",
+      "hints": [
+        "Each rate is conversions over group size, times 100.",
+        "Uplift is the treatment rate minus the control rate.",
+        "Format with str(round(x, 2)) and the labels shown."
+      ],
+      "expected": "treatment rate: 5.0%\ncontrol rate: 3.75%\nuplift: 1.25 points"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Incremental return with an interval",
+      "kind": "python",
+      "prompt": "A campaign cost 5000. Treatment: 12000 customers, 660 bought. Control: 12000 customers, 540 bought. Each purchase brings 80 of revenue at a gross margin of 40 percent. Print four lines: `uplift points: X` (2 decimals), `interval low: X` and `interval high: X` (95% interval in points, 2 decimals, using 1.96 and the standard error of a difference of rates), and `incremental roi: X` (2 decimals) where ROI is (incremental orders x 80 x 0.4 - cost) / cost and incremental orders are uplift times the treated count.",
+      "starter": "cost = 5000\nt_n, t_conv = 12000, 660\nc_n, c_conv = 12000, 540\n",
+      "solution": "cost = 5000\nt_n, t_conv = 12000, 660\nc_n, c_conv = 12000, 540\npt, pc = t_conv / t_n, c_conv / c_n\nuplift = pt - pc\nse = (pt * (1 - pt) / t_n + pc * (1 - pc) / c_n) ** 0.5\nprint('uplift points:', round(uplift * 100, 2))\nprint('interval low:', round((uplift - 1.96 * se) * 100, 2))\nprint('interval high:', round((uplift + 1.96 * se) * 100, 2))\nextra = uplift * t_n\nprint('incremental roi:', round((extra * 80 * 0.4 - cost) / cost, 2))\n",
+      "expected": "uplift points: 1.0\ninterval low: 0.45\ninterval high: 1.55\nincremental roi: -0.23"
+    },
+    {
+      "id": "i2",
+      "title": "Discount dependence by year",
+      "kind": "sql",
+      "prompt": "For each order year return `yr`, `discounted_revenue` (revenue of lines with `discount > 0`, rounded to 0 decimals), `total_revenue` (rounded to 0 decimals) and `discounted_pct` (discounted revenue as a percent of total, rounded to 1 decimal), ordered by `yr`. Revenue is `unit_price * quantity * (1 - discount)`.",
+      "starter": "SELECT EXTRACT(year FROM order_date)::int AS yr\nFROM orders\nGROUP BY 1\nLIMIT 3;\n",
+      "solution": "SELECT EXTRACT(year FROM o.order_date)::int AS yr,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount)) FILTER (WHERE od.discount > 0)::numeric, 0) AS discounted_revenue,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 0) AS total_revenue,\n       ROUND((100 * SUM(od.unit_price * od.quantity * (1 - od.discount)) FILTER (WHERE od.discount > 0) / SUM(od.unit_price * od.quantity * (1 - od.discount)))::numeric, 1) AS discounted_pct\nFROM orders o JOIN order_details od ON od.order_id = o.order_id\nGROUP BY 1\nORDER BY 1;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Recommendation on a retargeting channel",
+      "kind": "written",
+      "required": false,
+      "prompt": "Retargeting adverts show a last-touch ROAS of 9, the highest of all channels, and the marketing lead wants to double its budget. Write 4 to 6 sentences: why the figure may overstate the benefit, what experiment you would run and what you would need to see in the result before agreeing.",
+      "starter": "Write your answer here.",
+      "solution": "A last-touch ROAS of 9 credits the advert with every purchase made by people who saw it last, but retargeting targets people who have already visited the shop and many of them were about to buy anyway, so the incremental return can be much lower than 9. I would run a randomised holdout: a share of the retargeting audience is not shown the advert, and the conversion rate and revenue per customer are compared with the shown group for a period long enough to collect several hundred conversions per group. I would agree to more budget only if the uplift is clearly positive with an interval that excludes zero and the incremental ROI on gross margin, using the experiment's uplift and the real cost, is above the return of the alternative uses of the money. If the interval is wide I would state that the test did not give enough evidence and extend it rather than concluding that the channel does not work.",
+      "rubric": [
+        "Explains that last-touch credit includes sales that would have happened anyway",
+        "Proposes a randomised holdout and what is compared",
+        "States a decision rule using the uplift interval and incremental ROI",
+        "Acknowledges uncertainty and a wide interval as insufficient evidence"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which attribution rule gives all the credit to the channel that created the first contact?",
+      "options": [
+        "First-touch",
+        "Last-touch",
+        "Linear",
+        "ROAS"
+      ],
+      "answer": 0,
+      "explanation": "First-touch credits the first channel in the journey. Last-touch credits the final one and linear splits equally. ROAS is a return measure, not an attribution rule."
+    },
+    {
+      "id": "c2",
+      "question": "A channel has a ROAS of 2 and the gross margin is 40%. What is its ROI on gross profit?",
+      "options": [
+        "-0.2",
+        "1.0",
+        "0.2",
+        "2.0"
+      ],
+      "answer": 0,
+      "explanation": "Gross profit is 2 x 0.4 = 0.8 per unit spent, so ROI = (0.8 - 1) / 1 = -0.2. The channel loses money even though ROAS looks healthy; break-even ROAS is 1 / 0.4 = 2.5."
+    },
+    {
+      "id": "c3",
+      "question": "Why does a randomly assigned control group matter for measuring uplift?",
+      "options": [
+        "It makes the two groups alike on average before the campaign, so the difference is due to the campaign",
+        "It increases the number of sales",
+        "It removes the need for a conversion rate",
+        "It guarantees a positive uplift"
+      ],
+      "answer": 0,
+      "explanation": "Random assignment balances customer types between groups. Comparing clickers with non-clickers does not, because clickers differ before the campaign."
+    },
+    {
+      "id": "c4",
+      "question": "The uplift is 0.6 points with a 95% interval of -0.2 to 1.4 points. What is the honest conclusion?",
+      "options": [
+        "The test cannot rule out zero effect, so the evidence is not enough",
+        "The campaign has no effect",
+        "The campaign works",
+        "The interval is wrong"
+      ],
+      "answer": 0,
+      "explanation": "The interval includes zero, so the data is compatible with no effect and with a useful effect. It is not proof of no effect, and not proof of an effect."
+    },
+    {
+      "id": "c5",
+      "question": "Treatment converts 5.0% and control 4.0%, with 10,000 customers treated. How many incremental conversions did the campaign cause?",
+      "options": [
+        "About 100",
+        "About 500",
+        "About 400",
+        "About 900"
+      ],
+      "answer": 0,
+      "explanation": "Incremental conversions are the uplift (1 point) times the 10,000 treated customers: 100. The other 400 of the 500 treated buyers would have bought anyway."
+    }
+  ]
+}

@@ -1,0 +1,192 @@
+{
+  "id": "a094",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "left-join",
+      "inner-join",
+      "join-cardinality",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "merge-customers-precedence"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "joins"
+    ],
+    "patterns": [
+      "unmatched-records"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Exact lookup as a left merge",
+      "kind": "python",
+      "prompt": "Replicate `=VLOOKUP(B2, PriceList, 2, FALSE)` for the orders: attach `Price` from `prices` with a left merge on `Code`, then print the `Price` column as a list. A code that is not in the price list must give `nan`.",
+      "starter": "import pandas as pd\n\nprices = pd.DataFrame({\"Code\": [\"A1\", \"B2\", \"C3\"], \"Price\": [4.0, 9.5, 12.0]})\norders = pd.DataFrame({\"Order\": [1, 2, 3, 4], \"Code\": [\"B2\", \"A1\", \"Z9\", \"C3\"], \"Qty\": [2, 5, 1, 3]})\n\n# merge, print the Price column as a list\n",
+      "solution": "import pandas as pd\n\nprices = pd.DataFrame({\"Code\": [\"A1\", \"B2\", \"C3\"], \"Price\": [4.0, 9.5, 12.0]})\norders = pd.DataFrame({\"Order\": [1, 2, 3, 4], \"Code\": [\"B2\", \"A1\", \"Z9\", \"C3\"], \"Qty\": [2, 5, 1, 3]})\n\nout = orders.merge(prices, on=\"Code\", how=\"left\")\nprint(out[\"Price\"].tolist())\n",
+      "hints": [
+        "A lookup keeps every order, so the join must be a left join.",
+        "orders.merge(prices, on=\"Code\", how=\"left\") adds the Price column.",
+        "Print out[\"Price\"].tolist(); the missing code shows as nan."
+      ],
+      "expected": "[9.5, 4.0, nan, 12.0]"
+    },
+    {
+      "id": "g2",
+      "title": "XLOOKUP with a not-found message",
+      "kind": "python",
+      "prompt": "Replicate `=XLOOKUP(B2, Prices[Code], Prices[Price], 0)`: use `map` with a Series indexed by code, replace a missing price by 0, add `Amount = Qty * Price` and print the `Amount` column as a list.",
+      "starter": "import pandas as pd\n\nprices = pd.DataFrame({\"Code\": [\"A1\", \"B2\", \"C3\"], \"Price\": [4.0, 9.5, 12.0]})\norders = pd.DataFrame({\"Order\": [1, 2, 3, 4], \"Code\": [\"B2\", \"A1\", \"Z9\", \"C3\"], \"Qty\": [2, 5, 1, 3]})\n\n# map the price (0 if missing), compute Amount, print the list\n",
+      "solution": "import pandas as pd\n\nprices = pd.DataFrame({\"Code\": [\"A1\", \"B2\", \"C3\"], \"Price\": [4.0, 9.5, 12.0]})\norders = pd.DataFrame({\"Order\": [1, 2, 3, 4], \"Code\": [\"B2\", \"A1\", \"Z9\", \"C3\"], \"Qty\": [2, 5, 1, 3]})\n\nprice = orders[\"Code\"].map(prices.set_index(\"Code\")[\"Price\"]).fillna(0)\namount = orders[\"Qty\"] * price\nprint(amount.tolist())\n",
+      "hints": [
+        "Series.map with another Series looks each key up in that Series' index.",
+        "Set the index first: prices.set_index(\"Code\")[\"Price\"].",
+        "Add .fillna(0) after map and multiply by Qty."
+      ],
+      "expected": "[19.0, 20.0, 0.0, 36.0]"
+    },
+    {
+      "id": "g3",
+      "title": "Approximate match with merge_asof",
+      "kind": "python",
+      "prompt": "Replicate `=VLOOKUP(Score, GradeTable, 2, TRUE)`. The grade table starts at 0 (F), 50 (D), 70 (C), 85 (B) and 95 (A). Look up the scores 49, 50, 84, 85 and 100 and print the grades as one line separated by spaces. Both inputs must be sorted by the key.",
+      "starter": "import pandas as pd\n\ngrades = pd.DataFrame({\"From\": [0, 50, 70, 85, 95], \"Grade\": [\"F\", \"D\", \"C\", \"B\", \"A\"]})\nscores = pd.DataFrame({\"Score\": [49, 50, 84, 85, 100]})\n# merge_asof, print the grades separated by spaces\n",
+      "solution": "import pandas as pd\n\ngrades = pd.DataFrame({\"From\": [0, 50, 70, 85, 95], \"Grade\": [\"F\", \"D\", \"C\", \"B\", \"A\"]})\nscores = pd.DataFrame({\"Score\": [49, 50, 84, 85, 100]})\nout = pd.merge_asof(scores, grades, left_on=\"Score\", right_on=\"From\")\nprint(*out[\"Grade\"])\n",
+      "hints": [
+        "An approximate match finds the largest key that is less than or equal to the value.",
+        "pd.merge_asof does this; give left_on and right_on.",
+        "pd.merge_asof(scores, grades, left_on=\"Score\", right_on=\"From\") and print(*out[\"Grade\"])."
+      ],
+      "expected": "F D C B A"
+    },
+    {
+      "id": "g4",
+      "title": "Choose and write the lookup (written)",
+      "kind": "written",
+      "prompt": "A Table `Customers` has columns `Region`, `Name` and `CustomerID` in that order. A Table `Orders` has a `CustomerID` column. Write the formula for an `Orders` column `Name` using (a) XLOOKUP with the text `unknown` when not found, (b) INDEX and MATCH, (c) explain in two sentences why VLOOKUP cannot do this job.",
+      "starter": "(a) ...\n(b) ...\n(c) ...",
+      "solution": "(a) `=XLOOKUP([@CustomerID], Customers[CustomerID], Customers[Name], \"unknown\")`.\n\n(b) `=IFNA(INDEX(Customers[Name], MATCH([@CustomerID], Customers[CustomerID], 0)), \"unknown\")`. MATCH with 0 finds the exact position of the ID and INDEX returns the name at that position.\n\n(c) `VLOOKUP` searches only the first column of its table and returns columns to the right of it. Here `CustomerID` is the last column and `Name` is to its left, so `VLOOKUP` cannot return the name without rearranging the table.",
+      "hints": [
+        "XLOOKUP takes the search column and the return column as separate arguments.",
+        "MATCH returns a position; INDEX uses it to pick the name.",
+        "VLOOKUP needs the key in the first column of the table."
+      ],
+      "rubric": [
+        "(a) XLOOKUP has the ID, the ID column, the Name column and the not-found text.",
+        "(b) MATCH uses 0 for an exact match and INDEX points at the Name column.",
+        "(c) States that VLOOKUP needs the key in the leftmost column.",
+        "Uses structured references or valid ranges."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Excel-style lookup with messy keys",
+      "kind": "python",
+      "prompt": "Replicate a case-insensitive lookup that returns the first match and `TRIM`s the key. Orders have codes with random case and spaces; the price list has a duplicate (`a1` twice). Clean the order keys (strip and lower), build the lookup from the price list keeping the first duplicate (keys lowered), and print the order table with columns `Code` (original), `Price` using `to_string(index=False)`. Missing keys print as `NaN`.",
+      "starter": "import pandas as pd\n\nprices = pd.DataFrame({\"Code\": [\"A1\", \"a1\", \"B2\", \"C3\"], \"Price\": [4.0, 4.5, 9.5, 12.0]})\norders = pd.DataFrame({\"Code\": [\"a1\", \" B2 \", \"c3\", \"d4\"]})\n# first-match, case-insensitive lookup on trimmed keys\n",
+      "solution": "import pandas as pd\n\nprices = pd.DataFrame({\"Code\": [\"A1\", \"a1\", \"B2\", \"C3\"], \"Price\": [4.0, 4.5, 9.5, 12.0]})\norders = pd.DataFrame({\"Code\": [\"a1\", \" B2 \", \"c3\", \"d4\"]})\nlookup = prices.assign(key=prices[\"Code\"].str.lower()).drop_duplicates(\"key\").set_index(\"key\")[\"Price\"]\norders[\"Price\"] = orders[\"Code\"].str.strip().str.lower().map(lookup)\nprint(orders.to_string(index=False))\n",
+      "expected": "Code  Price\n  a1    4.0\n B2     9.5\n  c3   12.0\n  d4    NaN"
+    },
+    {
+      "id": "i2",
+      "title": "Band lookup then totals",
+      "kind": "python",
+      "prompt": "Sales reps have amounts below. Commission bands start at 0 (0%), 1000 (2%), 5000 (5%). Replicate `=VLOOKUP(Amount, Bands, 2, TRUE)`, compute `Commission = Amount * Rate`, and print the total commission per `Rep` as a Series with `to_string()`, rounded to 2 decimals (sorted by rep).",
+      "starter": "import pandas as pd\n\nbands = pd.DataFrame({\"From\": [0, 1000, 5000], \"Rate\": [0.0, 0.02, 0.05]})\nsales = pd.DataFrame({\"Rep\": [\"Ana\", \"Ben\", \"Ana\", \"Ben\", \"Cy\"], \"Amount\": [800, 1000, 5200, 4999, 12000]})\n# attach Rate (sort by Amount first), compute Commission, total per Rep\n",
+      "solution": "import pandas as pd\n\nbands = pd.DataFrame({\"From\": [0, 1000, 5000], \"Rate\": [0.0, 0.02, 0.05]})\nsales = pd.DataFrame({\"Rep\": [\"Ana\", \"Ben\", \"Ana\", \"Ben\", \"Cy\"], \"Amount\": [800, 1000, 5200, 4999, 12000]})\nout = pd.merge_asof(sales.sort_values(\"Amount\"), bands, left_on=\"Amount\", right_on=\"From\")\nout[\"Commission\"] = out[\"Amount\"] * out[\"Rate\"]\nprint(out.groupby(\"Rep\")[\"Commission\"].sum().round(2).to_string())\n",
+      "expected": "Rep\nAna    260.00\nBen    119.98\nCy     600.00"
+    },
+    {
+      "id": "i3",
+      "title": "Latest status with search from the end (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A Table `Log` has `TicketID`, `Date` (sorted oldest first) and `Status`, with several rows per ticket. Write a formula that returns the latest status of the ticket in A2, with `none` if absent, and a second formula that returns the date of the first row for the ticket. Explain why `VLOOKUP` returns the wrong row for the first job.",
+      "starter": "Formulas and explanation: ...",
+      "solution": "Latest status: `=XLOOKUP(A2, Log[TicketID], Log[Status], \"none\", 0, -1)`. The search mode -1 starts at the bottom, so with dates sorted oldest first the first hit found is the latest row. First date: `=XLOOKUP(A2, Log[TicketID], Log[Date], \"none\")` (the default searches from the top), or `=INDEX(Log[Date], MATCH(A2, Log[TicketID], 0))`. `VLOOKUP` always searches from the top and returns the first match, so it returns the oldest status, not the latest. For older Excel versions the last match can be found with an array formula, but the clean solution is to keep only the latest row per ticket before the lookup.",
+      "rubric": [
+        "The first formula uses XLOOKUP with match mode 0 and search mode -1.",
+        "The second formula returns the first match with the default direction or INDEX/MATCH.",
+        "Explains that VLOOKUP returns only the first match from the top."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "XLOOKUP and structured references need Excel 2021 or Microsoft 365; VLOOKUP and INDEX/MATCH work in every version, and LibreOffice Calc 24.8 or later also has XLOOKUP. The graded exercises replicate the lookups with pandas merge, map and merge_asof, which run in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `=VLOOKUP(A2, Prices, 2)` do when the fourth argument is omitted?",
+      "options": [
+        "Exact match",
+        "Approximate match on the sorted first column",
+        "Returns #N/A always",
+        "Returns the last match"
+      ],
+      "answer": 1,
+      "explanation": "Omitting the fourth argument means TRUE, an approximate match, which assumes the first column is sorted ascending and can return a wrong row without an error. Write FALSE for an exact match."
+    },
+    {
+      "id": "c2",
+      "question": "Prices has P2 twice (25, then 26). What does an exact lookup of P2 return in Excel and what does a left pandas merge do?",
+      "options": [
+        "Excel 26, pandas 26",
+        "Excel 25, pandas two rows (25 and 26)",
+        "Excel #N/A, pandas two rows",
+        "Both return 25 in one row"
+      ],
+      "answer": 1,
+      "explanation": "Excel's lookup stops at the first match, 25. A merge returns one row for every match, so the order is duplicated. This is why row counts are checked after a merge."
+    },
+    {
+      "id": "c3",
+      "question": "`=MATCH(\"Grace\", B2:B4, 0)` where B2:B4 holds Ada, Grace, Alan returns:",
+      "options": [
+        "1",
+        "2",
+        "3",
+        "#N/A"
+      ],
+      "answer": 1,
+      "explanation": "MATCH returns the position counted from 1, so Grace is second. Python's list.index would give 1 for the same item because it counts from 0."
+    },
+    {
+      "id": "c4",
+      "question": "A band table starts at 0, 1000, 5000. A VLOOKUP with TRUE looks up 1000. Which row applies?",
+      "options": [
+        "The 0 row",
+        "The 1000 row",
+        "The 5000 row",
+        "#N/A"
+      ],
+      "answer": 1,
+      "explanation": "An approximate match returns the largest key that is less than or equal to the value, and 1000 is equal to the key 1000. It would be #N/A only for a value below the first key."
+    },
+    {
+      "id": "c5",
+      "question": "The key in the order table is the text \"101\" and the price table holds the number 101. What does an Excel exact lookup return?",
+      "options": [
+        "The price",
+        "#N/A",
+        "#VALUE!",
+        "0"
+      ],
+      "answer": 1,
+      "explanation": "Text and numbers are different types and do not match, even though they look the same. The result is #N/A, which looks like a missing key; convert one side with VALUE or Text to Columns."
+    }
+  ]
+}

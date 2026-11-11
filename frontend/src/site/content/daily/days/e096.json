@@ -1,0 +1,188 @@
+{
+  "id": "e096",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-csv-json",
+      "etl-extraction"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Read a range from text",
+      "kind": "python",
+      "prompt": "The text below mimics a sheet with a title line above the table, a `note` column you do not need and a `Total` row at the end. Read it with `pd.read_csv` on `io.StringIO(text)` using `skiprows`, `nrows` and `usecols` so that only the columns `region`, `code`, `units` and `price` of the three data rows are kept. Print the shape as a tuple, then the list of column names. Expected output: `(3, 4)` then `['region', 'code', 'units', 'price']`.",
+      "starter": "import io\nimport pandas as pd\n\ntext = 'Q1 sales export\\nregion,code,units,price,note\\nNorth,00417,3,9.5,ok\\nSouth,00418,4,20.0,late\\nEast,00417,1,9.5,\\nTotal,,8,,\\n'\n\ndf = None  # read the three data rows and four columns\nprint(df.shape)\nprint(list(df.columns))\n",
+      "solution": "import io\nimport pandas as pd\n\ntext = 'Q1 sales export\\nregion,code,units,price,note\\nNorth,00417,3,9.5,ok\\nSouth,00418,4,20.0,late\\nEast,00417,1,9.5,\\nTotal,,8,,\\n'\n\ndf = pd.read_csv(io.StringIO(text), skiprows=1, nrows=3, usecols=[\"region\", \"code\", \"units\", \"price\"])\nprint(df.shape)\nprint(list(df.columns))\n",
+      "expected": "(3, 4)\n['region', 'code', 'units', 'price']",
+      "hints": [
+        "`skiprows=1` skips the title line so that the next line becomes the header.",
+        "`nrows=3` stops after three data rows, which leaves out the `Total` row.",
+        "`usecols=[\"region\", \"code\", \"units\", \"price\"]` keeps only those four columns."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Keep leading zeros",
+      "kind": "python",
+      "prompt": "Read the same text again, this time keeping every column that is needed but making `code` a string column with `dtype`. Print the `code` column as a list. Expected output: `['00417', '00418', '00417']`.",
+      "starter": "import io\nimport pandas as pd\n\ntext = 'Q1 sales export\\nregion,code,units,price,note\\nNorth,00417,3,9.5,ok\\nSouth,00418,4,20.0,late\\nEast,00417,1,9.5,\\nTotal,,8,,\\n'\n\ndf = pd.read_csv(io.StringIO(text), skiprows=1, nrows=3)\nprint(df[\"code\"].tolist())\n",
+      "solution": "import io\nimport pandas as pd\n\ntext = 'Q1 sales export\\nregion,code,units,price,note\\nNorth,00417,3,9.5,ok\\nSouth,00418,4,20.0,late\\nEast,00417,1,9.5,\\nTotal,,8,,\\n'\n\ndf = pd.read_csv(io.StringIO(text), skiprows=1, nrows=3, dtype={\"code\": str})\nprint(df[\"code\"].tolist())\n",
+      "expected": "['00417', '00418', '00417']",
+      "hints": [
+        "Without `dtype` pandas converts a column of digit-only strings into integers.",
+        "`dtype` takes a dictionary from column name to type.",
+        "Add `dtype={\"code\": str}` to the `read_csv` call."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Excel serial dates",
+      "kind": "python",
+      "prompt": "A sheet stored dates as the serial numbers `[46023, 46024, 46030]`. Convert them with `pd.to_datetime` using `unit=\"D\"` and the Excel origin, and print the dates as `YYYY-MM-DD` strings, one list. Expected output: `['2026-01-01', '2026-01-02', '2026-01-08']`.",
+      "starter": "import pandas as pd\n\nserials = pd.Series([46023, 46024, 46030])\ndates = serials\nprint(dates.dt.strftime(\"%Y-%m-%d\").tolist())\n",
+      "solution": "import pandas as pd\n\nserials = pd.Series([46023, 46024, 46030])\ndates = pd.to_datetime(serials, unit=\"D\", origin=\"1899-12-30\")\nprint(dates.dt.strftime(\"%Y-%m-%d\").tolist())\n",
+      "expected": "['2026-01-01', '2026-01-02', '2026-01-08']",
+      "hints": [
+        "Excel counts days from a fixed origin date, and `to_datetime` can start from any origin.",
+        "The origin that matches Excel for modern dates is `1899-12-30`.",
+        "`pd.to_datetime(serials, unit=\"D\", origin=\"1899-12-30\")`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "A schema check",
+      "kind": "python",
+      "prompt": "Write `check_columns(df, expected)` that raises `ValueError` with the message `missing: ` followed by the missing column names in alphabetical order separated by `, ` when any column of the list `expected` is absent. Call it on a DataFrame with columns `a` and `b` for the expected list `['a', 'b']` (prints `ok`) and for `['a', 'c', 'b', 'd']` (print the error message). Expected output: `ok` then `missing: c, d`.",
+      "starter": "import pandas as pd\n\ndef check_columns(df, expected):\n    pass\n\ndf = pd.DataFrame({\"a\": [1], \"b\": [2]})\ncheck_columns(df, [\"a\", \"b\"])\nprint(\"ok\")\ntry:\n    check_columns(df, [\"a\", \"c\", \"b\", \"d\"])\nexcept ValueError as err:\n    print(err)\n",
+      "solution": "import pandas as pd\n\ndef check_columns(df, expected):\n    missing = sorted(c for c in expected if c not in df.columns)\n    if missing:\n        raise ValueError(\"missing: \" + \", \".join(missing))\n\ndf = pd.DataFrame({\"a\": [1], \"b\": [2]})\ncheck_columns(df, [\"a\", \"b\"])\nprint(\"ok\")\ntry:\n    check_columns(df, [\"a\", \"c\", \"b\", \"d\"])\nexcept ValueError as err:\n    print(err)\n",
+      "expected": "ok\nmissing: c, d",
+      "hints": [
+        "Build the list of missing names with a comprehension over `expected`.",
+        "Sort it, and only raise when it is not empty.",
+        "`raise ValueError(\"missing: \" + \", \".join(missing))`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Repair a sheet export",
+      "kind": "python",
+      "prompt": "The text is a sheet export: a title line, then the table (`day` as Excel serial numbers, `amount` as text with thousands separators, spaces or `n/a`), then a `Grand total` line. Read only the five data rows (`skiprows`, `nrows`), convert `day` to dates (origin `1899-12-30`, unit days), convert `amount` to numbers (remove commas and spaces; `n/a` becomes missing), and print for each date its total amount over rows that have an amount, one line per date as `YYYY-MM-DD 1500.5`, ordered by date. Format amounts with `:.1f`. Expected output: `2026-01-01 1500.5`, `2026-01-02 99.0`, `2026-01-03 2000.0`.",
+      "starter": "import io\nimport pandas as pd\n\ntext = 'Sales workbook export\\nday,amount,channel\\n46023,\"1,200.50\",web\\n46023,300,store\\n46024,\" 99 \",web\\n46025,n/a,web\\n46025,\"2,000\",store\\nGrand total,,\\n'\n\n# read, repair, aggregate, print\n",
+      "solution": "import io\nimport pandas as pd\n\ntext = 'Sales workbook export\\nday,amount,channel\\n46023,\"1,200.50\",web\\n46023,300,store\\n46024,\" 99 \",web\\n46025,n/a,web\\n46025,\"2,000\",store\\nGrand total,,\\n'\n\ndf = pd.read_csv(io.StringIO(text), skiprows=1, nrows=5, dtype={\"amount\": str})\ndf[\"day\"] = pd.to_datetime(df[\"day\"], unit=\"D\", origin=\"1899-12-30\")\ndf[\"amount\"] = pd.to_numeric(df[\"amount\"].str.replace(\",\", \"\").str.strip(), errors=\"coerce\")\ntotals = df.groupby(\"day\")[\"amount\"].sum()\nfor day, total in totals.items():\n    print(day.strftime(\"%Y-%m-%d\"), f\"{total:.1f}\")\n",
+      "expected": "2026-01-01 1500.5\n2026-01-02 99.0\n2026-01-03 2000.0"
+    },
+    {
+      "id": "i2",
+      "title": "Several sheets, one table",
+      "kind": "python",
+      "prompt": "A workbook read with `sheet_name=None` gives a dictionary from sheet name to DataFrame. The dictionary `book` below imitates that for three regional sheets. Combine them into one DataFrame with a new column `region` that holds the sheet name (use `pd.concat` with `keys` or assign before concatenating), keep sheets in the dictionary order, and print, for each region, its total units, as `North 7`. Then print the combined row count. Expected output: `North 7`, `South 12`, `East 3`, then `rows 6`.",
+      "starter": "import pandas as pd\n\nbook = {\n    \"North\": pd.DataFrame({\"sku\": [\"a\", \"b\"], \"units\": [3, 4]}),\n    \"South\": pd.DataFrame({\"sku\": [\"a\", \"c\", \"d\"], \"units\": [5, 2, 5]}),\n    \"East\": pd.DataFrame({\"sku\": [\"b\"], \"units\": [3]}),\n}\n# combine, then print\n",
+      "solution": "import pandas as pd\n\nbook = {\n    \"North\": pd.DataFrame({\"sku\": [\"a\", \"b\"], \"units\": [3, 4]}),\n    \"South\": pd.DataFrame({\"sku\": [\"a\", \"c\", \"d\"], \"units\": [5, 2, 5]}),\n    \"East\": pd.DataFrame({\"sku\": [\"b\"], \"units\": [3]}),\n}\nparts = [frame.assign(region=name) for name, frame in book.items()]\nall_rows = pd.concat(parts, ignore_index=True)\nfor region in book:\n    print(region, int(all_rows.loc[all_rows[\"region\"] == region, \"units\"].sum()))\nprint(\"rows\", len(all_rows))\n",
+      "expected": "North 7\nSouth 12\nEast 3\nrows 6"
+    },
+    {
+      "id": "i3",
+      "title": "Read a real workbook locally",
+      "kind": "written",
+      "prompt": "On your own computer, create a workbook with two sheets (`Orders` and `Lookup`) using Excel or `openpyxl`, then write the code that lists the sheet names, reads `Orders` with an explicit `dtype` for the identifier column and a three-column `usecols`, and checks the columns. Explain what you would see if you read the sheet without `dtype` and the identifier had leading zeros.",
+      "starter": "Write your code and your explanation here.",
+      "solution": "```python\nimport pandas as pd\n\nwith pd.ExcelFile(\"orders.xlsx\") as xl:\n    print(xl.sheet_names)\ndf = pd.read_excel(\"orders.xlsx\", sheet_name=\"Orders\", usecols=\"A:C\", dtype={\"sku\": str})\nassert list(df.columns) == [\"order_id\", \"sku\", \"qty\"]\n```\n\nWithout `dtype`, pandas converts a column of digit-only values into integers, so `00417` becomes `417`. Nothing raises an error; the problem appears later as a join that finds no match with the warehouse key. Reading by sheet name and `usecols` also protects against a new first sheet or an extra column.",
+      "rubric": [
+        "Code lists sheet names and reads one named sheet",
+        "Identifier column forced to text with dtype",
+        "Columns are checked after the read",
+        "Explains the silent loss of leading zeros"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `load_workbook(path, data_only=True)` return for a formula cell in a file that a program wrote with `openpyxl` and that Excel has never opened?",
+      "options": [
+        "The formula text, such as `=A2*B2`",
+        "`None`, because no cached value was stored",
+        "The calculated number, because openpyxl evaluates formulas",
+        "An error value `#VALUE!`"
+      ],
+      "answer": 1,
+      "explanation": "A formula cell stores the formula and a cached result. Excel writes the cache when it saves; openpyxl does not calculate formulas, so no cached value exists and `data_only=True` gives `None`. Without `data_only` you would get the formula text, which is not what was asked."
+    },
+    {
+      "id": "c2",
+      "question": "A product code column holds `00417`, `00418` as numbers formatted with leading zeros. What does `pd.read_excel(path)` do with them by default?",
+      "options": [
+        "Keeps `00417` as text",
+        "Returns the integers 417 and 418",
+        "Raises a `ValueError` because of the zeros",
+        "Returns floats `417.0` and `418.0`"
+      ],
+      "answer": 1,
+      "explanation": "pandas infers a numeric column and integers have no leading zeros. Reading the column with `dtype={'code': str}` keeps the text form where the cell holds text. It does not raise an error, which is why the loss is silent."
+    },
+    {
+      "id": "c3",
+      "question": "What does this print?\n\n`pd.to_datetime(pd.Series([46023]), unit=\"D\", origin=\"1899-12-30\").dt.strftime(\"%Y-%m-%d\").iloc[0]`",
+      "options": [
+        "`1899-12-30`",
+        "`2026-01-01`",
+        "`1970-01-01`",
+        "`2026-01-02`"
+      ],
+      "answer": 1,
+      "explanation": "The serial number counts days from 1899-12-30, and 46023 days later is 1 January 2026. `1970-01-01` is the default origin of `to_datetime`, which is the wrong origin for Excel serials."
+    },
+    {
+      "id": "c4",
+      "question": "Which options read only the data rows of a sheet whose first line is a title, ignoring a final `Total` row, when the header is on line 2?",
+      "options": [
+        "`header=0`",
+        "`skiprows=1, nrows=N` where N is the number of data rows",
+        "`usecols=1`",
+        "`dtype=str`"
+      ],
+      "answer": 1,
+      "explanation": "`skiprows=1` makes line 2 the header and `nrows` stops before the footer. `header=0` would take the title as header, `usecols` selects columns not rows and `dtype` only sets types."
+    },
+    {
+      "id": "c5",
+      "question": "Why does an integer column with one empty cell come back as `float64`?",
+      "options": [
+        "Excel stores it as text",
+        "`NaN` is a float, so pandas needs a float column to hold the missing value",
+        "pandas always converts integers to floats",
+        "openpyxl rounds integers"
+      ],
+      "answer": 1,
+      "explanation": "The classic NumPy integer dtype cannot hold `NaN`. A column with a missing value becomes float unless you convert it to the nullable `Int64` type after cleaning."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "openpyxl",
+      "pandas"
+    ],
+    "note": "Examples 1 and 2 use openpyxl, which the browser cannot import: run them locally after `pip install openpyxl pandas`. They write their workbook into a temporary folder and delete it. Every graded exercise uses the same read options (`skiprows`, `nrows`, `usecols`, `dtype`) on CSV text or on DataFrames, which run in the browser. On your own computer `pd.read_excel` takes the same options plus `sheet_name`."
+  }
+}

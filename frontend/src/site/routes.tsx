@@ -12,6 +12,11 @@ import { GuidePage } from "./pages/GuidePage";
 import { FlashcardsPage } from "./pages/FlashcardsPage";
 import { CheatsheetPage } from "./pages/CheatsheetPage";
 import { PerformancePage } from "./pages/PerformancePage";
+import { MistakeNotebookPage } from "./pages/MistakeNotebookPage";
+import { EtlBuilderPage } from "./pages/EtlBuilderPage";
+import { DagSimulatorPage } from "./pages/DagSimulatorPage";
+import { SchemaDesignerPage } from "./pages/SchemaDesignerPage";
+import { DeScenariosPage, DqExercisesPage } from "./pages/GuidedLabPages";
 import { ProgressPage } from "./pages/ProgressPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { SchemaPage } from "./pages/SchemaPage";
@@ -56,6 +61,9 @@ import { InterviewSetPage, InterviewSetsPage } from "./pages/InterviewSetPages";
 import { AchievementsPage } from "./pages/AchievementsPage";
 import { AnswerPracticePage, CareerPage, CompanyPrepPage, PlannerPage, PortfolioPage } from "./pages/CareerPages";
 import { COMPANY_TYPES } from "./lib/career";
+import { DailyLessonPage, DailyPage } from "./pages/DailyPages";
+import { CURRICULUM, dayHref, findDay, linksFor, loadDay, type PathId } from "./lib/daily";
+import { resolveLinks } from "./lib/dailyLinks";
 
 export interface SiteRoute {
   path: string;
@@ -87,7 +95,28 @@ const careerData = async (): Promise<PageData> => {
   };
 };
 
+/** One Daily Learning day: its lesson (if written) and links into existing notes, questions and projects. */
+const dailyDay = async (path: PathId, n: string | undefined): Promise<PageData | null> => {
+  const day = findDay(path, Number(n));
+  if (!day) return null;
+  const dailyContent = await loadDay(day.id);
+  return { ...(await base()), dailyContent, dailyLinks: await resolveLinks(linksFor(day, dailyContent)) };
+};
+
 export const routes: SiteRoute[] = [
+  { path: "/daily", element: <DailyPage />, load: base, paths: one("/daily") },
+  {
+    path: "/daily/day/:n",
+    element: <DailyLessonPage />,
+    load: (params) => dailyDay("common", params.n),
+    paths: async () => CURRICULUM.days.filter((d) => d.path === "common").map(dayHref),
+  },
+  {
+    path: "/daily/:path/day/:n",
+    element: <DailyLessonPage />,
+    load: (params) => (params.path === "analyst" || params.path === "engineer" ? dailyDay(params.path, params.n) : Promise.resolve(null)),
+    paths: async () => CURRICULUM.days.filter((d) => d.path !== "common").map(dayHref),
+  },
   {
     path: "/",
     element: <HomePage />,
@@ -159,7 +188,21 @@ export const routes: SiteRoute[] = [
     paths: one("/cheatsheet"),
   },
   { path: "/progress", element: <ProgressPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/progress") },
-  { path: "/analytics", element: <PerformancePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/analytics") },
+  {
+    path: "/analytics",
+    element: <PerformancePage />,
+    load: async () => ({
+      ...(await base()), exercises: await loadExerciseIndex(), projects: await loadProjectIndex(),
+      projectTasks: (await loadAllProjects()).map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type, title: t.title }) as never) })),
+    }),
+    paths: one("/analytics"),
+  },
+  { path: "/mistakes", element: <MistakeNotebookPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/mistakes") },
+  { path: "/etl-builder", element: <EtlBuilderPage />, load: base, paths: one("/etl-builder") },
+  { path: "/dag-simulator", element: <DagSimulatorPage />, load: base, paths: one("/dag-simulator") },
+  { path: "/schema-designer", element: <SchemaDesignerPage />, load: base, paths: one("/schema-designer") },
+  { path: "/dq-exercises", element: <DqExercisesPage />, load: base, paths: one("/dq-exercises") },
+  { path: "/de-scenarios", element: <DeScenariosPage />, load: base, paths: one("/de-scenarios") },
   { path: "/review", element: <ReviewPage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/review") },
   { path: "/challenge", element: <ChallengePage />, load: async () => ({ ...(await base()), exercises: await loadExerciseIndex() }), paths: one("/challenge") },
   { path: "/leaderboard", element: <LeaderboardPage />, load: base, paths: one("/leaderboard") },

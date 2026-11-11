@@ -1,0 +1,167 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-full-load",
+      "etl-idempotency",
+      "transactions"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl",
+      "incremental-loading"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Delete and insert in one transaction",
+      "kind": "python",
+      "prompt": "The table `orders_clean(order_id, amount_cents)` is created with one old row. Write `refresh(conn, rows)` that, inside `with conn:`, deletes every row and inserts the new rows with `executemany`. Call it twice with the same rows and print `SELECT COUNT(*)` as a plain number, then the sorted list of `order_id` values. Expected output: `3` then `[1, 2, 3]`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders_clean (order_id INTEGER, amount_cents INTEGER)\")\nconn.execute(\"INSERT INTO orders_clean VALUES (99, 1)\")\nconn.commit()\n\ndef refresh(conn, rows):\n    pass\n\nrows = [(1, 100), (2, 200), (3, 300)]\nrefresh(conn, rows)\nrefresh(conn, rows)\nprint(conn.execute(\"SELECT COUNT(*) FROM orders_clean\").fetchone()[0])\nprint(sorted(r[0] for r in conn.execute(\"SELECT order_id FROM orders_clean\")))\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE orders_clean (order_id INTEGER, amount_cents INTEGER)\")\nconn.execute(\"INSERT INTO orders_clean VALUES (99, 1)\")\nconn.commit()\n\ndef refresh(conn, rows):\n    with conn:\n        conn.execute(\"DELETE FROM orders_clean\")\n        conn.executemany(\"INSERT INTO orders_clean VALUES (?, ?)\", rows)\n\nrows = [(1, 100), (2, 200), (3, 300)]\nrefresh(conn, rows)\nrefresh(conn, rows)\nprint(conn.execute(\"SELECT COUNT(*) FROM orders_clean\").fetchone()[0])\nprint(sorted(r[0] for r in conn.execute(\"SELECT order_id FROM orders_clean\")))\n",
+      "hints": [
+        "Both statements belong in the same `with conn:` block.",
+        "Delete everything first, then insert the new rows.",
+        "`with conn:` then `conn.execute(\"DELETE FROM orders_clean\")` then `conn.executemany(\"INSERT INTO orders_clean VALUES (?, ?)\", rows)`."
+      ],
+      "expected": "3\n[1, 2, 3]"
+    },
+    {
+      "id": "g2",
+      "title": "Snapshot comparison",
+      "kind": "python",
+      "prompt": "Write `same_after_rerun(load)` that creates the in-memory table `t(id INTEGER, v INTEGER)`, calls `load(conn)` twice and returns `True` if the sorted rows after the second call equal the sorted rows after the first. Print the result for the two loaders in the starter. Expected output: `False` then `True`.",
+      "starter": "import sqlite3\n\ndef append(conn):\n    with conn:\n        conn.executemany(\"INSERT INTO t VALUES (?, ?)\", [(1, 10), (2, 20)])\n\ndef replace(conn):\n    with conn:\n        conn.execute(\"DELETE FROM t\")\n        conn.executemany(\"INSERT INTO t VALUES (?, ?)\", [(1, 10), (2, 20)])\n\ndef same_after_rerun(load):\n    pass\n\nprint(same_after_rerun(append))\nprint(same_after_rerun(replace))\n",
+      "solution": "import sqlite3\n\ndef append(conn):\n    with conn:\n        conn.executemany(\"INSERT INTO t VALUES (?, ?)\", [(1, 10), (2, 20)])\n\ndef replace(conn):\n    with conn:\n        conn.execute(\"DELETE FROM t\")\n        conn.executemany(\"INSERT INTO t VALUES (?, ?)\", [(1, 10), (2, 20)])\n\ndef same_after_rerun(load):\n    conn = sqlite3.connect(\":memory:\")\n    conn.execute(\"CREATE TABLE t (id INTEGER, v INTEGER)\")\n    load(conn)\n    first = sorted(conn.execute(\"SELECT * FROM t\"))\n    load(conn)\n    return sorted(conn.execute(\"SELECT * FROM t\")) == first\n\nprint(same_after_rerun(append))\nprint(same_after_rerun(replace))\n",
+      "hints": [
+        "Take a snapshot after the first call and compare it with one after the second.",
+        "`sorted(conn.execute(\"SELECT * FROM t\"))` is a comparable snapshot.",
+        "Create the table, `load(conn)`, `first = ...`, `load(conn)`, then `return ... == first`."
+      ],
+      "expected": "False\nTrue"
+    },
+    {
+      "id": "g3",
+      "title": "Truncate and insert in PostgreSQL syntax",
+      "kind": "sql",
+      "prompt": "On PGlite the tables `stg_items(item_id, price_cents)` and `items_clean(item_id PRIMARY KEY, price_cents)` are created for you with staging data. Write the statements that refresh `items_clean` twice with `TRUNCATE` and `INSERT ... SELECT`, and finish with a query returning `rows` and `total_cents` (the count and the sum of `price_cents`).",
+      "starter": "CREATE TABLE stg_items (item_id int, price_cents int);\nCREATE TABLE items_clean (item_id int PRIMARY KEY, price_cents int);\nINSERT INTO stg_items VALUES (1, 500), (2, 700), (3, 1000);\nSELECT 0 AS rows, 0 AS total_cents;\n",
+      "solution": "CREATE TABLE stg_items (item_id int, price_cents int);\nCREATE TABLE items_clean (item_id int PRIMARY KEY, price_cents int);\nINSERT INTO stg_items VALUES (1, 500), (2, 700), (3, 1000);\nTRUNCATE items_clean;\nINSERT INTO items_clean SELECT item_id, price_cents FROM stg_items;\nTRUNCATE items_clean;\nINSERT INTO items_clean SELECT item_id, price_cents FROM stg_items;\nSELECT COUNT(*) AS rows, SUM(price_cents) AS total_cents FROM items_clean;\n",
+      "hints": [
+        "A refresh is two statements: empty the table, then fill it from staging.",
+        "`TRUNCATE items_clean;` then `INSERT INTO items_clean SELECT item_id, price_cents FROM stg_items;`, twice.",
+        "End with `SELECT COUNT(*) AS rows, SUM(price_cents) AS total_cents FROM items_clean;`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Build and swap with a check",
+      "kind": "python",
+      "prompt": "Write `swap_in(conn, rows)` for a connection opened with `isolation_level=None` and a live table `prices(sku, price)`. It builds `prices_new`, inserts the rows, refuses (returns `\"rejected\"`, leaves `prices` untouched and drops `prices_new`) when the new table has fewer rows than the live one, otherwise swaps with `BEGIN`, two renames and `COMMIT`, drops the old table and returns `\"swapped\"`. Run it with an empty list, with one row, and with three rows, printing the returned string each time and finally the live rows sorted.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\", isolation_level=None)\nconn.execute(\"CREATE TABLE prices (sku TEXT, price INTEGER)\")\nconn.executemany(\"INSERT INTO prices VALUES (?, ?)\", [(\"A\", 1), (\"B\", 2)])\n\ndef swap_in(conn, rows):\n    return \"\"\n\nprint(swap_in(conn, []))\nprint(swap_in(conn, [(\"A\", 5)]))\nprint(swap_in(conn, [(\"A\", 5), (\"B\", 6), (\"C\", 7)]))\nprint(sorted(conn.execute(\"SELECT * FROM prices\")))\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\", isolation_level=None)\nconn.execute(\"CREATE TABLE prices (sku TEXT, price INTEGER)\")\nconn.executemany(\"INSERT INTO prices VALUES (?, ?)\", [(\"A\", 1), (\"B\", 2)])\n\ndef swap_in(conn, rows):\n    conn.execute(\"DROP TABLE IF EXISTS prices_new\")\n    conn.execute(\"CREATE TABLE prices_new (sku TEXT, price INTEGER)\")\n    conn.executemany(\"INSERT INTO prices_new VALUES (?, ?)\", rows)\n    new_count = conn.execute(\"SELECT COUNT(*) FROM prices_new\").fetchone()[0]\n    live_count = conn.execute(\"SELECT COUNT(*) FROM prices\").fetchone()[0]\n    if new_count < live_count:\n        conn.execute(\"DROP TABLE prices_new\")\n        return \"rejected\"\n    conn.execute(\"BEGIN\")\n    conn.execute(\"ALTER TABLE prices RENAME TO prices_old\")\n    conn.execute(\"ALTER TABLE prices_new RENAME TO prices\")\n    conn.execute(\"COMMIT\")\n    conn.execute(\"DROP TABLE prices_old\")\n    return \"swapped\"\n\nprint(swap_in(conn, []))\nprint(swap_in(conn, [(\"A\", 5)]))\nprint(swap_in(conn, [(\"A\", 5), (\"B\", 6), (\"C\", 7)]))\nprint(sorted(conn.execute(\"SELECT * FROM prices\")))\n",
+      "expected": "rejected\nrejected\nswapped\n[('A', 5), ('B', 6), ('C', 7)]"
+    },
+    {
+      "id": "i2",
+      "title": "Make the pipeline steps safe to rerun",
+      "kind": "python",
+      "prompt": "The starter pipeline creates `orders_clean`, saves a file name, and loads rows. Fix it so that running `pipeline(conn, rows, day)` twice leaves the same state: create the table only if missing, name the file `orders_<day>.csv` from the day argument, and replace the rows in one transaction. Print `state after run 1 == state after run 2: True` computed from sorted snapshots of the table and the sorted list of file names.",
+      "starter": "import sqlite3\n\nfiles = []\n\ndef pipeline(conn, rows, day):\n    conn.execute(\"CREATE TABLE orders_clean (order_id INTEGER, amount_cents INTEGER)\")\n    files.append(f\"orders_{len(files)}.csv\")\n    conn.executemany(\"INSERT INTO orders_clean VALUES (?, ?)\", rows)\n\nconn = sqlite3.connect(\":memory:\")\nrows = [(1, 100), (2, 200)]\npipeline(conn, rows, \"2025-03-04\")\n",
+      "solution": "import sqlite3\n\nfiles = []\n\ndef pipeline(conn, rows, day):\n    conn.execute(\"CREATE TABLE IF NOT EXISTS orders_clean (order_id INTEGER, amount_cents INTEGER)\")\n    name = f\"orders_{day}.csv\"\n    if name not in files:\n        files.append(name)\n    with conn:\n        conn.execute(\"DELETE FROM orders_clean\")\n        conn.executemany(\"INSERT INTO orders_clean VALUES (?, ?)\", rows)\n\ndef state(conn):\n    return sorted(conn.execute(\"SELECT * FROM orders_clean\")), sorted(files)\n\nconn = sqlite3.connect(\":memory:\")\nrows = [(1, 100), (2, 200)]\npipeline(conn, rows, \"2025-03-04\")\nfirst = state(conn)\npipeline(conn, rows, \"2025-03-04\")\nprint(\"state after run 1 == state after run 2:\", state(conn) == first)\n",
+      "expected": "state after run 1 == state after run 2: True"
+    },
+    {
+      "id": "i3",
+      "title": "Full load or not?",
+      "kind": "written",
+      "prompt": "For each table decide full load or another approach and justify it in two sentences, naming the cost or the risk you considered: (a) `country_codes`, 250 rows, changes yearly; (b) `orders`, 60 million rows, 20,000 new per day, API limit 100 requests per minute; (c) `product_prices`, 40,000 rows, read by a pricing page all day, source updates hourly; (d) `employee_directory` where deleted employees must disappear from the target. Then say which pattern (delete and insert, truncate, build and swap) you would use for each full load.",
+      "starter": "(a)\n(b)\n(c)\n(d)\nPatterns:\n",
+      "solution": "(a) Full load: 250 rows cost nothing to reread, and a full refresh needs no state; use delete and insert in one transaction. (b) Not a full load: rereading 60 million rows through an API limited to 100 requests per minute would take far too long every night, so use an incremental load (Day 125) that reads only new and changed rows. (c) Full load with build and swap: 40,000 rows are cheap to read hourly, and swapping keeps the pricing page reading a complete table during the load. (d) Full load fits well: a row missing from the source disappears from the target at the next run, which incremental loading would need extra logic to do; use delete and insert in one transaction (or truncate if nobody reads the table during the load).",
+      "required": false,
+      "rubric": [
+        "(a) and (d) are full loads with a reason (small size; deletes handled for free).",
+        "(b) is rejected as a full load because of volume and the API limit.",
+        "(c) uses build and swap because readers use the table during the load.",
+        "Each pattern is named and tied to the case."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A loader runs `INSERT INTO orders_clean ...` for all rows on every run, with no delete and no primary key. After three runs on the same input, what is the table size relative to the source?",
+      "options": [
+        "Equal",
+        "Three times",
+        "Twice",
+        "Zero"
+      ],
+      "answer": 1,
+      "explanation": "Each run appends the same rows again, so the table holds three copies. Nothing fails, which is why the bug is found in reports."
+    },
+    {
+      "id": "c2",
+      "question": "Why must the delete and the inserts of a refresh share one transaction?",
+      "options": [
+        "It is faster",
+        "If the insert fails, the delete is rolled back and readers still see the old data",
+        "SQL requires it",
+        "It avoids duplicates in the source"
+      ],
+      "answer": 1,
+      "explanation": "Without one transaction a crash between the statements leaves an empty or half-loaded table."
+    },
+    {
+      "id": "c3",
+      "question": "What is the main advantage of build and swap over delete and insert?",
+      "options": [
+        "It uses less disk",
+        "Readers never see a half-built table",
+        "It does not need a transaction",
+        "It works without permissions"
+      ],
+      "answer": 1,
+      "explanation": "The new table is built and checked on the side and renamed into place in one step. It needs extra permissions and space."
+    },
+    {
+      "id": "c4",
+      "question": "A table has a primary key and the loader inserts all rows each run. What happens on the second run?",
+      "options": [
+        "It is silently idempotent",
+        "It fails with a constraint violation, so the rerun is not safe either",
+        "It deduplicates the rows",
+        "The table doubles"
+      ],
+      "answer": 1,
+      "explanation": "A primary key turns silent duplication into an error, which is better, but a failed run is still not a safe rerun. The load must replace rows, not collide with them."
+    },
+    {
+      "id": "c5",
+      "question": "Which fact best justifies a full load?",
+      "options": [
+        "The table has 50 million rows and the source is rate-limited",
+        "The table has 300 rows and the source offers no change information",
+        "The source never deletes rows",
+        "The target needs history"
+      ],
+      "answer": 1,
+      "explanation": "A small table with no change tracking is cheap to reread and a full refresh needs no state. The other cases argue for incremental loading or a history design."
+    }
+  ],
+  "id": "e124"
+}

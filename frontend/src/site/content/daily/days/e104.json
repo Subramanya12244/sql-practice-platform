@@ -1,0 +1,182 @@
+{
+  "id": "e104",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-csv-json",
+      "python-pandas",
+      "etl-data-validation",
+      "jsonb"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Safe path lookup",
+      "kind": "python",
+      "prompt": "Write `dig(data, path, default=None)` that reads a dotted path from nested dictionaries and returns `default` as soon as a step is missing or the current value is not a dictionary. Print the city of each of the three orders, using `\"unknown\"` as the default. Expected output: `Lisbon`, `unknown`, `unknown`.",
+      "starter": "orders = [\n    {\"order_id\": 1, \"customer\": {\"id\": 8, \"address\": {\"city\": \"Lisbon\"}}, \"items\": [{\"sku\": \"P1\", \"qty\": 2}, {\"sku\": \"P2\", \"qty\": 1}]},\n    {\"order_id\": 2, \"customer\": {\"id\": 9, \"address\": None}, \"items\": [{\"sku\": \"P1\", \"qty\": 1}]},\n    {\"order_id\": 3, \"customer\": {\"id\": 8}, \"items\": []},\n]\n\ndef dig(data, path, default=None):\n    return default\n\nfor order in orders:\n    print(dig(order, \"customer.address.city\", \"unknown\"))\n",
+      "solution": "orders = [\n    {\"order_id\": 1, \"customer\": {\"id\": 8, \"address\": {\"city\": \"Lisbon\"}}, \"items\": [{\"sku\": \"P1\", \"qty\": 2}, {\"sku\": \"P2\", \"qty\": 1}]},\n    {\"order_id\": 2, \"customer\": {\"id\": 9, \"address\": None}, \"items\": [{\"sku\": \"P1\", \"qty\": 1}]},\n    {\"order_id\": 3, \"customer\": {\"id\": 8}, \"items\": []},\n]\n\ndef dig(data, path, default=None):\n    for key in path.split(\".\"):\n        if isinstance(data, dict) and key in data:\n            data = data[key]\n        else:\n            return default\n    return data\n\nfor order in orders:\n    print(dig(order, \"customer.address.city\", \"unknown\"))\n",
+      "expected": "Lisbon\nunknown\nunknown",
+      "hints": [
+        "Walk the path one key at a time with a loop over `path.split(\".\")`.",
+        "Before each lookup test `isinstance(data, dict) and key in data`.",
+        "Return `default` the moment a step fails, and `data` after the last key."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Count the empty states",
+      "kind": "python",
+      "prompt": "For the three orders, print three numbers: how many have no `address` key under `customer`, how many have `address` equal to `None`, and how many have an empty `items` list. Expected output: `1`, `1`, `1`.",
+      "starter": "orders = [\n    {\"order_id\": 1, \"customer\": {\"id\": 8, \"address\": {\"city\": \"Lisbon\"}}, \"items\": [{\"sku\": \"P1\", \"qty\": 2}, {\"sku\": \"P2\", \"qty\": 1}]},\n    {\"order_id\": 2, \"customer\": {\"id\": 9, \"address\": None}, \"items\": [{\"sku\": \"P1\", \"qty\": 1}]},\n    {\"order_id\": 3, \"customer\": {\"id\": 8}, \"items\": []},\n]\n\nno_key = 0\nis_null = 0\nno_items = 0\nprint(no_key)\nprint(is_null)\nprint(no_items)\n",
+      "solution": "orders = [\n    {\"order_id\": 1, \"customer\": {\"id\": 8, \"address\": {\"city\": \"Lisbon\"}}, \"items\": [{\"sku\": \"P1\", \"qty\": 2}, {\"sku\": \"P2\", \"qty\": 1}]},\n    {\"order_id\": 2, \"customer\": {\"id\": 9, \"address\": None}, \"items\": [{\"sku\": \"P1\", \"qty\": 1}]},\n    {\"order_id\": 3, \"customer\": {\"id\": 8}, \"items\": []},\n]\n\nno_key = sum(1 for o in orders if \"address\" not in o[\"customer\"])\nis_null = sum(1 for o in orders if \"address\" in o[\"customer\"] and o[\"customer\"][\"address\"] is None)\nno_items = sum(1 for o in orders if o[\"items\"] == [])\nprint(no_key)\nprint(is_null)\nprint(no_items)\n",
+      "expected": "1\n1\n1",
+      "hints": [
+        "The three states are a missing key, a key whose value is `None`, and an empty list.",
+        "Test `\"address\" not in o[\"customer\"]` for the first and `is None` for the second.",
+        "`o[\"items\"] == []` (or `not o[\"items\"]`) detects the empty list."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "One row per item",
+      "kind": "python",
+      "prompt": "Flatten the orders into one row per item without pandas: build a list of tuples `(order_id, customer_id, sku, qty)` by looping over the orders and their items. Print the list. Expected output: `[(1, 8, 'P1', 2), (1, 8, 'P2', 1), (2, 9, 'P1', 1)]`.",
+      "starter": "orders = [\n    {\"order_id\": 1, \"customer\": {\"id\": 8, \"address\": {\"city\": \"Lisbon\"}}, \"items\": [{\"sku\": \"P1\", \"qty\": 2}, {\"sku\": \"P2\", \"qty\": 1}]},\n    {\"order_id\": 2, \"customer\": {\"id\": 9, \"address\": None}, \"items\": [{\"sku\": \"P1\", \"qty\": 1}]},\n    {\"order_id\": 3, \"customer\": {\"id\": 8}, \"items\": []},\n]\n\nrows = []\nprint(rows)\n",
+      "solution": "orders = [\n    {\"order_id\": 1, \"customer\": {\"id\": 8, \"address\": {\"city\": \"Lisbon\"}}, \"items\": [{\"sku\": \"P1\", \"qty\": 2}, {\"sku\": \"P2\", \"qty\": 1}]},\n    {\"order_id\": 2, \"customer\": {\"id\": 9, \"address\": None}, \"items\": [{\"sku\": \"P1\", \"qty\": 1}]},\n    {\"order_id\": 3, \"customer\": {\"id\": 8}, \"items\": []},\n]\n\nrows = []\nfor order in orders:\n    for item in order[\"items\"]:\n        rows.append((order[\"order_id\"], order[\"customer\"][\"id\"], item[\"sku\"], item[\"qty\"]))\nprint(rows)\n",
+      "expected": "[(1, 8, 'P1', 2), (1, 8, 'P2', 1), (2, 9, 'P1', 1)]",
+      "hints": [
+        "Use a loop inside a loop: orders outside, items inside.",
+        "Copy the parent fields onto every item row.",
+        "Append `(order[\"order_id\"], order[\"customer\"][\"id\"], item[\"sku\"], item[\"qty\"])` inside the inner loop."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Flatten with json_normalize",
+      "kind": "python",
+      "prompt": "Use `pd.json_normalize` with `record_path=\"items\"` and `meta=[\"order_id\"]` to build the item table, then print `lines.to_string(index=False)`. Expected output: a header `sku  qty order_id` and three rows.",
+      "starter": "import pandas as pd\n\norders = [\n    {\"order_id\": 1, \"customer\": {\"id\": 8, \"address\": {\"city\": \"Lisbon\"}}, \"items\": [{\"sku\": \"P1\", \"qty\": 2}, {\"sku\": \"P2\", \"qty\": 1}]},\n    {\"order_id\": 2, \"customer\": {\"id\": 9, \"address\": None}, \"items\": [{\"sku\": \"P1\", \"qty\": 1}]},\n    {\"order_id\": 3, \"customer\": {\"id\": 8}, \"items\": []},\n]\n\nlines = None\nprint(lines.to_string(index=False))\n",
+      "solution": "import pandas as pd\n\norders = [\n    {\"order_id\": 1, \"customer\": {\"id\": 8, \"address\": {\"city\": \"Lisbon\"}}, \"items\": [{\"sku\": \"P1\", \"qty\": 2}, {\"sku\": \"P2\", \"qty\": 1}]},\n    {\"order_id\": 2, \"customer\": {\"id\": 9, \"address\": None}, \"items\": [{\"sku\": \"P1\", \"qty\": 1}]},\n    {\"order_id\": 3, \"customer\": {\"id\": 8}, \"items\": []},\n]\n\nlines = pd.json_normalize(orders, record_path=\"items\", meta=[\"order_id\"])\nprint(lines.to_string(index=False))\n",
+      "expected": "sku  qty order_id\n P1    2        1\n P2    1        1\n P1    1        2",
+      "hints": [
+        "`record_path` names the list that becomes rows.",
+        "`meta` takes a list of parent fields to copy onto each row.",
+        "`pd.json_normalize(orders, record_path=\"items\", meta=[\"order_id\"])`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A drift report",
+      "kind": "python",
+      "prompt": "Using `REQUIRED` and `batch`, write `issues(record)` returning a list of strings: `missing: <name>` for each missing required field (in `REQUIRED` order), `type: <name> is <actual type name>` for each present field whose type is not exactly the required one (use `type(value) is kind`), and `unknown: <name>` for each field not in `REQUIRED` (sorted). Print one line per record that has issues as `<order_id>: <issues joined by '; '>`, then the line `clean: ` followed by the list of clean order ids. Expected: `2: type: amount_cents is str`, `3: missing: status`, `4: unknown: channel`, `5: type: amount_cents is float`, `clean: [1]`.",
+      "starter": "REQUIRED = {\"order_id\": int, \"amount_cents\": int, \"status\": str}\nbatch = [\n    {\"order_id\": 1, \"amount_cents\": 1990, \"status\": \"paid\"},\n    {\"order_id\": 2, \"amount_cents\": \"700\", \"status\": \"paid\"},\n    {\"order_id\": 3, \"amount_cents\": 500},\n    {\"order_id\": 4, \"amount_cents\": 800, \"status\": \"paid\", \"channel\": \"web\"},\n    {\"order_id\": 5, \"amount_cents\": 19.9, \"status\": \"refunded\"},\n]\n\ndef issues(record):\n    return []\n\nclean = []\nprint(\"clean:\", clean)\n",
+      "solution": "REQUIRED = {\"order_id\": int, \"amount_cents\": int, \"status\": str}\nbatch = [\n    {\"order_id\": 1, \"amount_cents\": 1990, \"status\": \"paid\"},\n    {\"order_id\": 2, \"amount_cents\": \"700\", \"status\": \"paid\"},\n    {\"order_id\": 3, \"amount_cents\": 500},\n    {\"order_id\": 4, \"amount_cents\": 800, \"status\": \"paid\", \"channel\": \"web\"},\n    {\"order_id\": 5, \"amount_cents\": 19.9, \"status\": \"refunded\"},\n]\n\ndef issues(record):\n    found = []\n    for name, kind in REQUIRED.items():\n        if name not in record:\n            found.append(f\"missing: {name}\")\n        elif type(record[name]) is not kind:\n            found.append(f\"type: {name} is {type(record[name]).__name__}\")\n    for name in sorted(set(record) - set(REQUIRED)):\n        found.append(f\"unknown: {name}\")\n    return found\n\nclean = []\nfor record in batch:\n    found = issues(record)\n    if found:\n        print(f\"{record['order_id']}: {'; '.join(found)}\")\n    else:\n        clean.append(record[\"order_id\"])\nprint(\"clean:\", clean)\n",
+      "expected": "2: type: amount_cents is str\n3: missing: status\n4: unknown: channel\n5: type: amount_cents is float\nclean: [1]"
+    },
+    {
+      "id": "i2",
+      "title": "A stable table from drifting pages",
+      "kind": "python",
+      "prompt": "Two page bodies come from the same API on different days: the second drops `currency` and adds `channel`. Build one DataFrame per page with `reindex(columns=EXPECTED)`, concatenate them (`ignore_index=True`), and print: the list of columns, the number of rows, the count of missing `currency` values as an int, and the sorted list of extra fields seen across both pages. Expected output: the six column names as a list, `3`, `1`, `['channel']`.",
+      "starter": "import pandas as pd\n\nEXPECTED = [\"order_id\", \"customer_id\", \"amount_cents\", \"currency\", \"status\", \"created_at\"]\npage1 = [{\"order_id\": 1, \"customer_id\": 4, \"amount_cents\": 500, \"currency\": \"EUR\", \"status\": \"paid\", \"created_at\": \"2026-03-01T08:00:00Z\"},\n         {\"order_id\": 2, \"customer_id\": 5, \"amount_cents\": 900, \"currency\": \"USD\", \"status\": \"failed\", \"created_at\": \"2026-03-01T09:00:00Z\"}]\npage2 = [{\"order_id\": 3, \"customer_id\": 4, \"amount_cents\": 700, \"status\": \"paid\", \"created_at\": \"2026-03-02T08:00:00Z\", \"channel\": \"web\"}]\n# build, combine, report\n",
+      "solution": "import pandas as pd\n\nEXPECTED = [\"order_id\", \"customer_id\", \"amount_cents\", \"currency\", \"status\", \"created_at\"]\npage1 = [{\"order_id\": 1, \"customer_id\": 4, \"amount_cents\": 500, \"currency\": \"EUR\", \"status\": \"paid\", \"created_at\": \"2026-03-01T08:00:00Z\"},\n         {\"order_id\": 2, \"customer_id\": 5, \"amount_cents\": 900, \"currency\": \"USD\", \"status\": \"failed\", \"created_at\": \"2026-03-01T09:00:00Z\"}]\npage2 = [{\"order_id\": 3, \"customer_id\": 4, \"amount_cents\": 700, \"status\": \"paid\", \"created_at\": \"2026-03-02T08:00:00Z\", \"channel\": \"web\"}]\nframes, extra = [], set()\nfor page in (page1, page2):\n    raw = pd.DataFrame(page)\n    extra |= set(raw.columns) - set(EXPECTED)\n    frames.append(raw.reindex(columns=EXPECTED))\ntable = pd.concat(frames, ignore_index=True)\nprint(list(table.columns))\nprint(len(table))\nprint(int(table[\"currency\"].isna().sum()))\nprint(sorted(extra))\n",
+      "expected": "['order_id', 'customer_id', 'amount_cents', 'currency', 'status', 'created_at']\n3\n1\n['channel']"
+    },
+    {
+      "id": "i3",
+      "title": "A drift policy",
+      "kind": "written",
+      "prompt": "Write the policy your pipeline applies when a provider changes its JSON: what is logged, what is quarantined, when the run stops and who is told, for each of: an added field, a removed required field, a renamed field, a changed type.",
+      "starter": "Write your policy here.",
+      "solution": "Added field: log it once per run as `unknown field: <name>`, ignore it in the load, and open a ticket to decide whether it is useful; the run continues. Removed required field: every record fails the check, so the share of quarantined records is 100 percent and the run stops before loading, with an alert to the owner; a removed optional field is only logged. Renamed field: it looks like a removed plus an added field in the same run, which is the pattern to name in the alert (`missing: status, unknown: state`); the run stops and the mapping is updated by a person. Changed type: the records with the wrong type go to quarantine with the offending value; if more than a small threshold (for example 5 percent) are affected the run stops, otherwise the good records load and the quarantine is reviewed. In all cases the quarantined raw records are kept, not dropped, so that they can be reprocessed after the fix.",
+      "rubric": [
+        "Treats added fields as logged but not blocking",
+        "Stops the run for removed required or renamed fields and explains why",
+        "Quarantines retyped records with a threshold",
+        "Keeps the raw quarantined records for reprocessing"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "`order[\"customer\"][\"address\"][\"city\"]` raises `TypeError: 'NoneType' object is not subscriptable`. What does that tell you?",
+      "options": [
+        "The key `city` is missing",
+        "`address` exists with the value `null`",
+        "`customer` is missing",
+        "The list `items` is empty"
+      ],
+      "answer": 1,
+      "explanation": "Looking up `'city'` in `None` raises `TypeError`. A missing key would raise `KeyError`. The two have different meanings in JSON and need different decisions."
+    },
+    {
+      "id": "c2",
+      "question": "What does `pd.json_normalize(orders, record_path='items', meta=['order_id'])` return for an order whose `items` is an empty list?",
+      "options": [
+        "A row with NaN item fields",
+        "No row for that order",
+        "An error",
+        "A row with an empty `sku`"
+      ],
+      "answer": 1,
+      "explanation": "An empty array has no elements to turn into rows, so the order does not appear in the item table. Count orders without items separately if it matters."
+    },
+    {
+      "id": "c3",
+      "question": "A provider changes `status` to `state` in every record. Which pattern does your drift check show?",
+      "options": [
+        "Only an unknown field",
+        "Missing required `status` and unknown `state` on every record",
+        "A retyped field",
+        "Nothing, since the number of fields is unchanged"
+      ],
+      "answer": 1,
+      "explanation": "A rename looks like one field removed and one added in the same records. The share of affected records is 100 percent, which should stop the run."
+    },
+    {
+      "id": "c4",
+      "question": "`isinstance(True, int)` returns?",
+      "options": [
+        "`False`",
+        "`True`",
+        "It raises an error",
+        "`None`"
+      ],
+      "answer": 1,
+      "explanation": "`bool` is a subclass of `int`, so a boolean passes an `isinstance(..., int)` test. When a boolean must not pass as an integer use `type(value) is int`."
+    },
+    {
+      "id": "c5",
+      "question": "Why use `reindex(columns=EXPECTED)` after `pd.DataFrame(page['data'])`?",
+      "options": [
+        "It sorts the rows",
+        "It gives the table a fixed set and order of columns whatever fields the page contained",
+        "It converts types",
+        "It removes duplicate records"
+      ],
+      "answer": 1,
+      "explanation": "Without it the table's columns depend on the records of that page. With it, a missing field becomes a `NaN` column and extra fields are dropped, so later steps see one stable shape."
+    }
+  ]
+}

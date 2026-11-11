@@ -1,0 +1,187 @@
+{
+  "id": "d019",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-file-handling"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "save-and-load-lines",
+      "count-nonempty-lines"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Write a file and read it back",
+      "prompt": "Create a file `colors.txt` with a `with` block containing the lines `red`, `green` and `blue` (one per line, UTF-8). Then read the whole file back and print it with `print(text, end=\"\")` so no extra blank line appears. Expected output: the three colours, each on its own line.",
+      "starter": "# Write the file, then read it back\n",
+      "solution": "with open(\"colors.txt\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"red\\ngreen\\nblue\\n\")\n\nwith open(\"colors.txt\", encoding=\"utf-8\") as f:\n    text = f.read()\nprint(text, end=\"\")\n",
+      "kind": "python",
+      "expected": "red\ngreen\nblue",
+      "hints": [
+        "Open the file twice: once with mode `\"w\"` to write, once for reading.",
+        "`write()` does not add newlines, so each colour needs `\\n` at its end.",
+        "Write `\"red\\ngreen\\nblue\\n\"` in one call, then `text = f.read()` in a second `with` block."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Number the lines",
+      "prompt": "A file `todo.txt` is created for you by the starter. Read it line by line and print each line with its number starting at 1, in the form `1: buy milk`. Strip the newline from each line. Expected output is three numbered lines.",
+      "starter": "with open(\"todo.txt\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"buy milk\\ncall bank\\nsend report\\n\")\n\n# Now read it and print numbered lines\n",
+      "solution": "with open(\"todo.txt\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"buy milk\\ncall bank\\nsend report\\n\")\n\nwith open(\"todo.txt\", encoding=\"utf-8\") as f:\n    for number, line in enumerate(f, start=1):\n        print(f\"{number}: {line.rstrip()}\")\n",
+      "kind": "python",
+      "expected": "1: buy milk\n2: call bank\n3: send report",
+      "hints": [
+        "Loop directly over the file object: `for line in f`.",
+        "`enumerate(f, start=1)` gives you the number and the line together.",
+        "Print `f\"{number}: {line.rstrip()}\"` so the trailing newline is removed."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Append to a log",
+      "prompt": "Create `run.log` with the single line `start`. Then reopen it in append mode and add the lines `load` and `done`. Finally print the file's lines as a list using `read().splitlines()`. Expected output: `['start', 'load', 'done']`.",
+      "starter": "with open(\"run.log\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"start\\n\")\n# Append the other two lines, then print the list\n",
+      "solution": "with open(\"run.log\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"start\\n\")\nwith open(\"run.log\", \"a\", encoding=\"utf-8\") as f:\n    f.write(\"load\\ndone\\n\")\nwith open(\"run.log\", encoding=\"utf-8\") as f:\n    print(f.read().splitlines())\n",
+      "kind": "python",
+      "expected": "['start', 'load', 'done']",
+      "hints": [
+        "Appending needs a different mode string from writing.",
+        "Use mode `\"a\"` so the first line is kept.",
+        "After the append block, open the file for reading and print `f.read().splitlines()`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Describe a path",
+      "prompt": "Build the path `data/raw/sales_2026.csv` with `Path` and the `/` operator (parts `data`, `raw` and the file name). Print four lines: the file name, the stem, the suffix, and the name of the parent folder (`.parent.name`). Expected output: `sales_2026.csv`, `sales_2026`, `.csv`, `raw`.",
+      "starter": "from pathlib import Path\n\n# Build the path and print its parts\n",
+      "solution": "from pathlib import Path\n\np = Path(\"data\") / \"raw\" / \"sales_2026.csv\"\nprint(p.name)\nprint(p.stem)\nprint(p.suffix)\nprint(p.parent.name)\n",
+      "kind": "python",
+      "expected": "sales_2026.csv\nsales_2026\n.csv\nraw",
+      "hints": [
+        "Join the parts with `/` starting from `Path(\"data\")`.",
+        "Attributes `name`, `stem`, `suffix` and `parent` describe the path; they are not called with brackets.",
+        "`p.parent` is itself a Path, so `p.parent.name` is the last folder."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Count words in a file",
+      "prompt": "Create `story.txt` with the three lines `the cat sat`, `on the mat` and `the end`. Read it line by line and count how often each word appears. Print the words in alphabetical order, one per line, as `word count` (for example `cat 1`). Do not read the whole file at once.",
+      "starter": "# Create story.txt and count its words\n",
+      "solution": "with open(\"story.txt\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"the cat sat\\non the mat\\nthe end\\n\")\n\ncounts = {}\nwith open(\"story.txt\", encoding=\"utf-8\") as f:\n    for line in f:\n        for word in line.split():\n            counts[word] = counts.get(word, 0) + 1\n\nfor word in sorted(counts):\n    print(word, counts[word])\n",
+      "kind": "python",
+      "expected": "cat 1\nend 1\nmat 1\non 1\nsat 1\nthe 3"
+    },
+    {
+      "id": "i2",
+      "title": "Split a file by sign",
+      "prompt": "Write a file `numbers.txt` with the values `5`, `-2`, `0`, `8`, `-7`, `3`, one per line. Read it and write two new files: `positive.txt` with the values greater than zero and `negative.txt` with the values below zero (zero goes to neither), keeping the original order and one value per line. Finally print the contents of each file as a list of strings using `read().split()`, positive first. Expected output has two lines.",
+      "starter": "# Create numbers.txt, split it, print both files\n",
+      "solution": "with open(\"numbers.txt\", \"w\", encoding=\"utf-8\") as f:\n    f.write(\"\\n\".join([\"5\", \"-2\", \"0\", \"8\", \"-7\", \"3\"]) + \"\\n\")\n\nwith open(\"numbers.txt\", encoding=\"utf-8\") as src, \\\n        open(\"positive.txt\", \"w\", encoding=\"utf-8\") as pos, \\\n        open(\"negative.txt\", \"w\", encoding=\"utf-8\") as neg:\n    for line in src:\n        value = int(line)\n        if value > 0:\n            pos.write(line)\n        elif value < 0:\n            neg.write(line)\n\nfor name in (\"positive.txt\", \"negative.txt\"):\n    with open(name, encoding=\"utf-8\") as f:\n        print(f.read().split())\n",
+      "kind": "python",
+      "expected": "['5', '8', '3']\n['-2', '-7']"
+    },
+    {
+      "id": "i3",
+      "title": "Folder summary",
+      "prompt": "Using `pathlib`, create the folder `inbox` and, inside it, the files `a.txt` (text `one`), `b.txt` (text `two words`), `c.csv` (text `1,2`) and `d.txt` (empty text). Print one line per `.txt` file, in alphabetical order, as `name: N words` where N is the number of words in the file (use `split()`). Then print `Files: X` where X is the total number of files in the folder of any type. Expected output has four lines: three file lines and the total.",
+      "starter": "from pathlib import Path\n\n# Build the inbox folder and summarise it\n",
+      "solution": "from pathlib import Path\n\nfolder = Path(\"inbox\")\nfolder.mkdir(exist_ok=True)\nfiles = {\"a.txt\": \"one\", \"b.txt\": \"two words\", \"c.csv\": \"1,2\", \"d.txt\": \"\"}\nfor name, text in files.items():\n    (folder / name).write_text(text, encoding=\"utf-8\")\n\nfor p in sorted(folder.glob(\"*.txt\")):\n    print(f\"{p.name}: {len(p.read_text(encoding='utf-8').split())} words\")\nprint(f\"Files: {len(list(folder.iterdir()))}\")\n",
+      "kind": "python",
+      "expected": "a.txt: 1 words\nb.txt: 2 words\nd.txt: 0 words\nFiles: 4",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this program print?\n\n```python\nwith open(\"t.txt\", \"w\") as f:\n    f.write(\"a\\nb\\n\")\nwith open(\"t.txt\", \"w\") as f:\n    f.write(\"c\\n\")\nprint(open(\"t.txt\").read().count(\"\\n\"))\n```",
+      "options": [
+        "3",
+        "2",
+        "1",
+        "0"
+      ],
+      "answer": 2,
+      "explanation": "The second `open` with mode `\"w\"` empties the file before writing, so only `c\\n` remains and it holds one newline. A count of 3 would need append mode `\"a\"`."
+    },
+    {
+      "id": "c2",
+      "question": "A file has the content `x\\ny\\n`. What does this print?\n\n```python\nwith open(\"f.txt\") as f:\n    f.read()\n    print(repr(f.read()))\n```",
+      "options": [
+        "'x\\ny\\n'",
+        "''",
+        "None",
+        "'y\\n'"
+      ],
+      "answer": 1,
+      "explanation": "The first `read()` consumes the file and leaves the position at the end, so the second returns an empty string. The file does not rewind by itself, and `read()` never returns `None`."
+    },
+    {
+      "id": "c3",
+      "question": "Why prefer `for line in f` to `f.readlines()` for a 20 GB log file?",
+      "options": [
+        "It reads one line at a time instead of loading every line into memory",
+        "It converts the lines to numbers",
+        "It closes the file automatically",
+        "It removes the newline characters"
+      ],
+      "answer": 0,
+      "explanation": "Iterating the file object streams lines, so memory use stays small. `readlines()` builds a list of every line. Neither closes the file (that is the job of `with`), and both keep the newline characters."
+    },
+    {
+      "id": "c4",
+      "question": "What does `Path(\"data/raw/sales_2026.csv\").stem` return?",
+      "options": [
+        "sales_2026.csv",
+        "sales_2026",
+        "csv",
+        "raw"
+      ],
+      "answer": 1,
+      "explanation": "The stem is the file name without its final suffix, `sales_2026`. `sales_2026.csv` is the name, `.csv` (with the dot) is the suffix and `raw` is the parent folder's name."
+    },
+    {
+      "id": "c5",
+      "question": "Which statement about the `with` statement is true?",
+      "options": [
+        "It closes the file when the block ends, even if an error occurs inside it",
+        "It makes the file read-only",
+        "It loads the whole file into memory",
+        "It is needed only for writing, not reading"
+      ],
+      "answer": 0,
+      "explanation": "A file object is a context manager whose exit step is `close()`, and it runs even when the block raises an error. `with` does not change the mode or the memory use, and it is good practice for reading as well."
+    },
+    {
+      "id": "c6",
+      "question": "Text saved as UTF-8 contains `café`. It is read with `encoding=\"latin-1\"`. What is the most likely result?",
+      "options": [
+        "Garbled text such as `cafÃ©`",
+        "The same text, `café`",
+        "A FileNotFoundError",
+        "An empty string"
+      ],
+      "answer": 0,
+      "explanation": "Latin-1 accepts any byte, so no error is raised, but the two bytes of the UTF-8 `é` are shown as two separate characters. The text is therefore wrong without any warning, which is why the encoding must match the one used for writing."
+    }
+  ]
+}

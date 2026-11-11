@@ -1,0 +1,190 @@
+{
+  "id": "d043",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "scalar-subqueries",
+      "in-not-in",
+      "correlated-subqueries",
+      "join-vs-subquery"
+    ],
+    "questions": [
+      6,
+      15
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "subqueries-ctes"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "The longest-serving employee",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `employee_id`, `last_name` and `hire_date` of the employee (or employees, in case of a tie) hired on the earliest `hire_date`. Use a scalar subquery with `MIN`. Order by `employee_id`.",
+      "starter": "-- Employees hired on the earliest hire_date\nSELECT employee_id, last_name, hire_date\nFROM employees\nWHERE hire_date = '1992-08-14'\nORDER BY employee_id;\n",
+      "solution": "SELECT employee_id, last_name, hire_date\nFROM employees\nWHERE hire_date = (SELECT MIN(hire_date) FROM employees)\nORDER BY employee_id;\n",
+      "hints": [
+        "The starter hard-codes a date, and it is the wrong one. Let the database find the earliest date.",
+        "A subquery in parentheses can return a single value: the minimum of a column.",
+        "WHERE hire_date = (SELECT MIN(hire_date) FROM employees)"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "German customers active in 1998",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `customer_id` and `company_name` of the customers in Germany who placed at least one order dated 1998-01-01 or later. Use `IN` with a subquery on `orders`. Order by `customer_id`.",
+      "starter": "-- German customers with at least one order from 1998-01-01 on\nSELECT customer_id, company_name\nFROM customers\nWHERE country = 'Germany'\nORDER BY customer_id;\n",
+      "solution": "SELECT customer_id, company_name\nFROM customers\nWHERE country = 'Germany'\n  AND customer_id IN (SELECT customer_id FROM orders WHERE order_date >= '1998-01-01')\nORDER BY customer_id;\n",
+      "hints": [
+        "The starter returns every German customer. You also need a test about their orders.",
+        "IN accepts a subquery that returns one column: the customer ids of the qualifying orders.",
+        "AND customer_id IN (SELECT customer_id FROM orders WHERE order_date >= '1998-01-01')"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Orders per employee, as a column",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For every employee return `employee_id`, `last_name` and `orders`, where `orders` is the number of rows in `orders` handled by that employee, computed with a correlated subquery in the select list (no join, no GROUP BY). Order by `orders` descending, then `employee_id`.",
+      "starter": "-- Employees with their number of orders, via a correlated subquery\nSELECT e.employee_id, e.last_name, 0 AS orders\nFROM employees e\nORDER BY orders DESC, e.employee_id;\n",
+      "solution": "SELECT e.employee_id, e.last_name,\n       (SELECT COUNT(*) FROM orders o WHERE o.employee_id = e.employee_id) AS orders\nFROM employees e\nORDER BY orders DESC, e.employee_id;\n",
+      "hints": [
+        "The starter shows a constant. Replace it with a subquery that counts rows of orders.",
+        "Inside the subquery, filter the orders to the current employee by comparing o.employee_id with e.employee_id.",
+        "(SELECT COUNT(*) FROM orders o WHERE o.employee_id = e.employee_id) AS orders"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "The dearest product of each category",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `product_id`, `product_name`, `category_id` and `unit_price` of the product with the highest `unit_price` in its category (use a correlated subquery with `MAX`). Order by `category_id`.",
+      "starter": "-- Highest-priced product per category\nSELECT p.product_id, p.product_name, p.category_id, p.unit_price\nFROM products p\nWHERE p.unit_price = (SELECT MAX(unit_price) FROM products)\nORDER BY p.category_id;\n",
+      "solution": "SELECT p.product_id, p.product_name, p.category_id, p.unit_price\nFROM products p\nWHERE p.unit_price = (SELECT MAX(p2.unit_price)\n                      FROM products p2\n                      WHERE p2.category_id = p.category_id)\nORDER BY p.category_id;\n",
+      "hints": [
+        "The starter compares with the overall maximum, so only one product qualifies. The maximum must be taken per category.",
+        "Give the inner table its own alias and restrict it to the outer row's category.",
+        "WHERE p2.category_id = p.category_id inside the subquery"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Heavier than the customer's own average",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `order_id`, `customer_id` and `freight` of the orders whose freight is above the average freight of all orders by the same customer (a correlated subquery). Order by `order_id`.",
+      "starter": "-- Orders with freight above the same customer's average freight\nSELECT o.order_id, o.customer_id, o.freight\nFROM orders o\nWHERE o.freight > (SELECT AVG(freight) FROM orders)\nORDER BY o.order_id;\n",
+      "solution": "SELECT o.order_id, o.customer_id, o.freight\nFROM orders o\nWHERE o.freight > (SELECT AVG(o2.freight)\n                   FROM orders o2\n                   WHERE o2.customer_id = o.customer_id)\nORDER BY o.order_id;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Order counts per customer, summarised",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "First count the orders of each customer who has orders, then summarise those counts in one row with `customers` (how many customers), `avg_orders` (average count rounded to 2 decimals) and `max_orders` (the largest count). Use a derived table in `FROM`.",
+      "starter": "-- Summary of orders per customer\nSELECT COUNT(*) AS customers, ROUND(AVG(COUNT(*)), 2) AS avg_orders, MAX(COUNT(*)) AS max_orders\nFROM orders\nGROUP BY customer_id;\n",
+      "solution": "SELECT COUNT(*) AS customers,\n       ROUND(AVG(t.n), 2) AS avg_orders,\n       MAX(t.n) AS max_orders\nFROM (SELECT customer_id, COUNT(*) AS n\n      FROM orders\n      GROUP BY customer_id) t;\n"
+    },
+    {
+      "id": "i3",
+      "title": "The biggest orders by value",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. The value of an order is the sum of `unit_price * quantity` over its lines in `order_details` (ignore the discount). Return `order_id` and `order_value` for the 5 orders with the highest value among those whose value is above the average order value, ordered by `order_value` descending, then `order_id`. Use a derived table and a scalar subquery.",
+      "starter": "-- The 5 largest orders by value, among those above the average order value\nSELECT order_id, SUM(unit_price * quantity) AS order_value\nFROM order_details\nGROUP BY order_id\nORDER BY order_id\nLIMIT 5;\n",
+      "solution": "SELECT t.order_id, t.order_value\nFROM (SELECT order_id, SUM(unit_price * quantity) AS order_value\n      FROM order_details\n      GROUP BY order_id) t\nWHERE t.order_value > (SELECT AVG(s.order_value)\n                       FROM (SELECT SUM(unit_price * quantity) AS order_value\n                             FROM order_details\n                             GROUP BY order_id) s)\nORDER BY t.order_value DESC, t.order_id\nLIMIT 5;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What happens with `SELECT * FROM products WHERE unit_price = (SELECT unit_price FROM products WHERE category_id = 1)`?",
+      "options": [
+        "It returns all products priced like any category 1 product",
+        "It fails because the subquery returns more than one row where one value is needed",
+        "It returns an empty result",
+        "It returns the cheapest product"
+      ],
+      "answer": 1,
+      "explanation": "`=` needs a single value, and category 1 has 12 products, so the subquery returns 12 rows. PostgreSQL reports 'more than one row returned by a subquery used as an expression'. Use IN for a list, or an aggregate for one value."
+    },
+    {
+      "id": "c2",
+      "question": "Which kind of subquery refers to a column of the outer query?",
+      "options": [
+        "A scalar subquery",
+        "A derived table",
+        "A correlated subquery",
+        "An IN subquery"
+      ],
+      "answer": 2,
+      "explanation": "A correlated subquery uses a column of the outer row, so its result can differ for each outer row. Scalar, IN and derived-table subqueries can be independent, though a scalar or IN subquery may also be correlated."
+    },
+    {
+      "id": "c3",
+      "question": "Customer ANATR has two orders over 150 freight. How many times does ANATR appear in `SELECT customer_id FROM customers WHERE customer_id IN (SELECT customer_id FROM orders WHERE freight > 150)`?",
+      "options": [
+        "Once",
+        "Twice",
+        "Never",
+        "It depends on the sort order"
+      ],
+      "answer": 0,
+      "explanation": "IN only tests membership, so each customer row is kept or dropped once. A join to orders would return ANATR once per heavy order. Repeats inside the subquery's list do not repeat the outer row."
+    },
+    {
+      "id": "c4",
+      "question": "Why does `SELECT AVG(n) FROM (SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY customer_id)` fail?",
+      "options": [
+        "AVG cannot take a column called n",
+        "A subquery in FROM must have an alias",
+        "COUNT cannot be nested in a subquery",
+        "GROUP BY is not allowed in a subquery"
+      ],
+      "answer": 1,
+      "explanation": "PostgreSQL requires every derived table to have an alias, so the query fails with 'subquery in FROM must have an alias'. Adding `t` after the closing parenthesis fixes it. The other points are allowed."
+    },
+    {
+      "id": "c5",
+      "question": "In `SELECT p.product_name FROM products p WHERE p.unit_price > (SELECT AVG(p2.unit_price) FROM products p2 WHERE p2.category_id = p2.category_id)` the correlation is mistyped. What does the subquery compute?",
+      "options": [
+        "The average of the product's own category",
+        "The average price of all products, because the condition is always true",
+        "NULL",
+        "It fails with an error"
+      ],
+      "answer": 1,
+      "explanation": "`p2.category_id = p2.category_id` compares a column with itself and is true for every row with a non-NULL category, so the subquery averages every product and is not correlated. The query runs without error and silently answers a different question than intended."
+    },
+    {
+      "id": "c6",
+      "question": "A scalar subquery is `(SELECT MAX(order_date) FROM orders WHERE order_date > '2000-01-01')`, and no order is that late. What does `SELECT * FROM orders WHERE order_date = (` that subquery `)` return?",
+      "options": [
+        "Every order",
+        "No rows, because the subquery yields NULL and a comparison with NULL is unknown",
+        "An error, because the subquery returned no row",
+        "The latest order"
+      ],
+      "answer": 1,
+      "explanation": "An aggregate without GROUP BY always returns one row, and with no input rows MAX is NULL. The comparison order_date = NULL is unknown, so WHERE keeps nothing. There is no error, and the subquery's own WHERE does not carry over to the outer query."
+    }
+  ]
+}

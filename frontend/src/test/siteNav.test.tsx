@@ -22,6 +22,9 @@ describe("navigation", () => {
     expect(activeGroup("/career/planner")).toBe("career");
     expect(activeGroup("/leaderboard")).toBe("community");
     expect(activeGroup("/notes/left-join")).toBe("learn");
+    expect(activeGroup("/daily")).toBe("daily");
+    expect(activeGroup("/daily/day/12")).toBe("daily");
+    expect(activeGroup("/daily/analyst/day/120")).toBe("daily");
     expect(activeGroup("/questions/q25-x")).toBe("practice");
     expect(activeGroup("/projects-lab/abc")).toBe("projects");
     expect(activeGroup("/ai-tutor")).toBe("ai");
@@ -31,6 +34,6 @@ describe("navigation", () => {
     expect(html).toContain("DataForge");
     expect(html).toContain('data-nav-group="learn" data-active="true" aria-expanded="true"');
     expect(html).toContain('data-nav-group="practice" data-active="false" aria-expanded="false"');
-    expect(NAV_GROUPS.map((g) => g.label)).toEqual(["Dashboard", "Learn", "Practice", "Projects", "Intelligence", "Career", "Community"]);
+    expect(NAV_GROUPS.map((g) => g.label)).toEqual(["Dashboard", "Daily Learning", "Learn", "Practice", "Projects", "Intelligence", "Career", "Community"]);
   });
 });

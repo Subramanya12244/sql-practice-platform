@@ -1,0 +1,186 @@
+{
+  "id": "d076",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "python-data-cleaning"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Clean a name column",
+      "prompt": "Create the Series `names` by stripping the spaces and applying title case to `df[\"name\"]`. Print the list of cleaned names on line 1 and, on line 2, the number of distinct names before and after cleaning separated by a space.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"  ana SILVA\", \"Bob king \", \"CY lopez\", \"ana silva\"], \"email\": [\"Ana@Shop.com\", \"bob@shop.COM\", \"cy@mail.org\", \"ana@shop.com\"]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"  ana SILVA\", \"Bob king \", \"CY lopez\", \"ana silva\"], \"email\": [\"Ana@Shop.com\", \"bob@shop.COM\", \"cy@mail.org\", \"ana@shop.com\"]})\nnames = df[\"name\"].str.strip().str.title()\nprint(names.tolist())\nprint(df[\"name\"].nunique(), names.nunique())\n",
+      "hints": [
+        "Use the `.str` accessor on the column.",
+        "Chain `strip()` and `title()`.",
+        "`names = df[\"name\"].str.strip().str.title()`, then `names.tolist()` and the two `nunique()` values."
+      ],
+      "kind": "python",
+      "expected": "['Ana Silva', 'Bob King', 'Cy Lopez', 'Ana Silva']\n4 3"
+    },
+    {
+      "id": "g2",
+      "title": "Test and filter",
+      "prompt": "Print the list of emails (lower-cased) whose domain ends with `.com` (use `str.lower()` then `str.endswith`) on line 1 and the number of emails that contain `shop` regardless of case on line 2 (`str.contains(..., case=False)`).",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"  ana SILVA\", \"Bob king \", \"CY lopez\", \"ana silva\"], \"email\": [\"Ana@Shop.com\", \"bob@shop.COM\", \"cy@mail.org\", \"ana@shop.com\"]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"  ana SILVA\", \"Bob king \", \"CY lopez\", \"ana silva\"], \"email\": [\"Ana@Shop.com\", \"bob@shop.COM\", \"cy@mail.org\", \"ana@shop.com\"]})\nemails = df[\"email\"].str.lower()\nprint(emails[emails.str.endswith(\".com\")].tolist())\nprint(df[\"email\"].str.contains(\"shop\", case=False).sum())\n",
+      "hints": [
+        "Lower-case first so that `.COM` is also matched.",
+        "`endswith` and `contains` return masks; a mask filters a Series as on Day 72.",
+        "`emails[emails.str.endswith(\".com\")].tolist()` and `df[\"email\"].str.contains(\"shop\", case=False).sum()`."
+      ],
+      "kind": "python",
+      "expected": "['ana@shop.com', 'bob@shop.com', 'ana@shop.com']\n3"
+    },
+    {
+      "id": "g3",
+      "title": "Split an email",
+      "prompt": "Split the lower-cased emails at `@` with `expand=True`. Print the table of the two parts with `print(parts)`, then the list of domains (second part) on a new line.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"  ana SILVA\", \"Bob king \", \"CY lopez\", \"ana silva\"], \"email\": [\"Ana@Shop.com\", \"bob@shop.COM\", \"cy@mail.org\", \"ana@shop.com\"]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ndf = pd.DataFrame({\"name\": [\"  ana SILVA\", \"Bob king \", \"CY lopez\", \"ana silva\"], \"email\": [\"Ana@Shop.com\", \"bob@shop.COM\", \"cy@mail.org\", \"ana@shop.com\"]})\nparts = df[\"email\"].str.lower().str.split(\"@\", expand=True)\nprint(parts)\nprint(parts[1].tolist())\n",
+      "hints": [
+        "`split(sep, expand=True)` returns a DataFrame.",
+        "The parts are in columns 0 and 1.",
+        "`parts = df[\"email\"].str.lower().str.split(\"@\", expand=True)` then `parts[1].tolist()`."
+      ],
+      "kind": "python",
+      "expected": "     0         1\n0  ana  shop.com\n1  bob  shop.com\n2   cy  mail.org\n3  ana  shop.com\n['shop.com', 'shop.com', 'mail.org', 'shop.com']"
+    },
+    {
+      "id": "g4",
+      "title": "Extract a pattern",
+      "prompt": "From `codes`, extract the digits after `ORD-` as one column using `str.extract` with the pattern `ORD-(\\d+)`, convert them to numbers with `pd.to_numeric`, and print the list. Then print the number of codes that did not match.",
+      "starter": "import pandas as pd\n\ncodes = pd.Series([\"ORD-0042\", \"ORD-7\", \"INV-100\", \"ORD-310\"])\n",
+      "solution": "import pandas as pd\n\ncodes = pd.Series([\"ORD-0042\", \"ORD-7\", \"INV-100\", \"ORD-310\"])\nnum = codes.str.extract(r\"ORD-(\\d+)\")[0]\nprint(pd.to_numeric(num).tolist())\nprint(int(num.isna().sum()))\n",
+      "hints": [
+        "`extract` returns a DataFrame; column 0 is the first capture group.",
+        "Non-matching rows give `NaN`; `to_numeric` keeps `NaN` as it is.",
+        "`num = codes.str.extract(r\"ORD-(\\d+)\")[0]`, then `pd.to_numeric(num).tolist()` and `int(num.isna().sum())`."
+      ],
+      "kind": "python",
+      "expected": "[42.0, 7.0, nan, 310.0]\n1"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Clean a customer table",
+      "prompt": "Clean `raw` into `clean` without changing `raw`: strip each customer name, lower-case it, and replace double spaces by a single space (`str.replace(\"  \", \" \", regex=False)`), then title-case it; convert `spend` to numbers by removing `$` and `,` (regular expression `[$,]` with `regex=True`) and using `to_numeric(errors=\"coerce\")`. Print `clean`, then the sorted distinct customer names (missing excluded) as a list, then the total spend and the number of missing spend values.",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nraw = pd.DataFrame({\"customer\": [\" ana silva\", \"BOB KING\", \"Ana  Silva\", None, \"bob king \"],\n                    \"spend\": [\"$1,250.50\", \"$300\", \"n/a\", \"$45.25\", \"$1,000\"]})\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nraw = pd.DataFrame({\"customer\": [\" ana silva\", \"BOB KING\", \"Ana  Silva\", None, \"bob king \"],\n                    \"spend\": [\"$1,250.50\", \"$300\", \"n/a\", \"$45.25\", \"$1,000\"]})\nclean = raw.assign(\n    customer=raw[\"customer\"].str.strip().str.lower().str.replace(\"  \", \" \", regex=False).str.title(),\n    spend=pd.to_numeric(raw[\"spend\"].str.replace(r\"[$,]\", \"\", regex=True), errors=\"coerce\"),\n)\nprint(clean)\nprint(sorted(clean[\"customer\"].dropna().unique().tolist()))\nprint(clean[\"spend\"].sum(), int(clean[\"spend\"].isna().sum()))\n",
+      "kind": "python",
+      "expected": "    customer    spend\n0  Ana Silva  1250.50\n1   Bob King   300.00\n2  Ana Silva      NaN\n3       None    45.25\n4   Bob King  1000.00\n['Ana Silva', 'Bob King']\n2595.75 1"
+    },
+    {
+      "id": "i2",
+      "title": "Parse a log column",
+      "prompt": "The `log` column holds entries such as `2024-03-05 ERROR disk full`. Without dates (those are for a later day), use `str.split(\" \", n=2, expand=True)` to build a table with the columns `day`, `level` and `message`. Print that table, then the number of ERROR entries (a mask on `level`), then the list of messages of the ERROR entries, then the number of entries whose message contains `disk` (any case).",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nlog = pd.Series([\"2024-03-05 ERROR disk full\", \"2024-03-05 INFO started\", \"2024-03-06 ERROR Disk read failed\", \"2024-03-07 WARN slow response\"])\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\nlog = pd.Series([\"2024-03-05 ERROR disk full\", \"2024-03-05 INFO started\", \"2024-03-06 ERROR Disk read failed\", \"2024-03-07 WARN slow response\"])\nparsed = log.str.split(\" \", n=2, expand=True)\nparsed.columns = [\"day\", \"level\", \"message\"]\nprint(parsed)\nerrors = parsed[\"level\"] == \"ERROR\"\nprint(errors.sum())\nprint(parsed.loc[errors, \"message\"].tolist())\nprint(parsed[\"message\"].str.contains(\"disk\", case=False).sum())\n",
+      "kind": "python",
+      "expected": "          day  level           message\n0  2024-03-05  ERROR         disk full\n1  2024-03-05   INFO           started\n2  2024-03-06  ERROR  Disk read failed\n3  2024-03-07   WARN     slow response\n2\n['disk full', 'Disk read failed']\n2"
+    },
+    {
+      "id": "i3",
+      "title": "Validate and extract codes",
+      "required": false,
+      "prompt": "The codes below should look like `AB-1234-XY` (two capital letters, four digits, two capital letters). Use `str.extract` with named groups `prefix`, `num` and `suffix` to build a table, print it, print how many codes are invalid (rows where `num` is missing) and print the sum of the valid numbers as an integer (convert with `to_numeric` and use `sum`).",
+      "starter": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ncodes = pd.Series([\"AB-1234-XY\", \"CD-0042-ZZ\", \"bad\", \"EF-99-QQ\", \"GH-7000-KL\"])\n",
+      "solution": "import pandas as pd\n\npd.set_option(\"display.width\", 200)\npd.set_option(\"display.max_columns\", 20)\n\ncodes = pd.Series([\"AB-1234-XY\", \"CD-0042-ZZ\", \"bad\", \"EF-99-QQ\", \"GH-7000-KL\"])\nout = codes.str.extract(r\"(?P<prefix>[A-Z]{2})-(?P<num>\\d{4})-(?P<suffix>[A-Z]{2})\")\nprint(out)\nprint(int(out[\"num\"].isna().sum()))\nprint(int(pd.to_numeric(out[\"num\"]).sum()))\n",
+      "kind": "python",
+      "expected": "  prefix   num suffix\n0     AB  1234     XY\n1     CD  0042     ZZ\n2    NaN   NaN    NaN\n3    NaN   NaN    NaN\n4     GH  7000     KL\n2\n8276"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `s.str.strip()` do to the Series `s`?",
+      "options": [
+        "Strips the spaces in place",
+        "Returns a new Series; `s` is unchanged unless you store the result",
+        "Strips only the first value",
+        "Raises an error on a Series"
+      ],
+      "answer": 1,
+      "explanation": "String methods in the accessor return a new Series. The result must be stored for the change to last."
+    },
+    {
+      "id": "c2",
+      "question": "What does `pd.Series([\"Ab\", None]).str.lower().tolist()` return?",
+      "options": [
+        "['ab', None]",
+        "['ab', 'none']",
+        "An AttributeError",
+        "['ab']"
+      ],
+      "answer": 0,
+      "explanation": "Missing values stay missing instead of raising an error or becoming the text none."
+    },
+    {
+      "id": "c3",
+      "question": "Why use `na=False` in `s.str.contains(\"x\", na=False)` before using it as a filter?",
+      "options": [
+        "It makes the search faster",
+        "A mask with missing values cannot be used for filtering; `na=False` turns gaps into False",
+        "It ignores case",
+        "It searches the index"
+      ],
+      "answer": 1,
+      "explanation": "For missing cells `contains` returns a missing value, and a mask with missing values raises an error. `na=False` makes those rows simply not match."
+    },
+    {
+      "id": "c4",
+      "question": "What does `pd.Series([\"a b\", \"c d\"]).str.split(\" \").str[1].tolist()` return?",
+      "options": [
+        "['a', 'c']",
+        "['b', 'd']",
+        "[['a', 'b'], ['c', 'd']]",
+        "['b']"
+      ],
+      "answer": 1,
+      "explanation": "`split` gives a list per row and `.str[1]` picks item 1 of each list, the second word."
+    },
+    {
+      "id": "c5",
+      "question": "What does `pd.Series([\"SKU-12\", \"x\"]).str.extract(r\"SKU-(\\d+)\")[0].tolist()` return?",
+      "options": [
+        "['12', 'x']",
+        "['12', nan]",
+        "[12, nan]",
+        "['SKU-12', nan]"
+      ],
+      "answer": 1,
+      "explanation": "`extract` returns only the capture group, as text, and `NaN` for rows that do not match. The digits are still text until converted with `to_numeric`."
+    },
+    {
+      "id": "c6",
+      "question": "What does `\"ana\" in df[\"name\"]` test?",
+      "options": [
+        "Whether any name contains ana",
+        "Whether `ana` is one of the index labels",
+        "Whether the column is text",
+        "Whether all names start with ana"
+      ],
+      "answer": 1,
+      "explanation": "`in` on a Series looks in the index, like a dictionary. Use `df[\"name\"].str.contains(\"ana\").any()` to test the text."
+    }
+  ]
+}

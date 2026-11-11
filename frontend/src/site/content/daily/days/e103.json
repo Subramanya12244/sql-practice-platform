@@ -1,0 +1,186 @@
+{
+  "id": "e103",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-api-integration",
+      "python-exceptions"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Build the parameters",
+      "kind": "python",
+      "prompt": "Write `page_params(page, page_size)` that returns the dictionary `{\"page\": page, \"page_size\": page_size}` and raises `ValueError` with the message `page_size must be between 1 and 100` when `page_size` is outside that range. Print the dictionary for `(2, 50)`, then the error message for `(1, 500)`. Expected output: `{'page': 2, 'page_size': 50}` then `page_size must be between 1 and 100`.",
+      "starter": "def page_params(page, page_size):\n    return {}\n\nprint(page_params(2, 50))\ntry:\n    page_params(1, 500)\nexcept ValueError as err:\n    print(err)\n",
+      "solution": "def page_params(page, page_size):\n    if not 1 <= page_size <= 100:\n        raise ValueError(\"page_size must be between 1 and 100\")\n    return {\"page\": page, \"page_size\": page_size}\n\nprint(page_params(2, 50))\ntry:\n    page_params(1, 500)\nexcept ValueError as err:\n    print(err)\n",
+      "expected": "{'page': 2, 'page_size': 50}\npage_size must be between 1 and 100",
+      "hints": [
+        "Validate before building the dictionary.",
+        "A chained comparison `1 <= x <= 100` tests a range.",
+        "`raise ValueError(\"page_size must be between 1 and 100\")` when the test fails."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Write the client method",
+      "kind": "python",
+      "prompt": "Complete `OrdersClient.get_page(page, page_size=10)`: call `self.session.get(\"/orders\", params=..., timeout=self.timeout)` with the keys `page` and `page_size`, call `raise_for_status()` on the response and return the list under the key `data`. Print the `order_id` values of page 2 (the session has the right key), then print the error text raised for a session without the key. Expected output: `[11, 12, 13, 14, 15, 16, 17, 18, 19, 20]` then `HTTP 401`.",
+      "starter": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\n    def raise_for_status(self):\n        if self.status_code >= 400:\n            raise RuntimeError(f\"HTTP {self.status_code}\")\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100} for i in range(1, 31)]\n\nclass FakeSession:\n    def __init__(self, delays=None):\n        self.headers = {}\n        self.delays = delays or {}\n\n    def get(self, url, params=None, headers=None, timeout=None):\n        params = params or {}\n        page = int(params.get(\"page\", 1))\n        if timeout is not None and self.delays.get(page, 0) > timeout:\n            raise TimeoutError(f\"page {page} timed out\")\n        size = int(params.get(\"page_size\", 10))\n        if {**self.headers, **(headers or {})}.get(\"X-Api-Key\") != \"k\":\n            return Response(401, {\"error\": \"invalid api key\"})\n        return Response(200, {\"data\": ORDERS[(page - 1) * size:page * size], \"page\": page})\n\nclass OrdersClient:\n    def __init__(self, session, timeout=5):\n        self.session, self.timeout = session, timeout\n\n    def get_page(self, page, page_size=10):\n        pass\n\nsession = FakeSession()\nsession.headers[\"X-Api-Key\"] = \"k\"\nprint([o[\"order_id\"] for o in OrdersClient(session).get_page(2)])\ntry:\n    OrdersClient(FakeSession()).get_page(1)\nexcept RuntimeError as err:\n    print(err)\n",
+      "solution": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\n    def raise_for_status(self):\n        if self.status_code >= 400:\n            raise RuntimeError(f\"HTTP {self.status_code}\")\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100} for i in range(1, 31)]\n\nclass FakeSession:\n    def __init__(self, delays=None):\n        self.headers = {}\n        self.delays = delays or {}\n\n    def get(self, url, params=None, headers=None, timeout=None):\n        params = params or {}\n        page = int(params.get(\"page\", 1))\n        if timeout is not None and self.delays.get(page, 0) > timeout:\n            raise TimeoutError(f\"page {page} timed out\")\n        size = int(params.get(\"page_size\", 10))\n        if {**self.headers, **(headers or {})}.get(\"X-Api-Key\") != \"k\":\n            return Response(401, {\"error\": \"invalid api key\"})\n        return Response(200, {\"data\": ORDERS[(page - 1) * size:page * size], \"page\": page})\n\nclass OrdersClient:\n    def __init__(self, session, timeout=5):\n        self.session, self.timeout = session, timeout\n\n    def get_page(self, page, page_size=10):\n        response = self.session.get(\"/orders\", params={\"page\": page, \"page_size\": page_size}, timeout=self.timeout)\n        response.raise_for_status()\n        return response.json()[\"data\"]\n\nsession = FakeSession()\nsession.headers[\"X-Api-Key\"] = \"k\"\nprint([o[\"order_id\"] for o in OrdersClient(session).get_page(2)])\ntry:\n    OrdersClient(FakeSession()).get_page(1)\nexcept RuntimeError as err:\n    print(err)\n",
+      "expected": "[11, 12, 13, 14, 15, 16, 17, 18, 19, 20]\nHTTP 401",
+      "hints": [
+        "The method makes one call and returns the parsed body's `data` list.",
+        "Pass `params={\"page\": page, \"page_size\": page_size}` and `timeout=self.timeout`.",
+        "`response.raise_for_status()` then `return response.json()[\"data\"]`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Report a timed-out page",
+      "kind": "python",
+      "prompt": "Using the same stand-in, `FakeSession({2: 30})` makes page 2 take 30 seconds. Write `safe_page(client, page)` that returns the number of orders on the page, or the text `page N timed out` (N is the page number) when `TimeoutError` is raised. Print the results for pages 1, 2, 3 with a client whose timeout is 5. Expected output: `10`, `page 2 timed out`, `10`.",
+      "starter": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\n    def raise_for_status(self):\n        if self.status_code >= 400:\n            raise RuntimeError(f\"HTTP {self.status_code}\")\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100} for i in range(1, 31)]\n\nclass FakeSession:\n    def __init__(self, delays=None):\n        self.headers = {}\n        self.delays = delays or {}\n\n    def get(self, url, params=None, headers=None, timeout=None):\n        params = params or {}\n        page = int(params.get(\"page\", 1))\n        if timeout is not None and self.delays.get(page, 0) > timeout:\n            raise TimeoutError(f\"page {page} timed out\")\n        size = int(params.get(\"page_size\", 10))\n        if {**self.headers, **(headers or {})}.get(\"X-Api-Key\") != \"k\":\n            return Response(401, {\"error\": \"invalid api key\"})\n        return Response(200, {\"data\": ORDERS[(page - 1) * size:page * size], \"page\": page})\n\nclass OrdersClient:\n    def __init__(self, session, timeout=5):\n        self.session, self.timeout = session, timeout\n\n    def get_page(self, page, page_size=10):\n        response = self.session.get(\"/orders\", params={\"page\": page, \"page_size\": page_size}, timeout=self.timeout)\n        response.raise_for_status()\n        return response.json()[\"data\"]\n\ndef safe_page(client, page):\n    return client.get_page(page)\n\nsession = FakeSession({2: 30})\nsession.headers[\"X-Api-Key\"] = \"k\"\nclient = OrdersClient(session, timeout=5)\nfor n in (1, 2, 3):\n    print(safe_page(client, n))\n",
+      "solution": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\n    def raise_for_status(self):\n        if self.status_code >= 400:\n            raise RuntimeError(f\"HTTP {self.status_code}\")\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100} for i in range(1, 31)]\n\nclass FakeSession:\n    def __init__(self, delays=None):\n        self.headers = {}\n        self.delays = delays or {}\n\n    def get(self, url, params=None, headers=None, timeout=None):\n        params = params or {}\n        page = int(params.get(\"page\", 1))\n        if timeout is not None and self.delays.get(page, 0) > timeout:\n            raise TimeoutError(f\"page {page} timed out\")\n        size = int(params.get(\"page_size\", 10))\n        if {**self.headers, **(headers or {})}.get(\"X-Api-Key\") != \"k\":\n            return Response(401, {\"error\": \"invalid api key\"})\n        return Response(200, {\"data\": ORDERS[(page - 1) * size:page * size], \"page\": page})\n\nclass OrdersClient:\n    def __init__(self, session, timeout=5):\n        self.session, self.timeout = session, timeout\n\n    def get_page(self, page, page_size=10):\n        response = self.session.get(\"/orders\", params={\"page\": page, \"page_size\": page_size}, timeout=self.timeout)\n        response.raise_for_status()\n        return response.json()[\"data\"]\n\ndef safe_page(client, page):\n    try:\n        return len(client.get_page(page))\n    except TimeoutError:\n        return f\"page {page} timed out\"\n\nsession = FakeSession({2: 30})\nsession.headers[\"X-Api-Key\"] = \"k\"\nclient = OrdersClient(session, timeout=5)\nfor n in (1, 2, 3):\n    print(safe_page(client, n))\n",
+      "expected": "10\npage 2 timed out\n10",
+      "hints": [
+        "The failure is an exception raised by the call, so use `try` and `except`.",
+        "Catch `TimeoutError` only, so other bugs stay visible.",
+        "Return `len(client.get_page(page))` in `try` and the message in `except`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Merge session and call headers",
+      "kind": "python",
+      "prompt": "Write `merged_headers(session_headers, call_headers)` that returns a new dictionary with the session headers overridden by the call headers (call wins), without changing either argument. Print `sorted(...items())` of the result for `{\"X-Api-Key\": \"a\", \"Accept\": \"application/json\"}` and `{\"Accept\": \"text/csv\"}`. Expected output: `[('Accept', 'text/csv'), ('X-Api-Key', 'a')]`.",
+      "starter": "def merged_headers(session_headers, call_headers):\n    return session_headers\n\nprint(sorted(merged_headers({\"X-Api-Key\": \"a\", \"Accept\": \"application/json\"}, {\"Accept\": \"text/csv\"}).items()))\n",
+      "solution": "def merged_headers(session_headers, call_headers):\n    return {**session_headers, **call_headers}\n\nprint(sorted(merged_headers({\"X-Api-Key\": \"a\", \"Accept\": \"application/json\"}, {\"Accept\": \"text/csv\"}).items()))\n",
+      "expected": "[('Accept', 'text/csv'), ('X-Api-Key', 'a')]",
+      "hints": [
+        "The later dictionary in a merge wins on a repeated key.",
+        "Build a new dictionary instead of updating one of the arguments.",
+        "`{**session_headers, **call_headers}`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Fetch some pages, report failures",
+      "kind": "python",
+      "prompt": "Using the stand-in (page 2 takes 30 seconds, timeout 5) and the completed `OrdersClient`, write `fetch_pages(client, pages)` that returns a pair: the list of all `order_id` values from the pages that worked, in page order, and the sorted list of page numbers that timed out. Call it for pages `[1, 2, 3]` and print the number of ids, the first and last id, and the failed pages as `30 1 30 [2]`-style text: `<count> <first> <last> <failed list>`. Expected output: `20 1 30 [2]`.",
+      "starter": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\n    def raise_for_status(self):\n        if self.status_code >= 400:\n            raise RuntimeError(f\"HTTP {self.status_code}\")\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100} for i in range(1, 31)]\n\nclass FakeSession:\n    def __init__(self, delays=None):\n        self.headers = {}\n        self.delays = delays or {}\n\n    def get(self, url, params=None, headers=None, timeout=None):\n        params = params or {}\n        page = int(params.get(\"page\", 1))\n        if timeout is not None and self.delays.get(page, 0) > timeout:\n            raise TimeoutError(f\"page {page} timed out\")\n        size = int(params.get(\"page_size\", 10))\n        if {**self.headers, **(headers or {})}.get(\"X-Api-Key\") != \"k\":\n            return Response(401, {\"error\": \"invalid api key\"})\n        return Response(200, {\"data\": ORDERS[(page - 1) * size:page * size], \"page\": page})\n\nclass OrdersClient:\n    def __init__(self, session, timeout=5):\n        self.session, self.timeout = session, timeout\n\n    def get_page(self, page, page_size=10):\n        response = self.session.get(\"/orders\", params={\"page\": page, \"page_size\": page_size}, timeout=self.timeout)\n        response.raise_for_status()\n        return response.json()[\"data\"]\n\ndef fetch_pages(client, pages):\n    return [], []\n\nsession = FakeSession({2: 30})\nsession.headers[\"X-Api-Key\"] = \"k\"\nids, failed = fetch_pages(OrdersClient(session, timeout=5), [1, 2, 3])\nprint(len(ids), ids[0], ids[-1], failed)\n",
+      "solution": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\n    def raise_for_status(self):\n        if self.status_code >= 400:\n            raise RuntimeError(f\"HTTP {self.status_code}\")\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100} for i in range(1, 31)]\n\nclass FakeSession:\n    def __init__(self, delays=None):\n        self.headers = {}\n        self.delays = delays or {}\n\n    def get(self, url, params=None, headers=None, timeout=None):\n        params = params or {}\n        page = int(params.get(\"page\", 1))\n        if timeout is not None and self.delays.get(page, 0) > timeout:\n            raise TimeoutError(f\"page {page} timed out\")\n        size = int(params.get(\"page_size\", 10))\n        if {**self.headers, **(headers or {})}.get(\"X-Api-Key\") != \"k\":\n            return Response(401, {\"error\": \"invalid api key\"})\n        return Response(200, {\"data\": ORDERS[(page - 1) * size:page * size], \"page\": page})\n\nclass OrdersClient:\n    def __init__(self, session, timeout=5):\n        self.session, self.timeout = session, timeout\n\n    def get_page(self, page, page_size=10):\n        response = self.session.get(\"/orders\", params={\"page\": page, \"page_size\": page_size}, timeout=self.timeout)\n        response.raise_for_status()\n        return response.json()[\"data\"]\n\ndef fetch_pages(client, pages):\n    ids, failed = [], []\n    for page in pages:\n        try:\n            ids.extend(o[\"order_id\"] for o in client.get_page(page))\n        except TimeoutError:\n            failed.append(page)\n    return ids, sorted(failed)\n\nsession = FakeSession({2: 30})\nsession.headers[\"X-Api-Key\"] = \"k\"\nids, failed = fetch_pages(OrdersClient(session, timeout=5), [1, 2, 3])\nprint(len(ids), ids[0], ids[-1], failed)\n",
+      "expected": "20 1 30 [2]"
+    },
+    {
+      "id": "i2",
+      "title": "A recording session",
+      "kind": "python",
+      "prompt": "Write `RecordingSession` that wraps another session (its `get` has the same signature), forwards every call, and appends one log line per call to `self.log` in the form `GET /orders page=<page> -> <status>` or `GET /orders page=<page> -> timeout` when the wrapped call raises `TimeoutError` (re-raise it afterwards). Run the client for pages 1, 2 (slow, timeout 5) and 3 with try/except, and print the log lines. Expected output: three lines ending in `200`, `timeout`, `200`.",
+      "starter": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\n    def raise_for_status(self):\n        if self.status_code >= 400:\n            raise RuntimeError(f\"HTTP {self.status_code}\")\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100} for i in range(1, 31)]\n\nclass FakeSession:\n    def __init__(self, delays=None):\n        self.headers = {}\n        self.delays = delays or {}\n\n    def get(self, url, params=None, headers=None, timeout=None):\n        params = params or {}\n        page = int(params.get(\"page\", 1))\n        if timeout is not None and self.delays.get(page, 0) > timeout:\n            raise TimeoutError(f\"page {page} timed out\")\n        size = int(params.get(\"page_size\", 10))\n        if {**self.headers, **(headers or {})}.get(\"X-Api-Key\") != \"k\":\n            return Response(401, {\"error\": \"invalid api key\"})\n        return Response(200, {\"data\": ORDERS[(page - 1) * size:page * size], \"page\": page})\n\nclass OrdersClient:\n    def __init__(self, session, timeout=5):\n        self.session, self.timeout = session, timeout\n\n    def get_page(self, page, page_size=10):\n        response = self.session.get(\"/orders\", params={\"page\": page, \"page_size\": page_size}, timeout=self.timeout)\n        response.raise_for_status()\n        return response.json()[\"data\"]\n\nclass RecordingSession:\n    pass\n\ninner = FakeSession({2: 30})\ninner.headers[\"X-Api-Key\"] = \"k\"\nrec = RecordingSession()\nclient = OrdersClient(rec, timeout=5)\nfor n in (1, 2, 3):\n    try:\n        client.get_page(n)\n    except TimeoutError:\n        pass\nprint(\"\\n\".join(rec.log))\n",
+      "solution": "import json\n\nclass Response:\n    def __init__(self, status_code, body=None):\n        self.status_code = status_code\n        self._body = body\n\n    def json(self):\n        return json.loads(json.dumps(self._body))\n\n    def raise_for_status(self):\n        if self.status_code >= 400:\n            raise RuntimeError(f\"HTTP {self.status_code}\")\n\nORDERS = [{\"order_id\": i, \"amount_cents\": i * 100} for i in range(1, 31)]\n\nclass FakeSession:\n    def __init__(self, delays=None):\n        self.headers = {}\n        self.delays = delays or {}\n\n    def get(self, url, params=None, headers=None, timeout=None):\n        params = params or {}\n        page = int(params.get(\"page\", 1))\n        if timeout is not None and self.delays.get(page, 0) > timeout:\n            raise TimeoutError(f\"page {page} timed out\")\n        size = int(params.get(\"page_size\", 10))\n        if {**self.headers, **(headers or {})}.get(\"X-Api-Key\") != \"k\":\n            return Response(401, {\"error\": \"invalid api key\"})\n        return Response(200, {\"data\": ORDERS[(page - 1) * size:page * size], \"page\": page})\n\nclass OrdersClient:\n    def __init__(self, session, timeout=5):\n        self.session, self.timeout = session, timeout\n\n    def get_page(self, page, page_size=10):\n        response = self.session.get(\"/orders\", params={\"page\": page, \"page_size\": page_size}, timeout=self.timeout)\n        response.raise_for_status()\n        return response.json()[\"data\"]\n\nclass RecordingSession:\n    def __init__(self, inner):\n        self.inner, self.log = inner, []\n\n    def get(self, url, params=None, headers=None, timeout=None):\n        page = (params or {}).get(\"page\")\n        try:\n            response = self.inner.get(url, params=params, headers=headers, timeout=timeout)\n        except TimeoutError:\n            self.log.append(f\"GET {url} page={page} -> timeout\")\n            raise\n        self.log.append(f\"GET {url} page={page} -> {response.status_code}\")\n        return response\n\ninner = FakeSession({2: 30})\ninner.headers[\"X-Api-Key\"] = \"k\"\nrec = RecordingSession(inner)\nclient = OrdersClient(rec, timeout=5)\nfor n in (1, 2, 3):\n    try:\n        client.get_page(n)\n    except TimeoutError:\n        pass\nprint(\"\\n\".join(rec.log))\n",
+      "expected": "GET /orders page=1 -> 200\nGET /orders page=2 -> timeout\nGET /orders page=3 -> 200"
+    },
+    {
+      "id": "i3",
+      "title": "Choose timeouts",
+      "kind": "written",
+      "prompt": "Your job reads 400 pages from an endpoint that normally answers in 0.3 seconds and occasionally in 8 seconds. Propose connect and read timeouts, say what happens at the boundary values, and explain what you do in the code when a timeout fires.",
+      "starter": "Write your reasoning here.",
+      "solution": "A connect timeout of about 3 seconds is enough because connecting to a healthy host takes milliseconds, and a longer wait signals an outage. A read timeout of 20 to 30 seconds covers the occasional 8-second answer with headroom, while still failing a stuck call quickly. Because the timeout is the wait between bytes, a slow server that keeps sending data can take longer in total; if the total time matters the job needs its own deadline. When the timeout fires, `requests` raises `ReadTimeout` or `ConnectTimeout` (both `Timeout`); the client catches it, logs the page number and URL, and hands the page to the retry logic (Day 107), which may try again with a wait. A timeout of 5 seconds would turn the occasional 8-second answers into failures.",
+      "rubric": [
+        "Gives separate connect and read values with a reason",
+        "Notes that the timeout is not a total cap",
+        "Says what the code does when it fires: catch, log, retry",
+        "Relates the numbers to the 0.3 and 8 second behaviour"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What happens with `requests.get(url)` (no timeout) when the server accepts the connection but never answers?",
+      "options": [
+        "It raises `Timeout` after 30 seconds",
+        "It waits indefinitely",
+        "It returns status 408",
+        "It returns `None`"
+      ],
+      "answer": 1,
+      "explanation": "The default is no timeout at all. Setting `timeout` is the only protection, so every call needs one, or a session wrapper that sets it."
+    },
+    {
+      "id": "c2",
+      "question": "What does `timeout=10` limit?",
+      "options": [
+        "The total duration of the call",
+        "The connection phase and then the wait between bytes of the response, each separately",
+        "Only the connection phase",
+        "The size of the response"
+      ],
+      "answer": 1,
+      "explanation": "The single number is used for both the connect timeout and the read timeout. A server that keeps sending a byte now and then can exceed ten seconds in total without any timeout."
+    },
+    {
+      "id": "c3",
+      "question": "What does the client receive for a 404 from `session.get(url)`?",
+      "options": [
+        "An `HTTPError` raised by `get`",
+        "A response object with `status_code` 404",
+        "`None`",
+        "A `ConnectionError`"
+      ],
+      "answer": 1,
+      "explanation": "`get` returns a response for any status. `raise_for_status()` turns 4xx and 5xx statuses into `HTTPError`, and it is the code's job to call it."
+    },
+    {
+      "id": "c4",
+      "question": "What does `requests.Request('GET', url, params={'status': ['paid', 'refunded'], 'currency': None}).prepare().url` end with?",
+      "options": [
+        "`?status=%5B%27paid%27...`",
+        "`?status=paid&status=refunded`",
+        "`?status=paid,refunded&currency=None`",
+        "`?currency=None`"
+      ],
+      "answer": 1,
+      "explanation": "A list repeats the key and a `None` value is dropped. Special characters would be percent-encoded."
+    },
+    {
+      "id": "c5",
+      "question": "Why pass a session into a client class instead of calling `requests.get` inside it?",
+      "options": [
+        "Sessions are faster than anything else",
+        "A test can pass a stand-in session with canned responses, with no network",
+        "`requests.get` cannot take a timeout",
+        "Sessions avoid status codes"
+      ],
+      "answer": 1,
+      "explanation": "Injecting the session lets the same logic run against a real session in production and a fake in tests. Connection reuse is a bonus, not the reason this design is used for testing."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "requests"
+    ],
+    "note": "Examples 2 and 4 use the requests library (and, in example 4, a throwaway http.server on 127.0.0.1 and a local socket that never answers), so they run locally after `pip install requests` and are shown read-only in the browser. No real service is contacted. Browser examples and graded exercises use a FakeSession stand-in with the same get(url, params=, headers=, timeout=) call shape as requests.Session, and raise the built-in TimeoutError where requests would raise a Timeout exception."
+  }
+}

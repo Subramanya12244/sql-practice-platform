@@ -21,9 +21,19 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/learn", label: "Learning dashboard", desc: "Goals, streak, what to do next" },
       { to: "/progress", label: "Progress", desc: "Solved questions and activity" },
       { to: "/analytics", label: "Performance analytics", desc: "Solve time, topic strength, activity" },
+      { to: "/mistakes", label: "Mistake notebook", desc: "What went wrong, by topic, and if it is fixed" },
       { to: "/achievements", label: "Achievements & missions", desc: "XP, level, streak, daily missions" },
       { to: "/history", label: "History & revision", desc: "Submissions, mistakes, saved solutions" },
       { to: "/review", label: "Revision queue", desc: "Spaced review of what you solved" },
+    ],
+  },
+  {
+    id: "daily",
+    label: "Daily Learning",
+    short: "Daily",
+    items: [
+      { to: "/daily", label: "Programme dashboard", desc: "180-day plan, today's lesson, progress and calendar" },
+      { to: "/daily/day/1", label: "Start at Day 1", desc: "Python from scratch" },
     ],
   },
   {
@@ -60,6 +70,11 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Projects",
     items: [
       { to: "/projects-lab", label: "Projects lab", desc: "12 guided data projects" },
+      { to: "/etl-builder", label: "ETL pipeline builder", desc: "Source to load, with previews and logs" },
+      { to: "/dag-simulator", label: "Orchestration simulator", desc: "DAGs, retries and failures, Airflow concepts" },
+      { to: "/schema-designer", label: "Database design playground", desc: "Keys, relationships, normalization, indexes" },
+      { to: "/dq-exercises", label: "Data quality exercises", desc: "Five dimensions, before and after score" },
+      { to: "/de-scenarios", label: "Data engineering scenarios", desc: "Upserts, late data, retries, reconciliation" },
       { to: "/data-quality", label: "Data quality lab", desc: "Rules, runs, reports" },
       { to: "/data-generator", label: "Dataset generator" },
       { to: "/schema", label: "Northwind schema" },

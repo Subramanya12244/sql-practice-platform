@@ -1,0 +1,191 @@
+{
+  "id": "a091",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "null-handling"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "clean-contact-fields"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A calculated column and its total",
+      "kind": "python",
+      "prompt": "The Excel Table `Orders` has columns `Qty` and `UnitPrice`. In pandas, add a column `Amount` equal to `Qty * UnitPrice` (the replica of `=[@Qty]*[@UnitPrice]`), then print `Amount` as a list, and on the next line print its sum (the replica of `=SUM(Orders[Amount])`).",
+      "starter": "import pandas as pd\n\norders = pd.DataFrame({\n    \"OrderID\": [1, 2, 3, 4, 5],\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"South\"],\n    \"Qty\": [2, 6, 1, 4, 3],\n    \"UnitPrice\": [10.0, 4.5, 30.0, 7.25, 12.0],\n})\n\n# add the Amount column, then print the list and the sum\n",
+      "solution": "import pandas as pd\n\norders = pd.DataFrame({\n    \"OrderID\": [1, 2, 3, 4, 5],\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"South\"],\n    \"Qty\": [2, 6, 1, 4, 3],\n    \"UnitPrice\": [10.0, 4.5, 30.0, 7.25, 12.0],\n})\n\norders[\"Amount\"] = orders[\"Qty\"] * orders[\"UnitPrice\"]\nprint(orders[\"Amount\"].tolist())\nprint(orders[\"Amount\"].sum())\n",
+      "hints": [
+        "A pandas column calculation works on every row at once; there is no fill-down step.",
+        "Assign to a new column name: orders[\"Amount\"] = ...",
+        "orders[\"Amount\"] = orders[\"Qty\"] * orders[\"UnitPrice\"], then print(orders[\"Amount\"].tolist()) and print(orders[\"Amount\"].sum())."
+      ],
+      "expected": "[20.0, 27.0, 30.0, 29.0, 36.0]\n142.0"
+    },
+    {
+      "id": "g2",
+      "title": "Total of the visible rows",
+      "kind": "python",
+      "prompt": "A filter on the Region column leaves only `South`. `SUBTOTAL(109,Orders[Amount])` would then show the South total. Compute `Amount` as before and print the South total on one line, then the all-rows total on the next line (what plain `SUM` shows).",
+      "starter": "import pandas as pd\n\norders = pd.DataFrame({\n    \"OrderID\": [1, 2, 3, 4, 5],\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"South\"],\n    \"Qty\": [2, 6, 1, 4, 3],\n    \"UnitPrice\": [10.0, 4.5, 30.0, 7.25, 12.0],\n})\norders[\"Amount\"] = orders[\"Qty\"] * orders[\"UnitPrice\"]\n# print the South total, then the total of all rows\n",
+      "solution": "import pandas as pd\n\norders = pd.DataFrame({\n    \"OrderID\": [1, 2, 3, 4, 5],\n    \"Region\": [\"North\", \"South\", \"North\", \"East\", \"South\"],\n    \"Qty\": [2, 6, 1, 4, 3],\n    \"UnitPrice\": [10.0, 4.5, 30.0, 7.25, 12.0],\n})\norders[\"Amount\"] = orders[\"Qty\"] * orders[\"UnitPrice\"]\nprint(orders.loc[orders[\"Region\"] == \"South\", \"Amount\"].sum())\nprint(orders[\"Amount\"].sum())\n",
+      "hints": [
+        "A filter keeps only the rows that match a condition; in pandas that is a boolean mask.",
+        "orders[\"Region\"] == \"South\" gives True or False per row; use it inside .loc.",
+        "orders.loc[orders[\"Region\"] == \"South\", \"Amount\"].sum() is the filtered total."
+      ],
+      "expected": "63.0\n142.0"
+    },
+    {
+      "id": "g3",
+      "title": "Numbers stored as text",
+      "kind": "python",
+      "prompt": "A Qty column arrives with values `3`, `\"5\"` (text) and `2`. Excel's `SUM` ignores the text value. Print first the sum that Excel would show (only real numbers), then the sum after converting every value with `pd.to_numeric`. Print the two numbers on two lines; use `.astype(int)` after the conversion so both print as whole numbers.",
+      "starter": "import pandas as pd\n\nqty = pd.Series([3, \"5\", 2], dtype=object)\n# print the sum of real numbers only, then the sum after conversion\n",
+      "solution": "import pandas as pd\n\nqty = pd.Series([3, \"5\", 2], dtype=object)\nreal = qty[qty.map(lambda v: isinstance(v, int))]\nprint(real.sum())\nprint(pd.to_numeric(qty).astype(int).sum())\n",
+      "hints": [
+        "Excel's SUM skips text, so you first need only the values that are really numbers.",
+        "qty.map(lambda v: isinstance(v, int)) gives a mask of the real numbers.",
+        "Use that mask to select, sum it, then print pd.to_numeric(qty).astype(int).sum()."
+      ],
+      "expected": "5\n10"
+    },
+    {
+      "id": "g4",
+      "title": "Table formulas and a name (written)",
+      "kind": "written",
+      "prompt": "In Excel, a Table named `Orders` has columns `Qty`, `UnitPrice` and `Region`. Write, as formula text, (a) the calculated column `Amount` for each row, (b) a total of the whole Amount column, and (c) the formula for a `Net` column that applies a named cell `TaxRate` on top of `Amount`. Then list the steps to create the name `TaxRate`.",
+      "starter": "(a) ...\n(b) ...\n(c) ...\nSteps to create TaxRate: ...",
+      "solution": "(a) `=[@Qty]*[@UnitPrice]` in the Amount column.\n\n(b) `=SUM(Orders[Amount])` anywhere outside the Table, or a Total Row set to Sum, which uses `SUBTOTAL(109,[Amount])` and follows filters.\n\n(c) `=[@Amount]*(1+TaxRate)`.\n\nSteps for the name: type the rate (for example 0.2) in a spare cell, select that cell, click the Name Box left of the formula bar, type `TaxRate`, press Enter. Check it in Formulas, Name Manager. The name has no spaces and does not look like a cell address.",
+      "hints": [
+        "Inside a Table, [@Column] means the value in the current row.",
+        "A whole column is written Orders[Amount].",
+        "Names are created in the Name Box; use =[@Amount]*(1+TaxRate)."
+      ],
+      "rubric": [
+        "Uses structured references ([@Qty], Orders[Amount]) rather than cell addresses.",
+        "Part (b) refers to the whole column and works when rows are added.",
+        "The tax formula uses the name TaxRate, not a cell address.",
+        "The naming steps mention the Name Box or Name Manager and a valid name."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Clean a messy block, then total",
+      "kind": "python",
+      "prompt": "The block below has text quantities, inconsistent region labels (case and spaces) and an all-blank row. Replicate the clean-up: drop the all-blank row, strip and title-case `Region`, convert `Qty` to integers, add `Amount = Qty * UnitPrice`. Then print the sum of `Amount` per region as two columns using `to_string()` on the grouped Series (sorted by region, the default).",
+      "starter": "import pandas as pd\n\nraw = pd.DataFrame({\n    \"Region\": [\"North\", \"north \", \" South\", None, \"SOUTH\"],\n    \"Qty\": [\"3\", 2, \"4\", None, 1],\n    \"UnitPrice\": [10.0, 10.0, 5.0, None, 5.0],\n})\n# clean, add Amount, print totals by region\n",
+      "solution": "import pandas as pd\n\nraw = pd.DataFrame({\n    \"Region\": [\"North\", \"north \", \" South\", None, \"SOUTH\"],\n    \"Qty\": [\"3\", 2, \"4\", None, 1],\n    \"UnitPrice\": [10.0, 10.0, 5.0, None, 5.0],\n})\ndf = raw.dropna(how=\"all\").copy()\ndf[\"Region\"] = df[\"Region\"].str.strip().str.title()\ndf[\"Qty\"] = pd.to_numeric(df[\"Qty\"]).astype(int)\ndf[\"Amount\"] = df[\"Qty\"] * df[\"UnitPrice\"]\nprint(df.groupby(\"Region\")[\"Amount\"].sum().to_string())\n",
+      "expected": "Region\nNorth    50.0\nSouth    25.0"
+    },
+    {
+      "id": "i2",
+      "title": "Apply a named rate and round for display",
+      "kind": "python",
+      "prompt": "Replicate a named cell and a display format. Set `tax_rate = 0.075` (the named cell `TaxRate`). For the orders below compute `Gross = Qty * UnitPrice * (1 + tax_rate)` unrounded, print the sum of the unrounded Gross rounded to 2 decimals, then print the sum of each Gross rounded to 2 decimals first (like `ROUND` in each row). Print each on its own line, formatted with two decimals.",
+      "starter": "import pandas as pd\n\ntax_rate = 0.075\norders = pd.DataFrame({\"Qty\": [3, 7, 1], \"UnitPrice\": [9.99, 4.35, 19.95]})\n# line 1: round(sum of Gross), line 2: sum of rounded Gross\n",
+      "solution": "import pandas as pd\n\ntax_rate = 0.075\norders = pd.DataFrame({\"Qty\": [3, 7, 1], \"UnitPrice\": [9.99, 4.35, 19.95]})\ngross = orders[\"Qty\"] * orders[\"UnitPrice\"] * (1 + tax_rate)\nprint(f\"{gross.sum():.2f}\")\nprint(f\"{gross.round(2).sum():.2f}\")\n",
+      "expected": "86.40\n86.40"
+    },
+    {
+      "id": "i3",
+      "title": "Layout of a data sheet (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "A colleague sends a sheet with a title in row 1, a merged header over two columns, a blank row after every region and a subtotal row at the end of each region. Describe the steps to turn it into a clean Excel Table named `Sales` that a PivotTable can use, and name every hygiene rule you apply.",
+      "starter": "Steps and rules: ...",
+      "solution": "Remove the title row and the merged header, and put one header row (unique name per column) in the first row of the block, unmerging cells first (Home, Merge and Center toggles it). Delete the blank rows (select a column, Go To Special, Blanks, delete sheet rows) and delete the subtotal rows, because a PivotTable or `SUM` would count them twice; subtotals are recalculated later by a PivotTable. If the region appears only on the first line of each group, fill it down so every row has its own region value (one record per row). Convert text numbers to numbers, trim label spaces, then click inside the block, press Ctrl+T, tick My table has headers and rename the Table to Sales on Table Design. Rules applied: one header row, one record per row, no merged cells, no blank or subtotal rows inside the data, one type per column, consistent labels.",
+      "rubric": [
+        "The title, merge, blanks and subtotal rows are all removed.",
+        "Region is filled so every row carries its own value.",
+        "The Table is created with headers and named Sales.",
+        "At least four hygiene rules are named."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "openpyxl"
+    ],
+    "note": "Formulas are written for Excel 2016 or later (Tables and structured references work in LibreOffice Calc too, with slightly different syntax). The graded exercises replicate the calculations in pandas, which runs in the browser. Example 5 uses openpyxl on your own computer; openpyxl writes formulas but cannot calculate them, so open the saved file in Excel or LibreOffice to see results."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A cell contains 0.256 and is formatted as Percentage with no decimals. It shows 26%. What does `=A1*100` return?",
+      "options": [
+        "26",
+        "25.6",
+        "0.26",
+        "0.256"
+      ],
+      "answer": 1,
+      "explanation": "Formatting changes only the display. The stored value is 0.256, so the formula returns 25.6. 26 would be correct only if the value itself had been rounded."
+    },
+    {
+      "id": "c2",
+      "question": "A Table named Sales has rows added below it. Which formula keeps including the new rows without editing?",
+      "options": [
+        "=SUM(D2:D6)",
+        "=SUM(Sales[Amount])",
+        "=D2+D3+D4+D5+D6",
+        "=SUM($D$2:$D$6)"
+      ],
+      "answer": 1,
+      "explanation": "Sales[Amount] refers to the whole column of the Table, which grows as rows are added. The other options refer to fixed addresses, so new rows fall outside them."
+    },
+    {
+      "id": "c3",
+      "question": "Column Qty holds 3, the text \"5\" and 2. What does `=SUM(C2:C4)` show?",
+      "options": [
+        "10",
+        "5",
+        "#VALUE!",
+        "0"
+      ],
+      "answer": 1,
+      "explanation": "SUM skips text numbers in a range, so only 3 and 2 are added. It does not raise an error and it does not convert the text, which is why the total is silently too small."
+    },
+    {
+      "id": "c4",
+      "question": "Which is a valid name for a named range?",
+      "options": [
+        "Q1",
+        "Tax Rate",
+        "TaxRate",
+        "2025Rate"
+      ],
+      "answer": 2,
+      "explanation": "Names cannot contain spaces, cannot start with a digit and cannot look like a cell address. Q1 is a cell address, so only TaxRate is valid."
+    },
+    {
+      "id": "c5",
+      "question": "After filtering a Table to one region, which formula shows only the visible total?",
+      "options": [
+        "=SUM(Sales[Amount])",
+        "=SUBTOTAL(109,Sales[Amount])",
+        "=COUNT(Sales[Amount])",
+        "=Sales[@Amount]"
+      ],
+      "answer": 1,
+      "explanation": "SUBTOTAL with 109 ignores rows hidden by a filter. SUM adds every row, filtered or not, so it would still show the total of all regions."
+    }
+  ]
+}

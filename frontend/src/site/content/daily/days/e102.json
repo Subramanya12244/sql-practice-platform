@@ -1,0 +1,186 @@
+{
+  "id": "e102",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-api-integration",
+      "etl-retries"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Name the class",
+      "kind": "python",
+      "prompt": "Write `status_class(code)` that returns `\"2xx\"`, `\"3xx\"`, `\"4xx\"`, `\"5xx\"` (or `\"1xx\"`) from an integer code using integer division. Print the class for `[200, 204, 301, 404, 429, 503]` on one line separated by spaces. Expected output: `2xx 2xx 3xx 4xx 4xx 5xx`.",
+      "starter": "def status_class(code):\n    pass\n\nprint(\" \".join(status_class(c) for c in [200, 204, 301, 404, 429, 503]))\n",
+      "solution": "def status_class(code):\n    return f\"{code // 100}xx\"\n\nprint(\" \".join(status_class(c) for c in [200, 204, 301, 404, 429, 503]))\n",
+      "expected": "2xx 2xx 3xx 4xx 4xx 5xx",
+      "hints": [
+        "Integer division by 100 keeps the first digit.",
+        "Build the text from that digit and the letters `xx`.",
+        "`return f\"{code // 100}xx\"`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Should a pipeline retry?",
+      "kind": "python",
+      "prompt": "Write `should_retry(code)` that returns `True` for `429` and for any 5xx code, and `False` for everything else. Print the results for `[200, 401, 404, 429, 500, 503]` as a list. Expected output: `[False, False, False, True, True, True]`.",
+      "starter": "def should_retry(code):\n    return False\n\nprint([should_retry(c) for c in [200, 401, 404, 429, 500, 503]])\n",
+      "solution": "def should_retry(code):\n    return code == 429 or code // 100 == 5\n\nprint([should_retry(c) for c in [200, 401, 404, 429, 500, 503]])\n",
+      "expected": "[False, False, False, True, True, True]",
+      "hints": [
+        "A 4xx code means the request is wrong, with one exception.",
+        "The 5xx class starts at 500 and ends before 600.",
+        "`code == 429 or code // 100 == 5`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "PUT replaces the whole record",
+      "kind": "python",
+      "prompt": "The dictionary `store` holds order 2. Write `put(store, order_id, body)` that replaces the stored record with `body` plus the key `order_id`, and a `patch` that would merge instead (only `put` is required). Call `put` with `{\"amount_cents\": 700}`, then print the stored record with sorted keys as a list of items. Expected output: `[('amount_cents', 700), ('order_id', 2)]`.",
+      "starter": "store = {2: {\"order_id\": 2, \"customer_id\": 9, \"amount_cents\": 500, \"status\": \"paid\"}}\n\ndef put(store, order_id, body):\n    pass\n\nput(store, 2, {\"amount_cents\": 700})\nprint(sorted(store[2].items()))\n",
+      "solution": "store = {2: {\"order_id\": 2, \"customer_id\": 9, \"amount_cents\": 500, \"status\": \"paid\"}}\n\ndef put(store, order_id, body):\n    store[order_id] = {\"order_id\": order_id, **body}\n\nput(store, 2, {\"amount_cents\": 700})\nprint(sorted(store[2].items()))\n",
+      "expected": "[('amount_cents', 700), ('order_id', 2)]",
+      "hints": [
+        "Replacing means the old fields are not kept.",
+        "Assign a new dictionary to the key instead of updating the old one.",
+        "`store[order_id] = {\"order_id\": order_id, **body}`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Read Retry-After",
+      "kind": "python",
+      "prompt": "Write `wait_seconds(headers)` that returns the integer in the `Retry-After` header (the lookup must work for any capitalisation of the name, so lower-case the keys first) and `1` when the header is missing or is not a whole number. Print the results for the four header dictionaries given. Expected output: `2`, `30`, `1`, `1`.",
+      "starter": "def wait_seconds(headers):\n    return 1\n\nfor h in [{\"Retry-After\": \"2\"}, {\"retry-after\": \"30\"}, {}, {\"Retry-After\": \"Wed, 21 Oct 2026 07:28:00 GMT\"}]:\n    print(wait_seconds(h))\n",
+      "solution": "def wait_seconds(headers):\n    lowered = {k.lower(): v for k, v in headers.items()}\n    value = lowered.get(\"retry-after\", \"\")\n    return int(value) if value.isdigit() else 1\n\nfor h in [{\"Retry-After\": \"2\"}, {\"retry-after\": \"30\"}, {}, {\"Retry-After\": \"Wed, 21 Oct 2026 07:28:00 GMT\"}]:\n    print(wait_seconds(h))\n",
+      "expected": "2\n30\n1\n1",
+      "hints": [
+        "Header names are case-insensitive, so normalise them before the lookup.",
+        "`str.isdigit()` tells whether the text is a whole number.",
+        "Return `int(value)` when the text is digits, otherwise `1`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Summarise a run's status codes",
+      "kind": "python",
+      "prompt": "The list `codes` holds the status codes of one pipeline run. Print four lines: `2xx 6` style counts per class for the classes that occur, in ascending order of class (`2xx`, `4xx`, ...); then `retryable: ` and the number of codes for which a retry is sensible (429 or 5xx); then `client errors: ` and the sorted list of distinct 4xx codes other than 429. Expected output: `2xx 6`, `4xx 3`, `5xx 2`, `retryable: 4`, `client errors: [401, 404]`.",
+      "starter": "codes = [200, 200, 200, 429, 200, 404, 503, 200, 401, 500, 200, 404]\n# summarise\n",
+      "solution": "codes = [200, 200, 200, 429, 200, 404, 503, 200, 401, 500, 200, 404]\ncounts = {}\nfor c in codes:\n    key = f\"{c // 100}xx\"\n    counts[key] = counts.get(key, 0) + 1\nfor key in sorted(counts):\n    print(key, counts[key])\nprint(\"retryable:\", sum(1 for c in codes if c == 429 or c // 100 == 5))\nprint(\"client errors:\", sorted({c for c in codes if c // 100 == 4 and c != 429}))\n",
+      "expected": "2xx 6\n4xx 4\n5xx 2\nretryable: 3\nclient errors: [401, 404]"
+    },
+    {
+      "id": "i2",
+      "title": "A tiny API in a function",
+      "kind": "python",
+      "prompt": "Write `handle(store, method, path, body=None)` returning `(status, body)` for a store that maps order ids to dictionaries. `GET /orders/<id>` gives `(200, record)` or `(404, {\"error\": \"not found\"})`; `POST /orders` with a `customer_id` in the body creates a record with id `max(store) + 1` and returns `(201, record)`, without `customer_id` it returns `(422, {\"error\": \"customer_id is required\"})`; `DELETE /orders/<id>` returns `(204, None)` or `(404, ...)`. Run the six calls given and print `status` for each followed by the sorted store keys. Expected output: six status lines and the key list.",
+      "starter": "store = {1: {\"order_id\": 1, \"customer_id\": 3}, 2: {\"order_id\": 2, \"customer_id\": 5}}\n\ndef handle(store, method, path, body=None):\n    return (500, None)\n\ncalls = [(\"GET\", \"/orders/1\", None), (\"GET\", \"/orders/9\", None), (\"POST\", \"/orders\", {\"customer_id\": 8}),\n         (\"POST\", \"/orders\", {\"amount_cents\": 5}), (\"DELETE\", \"/orders/2\", None), (\"DELETE\", \"/orders/2\", None)]\nfor method, path, body in calls:\n    print(method, path, handle(store, method, path, body)[0])\nprint(sorted(store))\n",
+      "solution": "store = {1: {\"order_id\": 1, \"customer_id\": 3}, 2: {\"order_id\": 2, \"customer_id\": 5}}\n\ndef handle(store, method, path, body=None):\n    parts = path.strip(\"/\").split(\"/\")\n    if method == \"POST\" and parts == [\"orders\"]:\n        if not body or \"customer_id\" not in body:\n            return 422, {\"error\": \"customer_id is required\"}\n        new_id = max(store) + 1\n        store[new_id] = {\"order_id\": new_id, **body}\n        return 201, store[new_id]\n    key = int(parts[1])\n    if key not in store:\n        return 404, {\"error\": \"not found\"}\n    if method == \"GET\":\n        return 200, store[key]\n    if method == \"DELETE\":\n        del store[key]\n        return 204, None\n    return 405, {\"error\": \"method not allowed\"}\n\ncalls = [(\"GET\", \"/orders/1\", None), (\"GET\", \"/orders/9\", None), (\"POST\", \"/orders\", {\"customer_id\": 8}),\n         (\"POST\", \"/orders\", {\"amount_cents\": 5}), (\"DELETE\", \"/orders/2\", None), (\"DELETE\", \"/orders/2\", None)]\nfor method, path, body in calls:\n    print(method, path, handle(store, method, path, body)[0])\nprint(sorted(store))\n",
+      "expected": "GET /orders/1 200\nGET /orders/9 404\nPOST /orders 201\nPOST /orders 422\nDELETE /orders/2 204\nDELETE /orders/2 404\n[1, 3]"
+    },
+    {
+      "id": "i3",
+      "title": "Retry policy by status",
+      "kind": "written",
+      "prompt": "Write a short retry policy for an ingestion job that only reads with GET: for each of 200, 301, 400, 401, 403, 404, 429, 500, 503 say what the job does and why. Then say what changes if the job writes with POST.",
+      "starter": "Write the policy here.",
+      "solution": "200: use the body. 301: follow the redirect (requests does for GET) and update the configured URL. 400: the request is malformed; stop and fix the parameters, since repeating it fails again. 401: the key is missing or invalid; stop and alert, retrying wastes calls. 403: the key is valid but not permitted; stop and ask for access. 404: the resource does not exist; log it and continue with the next id or stop, depending on whether the id was expected. 429: wait for Retry-After and retry, within a limit. 500 and 503: temporary server trouble; retry with a growing wait and give up after a few attempts, then report. With POST the same classes apply, but a timeout or a 5xx does not tell whether the record was created, so retrying risks a duplicate unless the request carries an idempotency key or the job first checks whether the record exists.",
+      "rubric": [
+        "Reads: use for 200, follows 301",
+        "Does not retry 400, 401, 403 and gives the reason",
+        "Retries 429 and 5xx with a wait and a limit",
+        "Explains the duplicate risk for POST"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which method is NOT idempotent?",
+      "options": [
+        "GET",
+        "PUT",
+        "DELETE",
+        "POST"
+      ],
+      "answer": 3,
+      "explanation": "Each POST creates another resource, so repeating it changes the server again. GET, PUT and DELETE leave the server in the same state however many times the same request repeats."
+    },
+    {
+      "id": "c2",
+      "question": "A request returns 401. What is the most sensible reaction in a pipeline?",
+      "options": [
+        "Retry immediately, up to 5 times",
+        "Stop and fix the credentials, because the same request will fail again",
+        "Treat the body as data",
+        "Switch to POST"
+      ],
+      "answer": 1,
+      "explanation": "401 says the server does not accept the credentials, so repeating the same request cannot succeed. The retry classes are 429 and 5xx."
+    },
+    {
+      "id": "c3",
+      "question": "What is the difference between 401 and 403?",
+      "options": [
+        "There is none",
+        "401: credentials missing or invalid; 403: credentials valid but not allowed",
+        "401 is for GET, 403 for POST",
+        "403 means the server is down"
+      ],
+      "answer": 1,
+      "explanation": "401 concerns identity and 403 concerns permission. Both are 4xx, so retrying unchanged will not help."
+    },
+    {
+      "id": "c4",
+      "question": "After `PUT /orders/2` with the body `{\"amount_cents\": 700}`, what does the stored order contain in a REST API that follows the rules?",
+      "options": [
+        "Only the fields sent, plus the id",
+        "All old fields plus `amount_cents` updated",
+        "An error is returned",
+        "The old record unchanged"
+      ],
+      "answer": 0,
+      "explanation": "PUT replaces the whole resource, so fields not in the body are gone. PATCH is the method for changing only some fields."
+    },
+    {
+      "id": "c5",
+      "question": "What does `response.raise_for_status()` do for a 404?",
+      "options": [
+        "Returns `False`",
+        "Raises `requests.HTTPError`",
+        "Returns the JSON body",
+        "Retries the request"
+      ],
+      "answer": 1,
+      "explanation": "It raises an exception for 4xx and 5xx statuses and does nothing for success codes. It does not retry; that logic is yours (Day 107)."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "requests"
+    ],
+    "note": "Example 4 sends real HTTP requests with the requests library to a throwaway http.server on 127.0.0.1 started in a thread, so it runs locally after `pip install requests` and is shown read-only in the browser. No real service is contacted. The graded exercises reproduce the logic (methods, status classes, retry decisions, header parsing) with plain functions and dictionaries that run in the browser."
+  }
+}

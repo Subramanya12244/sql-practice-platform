@@ -1,0 +1,144 @@
+{
+  "id": "d035",
+  "time": { "theory": 35, "examples": 25, "guided": 25, "independent": 30, "review": 15 },
+  "links": {
+    "notes": ["null-handling", "logical-operators"],
+    "questions": [161, 163],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": ["sql-roadmap"],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Orders that have not shipped",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Find the orders that have not been shipped yet, which means their `shipped_date` is NULL. Return `order_id`, `order_date` and `required_date` (in that order) from `orders`, ordered by `order_date` ascending and then `order_id` ascending. The result has 15 rows.",
+      "starter": "-- Unshipped orders: shipped_date is NULL\nSELECT order_id, order_date, required_date\nFROM orders\nWHERE shipped_date = NULL\nORDER BY order_date, order_id;\n",
+      "solution": "SELECT order_id, order_date, required_date\nFROM orders\nWHERE shipped_date IS NULL\nORDER BY order_date, order_id;\n",
+      "hints": [
+        "Run the starter: it returns nothing. Comparing a value with NULL using = gives 'unknown', and WHERE only keeps rows that are true.",
+        "SQL has a dedicated predicate to test for missing values. It is written with the word IS.",
+        "WHERE shipped_date IS NULL"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Employees who have a manager",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `employee_id`, `last_name` and `reports_to` (in that order) for the employees who do report to someone, which means `reports_to` is not NULL. Order by `employee_id` ascending. Eight of the nine employees qualify.",
+      "starter": "-- Employees whose reports_to is filled in\nSELECT employee_id, last_name, reports_to\nFROM employees\nORDER BY employee_id;\n",
+      "solution": "SELECT employee_id, last_name, reports_to\nFROM employees\nWHERE reports_to IS NOT NULL\nORDER BY employee_id;\n",
+      "hints": [
+        "The starter lists all nine employees, including the one at the top of the hierarchy.",
+        "Add a WHERE clause that excludes the NULL value; there is a predicate for 'is not missing'.",
+        "WHERE reports_to IS NOT NULL goes between FROM and ORDER BY."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "A shipping status that is never blank",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For the first 6 orders by `order_id`, return `order_id` and a text column `shipping_status`. It must show the shipped date as text (for example `1997-02-05`), or the word `pending` when `shipped_date` is NULL. Use `COALESCE` and cast the date to text with `CAST(shipped_date AS text)`. Order by `order_id` ascending.",
+      "starter": "-- order_id and shipping_status (date as text, or 'pending')\nSELECT order_id, shipped_date AS shipping_status\nFROM orders\nORDER BY order_id\nLIMIT 6;\n",
+      "solution": "SELECT order_id, COALESCE(CAST(shipped_date AS text), 'pending') AS shipping_status\nFROM orders\nORDER BY order_id\nLIMIT 6;\n",
+      "hints": [
+        "The starter returns the date column, and NULL where nothing was shipped. You need a replacement for NULL.",
+        "COALESCE(a, b) returns a unless it is NULL. The two arguments must have the same type, so cast the date to text first.",
+        "COALESCE(CAST(shipped_date AS text), 'pending') AS shipping_status"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Orders without an employee",
+      "kind": "sql",
+      "ordered": false,
+      "prompt": "In one row, count the orders. Return three columns in this order: `total_orders` (the number of rows in `orders`), `orders_with_employee` (the number of orders whose `employee_id` is not NULL, using `COUNT(employee_id)`) and `orders_without_employee` (the difference between the two). Use `COUNT(*)` for the total.",
+      "starter": "-- total_orders, orders_with_employee, orders_without_employee\nSELECT COUNT(*) AS total_orders,\n       COUNT(*) AS orders_with_employee\nFROM orders;\n",
+      "solution": "SELECT COUNT(*) AS total_orders,\n       COUNT(employee_id) AS orders_with_employee,\n       COUNT(*) - COUNT(employee_id) AS orders_without_employee\nFROM orders;\n",
+      "hints": [
+        "COUNT(*) counts every row, so it cannot show how many rows have an employee.",
+        "COUNT(column) counts only the rows where that column is not NULL. The number without an employee is the difference between the two counts.",
+        "COUNT(employee_id) AS orders_with_employee and COUNT(*) - COUNT(employee_id) AS orders_without_employee"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Early orders that were late or never shipped",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Find orders with a `required_date` on or before 1996-12-31 that either have not shipped at all (`shipped_date` is NULL) or shipped after their `required_date`. Return `order_id`, `required_date` and `shipped_on` (in that order), where `shipped_on` is the shipped date as text, or `not shipped` when it is NULL. Order by `required_date` ascending, then `order_id` ascending. Be careful with the grouping of `OR` and `AND`.",
+      "starter": "-- Early orders (required_date <= 1996-12-31) that are late or unshipped\nSELECT order_id, required_date, CAST(shipped_date AS text) AS shipped_on\nFROM orders\nWHERE required_date <= '1996-12-31' AND shipped_date > required_date\nORDER BY required_date, order_id;\n",
+      "solution": "SELECT order_id,\n       required_date,\n       COALESCE(CAST(shipped_date AS text), 'not shipped') AS shipped_on\nFROM orders\nWHERE (shipped_date IS NULL OR shipped_date > required_date)\n  AND required_date <= '1996-12-31'\nORDER BY required_date, order_id;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Average days to ship, done right and done wrong",
+      "kind": "sql",
+      "ordered": false,
+      "prompt": "Consider only orders placed on or after 1997-01-01. In a single row return four columns in this order: `orders` (number of such orders), `shipped` (how many of them have a shipped date), `avg_days_to_ship` (the average of `shipped_date - order_date`, rounded to 2 decimals, which skips unshipped orders) and `avg_if_null_is_zero` (the same average rounded to 2 decimals, but with unshipped orders counted as 0 days using `COALESCE`).",
+      "starter": "-- orders, shipped, avg_days_to_ship, avg_if_null_is_zero for orders placed on or after 1997-01-01\nSELECT COUNT(*) AS orders,\n       COUNT(shipped_date) AS shipped\nFROM orders\nWHERE order_date >= '1997-01-01';\n",
+      "solution": "SELECT COUNT(*) AS orders,\n       COUNT(shipped_date) AS shipped,\n       ROUND(AVG(shipped_date - order_date), 2) AS avg_days_to_ship,\n       ROUND(AVG(COALESCE(shipped_date - order_date, 0)), 2) AS avg_if_null_is_zero\nFROM orders\nWHERE order_date >= '1997-01-01';\n"
+    },
+    {
+      "id": "i3",
+      "title": "Everyone not reporting to employee 5",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. From `employees` return `employee_id`, `last_name` and `boss` (in that order) for every employee whose `reports_to` is different from 5, treating a NULL `reports_to` as different from 5 (use `IS DISTINCT FROM`). The column `boss` shows `reports_to` as text, or the word `none` when it is NULL. Order by `employee_id` ascending.",
+      "starter": "-- Employees who do not report to employee 5 (NULL counts as different); boss = reports_to or 'none'\nSELECT employee_id, last_name, COALESCE(CAST(reports_to AS text), 'none') AS boss\nFROM employees\nWHERE reports_to <> 5\nORDER BY employee_id;\n",
+      "solution": "SELECT employee_id, last_name, COALESCE(CAST(reports_to AS text), 'none') AS boss\nFROM employees\nWHERE reports_to IS DISTINCT FROM 5\nORDER BY employee_id;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "15 of the 100 orders have a NULL `shipped_date`. How many rows does `SELECT * FROM orders WHERE shipped_date = NULL;` return?",
+      "options": ["15", "85", "0", "An error, because = cannot be used with NULL"],
+      "answer": 2,
+      "explanation": "The comparison shipped_date = NULL is unknown for every row, and WHERE keeps only rows where the condition is true, so nothing is returned. The statement is valid SQL, so there is no error, and it does not find the 15 unshipped orders; that needs IS NULL."
+    },
+    {
+      "id": "c2",
+      "question": "What is the value of `FALSE AND NULL` in PostgreSQL?",
+      "options": ["NULL", "false", "true", "An error"],
+      "answer": 1,
+      "explanation": "AND is false as soon as one side is false, whatever the unknown side would be, so FALSE AND NULL is false. TRUE AND NULL, by contrast, is NULL (unknown) because the result depends on the unknown part."
+    },
+    {
+      "id": "c3",
+      "question": "The `orders` table has 100 rows and 85 non-NULL `shipped_date` values. What do `COUNT(*)` and `COUNT(shipped_date)` return?",
+      "options": ["100 and 100", "85 and 85", "100 and 85", "85 and 100"],
+      "answer": 2,
+      "explanation": "COUNT(*) counts rows no matter what they contain, so it gives 100. COUNT(column) counts only the rows where that column is not NULL, giving 85. The difference, 15, is the number of unshipped orders."
+    },
+    {
+      "id": "c4",
+      "question": "What does `SELECT 3 NOT IN (1, 2, NULL);` return?",
+      "options": ["true, because 3 is not 1 or 2", "false", "NULL, so a WHERE clause would not keep the row", "An error"],
+      "answer": 2,
+      "explanation": "3 NOT IN (1, 2, NULL) means 3 <> 1 AND 3 <> 2 AND 3 <> NULL. The last comparison is unknown, and TRUE AND TRUE AND UNKNOWN is unknown, which WHERE treats like false. With a NULL in the list, NOT IN can never be true."
+    },
+    {
+      "id": "c5",
+      "question": "A column holds the values 4, NULL and 8. What does `AVG(column)` return?",
+      "options": ["4", "6", "NULL", "4.0, because NULL counts as 0"],
+      "answer": 1,
+      "explanation": "AVG ignores NULLs, so it averages the two known values: (4 + 8) / 2 = 6. Treating NULL as 0 would give 12 / 3 = 4, which is the common wrong answer. The result is NULL only if every value is NULL."
+    },
+    {
+      "id": "c6",
+      "question": "For a customer whose `region` is NULL, what does `company_name || ' (' || region || ')'` return?",
+      "options": ["The company name followed by ' ()'", "The company name only", "NULL", "The company name followed by the text ' (NULL)'"],
+      "answer": 2,
+      "explanation": "Concatenating anything with NULL using || gives NULL, so the whole label is lost. CONCAT would skip the NULL, and COALESCE(region, '...') inside the expression supplies a stand-in; the plain || operator does neither."
+    }
+  ]
+}

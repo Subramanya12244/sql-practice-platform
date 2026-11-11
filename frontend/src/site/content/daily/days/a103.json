@@ -1,0 +1,180 @@
+{
+  "id": "a103",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-numpy",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "customer-transaction-stats"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "One-sample t-test",
+      "kind": "python",
+      "prompt": "The array `a` holds ten delivery times in minutes and the target is 22. Run a two-sided one-sample t-test of `a` against 22. Print the t statistic rounded to 3 decimals, then the p-value rounded to 4 decimals, then `Reject` or `Keep` for the null hypothesis at alpha 0.05, on three lines.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\na = np.array([22.1, 25.4, 19.8, 24.3, 27.0, 21.5, 23.8, 26.2, 20.9, 24.7])\nb = np.array([26.5, 28.9, 24.1, 30.2, 27.7, 25.8, 29.4, 31.0, 26.9, 28.3])\n\n# one-sample t-test against 22\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\na = np.array([22.1, 25.4, 19.8, 24.3, 27.0, 21.5, 23.8, 26.2, 20.9, 24.7])\nb = np.array([26.5, 28.9, 24.1, 30.2, 27.7, 25.8, 29.4, 31.0, 26.9, 28.3])\n\nres = stats.ttest_1samp(a, 22)\nprint(round(float(res.statistic), 3))\nprint(round(float(res.pvalue), 4))\nprint(\"Reject\" if res.pvalue < 0.05 else \"Keep\")\n",
+      "hints": [
+        "scipy.stats has ttest_1samp(sample, popmean).",
+        "The result has .statistic and .pvalue.",
+        "Compare .pvalue with 0.05 to print Reject or Keep."
+      ],
+      "expected": "2.072\n0.0682\nKeep"
+    },
+    {
+      "id": "g2",
+      "title": "Welch two-sample test and Cohen's d",
+      "kind": "python",
+      "prompt": "Test whether `b` (method B) differs from `a` (method A) with Welch's t-test (the order `b` then `a`). Print the t statistic rounded to 3 decimals and the p-value rounded to 4 decimals on one line separated by a space, then Cohen's d for `b - a` using the pooled standard deviation, rounded to 3 decimals, on the second line.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\na = np.array([22.1, 25.4, 19.8, 24.3, 27.0, 21.5, 23.8, 26.2, 20.9, 24.7])\nb = np.array([26.5, 28.9, 24.1, 30.2, 27.7, 25.8, 29.4, 31.0, 26.9, 28.3])\n\n# Welch test and Cohen's d\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\na = np.array([22.1, 25.4, 19.8, 24.3, 27.0, 21.5, 23.8, 26.2, 20.9, 24.7])\nb = np.array([26.5, 28.9, 24.1, 30.2, 27.7, 25.8, 29.4, 31.0, 26.9, 28.3])\n\nw = stats.ttest_ind(b, a, equal_var=False)\nprint(round(float(w.statistic), 3), round(float(w.pvalue), 4))\nsp = np.sqrt(((len(a) - 1) * a.var(ddof=1) + (len(b) - 1) * b.var(ddof=1)) / (len(a) + len(b) - 2))\nprint(round(float((b.mean() - a.mean()) / sp), 3))\n",
+      "hints": [
+        "equal_var=False selects Welch's test.",
+        "The pooled standard deviation weights each variance by its degrees of freedom.",
+        "d = (b.mean() - a.mean()) / sp."
+      ],
+      "expected": "4.267 0.0005\n1.908"
+    },
+    {
+      "id": "g3",
+      "title": "Paired test",
+      "kind": "python",
+      "prompt": "Suppose `a` and `b` are measurements of the same ten orders by two methods, in the same order. Run the paired t-test of `b` against `a`, then the independent Welch test of `b` against `a`. Print the two p-values rounded to 6 decimals, paired first, as two lines. Then print `Paired is smaller` or `Independent is smaller`.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\na = np.array([22.1, 25.4, 19.8, 24.3, 27.0, 21.5, 23.8, 26.2, 20.9, 24.7])\nb = np.array([26.5, 28.9, 24.1, 30.2, 27.7, 25.8, 29.4, 31.0, 26.9, 28.3])\n\n# paired and independent p-values\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\na = np.array([22.1, 25.4, 19.8, 24.3, 27.0, 21.5, 23.8, 26.2, 20.9, 24.7])\nb = np.array([26.5, 28.9, 24.1, 30.2, 27.7, 25.8, 29.4, 31.0, 26.9, 28.3])\n\np_paired = stats.ttest_rel(b, a).pvalue\np_ind = stats.ttest_ind(b, a, equal_var=False).pvalue\nprint(round(float(p_paired), 6))\nprint(round(float(p_ind), 6))\nprint(\"Paired is smaller\" if p_paired < p_ind else \"Independent is smaller\")\n",
+      "hints": [
+        "ttest_rel is the paired test.",
+        "Both tests return an object with .pvalue.",
+        "Compare the two p-values with <."
+      ],
+      "expected": "1e-05\n0.000479\nPaired is smaller"
+    },
+    {
+      "id": "g4",
+      "title": "Choose and report (written)",
+      "kind": "written",
+      "prompt": "A shop tests a new checkout page. (a) Group 1: 200 visitors saw the old page and 200 different visitors the new page; compare average basket value. (b) Group 2: the same 40 customers' average weekly spend before and after a loyalty card. For each, name the t-test and the null hypothesis, and write two sentences reporting a result with p = 0.03, a difference of 1.2 and Cohen's d of 0.1 for (a), so that a reader is not misled.",
+      "starter": "(a) Test and null: ...\n(b) Test and null: ...\nReport for (a): ...",
+      "solution": "(a) Two independent groups, so Welch's two-sample t-test; the null hypothesis is that the true average basket value is the same for the old and the new page. (b) The same customers measured twice, so a paired t-test (a one-sample test of the differences against 0); the null hypothesis is that the mean change in weekly spend is 0. Report for (a): 'The new page's average basket was 1.2 higher than the old page's (p = 0.03), so the data are unlikely if the pages were equal. The effect is small (Cohen's d = 0.1), so with a large sample this statistically significant difference may be too small to matter commercially; a confidence interval for the difference should be shown and compared with the smallest change that would justify the page.' The p-value is not the probability that the pages are equal, and it does not show how large the effect is.",
+      "hints": [
+        "Same people twice means paired.",
+        "The null is no difference in means.",
+        "A small p-value with a small d means a significant but small effect."
+      ],
+      "rubric": [
+        "(a) Welch independent test with a null of equal means.",
+        "(b) Paired test, described as a test on differences.",
+        "The report states the effect size and the practical meaning.",
+        "The p-value is not described as the probability of the null."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Full comparison report",
+      "kind": "python",
+      "prompt": "For `a` (A) and `b` (B) print five lines: `Means` with the two means rounded to 2 decimals (A then B) separated by a space; `Welch p` and the Welch p-value rounded to 4 decimals; `d` and Cohen's d for `b - a` rounded to 2 decimals; `CI` and the 95% confidence interval for `mean(b) - mean(a)` from the Welch standard error with `stats.t.ppf(0.975, df)` where `df` is `len(a) + len(b) - 2`, both bounds rounded to 2 decimals separated by a space; `Verdict` and `Significant` or `Not significant` at alpha 0.05. Example line format: `Welch p 0.1234`.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\na = np.array([22.1, 25.4, 19.8, 24.3, 27.0, 21.5, 23.8, 26.2, 20.9, 24.7])\nb = np.array([26.5, 28.9, 24.1, 30.2, 27.7, 25.8, 29.4, 31.0, 26.9, 28.3])\n\n# print the five lines\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\na = np.array([22.1, 25.4, 19.8, 24.3, 27.0, 21.5, 23.8, 26.2, 20.9, 24.7])\nb = np.array([26.5, 28.9, 24.1, 30.2, 27.7, 25.8, 29.4, 31.0, 26.9, 28.3])\n\ndiff = b.mean() - a.mean()\nse = np.sqrt(a.var(ddof=1) / len(a) + b.var(ddof=1) / len(b))\ndf = len(a) + len(b) - 2\ntc = stats.t.ppf(0.975, df)\nsp = np.sqrt(((len(a) - 1) * a.var(ddof=1) + (len(b) - 1) * b.var(ddof=1)) / df)\np = stats.ttest_ind(b, a, equal_var=False).pvalue\nprint(\"Means\", round(float(a.mean()), 2), round(float(b.mean()), 2))\nprint(\"Welch p\", round(float(p), 4))\nprint(\"d\", round(float(diff / sp), 2))\nprint(\"CI\", round(float(diff - tc * se), 2), round(float(diff + tc * se), 2))\nprint(\"Verdict\", \"Significant\" if p < 0.05 else \"Not significant\")\n",
+      "expected": "Means 23.57 27.88\nWelch p 0.0005\nd 1.91\nCI 2.19 6.43\nVerdict Significant"
+    },
+    {
+      "id": "i2",
+      "title": "Simulated before-and-after, with a power check",
+      "kind": "python",
+      "prompt": "Use `rng = np.random.default_rng(7)`. Create `before = rng.normal(50, 10, 25)` and `after = before + rng.normal(1.5, 3, 25)`. Print the paired t statistic and p-value (rounded to 3 and 4 decimals, separated by a space), the independent Welch p-value rounded to 4 decimals, and `Paired detects it` or `Paired misses it` according to whether the paired p-value is below 0.05, on three lines.",
+      "starter": "import numpy as np\nfrom scipy import stats\n\nrng = np.random.default_rng(7)\n# simulate before and after, run both tests, print three lines\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\nrng = np.random.default_rng(7)\nbefore = rng.normal(50, 10, 25)\nafter = before + rng.normal(1.5, 3, 25)\np = stats.ttest_rel(after, before)\nw = stats.ttest_ind(after, before, equal_var=False)\nprint(round(float(p.statistic), 3), round(float(p.pvalue), 4))\nprint(round(float(w.pvalue), 4))\nprint(\"Paired detects it\" if p.pvalue < 0.05 else \"Paired misses it\")\n",
+      "expected": "1.436 0.1638\n0.7137\nPaired misses it"
+    },
+    {
+      "id": "i3",
+      "title": "Assumption checks and a transformation (stretch)",
+      "kind": "python",
+      "required": false,
+      "prompt": "Use `rng = np.random.default_rng(7)`. Make two skewed groups `x = -np.log(rng.random(30)) * 4` and `y = -np.log(rng.random(30)) * 6`. Print the Shapiro p-value of each (rounded to 4 decimals, separated by a space), then the Welch p-value of `y` against `x` on the raw data and on the logged data (rounded to 4 decimals, raw first, separated by a space).",
+      "starter": "import numpy as np\nfrom scipy import stats\n\nrng = np.random.default_rng(7)\n# simulate x and y, then print two lines\n",
+      "solution": "import numpy as np\nfrom scipy import stats\n\nrng = np.random.default_rng(7)\nx = -np.log(rng.random(30)) * 4\ny = -np.log(rng.random(30)) * 6\nprint(round(float(stats.shapiro(x).pvalue), 4), round(float(stats.shapiro(y).pvalue), 4))\nraw = stats.ttest_ind(y, x, equal_var=False).pvalue\nlog = stats.ttest_ind(np.log(y), np.log(x), equal_var=False).pvalue\nprint(round(float(raw), 4), round(float(log), 4))\n",
+      "expected": "0.0 0.0\n0.0549 0.0346"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A two-sided test gives p = 0.03. Which statement is correct?",
+      "options": [
+        "There is a 3% chance that the null hypothesis is true",
+        "If the null were true, data this extreme would occur about 3% of the time",
+        "The effect is large",
+        "The result occurred by chance with probability 3%"
+      ],
+      "answer": 1,
+      "explanation": "A p-value is calculated assuming the null is true. It is not the probability of the null, not the probability of chance, and says nothing about effect size."
+    },
+    {
+      "id": "c2",
+      "question": "The same 30 customers are measured before and after a change. Which test is right?",
+      "options": [
+        "Independent two-sample t-test",
+        "Paired t-test",
+        "One-sample test against the before mean",
+        "Pooled Student test"
+      ],
+      "answer": 1,
+      "explanation": "The measurements are matched, so the analysis uses the differences within each customer. An independent test ignores the pairing and loses sensitivity."
+    },
+    {
+      "id": "c3",
+      "question": "With 5,000 rows per group, p = 0.018 and Cohen's d = 0.05. What is the best conclusion?",
+      "options": [
+        "A large, important effect",
+        "A statistically detectable but very small effect",
+        "No effect",
+        "The test is invalid"
+      ],
+      "answer": 1,
+      "explanation": "A large sample makes tiny differences significant. A d of 0.05 is far below even a small effect (0.2), so the practical importance must be judged separately."
+    },
+    {
+      "id": "c4",
+      "question": "The two groups have standard deviations of 8 and 19. Which version of the two-sample test is safer?",
+      "options": [
+        "Pooled Student",
+        "Welch",
+        "Paired",
+        "One-sample"
+      ],
+      "answer": 1,
+      "explanation": "Welch's test does not assume equal variances. The pooled test assumes them and can give misleading p-values when the spreads differ."
+    },
+    {
+      "id": "c5",
+      "question": "In a paired t-test, what is the equivalent calculation?",
+      "options": [
+        "A one-sample t-test of the differences against 0",
+        "A Welch test on the two columns",
+        "A correlation test",
+        "A chi-square test"
+      ],
+      "answer": 0,
+      "explanation": "The paired test computes the difference for each pair and tests whether the mean difference is zero, which is exactly a one-sample test of those differences."
+    }
+  ]
+}

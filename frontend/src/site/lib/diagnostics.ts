@@ -58,11 +58,57 @@ export interface EngineHealth {
   message?: string;
 }
 
-const MAX_EVENTS = 150;
+export const MAX_EVENTS = 200;
+export const RETENTION_DAYS = 90;
+const STORE_KEY = "sqlp.diag.log";
 const eventLog: DiagnosticEvent[] = [];
 const subscribers = new Set<(events: DiagnosticEvent[]) => void>();
 
 let eventSequence = 0;
+
+/**
+ * Remove anything that could be learner code or a secret before an event is stored. Events keep their
+ * fixed fields (category, code, severity, feature, messages); free text is shortened, long quoted
+ * strings (usually SQL or source) are cut, and metadata keeps only short scalar values.
+ */
+export function redactEvent(e: DiagnosticEvent): DiagnosticEvent {
+  const text = (v: string, max: number) => (sanitizeDiagnosticValue(v) as string)
+    .replace(/"[^"\n]{40,}"|'[^'\n]{40,}'/g, "\"…\"")
+    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[email]")
+    .replace(/\s+/g, " ")
+    .slice(0, max);
+  const meta: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(e.metadata ?? {})) {
+    if (/sql|code|source|query|password|token|secret|key|body|text/i.test(k)) continue;
+    if (typeof v === "number" || typeof v === "boolean") meta[k] = v;
+    else if (typeof v === "string" && v.length <= 80) meta[k] = text(v, 80);
+  }
+  return {
+    ...e,
+    technicalMessage: text(e.technicalMessage, 300),
+    userMessage: text(e.userMessage, 300),
+    suggestedAction: text(e.suggestedAction, 200),
+    metadata: Object.keys(meta).length ? meta : undefined,
+  };
+}
+
+/** Drop events older than the retention window. */
+export function pruneEvents(events: DiagnosticEvent[], now = Date.now()): DiagnosticEvent[] {
+  const cutoff = now - RETENTION_DAYS * 86_400_000;
+  return events.filter((e) => Date.parse(e.timestamp) >= cutoff).slice(0, MAX_EVENTS);
+}
+
+function persist() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(eventLog)); } catch { /* storage full or blocked: the in-memory log still works */ }
+}
+
+function hydrate() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY) ?? "[]") as DiagnosticEvent[];
+    if (Array.isArray(saved)) eventLog.push(...pruneEvents(saved.filter((e) => e && typeof e.id === "string" && typeof e.timestamp === "string")));
+  } catch { /* corrupt or unavailable: start empty */ }
+}
+if (typeof localStorage !== "undefined") hydrate();
 
 /** Notify UI subscribers when events are recorded */
 function notifySubscribers() {
@@ -81,17 +127,18 @@ export function subscribeDiagnostics(callback: (events: DiagnosticEvent[]) => vo
 
 /** Record a new diagnostic event into the circular log */
 export function recordDiagnostic(event: Omit<DiagnosticEvent, "id" | "timestamp">): DiagnosticEvent {
-  const fullEvent: DiagnosticEvent = {
+  const fullEvent = redactEvent({
     ...event,
-    id: `df-diag-${++eventSequence}-${Date.now().toString(36)}`,
+    id: `df-diag-${++eventSequence}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     timestamp: new Date().toISOString(),
-  };
+  });
 
   eventLog.unshift(fullEvent);
   if (eventLog.length > MAX_EVENTS) {
     eventLog.pop();
   }
 
+  persist();
   notifySubscribers();
   return fullEvent;
 }
@@ -104,6 +151,7 @@ export function getDiagnosticEvents(): DiagnosticEvent[] {
 /** Clear the diagnostic event log */
 export function clearDiagnosticEvents(): void {
   eventLog.length = 0;
+  persist();
   notifySubscribers();
 }
 
@@ -252,3 +300,29 @@ export function generateDiagnosticReport(extra?: {
   return JSON.stringify(report, null, 2);
 }
 
+
+// ── Uncaught errors ───────────────────────────────────────────────────────
+const NOISE = /ResizeObserver loop|^Script error\.?$|Non-Error promise rejection/i;
+const recent = new Map<string, number>();
+
+/** Record an error nobody handled, once per distinct message every 5 seconds. */
+export function recordUncaught(raw: unknown, source: "error" | "unhandledrejection", now = Date.now()): DiagnosticEvent | null {
+  const msg = raw instanceof Error ? raw.message : String(raw ?? "Unknown error");
+  if (NOISE.test(msg)) return null;
+  const key = `${source}:${msg.slice(0, 120)}`;
+  if (now - (recent.get(key) ?? 0) < 5000) return null;
+  recent.set(key, now);
+  if (recent.size > 50) recent.clear();
+  const ev = classifyError(raw, "APPLICATION_ERROR", "navigation", { code: source === "error" ? "UNCAUGHT_ERROR" : "UNHANDLED_REJECTION" });
+  return ev;
+}
+
+/** Install window handlers once (browser only). Returns a function that removes them. */
+export function installGlobalErrorHandlers(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onError = (e: ErrorEvent) => { recordUncaught(e.error ?? e.message, "error"); };
+  const onRejection = (e: PromiseRejectionEvent) => { recordUncaught(e.reason, "unhandledrejection"); };
+  window.addEventListener("error", onError);
+  window.addEventListener("unhandledrejection", onRejection);
+  return () => { window.removeEventListener("error", onError); window.removeEventListener("unhandledrejection", onRejection); };
+}

@@ -1,0 +1,176 @@
+{
+  "id": "d057",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "indexes",
+      "query-optimization"
+    ],
+    "questions": [
+      3,
+      26
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "indexing-optimization"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Indexes on products",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "List the indexes of the `products` table: return `indexname` only, from `pg_indexes`, for `tablename = 'products'`, ordered by `indexname`.",
+      "starter": "SELECT indexname\nFROM pg_indexes\nWHERE tablename = 'orders'\nORDER BY indexname;\n",
+      "solution": "SELECT indexname\nFROM pg_indexes\nWHERE tablename = 'products'\nORDER BY indexname;\n",
+      "hints": [
+        "The starter looks at the wrong table.",
+        "pg_indexes has a tablename column.",
+        "Change the condition to tablename = 'products'."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Distinct values in products",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "In one row return `total_rows` (rows of `products`), `suppliers` (distinct `supplier_id`), `categories` (distinct `category_id`) and `names` (distinct `product_name`).",
+      "starter": "SELECT COUNT(*) AS total_rows\nFROM products;\n",
+      "solution": "SELECT COUNT(*) AS total_rows,\n       COUNT(DISTINCT supplier_id) AS suppliers,\n       COUNT(DISTINCT category_id) AS categories,\n       COUNT(DISTINCT product_name) AS names\nFROM products;\n",
+      "hints": [
+        "Day 36: COUNT(DISTINCT column) counts different values.",
+        "Add one COUNT(DISTINCT ...) per column with an alias.",
+        "COUNT(DISTINCT supplier_id) AS suppliers, COUNT(DISTINCT category_id) AS categories, COUNT(DISTINCT product_name) AS names."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Selectivity of order columns",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return one row per column `order_id`, `customer_id`, `ship_via` of `orders` with `column_name` (text), `distinct_values` and `selectivity_pct` (distinct values divided by the number of rows, times 100, rounded to 1 decimal). Order by `selectivity_pct` descending, then `column_name`.",
+      "starter": "SELECT 'order_id' AS column_name, COUNT(DISTINCT order_id) AS distinct_values, 0.0 AS selectivity_pct\nFROM orders;\n",
+      "solution": "SELECT 'order_id' AS column_name, COUNT(DISTINCT order_id) AS distinct_values,\n       ROUND(100.0 * COUNT(DISTINCT order_id) / COUNT(*), 1) AS selectivity_pct FROM orders\nUNION ALL\nSELECT 'customer_id', COUNT(DISTINCT customer_id), ROUND(100.0 * COUNT(DISTINCT customer_id) / COUNT(*), 1) FROM orders\nUNION ALL\nSELECT 'ship_via', COUNT(DISTINCT ship_via), ROUND(100.0 * COUNT(DISTINCT ship_via) / COUNT(*), 1) FROM orders\nORDER BY selectivity_pct DESC, column_name;\n",
+      "hints": [
+        "Build one SELECT per column and stack them with UNION ALL (day 47).",
+        "Each SELECT returns a text label, COUNT(DISTINCT col) and 100.0 * COUNT(DISTINCT col) / COUNT(*).",
+        "Put ORDER BY selectivity_pct DESC, column_name after the last SELECT."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Plan of a primary key lookup on customers",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Run `SET LOCAL enable_seqscan = off` and then return the plan text of `SELECT * FROM customers WHERE customer_id = 'ALFKI'` using `EXPLAIN (COSTS OFF)` (the query result is the plan lines in a column named `QUERY PLAN`).",
+      "starter": "SET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT * FROM customers WHERE company_name = 'Alfreds Futterkiste';\n",
+      "solution": "SET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT * FROM customers WHERE customer_id = 'ALFKI';\n",
+      "hints": [
+        "The starter filters by company_name, which has no index. Change the filter.",
+        "customer_id is the primary key of customers.",
+        "EXPLAIN (COSTS OFF) SELECT * FROM customers WHERE customer_id = 'ALFKI';"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A composite index for filter and sort",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "In one block: create an index named `idx_orders_emp_date` on `orders (employee_id, order_date)`, switch off sequential scans for the transaction with `SET LOCAL enable_seqscan = off`, then return the plan of `SELECT order_id FROM orders WHERE employee_id = 3 ORDER BY order_date` using `EXPLAIN (COSTS OFF)`.",
+      "starter": "SET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT order_id FROM orders WHERE employee_id = 3 ORDER BY order_date;\n",
+      "solution": "CREATE INDEX idx_orders_emp_date ON orders (employee_id, order_date);\nSET LOCAL enable_seqscan = off;\nEXPLAIN (COSTS OFF)\nSELECT order_id FROM orders WHERE employee_id = 3 ORDER BY order_date;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Which product columns deserve an index?",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For `products` return one row per column: `product_id`, `supplier_id`, `category_id`, `product_name` and `discontinued`. Columns: `column_name` (text), `distinct_values`, and `verdict`, which is `selective` when `distinct_values * 2 >= ` the number of rows in `products` and `weak` otherwise. Order by `column_name`.",
+      "starter": "SELECT 'product_id' AS column_name, COUNT(DISTINCT product_id) AS distinct_values, 'selective' AS verdict\nFROM products;\n",
+      "solution": "WITH s AS (\n  SELECT COUNT(*) AS total,\n         COUNT(DISTINCT product_id) AS product_id,\n         COUNT(DISTINCT supplier_id) AS supplier_id,\n         COUNT(DISTINCT category_id) AS category_id,\n         COUNT(DISTINCT product_name) AS product_name,\n         COUNT(DISTINCT discontinued) AS discontinued\n  FROM products\n), v (column_name, distinct_values) AS (\n  SELECT 'product_id', product_id FROM s\n  UNION ALL SELECT 'supplier_id', supplier_id FROM s\n  UNION ALL SELECT 'category_id', category_id FROM s\n  UNION ALL SELECT 'product_name', product_name FROM s\n  UNION ALL SELECT 'discontinued', discontinued FROM s\n)\nSELECT v.column_name, v.distinct_values,\n       CASE WHEN v.distinct_values * 2 >= s.total THEN 'selective' ELSE 'weak' END AS verdict\nFROM v CROSS JOIN s\nORDER BY v.column_name;\n"
+    },
+    {
+      "id": "i3",
+      "title": "A unique index at work (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "In one block: create a table `tags (code text, label text)`, create a unique index on `code`, insert the rows ('a', 'one'), ('b', 'two'), ('a', 'three') with `ON CONFLICT (code) DO NOTHING` so the duplicate is skipped, and finally return `code`, `label` from `tags` ordered by `code`.",
+      "starter": "CREATE TABLE tags (code text, label text);\nINSERT INTO tags VALUES ('a', 'one'), ('b', 'two'), ('a', 'three');\nSELECT code, label FROM tags ORDER BY code;\n",
+      "solution": "CREATE TABLE tags (code text, label text);\nCREATE UNIQUE INDEX tags_code_key ON tags (code);\nINSERT INTO tags VALUES ('a', 'one'), ('b', 'two'), ('a', 'three')\nON CONFLICT (code) DO NOTHING;\nSELECT code, label FROM tags ORDER BY code;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "An index exists on `orders (customer_id, order_date)`. Which filter can use it efficiently?",
+      "options": [
+        "WHERE order_date >= '1998-01-01' only",
+        "WHERE customer_id = 'ALFKI'",
+        "WHERE ship_country = 'Germany'",
+        "None; composite indexes need all columns"
+      ],
+      "answer": 1,
+      "explanation": "A composite index is usable from its leftmost column. A filter on customer_id alone or on customer_id and order_date works. A filter on order_date alone skips the leading column and cannot use the index efficiently."
+    },
+    {
+      "id": "c2",
+      "question": "On a 100-row table the planner shows Seq Scan for `WHERE ship_country = 'Germany'` although an index exists. What does this mean?",
+      "options": [
+        "The index is broken",
+        "Reading a few pages is cheaper than using the index, so the planner chose well",
+        "The index must be rebuilt",
+        "PostgreSQL ignores all indexes under 1000 rows by rule"
+      ],
+      "answer": 1,
+      "explanation": "The planner compares estimated costs. On tiny tables a sequential scan is cheaper. There is no fixed row threshold and the index is not broken."
+    },
+    {
+      "id": "c3",
+      "question": "Which column is the worst candidate for a plain B-tree index on a large orders table?",
+      "options": [
+        "order_id (unique)",
+        "customer_id (many distinct values)",
+        "ship_via (3 distinct values)",
+        "order_date (many distinct values)"
+      ],
+      "answer": 2,
+      "explanation": "A column with only three values returns about a third of the table for any value, so the index is not selective and the planner would scan the table anyway, while every write still pays to maintain the index."
+    },
+    {
+      "id": "c4",
+      "question": "What is the main cost of adding more indexes to a table?",
+      "options": [
+        "Queries get slower to parse",
+        "Inserts, updates and deletes must maintain every index, and indexes take space",
+        "SELECT results change",
+        "The primary key stops working"
+      ],
+      "answer": 1,
+      "explanation": "Reads can speed up, but every write must update each index and indexes use disk and memory. Query results are unaffected."
+    },
+    {
+      "id": "c5",
+      "question": "Why is `SET LOCAL enable_seqscan = off` used only for demonstrations?",
+      "options": [
+        "It deletes indexes",
+        "It forces the planner away from what it believes is the cheapest plan, which can make real queries slower",
+        "It only works in PGlite",
+        "It locks the table"
+      ],
+      "answer": 1,
+      "explanation": "The setting discourages sequential scans for the current transaction. It helps to see an index plan on a tiny table, but in production it can choose slower plans. Fix the index or the query instead."
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "id": "e168",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "spark-dataframes",
+      "etl-data-validation",
+      "etl-idempotency"
+    ],
+    "questions": [
+      147
+    ],
+    "pyExercises": [
+      "dedupe-latest-records"
+    ],
+    "projects": [
+      "pyspark-transformation"
+    ],
+    "mindmaps": [
+      "spark-track"
+    ],
+    "patterns": [
+      "latest-record-per-group",
+      "remove-duplicates"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Reject with a reason",
+      "kind": "python",
+      "prompt": "For the rows `[('r1', 'x'), ('r2', '5'), ('r3', '-2'), ('r4', '')]` of (id, amount text) assign the reason `bad amount` when the text is not a number (including empty), `negative amount` when it is below zero, and `ok` otherwise. Print `id: reason` for each row.",
+      "starter": "rows = [('r1', 'x'), ('r2', '5'), ('r3', '-2'), ('r4', '')]\n",
+      "solution": "rows = [('r1', 'x'), ('r2', '5'), ('r3', '-2'), ('r4', '')]\nfor rid, text in rows:\n    try:\n        value = float(text)\n    except ValueError:\n        print(rid + ': bad amount')\n        continue\n    print(rid + ': ' + ('negative amount' if value < 0 else 'ok'))\n",
+      "hints": [
+        "float(text) raises ValueError for 'x' and for an empty string.",
+        "Catch ValueError and print bad amount.",
+        "Otherwise compare the value with 0 to choose between negative amount and ok."
+      ],
+      "expected": "r1: bad amount\nr2: ok\nr3: negative amount\nr4: bad amount"
+    },
+    {
+      "id": "g2",
+      "title": "Latest record per key",
+      "kind": "python",
+      "prompt": "Events `(order_id, status, ts)`: `(1, 'paid', 1), (2, 'paid', 1), (1, 'refunded', 2), (3, 'paid', 5), (3, 'failed', 4)`. Keep the event with the highest `ts` for each order and print `order_id status` in order id order.",
+      "starter": "events = [(1, 'paid', 1), (2, 'paid', 1), (1, 'refunded', 2), (3, 'paid', 5), (3, 'failed', 4)]\n",
+      "solution": "events = [(1, 'paid', 1), (2, 'paid', 1), (1, 'refunded', 2), (3, 'paid', 5), (3, 'failed', 4)]\nlatest = {}\nfor oid, status, ts in events:\n    if oid not in latest or ts > latest[oid][1]:\n        latest[oid] = (status, ts)\nfor oid in sorted(latest):\n    print(oid, latest[oid][0])\n",
+      "hints": [
+        "Use a dictionary from order id to (status, ts).",
+        "Replace the entry only when the new ts is larger.",
+        "Print the keys in sorted order."
+      ],
+      "expected": "1 refunded\n2 paid\n3 paid"
+    },
+    {
+      "id": "g3",
+      "title": "Latest order per customer in SQL",
+      "kind": "sql",
+      "prompt": "The window `row_number() over (partition by customer_id order by order_date desc, order_id desc)` keeps one order per customer. Return `customer_id`, `order_id` and `order_date` of each customer's latest order, for the five customers whose latest order is most recent, ordered by `order_date` descending, then `customer_id`.",
+      "starter": "SELECT customer_id, MAX(order_date) AS last_date\nFROM orders\nGROUP BY customer_id\nLIMIT 5;\n",
+      "solution": "SELECT customer_id, order_id, order_date\nFROM (\n  SELECT customer_id, order_id, order_date,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC, order_id DESC) AS rn\n  FROM orders\n) t\nWHERE rn = 1\nORDER BY order_date DESC, customer_id\nLIMIT 5;\n",
+      "ordered": true,
+      "hints": [
+        "Rank the orders of each customer in a subquery.",
+        "ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC, order_id DESC).",
+        "Keep rn = 1, then ORDER BY order_date DESC, customer_id LIMIT 5."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "A reconciliation check",
+      "kind": "python",
+      "prompt": "A job read 120 rows, loaded 100, rejected 15 and removed 4 duplicates. Print `reconciles: False` or `reconciles: True` (read equals loaded plus rejected plus duplicates), and `missing rows: N` with the difference between read and the accounted rows.",
+      "starter": "read, loaded, rejected, duplicates = 120, 100, 15, 4\n",
+      "solution": "read, loaded, rejected, duplicates = 120, 100, 15, 4\naccounted = loaded + rejected + duplicates\nprint('reconciles:', read == accounted)\nprint('missing rows:', read - accounted)\n",
+      "hints": [
+        "Add loaded, rejected and duplicates.",
+        "Compare the sum with read.",
+        "The missing rows are read minus the sum."
+      ],
+      "expected": "reconciles: False\nmissing rows: 1"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Run the whole job on new data",
+      "kind": "python",
+      "prompt": "Using only the standard library, process these order events `(order_id, customer, amount_text, status, date, ts)`: `(1,'a','10','paid','2025-05-01',1)`, `(2,'b','x','paid','2025-05-01',1)`, `(3,'','5','paid','2025-05-01',1)`, `(4,'c','20','paid','2025-05-02',1)`, `(4,'c','20','refunded','2025-05-02',2)`, `(5,'d','-3','paid','2025-05-02',1)`, `(6,'e','30','paid','2025-05-02',1)`. Reject rows whose amount is not a number or is negative, or whose customer is empty; keep the latest event per order by `ts`; sum paid amounts per date. Print `read: 7 rejected: 3 duplicates: 1 loaded: 3` using the real counts, then one line per date in order as `date: revenue` with the revenue as a float with one decimal, then `reconciles: True`.",
+      "starter": "events = [\n    (1, 'a', '10', 'paid', '2025-05-01', 1),\n    (2, 'b', 'x', 'paid', '2025-05-01', 1),\n    (3, '', '5', 'paid', '2025-05-01', 1),\n    (4, 'c', '20', 'paid', '2025-05-02', 1),\n    (4, 'c', '20', 'refunded', '2025-05-02', 2),\n    (5, 'd', '-3', 'paid', '2025-05-02', 1),\n    (6, 'e', '30', 'paid', '2025-05-02', 1),\n]\n",
+      "solution": "events = [\n    (1, 'a', '10', 'paid', '2025-05-01', 1),\n    (2, 'b', 'x', 'paid', '2025-05-01', 1),\n    (3, '', '5', 'paid', '2025-05-01', 1),\n    (4, 'c', '20', 'paid', '2025-05-02', 1),\n    (4, 'c', '20', 'refunded', '2025-05-02', 2),\n    (5, 'd', '-3', 'paid', '2025-05-02', 1),\n    (6, 'e', '30', 'paid', '2025-05-02', 1),\n]\nvalid, rejected = [], 0\nfor oid, cust, amt, status, date, ts in events:\n    try:\n        value = float(amt)\n    except ValueError:\n        rejected += 1\n        continue\n    if value < 0 or cust == '':\n        rejected += 1\n        continue\n    valid.append((oid, value, status, date, ts))\nlatest = {}\nfor oid, value, status, date, ts in valid:\n    if oid not in latest or ts > latest[oid][3]:\n        latest[oid] = (value, status, date, ts)\nduplicates = len(valid) - len(latest)\nprint('read:', len(events), 'rejected:', rejected, 'duplicates:', duplicates, 'loaded:', len(latest))\ndaily = {}\nfor value, status, date, ts in latest.values():\n    if status == 'paid':\n        daily[date] = daily.get(date, 0.0) + value\nfor d in sorted(daily):\n    print(d + ':', round(daily[d], 1))\nprint('reconciles:', len(events) == len(latest) + rejected + duplicates)\n",
+      "expected": "read: 7 rejected: 3 duplicates: 1 loaded: 3\n2025-05-01: 10.0\n2025-05-02: 30.0\nreconciles: True"
+    },
+    {
+      "id": "i2",
+      "title": "Daily aggregate in SQL",
+      "kind": "sql",
+      "prompt": "The job writes one revenue figure per month. Write the SQL equivalent on Northwind returning `month` (first day of the month as a date, from `date_trunc('month', order_date)`), `orders` (distinct orders) and `revenue` (net revenue `unit_price * quantity * (1 - discount)` rounded to 0 decimals) for the 5 months with the highest revenue, ordered by `revenue` descending, then `month`.",
+      "starter": "SELECT date_trunc('month', order_date)::date AS month\nFROM orders\nGROUP BY 1\nLIMIT 5;\n",
+      "solution": "SELECT date_trunc('month', o.order_date)::date AS month,\n       COUNT(DISTINCT o.order_id) AS orders,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 0) AS revenue\nFROM orders o JOIN order_details od ON od.order_id = o.order_id\nGROUP BY 1\nORDER BY revenue DESC, month\nLIMIT 5;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Write the job README",
+      "kind": "written",
+      "prompt": "Write the README for the orders job of this project (8 to 14 lines). Include: purpose, input and output locations and formats, the validation rules and the reject destination, the checks and their thresholds, how to re-run a single day, what the job does when a check fails, and one known limitation.",
+      "starter": "# orders_etl\n\nPurpose:\nInput:\nOutput:\nRules:\nChecks:\nRe-run:\nOn failure:\nLimitation:",
+      "solution": "# orders_etl\n\nPurpose: turns order events into daily paid revenue for the finance dashboard.\n\nInput: CSV files in `landing/orders/` with columns order_id, customer_id, amount, status, order_date, updated_at (all read as text, then typed).\n\nOutput: `curated/daily_revenue/` Parquet partitioned by `date_n`; rejected rows with a reason in `quarantine/orders/`.\n\nRules: a row is rejected if the customer is missing, the date or amount cannot be parsed, or the amount is negative. For each order the event with the latest `updated_at` is kept; status is trimmed and lower-cased; only `paid` orders count as revenue.\n\nChecks: read = loaded + rejected + duplicates removed; order_id is unique in the output; no negative revenue; revenue recomputed from the clean rows equals the written revenue; the reject rate is below 5 percent (the run fails above that).\n\nRe-run: `python job.py --date 2025-03-02` rewrites only that date's partition; the input must contain every event of that date, because the partition is overwritten.\n\nOn failure: the job stops before publishing, the previous partition stays in place, and the on-call engineer receives the failing check names; inspect `quarantine/orders/` for the reasons.\n\nLimitation: events that arrive after the day's run for an earlier date are only picked up if that date is re-run with all its events.",
+      "rubric": [
+        "States purpose, input and output locations and formats",
+        "Lists the validation rules and where rejected rows go",
+        "Lists the checks with at least one numeric threshold",
+        "Explains how to re-run one day and what the input must contain",
+        "Describes failure behaviour and one real limitation"
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "pyspark"
+    ],
+    "note": "The PySpark job is shown in a plain code block and is not run here: it needs Java 17 or later and `pip install pyspark`. To run it yourself, create the input folder `landing/orders/` with a CSV like the one in the lesson and run the script with `python job.py`. The pandas functions and SQL in the lesson implement the same logic and produced every printed result; Spark's execution, file layout and speed are not reproduced."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A job read 1,000 rows, loaded 940 and rejected 50. What is the right conclusion from the reconciliation?",
+      "options": [
+        "10 rows are unaccounted for, so investigate",
+        "The job is correct",
+        "50 rows were lost",
+        "Rejected rows should not be counted"
+      ],
+      "answer": 0,
+      "explanation": "1,000 - 940 - 50 = 10 rows are neither loaded nor rejected (or they were removed as duplicates and not counted). Every row has to be accounted for, so the difference needs an explanation."
+    },
+    {
+      "id": "c2",
+      "question": "Why keep rejected rows with a reason instead of filtering them out?",
+      "options": [
+        "So the loss is visible, countable and reviewable",
+        "Because Spark requires it",
+        "To make the output larger",
+        "To avoid writing Parquet"
+      ],
+      "answer": 0,
+      "explanation": "A silent filter leaves no trace. A reject table with a reason lets you reconcile counts and notice when a source changes."
+    },
+    {
+      "id": "c3",
+      "question": "Order 7 has a paid event at 09:00 and a refunded event at 11:00. Which row does `row_number() over (partition by order_id order by ts desc)` with `rn = 1` keep?",
+      "options": [
+        "The refunded event",
+        "The paid event",
+        "Both",
+        "Neither"
+      ],
+      "answer": 0,
+      "explanation": "Ordering by ts descending puts the latest event first, so rn = 1 is the refund at 11:00."
+    },
+    {
+      "id": "c4",
+      "question": "A daily job overwrites the partition for each date in its input. What must the input contain for a date that is re-run?",
+      "options": [
+        "All events of that date",
+        "Only the new events",
+        "Only the rejected events",
+        "Nothing"
+      ],
+      "answer": 0,
+      "explanation": "Overwriting replaces the whole partition with the new result, so the input must hold the partition's complete data, or the job must merge with the existing data."
+    },
+    {
+      "id": "c5",
+      "question": "Which failure would the check 'read = loaded + rejected + duplicates' catch?",
+      "options": [
+        "A filter that silently drops valid rows",
+        "A wrong revenue formula",
+        "A slow job",
+        "A renamed output folder"
+      ],
+      "answer": 0,
+      "explanation": "Rows that vanish without being loaded, rejected or counted as duplicates break the equation. A wrong formula needs a different check, such as recomputing the revenue."
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+{
+  "id": "a152",
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "moving-averages",
+      "avg"
+    ],
+    "questions": [
+      151,
+      152,
+      150
+    ],
+    "pyExercises": [
+      "moving-average-generator",
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [],
+    "patterns": [
+      "moving-average"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Naive and moving-average forecasts",
+      "kind": "python",
+      "prompt": "Monthly sales are `[100, 104, 98, 110, 108, 115]`. Print `naive: 115` and `moving average 3: 111.0` (the mean of the last three values, as a float rounded to 1 decimal).",
+      "starter": "sales = [100, 104, 98, 110, 108, 115]\n",
+      "solution": "sales = [100, 104, 98, 110, 108, 115]\nprint('naive:', sales[-1])\nprint('moving average 3:', round(sum(sales[-3:]) / 3, 1))\n",
+      "hints": [
+        "The naive forecast is the last element.",
+        "sales[-3:] holds the last three values.",
+        "Divide their sum by 3 and round to 1 decimal."
+      ],
+      "expected": "naive: 115\nmoving average 3: 111.0"
+    },
+    {
+      "id": "g2",
+      "title": "MAE and MAPE",
+      "kind": "python",
+      "prompt": "Actuals are `[100, 120, 90, 110]` and forecasts `[105, 110, 100, 100]`. Print `MAE: X` and `MAPE: Y%` with X and Y rounded to 2 decimals, where MAPE is the mean of absolute error over actual times 100.",
+      "starter": "actual = [100, 120, 90, 110]\nforecast = [105, 110, 100, 100]\n",
+      "solution": "actual = [100, 120, 90, 110]\nforecast = [105, 110, 100, 100]\nerrors = [abs(a - f) for a, f in zip(actual, forecast)]\nprint('MAE:', round(sum(errors) / len(errors), 2))\nprint('MAPE: ' + str(round(sum(e / a for e, a in zip(errors, actual)) / len(errors) * 100, 2)) + '%')\n",
+      "hints": [
+        "The absolute errors are abs(a - f) for each pair.",
+        "MAE is the average of those errors.",
+        "MAPE averages error divided by actual, then multiplies by 100."
+      ],
+      "expected": "MAE: 8.75\nMAPE: 8.38%"
+    },
+    {
+      "id": "g3",
+      "title": "Moving average in SQL",
+      "kind": "sql",
+      "prompt": "Return `quarter` (the first day of the quarter), `revenue` (rounded to 0 decimals) and `ma3` (the average of the quarter and the two previous quarters, rounded to 0 decimals) for the quarters from 1998-01-01 onward, ordered by quarter. Compute the moving average over all quarters first and filter afterwards.",
+      "starter": "SELECT date_trunc('quarter', order_date)::date AS quarter\nFROM orders\nGROUP BY 1\nORDER BY 1\nLIMIT 3;\n",
+      "solution": "WITH m AS (\n  SELECT date_trunc('quarter', o.order_date)::date AS quarter,\n         SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY 1\n), w AS (\n  SELECT quarter, revenue,\n         AVG(revenue) OVER (ORDER BY quarter ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS ma3\n  FROM m\n)\nSELECT quarter, ROUND(revenue::numeric, 0) AS revenue, ROUND(ma3::numeric, 0) AS ma3\nFROM w\nWHERE quarter >= DATE '1998-01-01'\nORDER BY quarter;\n",
+      "ordered": true,
+      "hints": [
+        "Aggregate revenue per quarter in a CTE with date_trunc('quarter', ...).",
+        "AVG(revenue) OVER (ORDER BY quarter ROWS BETWEEN 2 PRECEDING AND CURRENT ROW).",
+        "Filter on the quarter in the outer query, after the window."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Seasonal naive",
+      "kind": "python",
+      "prompt": "A series has two years of quarterly data: year 1 `[10, 14, 12, 20]`, year 2 `[11, 15, 13, 22]`. Print the seasonal naive forecast for year 3 (the values of year 2) as a list, then the forecast with drift as a list of values rounded to 1 decimal, where drift is the mean of year 2 minus the mean of year 1.",
+      "starter": "y1 = [10, 14, 12, 20]\ny2 = [11, 15, 13, 22]\n",
+      "solution": "y1 = [10, 14, 12, 20]\ny2 = [11, 15, 13, 22]\nprint(y2)\ndrift = sum(y2) / 4 - sum(y1) / 4\nprint([round(v + drift, 1) for v in y2])\n",
+      "hints": [
+        "The seasonal naive forecast repeats last year's values.",
+        "Drift is mean(year 2) - mean(year 1).",
+        "Add the drift to each value and round to 1 decimal."
+      ],
+      "expected": "[11, 15, 13, 22]\n[12.2, 16.2, 14.2, 23.2]"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Choose the best method",
+      "kind": "python",
+      "prompt": "The training series is `[20, 30, 25, 35, 22, 32, 27, 37]` (two years of quarterly data) and the test series for the next four quarters is `[24, 34, 29, 39]`. Forecast the four test quarters with the naive method (last value), the moving average of the last 4 values and the seasonal naive method (the last 4 values). Print the MAE of each as `naive: X`, `moving average: X`, `seasonal naive: X` (2 decimals), then `best: NAME` for the lowest MAE.",
+      "starter": "train = [20, 30, 25, 35, 22, 32, 27, 37]\ntest = [24, 34, 29, 39]\n",
+      "solution": "train = [20, 30, 25, 35, 22, 32, 27, 37]\ntest = [24, 34, 29, 39]\ndef mae(f):\n    return sum(abs(a - p) for a, p in zip(test, f)) / len(test)\nres = {\n    'naive': mae([train[-1]] * 4),\n    'moving average': mae([sum(train[-4:]) / 4] * 4),\n    'seasonal naive': mae(train[-4:]),\n}\nfor k, v in res.items():\n    print(k + ': ' + str(round(v, 2)))\nprint('best: ' + min(res, key=res.get))\n",
+      "expected": "naive: 6.5\nmoving average: 5.0\nseasonal naive: 2.0\nbest: seasonal naive"
+    },
+    {
+      "id": "i2",
+      "title": "Naive forecast error in SQL",
+      "kind": "sql",
+      "prompt": "Use the previous quarter's revenue as the naive forecast for each quarter of 1998. Return `quarter` (first day of the quarter), `revenue` (0 decimals), `naive_forecast` (0 decimals) and `abs_error` (absolute difference, 0 decimals), ordered by quarter. The quarterly series must be computed over all years, so that the first quarter of 1998 has a previous quarter even though 1997 is not in the output.",
+      "starter": "SELECT date_trunc('quarter', order_date)::date AS quarter\nFROM orders\nWHERE order_date >= DATE '1998-01-01'\nGROUP BY 1\nORDER BY 1;\n",
+      "solution": "WITH m AS (\n  SELECT date_trunc('quarter', o.order_date)::date AS quarter,\n         SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue\n  FROM orders o JOIN order_details od ON od.order_id = o.order_id\n  GROUP BY 1\n), l AS (\n  SELECT quarter, revenue, LAG(revenue) OVER (ORDER BY quarter) AS prev FROM m\n)\nSELECT quarter, ROUND(revenue::numeric, 0) AS revenue, ROUND(prev::numeric, 0) AS naive_forecast,\n       ROUND(ABS(revenue - prev)::numeric, 0) AS abs_error\nFROM l\nWHERE quarter >= DATE '1998-01-01'\nORDER BY quarter;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Write the forecast statement",
+      "kind": "written",
+      "required": false,
+      "prompt": "The seasonal-naive-with-drift forecast for January is 112, past errors have a standard deviation of 6, and the naive benchmark has twice the error of your method on the holdout. Write a 3 to 5 sentence statement for a sales manager that includes the number, an 80 percent range (use 1.28), the evidence that the method is better than the benchmark and one assumption.",
+      "starter": "Write your answer here.",
+      "solution": "We expect January revenue of about 112 units. Allowing for the normal size of past forecast errors, the 80 percent range is 112 plus or minus 1.28 x 6, which is about 104 to 120, so the actual is most likely to land in that band although one month in five should fall outside it. On the last 12 months that we held back, this method made about half the error of the naive forecast, so it is worth using over simply repeating the last month. The range assumes that prices, promotions and the market stay as in the past two years; a change in any of these would make the real error larger.",
+      "rubric": [
+        "States the forecast of 112 with a range of about 104 to 120",
+        "Cites the holdout comparison with the naive benchmark as evidence",
+        "Names an assumption behind the range",
+        "Explains in plain words that one month in five can fall outside"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does a seasonal naive forecast for next March use?",
+      "options": [
+        "The value of last March",
+        "The average of all months",
+        "The value of last February",
+        "The trend only"
+      ],
+      "answer": 0,
+      "explanation": "Seasonal naive repeats the value from the same period one season earlier. Last February would be the plain naive forecast with a one-month lag."
+    },
+    {
+      "id": "c2",
+      "question": "A method has a lower error on the training data than on the test data. What does it indicate?",
+      "options": [
+        "Training error is optimistic, so judge only by the test error",
+        "The test data is wrong",
+        "The method is perfect",
+        "MAE is invalid"
+      ],
+      "answer": 0,
+      "explanation": "A method is always at least a little better on data it has seen. Only the error on held-out data estimates the real forecasting error."
+    },
+    {
+      "id": "c3",
+      "question": "Why can MAPE break down for a product with weekly sales that are often zero?",
+      "options": [
+        "It divides the error by the actual value, which is zero",
+        "It needs more than 10 values",
+        "It ignores sign",
+        "It cannot be computed in pandas"
+      ],
+      "answer": 0,
+      "explanation": "MAPE divides each error by the actual, so zero actuals produce division by zero or enormous percentages. MAE is a safer measure for such series."
+    },
+    {
+      "id": "c4",
+      "question": "The 80% range of a forecast is built from past errors. Which statement is correct?",
+      "options": [
+        "It assumes the future errors will be like past errors",
+        "It is guaranteed to contain the actual",
+        "It covers any change in market conditions",
+        "It is the same as the MAE"
+      ],
+      "answer": 0,
+      "explanation": "The range is estimated from past errors, so it holds only if conditions are similar. New conditions can produce errors outside it, and even then about one in five actuals should fall outside an 80% range."
+    },
+    {
+      "id": "c5",
+      "question": "A method has an MAE ratio to naive of 1.05. What does it mean?",
+      "options": [
+        "It is slightly worse than the naive benchmark",
+        "It is 5% better than naive",
+        "It has 5% error",
+        "It is the best method"
+      ],
+      "answer": 0,
+      "explanation": "A ratio above 1 means a larger error than the naive benchmark. The method adds effort without adding accuracy."
+    }
+  ]
+}

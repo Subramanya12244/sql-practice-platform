@@ -1,0 +1,185 @@
+{
+  "id": "d004",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-fundamentals",
+      "python-variables-data-types"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "First, last and length",
+      "prompt": "The variable `word` holds `\"analytics\"`. Print three lines: the first character, the last character (use a negative index), and the number of characters in the word. The expected output is `a`, then `s`, then `9`.",
+      "starter": "word = \"analytics\"\nprint(word)\n",
+      "solution": "word = \"analytics\"\nprint(word[0])\nprint(word[-1])\nprint(len(word))\n",
+      "hints": [
+        "Indexes start at 0, so the first character is at position 0.",
+        "A negative index counts from the end: `-1` is the last character. `len()` counts all characters.",
+        "Use `print(word[0])`, `print(word[-1])` and `print(len(word))`."
+      ],
+      "kind": "python",
+      "expected": "a\ns\n9"
+    },
+    {
+      "id": "g2",
+      "title": "Cut a code into parts",
+      "prompt": "The variable `code` holds `\"DF-2024-0137\"`. Using slices, print three lines: the two-letter prefix, the four-digit year in the middle, and the last four characters (the serial number). The expected output is `DF`, `2024` and `0137`, each on its own line.",
+      "starter": "code = \"DF-2024-0137\"\nprint(code)\n",
+      "solution": "code = \"DF-2024-0137\"\nprint(code[:2])\nprint(code[3:7])\nprint(code[-4:])\n",
+      "hints": [
+        "A slice is written `code[start:stop]`; the start is included and the stop is not.",
+        "The prefix is `code[:2]` because a missing start means the beginning. The year starts after the first hyphen, at index 3.",
+        "The three slices are `code[:2]`, `code[3:7]` and `code[-4:]`; a missing stop means the end."
+      ],
+      "kind": "python",
+      "expected": "DF\n2024\n0137"
+    },
+    {
+      "id": "g3",
+      "title": "Clean a name",
+      "prompt": "The variable `raw` holds `\"  Ada LOVELACE  \"`, with spaces at both ends and inconsistent capitals. Remove the extra spaces and convert the text to title case, then print it. The expected output is `Ada Lovelace`.",
+      "starter": "raw = \"  Ada LOVELACE  \"\nprint(raw)\n",
+      "solution": "raw = \"  Ada LOVELACE  \"\nname = raw.strip().title()\nprint(name)\n",
+      "hints": [
+        "String methods return new strings; they do not change the original.",
+        "`strip()` removes spaces from both ends and `title()` capitalises each word.",
+        "Chain the methods and print the result: `raw.strip().title()`."
+      ],
+      "kind": "python",
+      "expected": "Ada Lovelace"
+    },
+    {
+      "id": "g4",
+      "title": "Check and replace",
+      "prompt": "The variable `email` holds `\"sales@shop.com\"`. Print two lines. The first is the answer to whether `\"@\"` appears in the email (`True` or `False`, produced by Python). The second is the email with `shop` replaced by `store`. The expected output is `True` and `sales@store.com`.",
+      "starter": "email = \"sales@shop.com\"\nprint(email)\n",
+      "solution": "email = \"sales@shop.com\"\nprint(\"@\" in email)\nprint(email.replace(\"shop\", \"store\"))\n",
+      "hints": [
+        "The `in` operator gives `True` or `False` and can be passed straight to `print()`.",
+        "The `replace(old, new)` method returns a new string with every occurrence replaced.",
+        "Use `print(\"@\" in email)` and then `print(email.replace(\"shop\", \"store\"))`."
+      ],
+      "kind": "python",
+      "expected": "True\nsales@store.com"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Mask an email address",
+      "prompt": "The variable `email` holds `\"maria.lopez@example.com\"`. Without typing any part of the answers, print three lines. Line 1: the masked email, made of the first character, then `***`, then everything from the `@` onwards. Line 2: the domain, which is the part after the `@` (not including it). Line 3: the label `Local part length:` followed by the number of characters before the `@`. Use `find()` to locate the `@`. Expected output:\n\n```text\nm***@example.com\nexample.com\nLocal part length: 11\n```",
+      "starter": "email = \"maria.lopez@example.com\"\n",
+      "solution": "email = \"maria.lopez@example.com\"\nat = email.find(\"@\")\nprint(email[0] + \"***\" + email[at:])\nprint(email[at + 1:])\nprint(\"Local part length:\", at)\n",
+      "kind": "python",
+      "expected": "m***@example.com\nexample.com\nLocal part length: 11"
+    },
+    {
+      "id": "i2",
+      "title": "Normalise a product code",
+      "prompt": "The variable `raw` holds `\"  Sku-4471-BLUE  \"`. Clean it by removing the outer spaces and converting it to upper case, and store the result. Then print four lines: the cleaned code; the four-digit number in the middle, extracted with a slice; the colour (the part after the second hyphen) in title case; and whether the cleaned code starts with `SKU` (`True` or `False`, produced by Python). Expected output:\n\n```text\nSKU-4471-BLUE\n4471\nBlue\nTrue\n```",
+      "starter": "raw = \"  Sku-4471-BLUE  \"\n",
+      "solution": "raw = \"  Sku-4471-BLUE  \"\ncode = raw.strip().upper()\nprint(code)\nprint(code[4:8])\nprint(code[9:].title())\nprint(code.startswith(\"SKU\"))\n",
+      "kind": "python",
+      "expected": "SKU-4471-BLUE\n4471\nBlue\nTrue"
+    },
+    {
+      "id": "i3",
+      "title": "Escapes and an underline",
+      "required": false,
+      "prompt": "Print exactly the following five lines. The underline on line 2 must be created from the title with `*` and `len()` so that it is as long as the title. Line 3 contains backslashes. Line 4 contains double quotes. Lines 5 and 6 below must come from a single `print()` call that uses `\\n`. Expected output:\n\n```text\nMonthly Sales\n=============\nFile: C:\\data\\sales.csv\nStatus: \"ok\"\nRows: 120\nErrors: 0\n```",
+      "starter": "title = \"Monthly Sales\"\n",
+      "solution": "title = \"Monthly Sales\"\nprint(title)\nprint(\"=\" * len(title))\nprint(\"File: C:\\\\data\\\\sales.csv\")\nprint(\"Status: \\\"ok\\\"\")\nprint(\"Rows: 120\\nErrors: 0\")\n",
+      "kind": "python",
+      "expected": "Monthly Sales\n=============\nFile: C:\\data\\sales.csv\nStatus: \"ok\"\nRows: 120\nErrors: 0"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this program print?\n\n```python\nword = \"python\"\nprint(word[1:4])\n```",
+      "options": [
+        "pyth",
+        "yth",
+        "ytho",
+        "pyt"
+      ],
+      "answer": 1,
+      "explanation": "The slice starts at index 1 (`y`) and stops before index 4, so it holds the characters at indexes 1, 2 and 3: `yth`. `ytho` would include the stop index, and `pyth` or `pyt` start counting at 1 instead of 0."
+    },
+    {
+      "id": "c2",
+      "question": "What does this program print?\n\n```python\nname = \"ada\"\nname.upper()\nprint(name)\n```",
+      "options": [
+        "ADA",
+        "ada",
+        "Ada",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "Strings are immutable, so `upper()` returns a new string and leaves `name` unchanged. The new string was never stored, so `name` is still `ada`. You would need `name = name.upper()` to keep the change. The call itself is valid, so there is no error."
+    },
+    {
+      "id": "c3",
+      "question": "What does this program print?\n\n```python\nprint(\"ab\" * 3 + \"c\")\n```",
+      "options": [
+        "abababc",
+        "ababab3c",
+        "ab3c",
+        "abcabcabc"
+      ],
+      "answer": 0,
+      "explanation": "`*` repeats the string three times and is worked out before `+`, giving `ababab`, and `+` then joins `c` to it. The repeat applies only to `\"ab\"`, not to the whole expression, so `abcabcabc` is wrong."
+    },
+    {
+      "id": "c4",
+      "question": "What does this program print?\n\n```python\nprint(\"data\" in \"Database\")\n```",
+      "options": [
+        "True",
+        "False",
+        "4",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "The `in` test is case-sensitive. The text `Database` contains `Data` with a capital D, but not `data`, so the answer is `False`. The result of `in` is always `True` or `False`, never a position."
+    },
+    {
+      "id": "c5",
+      "question": "What does this program print?\n\n```python\nprint(len(\"a\\nb\"))\n```",
+      "options": [
+        "4",
+        "3",
+        "2",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "The escape sequence `\\n` stands for one single character, the newline, so the text has three characters: `a`, newline and `b`. Counting the backslash and the letter n separately would give 4."
+    },
+    {
+      "id": "c6",
+      "question": "What does this program print?\n\n```python\ntext = \"banana\"\nprint(text.find(\"x\"), text.find(\"n\"))\n```",
+      "options": [
+        "-1 2",
+        "0 2",
+        "None 3",
+        "-1 3"
+      ],
+      "answer": 0,
+      "explanation": "`find` returns the index of the first match, or `-1` when the text is missing. The first `n` in `banana` is at index 2 (counting from 0), not 3, and the missing `x` gives -1, not `None` and not 0."
+    }
+  ]
+}

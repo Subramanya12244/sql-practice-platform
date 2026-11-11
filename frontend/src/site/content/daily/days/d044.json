@@ -1,0 +1,182 @@
+{
+  "id": "d044",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 30,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "where",
+      "null-handling"
+    ],
+    "questions": [
+      184,
+      185,
+      187
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "sql-roadmap"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Add a category",
+      "kind": "sql",
+      "prompt": "Insert a new row into `categories` with `category_name` `Snacks` and `description` `Chips and nuts`, leaving `category_id` to the database. End the statement with `RETURNING category_id, category_name` so the result shows the generated id and the name.",
+      "starter": "-- Insert the category 'Snacks' and return its id and name\nSELECT category_id, category_name\nFROM categories\nWHERE category_name = 'Snacks';\n",
+      "solution": "INSERT INTO categories (category_name, description)\nVALUES ('Snacks', 'Chips and nuts')\nRETURNING category_id, category_name;\n",
+      "hints": [
+        "The starter only reads the table. A new row needs an INSERT statement.",
+        "INSERT INTO categories (category_name, description) VALUES (...); do not list category_id.",
+        "Add RETURNING category_id, category_name after the VALUES list."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Add two shippers at once",
+      "kind": "sql",
+      "prompt": "Insert two rows into `shippers` with one statement: `Northern Freight` with phone `555-0101`, and `Coastal Haulage` with a NULL phone. Return `shipper_id`, `company_name` and `phone` with `RETURNING`.",
+      "starter": "-- Insert two shippers in one statement and return them\nINSERT INTO shippers (company_name, phone)\nVALUES ('Northern Freight', '555-0101')\nRETURNING shipper_id, company_name, phone;\n",
+      "solution": "INSERT INTO shippers (company_name, phone)\nVALUES ('Northern Freight', '555-0101'),\n       ('Coastal Haulage', NULL)\nRETURNING shipper_id, company_name, phone;\n",
+      "hints": [
+        "The starter inserts only the first shipper. Add a second value list.",
+        "Separate the value lists with a comma: VALUES (...), (...). A missing phone is the keyword NULL.",
+        "VALUES ('Northern Freight', '555-0101'), ('Coastal Haulage', NULL)"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Cut meat prices by 10 percent",
+      "kind": "sql",
+      "prompt": "Update the products of category 6 so that `unit_price` becomes 90 percent of its current value, rounded to 2 decimals. Return `product_id`, `product_name` and the new `unit_price` with `RETURNING`.",
+      "starter": "-- Reduce the price of category 6 products by 10 percent\nUPDATE products\nSET unit_price = unit_price\nWHERE category_id = 6\nRETURNING product_id, product_name, unit_price;\n",
+      "solution": "UPDATE products\nSET unit_price = ROUND(unit_price * 0.90, 2)\nWHERE category_id = 6\nRETURNING product_id, product_name, unit_price;\n",
+      "hints": [
+        "The starter sets each price to itself, so nothing changes. The new value must be computed from the old one.",
+        "Multiply the current price by 0.90 and wrap it in ROUND(..., 2).",
+        "SET unit_price = ROUND(unit_price * 0.90, 2)"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Remove single-unit lines",
+      "kind": "sql",
+      "prompt": "Delete the rows of `order_details` whose `quantity` is exactly 1, then, in a second statement, return the number of lines left as `lines_left` with `SELECT COUNT(*) AS lines_left FROM order_details`.",
+      "starter": "-- Delete lines with quantity 1, then count the lines left\nSELECT COUNT(*) AS lines_left FROM order_details;\n",
+      "solution": "DELETE FROM order_details\nWHERE quantity = 1;\n\nSELECT COUNT(*) AS lines_left FROM order_details;\n",
+      "hints": [
+        "The starter only counts. Put a DELETE statement before the SELECT, ended by a semicolon.",
+        "DELETE FROM order_details WHERE quantity = 1;",
+        "Without the WHERE clause every line would be deleted."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Mark old unshipped orders as shipped",
+      "kind": "sql",
+      "prompt": "For orders that have no `shipped_date` and were placed before 1996-06-01, set `shipped_date` to three days after `order_date` (a date plus an integer adds days). Return `order_id`, `order_date` and `shipped_date` with `RETURNING`.",
+      "starter": "-- Set shipped_date = order_date + 3 for old unshipped orders\nSELECT order_id, order_date, shipped_date\nFROM orders\nWHERE shipped_date IS NULL AND order_date < '1996-06-01';\n",
+      "solution": "UPDATE orders\nSET shipped_date = order_date + 3\nWHERE shipped_date IS NULL AND order_date < '1996-06-01'\nRETURNING order_id, order_date, shipped_date;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Create backup shippers",
+      "kind": "sql",
+      "prompt": "Insert one new shipper for every existing shipper, using `INSERT ... SELECT`. The new `company_name` is the old name followed by ` (backup)` (text joined with `||`), and `phone` is copied. Return `shipper_id` and `company_name` of the new rows with `RETURNING`.",
+      "starter": "-- Copy each shipper as '<name> (backup)'\nINSERT INTO shippers (company_name, phone)\nVALUES ('Speedy Express (backup)', NULL)\nRETURNING shipper_id, company_name;\n",
+      "solution": "INSERT INTO shippers (company_name, phone)\nSELECT company_name || ' (backup)', phone\nFROM shippers\nRETURNING shipper_id, company_name;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Reactivate unsold products",
+      "kind": "sql",
+      "required": false,
+      "prompt": "Stretch task. Set `discontinued` to false and reduce `unit_price` by 10 percent (rounded to 2 decimals) for the products that are currently discontinued and never appear in `order_details` (use a subquery with `NOT IN`). Return `product_id`, `product_name`, `discontinued` and the new `unit_price` with `RETURNING`.",
+      "starter": "-- Reactivate discontinued products that were never ordered\nSELECT product_id, product_name, discontinued, unit_price\nFROM products\nWHERE discontinued AND product_id NOT IN (SELECT product_id FROM order_details);\n",
+      "solution": "UPDATE products\nSET discontinued = false,\n    unit_price = ROUND(unit_price * 0.90, 2)\nWHERE discontinued\n  AND product_id NOT IN (SELECT product_id FROM order_details)\nRETURNING product_id, product_name, discontinued, unit_price;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `UPDATE products SET unit_price = 0;` (no WHERE) do?",
+      "options": [
+        "Nothing, because UPDATE requires a WHERE clause",
+        "Sets the price of every product to 0",
+        "Sets the price of the first product to 0",
+        "Fails with a syntax error"
+      ],
+      "answer": 1,
+      "explanation": "WHERE is optional in UPDATE and DELETE. Without it every row is changed, and the database reports success. That is why you write and test the WHERE as a SELECT first."
+    },
+    {
+      "id": "c2",
+      "question": "A table has columns `company_name` (NOT NULL, no default) and `phone`. What happens with `INSERT INTO shippers (phone) VALUES ('555')`?",
+      "options": [
+        "A row is inserted with an empty company name",
+        "A row is inserted with company_name NULL",
+        "It fails with a not-null constraint violation",
+        "It inserts the phone into the first column"
+      ],
+      "answer": 2,
+      "explanation": "company_name has no default and may not be NULL, so the database rejects the row with 'null value in column company_name violates not-null constraint'. Naming columns explicitly means the phone goes to the phone column, not the first column."
+    },
+    {
+      "id": "c3",
+      "question": "The shippers table holds ids 1 to 3. After `INSERT INTO shippers (company_name) VALUES ('A'), ('B') RETURNING shipper_id`, which ids are returned (the sequence starts fresh)?",
+      "options": [
+        "1 and 2",
+        "3 and 4",
+        "4 and 5",
+        "NULL and NULL"
+      ],
+      "answer": 2,
+      "explanation": "shipper_id is a generated serial column, so the sequence supplies the next unused numbers, 4 and 5. The ids 1 to 3 already exist. RETURNING shows the generated values."
+    },
+    {
+      "id": "c4",
+      "question": "Why does `DELETE FROM customers WHERE customer_id = 'ALFKI'` fail in Northwind?",
+      "options": [
+        "customer_id cannot be used in WHERE",
+        "ALFKI has orders, and the foreign key from orders to customers forbids deleting a referenced row",
+        "DELETE needs a RETURNING clause",
+        "Only the last customer can be deleted"
+      ],
+      "answer": 1,
+      "explanation": "orders.customer_id references customers.customer_id. While ALFKI has orders, deleting the customer would leave orphan orders, so PostgreSQL rejects the statement with a foreign key violation."
+    },
+    {
+      "id": "c5",
+      "question": "What does `UPDATE t SET a = b, b = a` do to a row where a = 1 and b = 2?",
+      "options": [
+        "Sets both columns to 1",
+        "Sets both columns to 2",
+        "Swaps them: a becomes 2 and b becomes 1",
+        "Fails because a column is used twice"
+      ],
+      "answer": 2,
+      "explanation": "All right-hand expressions are evaluated using the old values of the row before any assignment, so a gets the old b (2) and b gets the old a (1). The columns are swapped."
+    },
+    {
+      "id": "c6",
+      "question": "Which is the best first step before running a risky `DELETE FROM order_details WHERE quantity < 3`?",
+      "options": [
+        "Run it and look at the message",
+        "Run SELECT * FROM order_details WHERE quantity < 3 to see exactly which rows it would remove",
+        "Remove the WHERE clause so nothing is missed",
+        "Add RETURNING, because it undoes the delete"
+      ],
+      "answer": 1,
+      "explanation": "A SELECT with the same WHERE shows the rows and the count the DELETE would affect. RETURNING only reports what was deleted after the fact and does not undo anything. Removing the WHERE clause would delete every line."
+    }
+  ]
+}

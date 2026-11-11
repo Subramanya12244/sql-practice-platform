@@ -59,6 +59,8 @@ export function overall(sessions: SolveSession[]): Overall {
 
 // ── Topics and mastery ────────────────────────────────────────────────────
 export type MasteryLevel = "strong" | "developing" | "needs-practice" | "not-started";
+/** The one vocabulary used on every screen (Progress, Analytics, report). */
+export const MASTERY_LABEL: Record<MasteryLevel, string> = { strong: "Strong", developing: "Developing", "needs-practice": "Needs practice", "not-started": "Not started" };
 
 export interface TopicRow {
   kind: "sql" | "python";

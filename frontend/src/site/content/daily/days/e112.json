@@ -1,0 +1,184 @@
+{
+  "id": "e112",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "views",
+      "cte",
+      "count-case-when",
+      "filter-clause"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "rest-api-to-postgres",
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "window-functions",
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Orders and cents per status",
+      "kind": "sql",
+      "prompt": "The block builds `shop_orders`. Replace the last query so that it returns, per `status`, the columns `status`, `orders` (row count) and `cents` (sum of `amount_cents`), ordered by `status`.",
+      "starter": "CREATE TABLE shop_orders AS\nSELECT i AS order_id, i * 7 % 25 + 1 AS customer_id, 1000 + i * 137 % 9000 AS amount_cents,\n       CASE WHEN i % 4 = 0 THEN 'USD' ELSE 'EUR' END AS currency,\n       (ARRAY['paid', 'paid', 'refunded', 'failed'])[i % 4 + 1] AS status,\n       ('2026-03-01T00:00:00Z'::timestamptz + ((i - 1) / 4) * interval '1 day'\n        + (i * 7 % 24) * interval '1 hour' + (i * 13 % 60) * interval '1 minute') AS created_at\nFROM generate_series(1, 120) AS i;\nSELECT status FROM shop_orders GROUP BY status ORDER BY status;\n",
+      "solution": "CREATE TABLE shop_orders AS\nSELECT i AS order_id, i * 7 % 25 + 1 AS customer_id, 1000 + i * 137 % 9000 AS amount_cents,\n       CASE WHEN i % 4 = 0 THEN 'USD' ELSE 'EUR' END AS currency,\n       (ARRAY['paid', 'paid', 'refunded', 'failed'])[i % 4 + 1] AS status,\n       ('2026-03-01T00:00:00Z'::timestamptz + ((i - 1) / 4) * interval '1 day'\n        + (i * 7 % 24) * interval '1 hour' + (i * 13 % 60) * interval '1 minute') AS created_at\nFROM generate_series(1, 120) AS i;\nSELECT status, count(*) AS orders, sum(amount_cents) AS cents FROM shop_orders GROUP BY status ORDER BY status;\n",
+      "ordered": true,
+      "hints": [
+        "Group by the status column.",
+        "`count(*)` counts the rows of each group; `sum` adds the cents.",
+        "`SELECT status, count(*) AS orders, sum(amount_cents) AS cents ... GROUP BY status ORDER BY status`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Refunds per day",
+      "kind": "sql",
+      "prompt": "Return, for the first 5 days of March, the columns `day` (the UTC date `(created_at AT TIME ZONE 'UTC')::date`), `orders` (all orders that day) and `refunded` (orders with status `refunded`, using `count(*) FILTER (WHERE ...)`), ordered by `day`, limited to 5 rows.",
+      "starter": "CREATE TABLE shop_orders AS\nSELECT i AS order_id, i * 7 % 25 + 1 AS customer_id, 1000 + i * 137 % 9000 AS amount_cents,\n       CASE WHEN i % 4 = 0 THEN 'USD' ELSE 'EUR' END AS currency,\n       (ARRAY['paid', 'paid', 'refunded', 'failed'])[i % 4 + 1] AS status,\n       ('2026-03-01T00:00:00Z'::timestamptz + ((i - 1) / 4) * interval '1 day'\n        + (i * 7 % 24) * interval '1 hour' + (i * 13 % 60) * interval '1 minute') AS created_at\nFROM generate_series(1, 120) AS i;\nSELECT (created_at AT TIME ZONE 'UTC')::date AS day FROM shop_orders GROUP BY 1 ORDER BY 1 LIMIT 5;\n",
+      "solution": "CREATE TABLE shop_orders AS\nSELECT i AS order_id, i * 7 % 25 + 1 AS customer_id, 1000 + i * 137 % 9000 AS amount_cents,\n       CASE WHEN i % 4 = 0 THEN 'USD' ELSE 'EUR' END AS currency,\n       (ARRAY['paid', 'paid', 'refunded', 'failed'])[i % 4 + 1] AS status,\n       ('2026-03-01T00:00:00Z'::timestamptz + ((i - 1) / 4) * interval '1 day'\n        + (i * 7 % 24) * interval '1 hour' + (i * 13 % 60) * interval '1 minute') AS created_at\nFROM generate_series(1, 120) AS i;\nSELECT (created_at AT TIME ZONE 'UTC')::date AS day, count(*) AS orders,\n       count(*) FILTER (WHERE status = 'refunded') AS refunded\nFROM shop_orders GROUP BY 1 ORDER BY 1 LIMIT 5;\n",
+      "ordered": true,
+      "hints": [
+        "Group by the day expression and count all rows for `orders`.",
+        "`count(*) FILTER (WHERE status = 'refunded')` counts a subset in the same pass.",
+        "Add `ORDER BY 1 LIMIT 5` to keep the first five days."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Running total of paid revenue",
+      "kind": "sql",
+      "prompt": "Return for the first 5 days the columns `day` (UTC date), `paid_cents` (sum of `amount_cents` of `paid` orders that day) and `running_cents` (running total of `paid_cents` ordered by day), ordered by `day`.",
+      "starter": "CREATE TABLE shop_orders AS\nSELECT i AS order_id, i * 7 % 25 + 1 AS customer_id, 1000 + i * 137 % 9000 AS amount_cents,\n       CASE WHEN i % 4 = 0 THEN 'USD' ELSE 'EUR' END AS currency,\n       (ARRAY['paid', 'paid', 'refunded', 'failed'])[i % 4 + 1] AS status,\n       ('2026-03-01T00:00:00Z'::timestamptz + ((i - 1) / 4) * interval '1 day'\n        + (i * 7 % 24) * interval '1 hour' + (i * 13 % 60) * interval '1 minute') AS created_at\nFROM generate_series(1, 120) AS i;\nSELECT (created_at AT TIME ZONE 'UTC')::date AS day FROM shop_orders GROUP BY 1 ORDER BY 1 LIMIT 5;\n",
+      "solution": "CREATE TABLE shop_orders AS\nSELECT i AS order_id, i * 7 % 25 + 1 AS customer_id, 1000 + i * 137 % 9000 AS amount_cents,\n       CASE WHEN i % 4 = 0 THEN 'USD' ELSE 'EUR' END AS currency,\n       (ARRAY['paid', 'paid', 'refunded', 'failed'])[i % 4 + 1] AS status,\n       ('2026-03-01T00:00:00Z'::timestamptz + ((i - 1) / 4) * interval '1 day'\n        + (i * 7 % 24) * interval '1 hour' + (i * 13 % 60) * interval '1 minute') AS created_at\nFROM generate_series(1, 120) AS i;\nWITH daily AS (\n    SELECT (created_at AT TIME ZONE 'UTC')::date AS day, sum(amount_cents) AS paid_cents\n    FROM shop_orders WHERE status = 'paid' GROUP BY 1\n)\nSELECT day, paid_cents, sum(paid_cents) OVER (ORDER BY day) AS running_cents\nFROM daily ORDER BY day LIMIT 5;\n",
+      "ordered": true,
+      "hints": [
+        "Aggregate per day first (in a CTE), then apply the window.",
+        "A running total is `sum(...) OVER (ORDER BY day)`.",
+        "Filter `status = 'paid'` in the CTE and limit the final result to 5 rows."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Moving average in pandas",
+      "kind": "python",
+      "prompt": "The list `paid` holds daily paid revenue for 6 days. With pandas compute the 3-day moving average with `rolling(3, min_periods=1).mean()` rounded to 1 decimal and print it as a list. Expected output: `[100.0, 150.0, 200.0, 300.0, 400.0, 500.0]`.",
+      "starter": "import pandas as pd\n\npaid = pd.Series([100, 200, 300, 400, 500, 600])\nprint(paid.tolist())\n",
+      "solution": "import pandas as pd\n\npaid = pd.Series([100, 200, 300, 400, 500, 600])\nprint(paid.rolling(3, min_periods=1).mean().round(1).tolist())\n",
+      "expected": "[100.0, 150.0, 200.0, 300.0, 400.0, 500.0]",
+      "hints": [
+        "`rolling(3)` makes windows of the last three values.",
+        "`min_periods=1` allows the first windows to be shorter.",
+        "`paid.rolling(3, min_periods=1).mean().round(1).tolist()`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A calendar without holes",
+      "kind": "sql",
+      "prompt": "Return, for customer 4, one row for every day from 2026-03-01 to 2026-03-10 with the columns `day` (a date) and `orders` (the number of that customer's orders on the day, 0 when none), ordered by `day`. Use `generate_series` and a `LEFT JOIN`.",
+      "starter": "CREATE TABLE shop_orders AS\nSELECT i AS order_id, i * 7 % 25 + 1 AS customer_id, 1000 + i * 137 % 9000 AS amount_cents,\n       CASE WHEN i % 4 = 0 THEN 'USD' ELSE 'EUR' END AS currency,\n       (ARRAY['paid', 'paid', 'refunded', 'failed'])[i % 4 + 1] AS status,\n       ('2026-03-01T00:00:00Z'::timestamptz + ((i - 1) / 4) * interval '1 day'\n        + (i * 7 % 24) * interval '1 hour' + (i * 13 % 60) * interval '1 minute') AS created_at\nFROM generate_series(1, 120) AS i;\nSELECT (created_at AT TIME ZONE 'UTC')::date AS day, count(*) AS orders FROM shop_orders WHERE customer_id = 4 GROUP BY 1 ORDER BY 1;\n",
+      "solution": "CREATE TABLE shop_orders AS\nSELECT i AS order_id, i * 7 % 25 + 1 AS customer_id, 1000 + i * 137 % 9000 AS amount_cents,\n       CASE WHEN i % 4 = 0 THEN 'USD' ELSE 'EUR' END AS currency,\n       (ARRAY['paid', 'paid', 'refunded', 'failed'])[i % 4 + 1] AS status,\n       ('2026-03-01T00:00:00Z'::timestamptz + ((i - 1) / 4) * interval '1 day'\n        + (i * 7 % 24) * interval '1 hour' + (i * 13 % 60) * interval '1 minute') AS created_at\nFROM generate_series(1, 120) AS i;\nWITH per_day AS (\n    SELECT (created_at AT TIME ZONE 'UTC')::date AS day, count(*) AS orders\n    FROM shop_orders WHERE customer_id = 4 GROUP BY 1\n)\nSELECT d::date AS day, coalesce(p.orders, 0) AS orders\nFROM generate_series(date '2026-03-01', date '2026-03-10', interval '1 day') AS d\nLEFT JOIN per_day p ON p.day = d::date\nORDER BY day;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Top customers with the gap to the one above",
+      "kind": "sql",
+      "prompt": "Using paid orders only, return the top 3 customers by paid revenue with the columns `customer_id`, `paid_cents`, `revenue_rank` (`rank()` by `paid_cents` descending) and `gap_to_previous` (the previous ranked customer's `paid_cents` minus this one's, NULL for the first), ordered by `revenue_rank`, then `customer_id`.",
+      "starter": "CREATE TABLE shop_orders AS\nSELECT i AS order_id, i * 7 % 25 + 1 AS customer_id, 1000 + i * 137 % 9000 AS amount_cents,\n       CASE WHEN i % 4 = 0 THEN 'USD' ELSE 'EUR' END AS currency,\n       (ARRAY['paid', 'paid', 'refunded', 'failed'])[i % 4 + 1] AS status,\n       ('2026-03-01T00:00:00Z'::timestamptz + ((i - 1) / 4) * interval '1 day'\n        + (i * 7 % 24) * interval '1 hour' + (i * 13 % 60) * interval '1 minute') AS created_at\nFROM generate_series(1, 120) AS i;\nSELECT customer_id FROM shop_orders GROUP BY customer_id ORDER BY customer_id LIMIT 3;\n",
+      "solution": "CREATE TABLE shop_orders AS\nSELECT i AS order_id, i * 7 % 25 + 1 AS customer_id, 1000 + i * 137 % 9000 AS amount_cents,\n       CASE WHEN i % 4 = 0 THEN 'USD' ELSE 'EUR' END AS currency,\n       (ARRAY['paid', 'paid', 'refunded', 'failed'])[i % 4 + 1] AS status,\n       ('2026-03-01T00:00:00Z'::timestamptz + ((i - 1) / 4) * interval '1 day'\n        + (i * 7 % 24) * interval '1 hour' + (i * 13 % 60) * interval '1 minute') AS created_at\nFROM generate_series(1, 120) AS i;\nWITH rev AS (\n    SELECT customer_id, sum(amount_cents) AS paid_cents\n    FROM shop_orders WHERE status = 'paid' GROUP BY customer_id\n), ranked AS (\n    SELECT customer_id, paid_cents,\n           rank() OVER (ORDER BY paid_cents DESC) AS revenue_rank,\n           lag(paid_cents) OVER (ORDER BY paid_cents DESC, customer_id) - paid_cents AS gap_to_previous\n    FROM rev\n)\nSELECT customer_id, paid_cents, revenue_rank, gap_to_previous\nFROM ranked ORDER BY revenue_rank, customer_id LIMIT 3;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Define the headline numbers",
+      "kind": "written",
+      "prompt": "Your hand-over for the orders analysis needs a one-line definition for each of: revenue, refund rate and daily order count. Write the definitions (including time zone and status rules), the view you would create for each, and how you would check that the dashboard and the SQL agree.",
+      "starter": "Write your definitions here.",
+      "solution": "Revenue: the sum of `amount_cents` of orders with status `paid`, divided by 100, per currency (currencies are never added together), by UTC calendar day of `created_at`. Refund rate: refunded orders divided by orders that were ever paid or refunded (failed orders never charged the customer), per UTC day, as a percentage with one decimal. Daily order count: all orders by UTC day regardless of status, with a calendar join so that days without orders show 0. Create three views (`daily_revenue`, `daily_refund_rate`, `daily_orders`) so every dashboard reads the same definition; the views name the rules in their SQL and in a comment. To check agreement, pick two days, compute the numbers in pandas from the raw extract and compare them with the view output, and compare the sum of the view's revenue with the source's own paid total for the period.",
+      "rubric": [
+        "Defines revenue with the paid-only rule, currency and UTC day",
+        "Defines the refund rate with an explicit denominator",
+        "Proposes views so the definition lives in one place",
+        "Describes a cross-check with another tool or the source's totals"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why can a 7-day moving average computed with `ROWS BETWEEN 6 PRECEDING AND CURRENT ROW` be wrong on a grouped result?",
+      "options": [
+        "Window functions cannot be used after GROUP BY",
+        "If some days have no rows, the frame covers more than 7 calendar days",
+        "The frame is always 7 days long",
+        "Moving averages need a view"
+      ],
+      "answer": 1,
+      "explanation": "The frame counts rows, not days. A series with missing days is shifted, so the same frame spans more days. A calendar join with zeros restores one row per day."
+    },
+    {
+      "id": "c2",
+      "question": "What does `lag(x) OVER (ORDER BY day)` return on the first row?",
+      "options": [
+        "0",
+        "The same row's value",
+        "NULL",
+        "An error"
+      ],
+      "answer": 2,
+      "explanation": "There is no previous row, so the result is NULL, and `x - lag(x) ...` is NULL too. Decide whether to show it, hide it or coalesce it."
+    },
+    {
+      "id": "c3",
+      "question": "`rank() OVER (ORDER BY paid_cents DESC)` gives two customers the same revenue. What are the ranks of the next customers?",
+      "options": [
+        "The ranks continue without gaps: 1, 2, 2, 3",
+        "The ranks skip after the tie: 1, 2, 2, 4",
+        "Both tied customers get rank 1",
+        "An error is raised"
+      ],
+      "answer": 1,
+      "explanation": "`rank()` gives ties the same rank and leaves a gap after them; `dense_rank()` would give 1, 2, 2, 3."
+    },
+    {
+      "id": "c4",
+      "question": "Why does PostgreSQL reject `round(avg(amount_cents::double precision), 1)`?",
+      "options": [
+        "`avg` cannot take a double",
+        "Two-argument `round` exists only for `numeric`, so the value must be cast with `::numeric`",
+        "`round` cannot be used with aggregates",
+        "The 1 must be a string"
+      ],
+      "answer": 1,
+      "explanation": "PostgreSQL's `round(value, digits)` takes `numeric`. Cast the value, as in `round(avg(x)::numeric, 1)`. `avg` of integers already returns `numeric`."
+    },
+    {
+      "id": "c5",
+      "question": "What does a regular view store?",
+      "options": [
+        "The result rows at creation time",
+        "Only the query; it runs every time the view is selected",
+        "An index on the table",
+        "A copy of the table"
+      ],
+      "answer": 1,
+      "explanation": "A view is a saved query with a name. A materialised view stores the result and needs `REFRESH MATERIALIZED VIEW` to update."
+    }
+  ]
+}

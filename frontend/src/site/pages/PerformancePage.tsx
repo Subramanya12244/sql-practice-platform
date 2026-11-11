@@ -8,7 +8,9 @@ import { today, useProgress } from "../lib/progress";
 import { readStats, type PyStat } from "../lib/pyPractice";
 import { dueQuestions } from "../lib/insights";
 import { formatDuration } from "../lib/solveSessions";
-import { groupMastery, heatmap, overall, recommend, streaks, topicRows, weeklySeconds, type MasteryLevel, type TopicRow } from "../lib/solveAnalytics";
+import { groupMastery, heatmap, overall, streaks, topicRows, weeklySeconds, type MasteryLevel, type TopicRow } from "../lib/solveAnalytics";
+import { generateInsights, recommendations, type ProjectState } from "../lib/learningInsights";
+import { getProjectProgress } from "../lib/projects";
 
 const LEVEL: Record<MasteryLevel, { label: string; tone: "success" | "accent" | "warn" | "neutral" }> = {
   strong: { label: "Strong", tone: "success" },
@@ -110,11 +112,20 @@ export function PerformancePage() {
     if (!mounted || !index.length) return null;
     const inputs = { index, exercises, progress, pyStats, sessions };
     const rows = topicRows(inputs);
+    const inputs2 = { ...inputs, today: today() };
+    const projectState: Record<string, ProjectState> = {};
+    for (const p of data.projects ?? []) {
+      const prog = getProjectProgress(p.slug);
+      const auto = (data.projectTasks?.find((x) => x.slug === p.slug)?.tasks ?? []).filter((t) => t.type !== "checklist");
+      const passed = auto.filter((t) => prog.tasks[t.id]?.passed).length;
+      projectState[p.slug] = auto.length && passed === auto.length ? "Completed" : passed > 0 || Object.keys(prog.checklist).length ? "In progress" : "Not started";
+    }
     return {
       o: overall(sessions), rows, groups: groupMastery(rows),
-      recs: recommend({ ...inputs, dueSql: dueQuestions(index, progress, today()), today: today() }),
+      insights: generateInsights(inputs2),
+      recs: recommendations({ ...inputs2, dueSql: dueQuestions(index, progress, today()), projects: data.projects ?? [], projectState }),
     };
-  }, [mounted, index, exercises, progress, pyStats, sessions]);
+  }, [mounted, index, exercises, progress, pyStats, sessions, data.projects, data.projectTasks]);
 
   return (
     <Container>
@@ -147,6 +158,20 @@ export function PerformancePage() {
 
           <section aria-labelledby="activity"><SectionHeader id="activity" title="Activity" /><Heatmap sessions={progress.sessions} /></section>
 
+          {calc.insights.length > 0 && (
+            <section aria-labelledby="insights"><SectionHeader id="insights" title="What your records say" description="Short observations, each with what it is based on. They appear only when there is enough data." />
+              <ul className="space-y-2">
+                {calc.insights.map((x) => (
+                  <li key={x.id}><Card pad="md" className={x.severity === "warn" ? "border-warn/40" : ""}>
+                    <p className="text-sm font-medium text-ink">{x.text}</p>
+                    <p className="mt-0.5 text-xs text-ink-muted"><span className="font-medium">Based on: </span>{x.evidence}</p>
+                    {x.action && <Link to={x.action.path} className="mt-1.5 inline-block text-xs font-medium text-accent hover:underline">{x.action.label}</Link>}
+                  </Card></li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section aria-labelledby="strength"><SectionHeader id="strength" title="Topic strength" description="Based on what you completed (harder questions count more), recent results, attempts per solve and hints used. Speed is never part of it." />
             <div className="grid items-start gap-4 lg:grid-cols-2">
               <TopicList title="Strong topics" rows={calc.groups.strong} empty="None yet. Solving a few questions in a topic without hints makes it strong." />
@@ -156,7 +181,7 @@ export function PerformancePage() {
             </div>
           </section>
 
-          <section aria-labelledby="recs"><SectionHeader id="recs" title="Recommended next" description="Chosen from weak topics, missed questions, due revisions and the Python stage you are in." />
+          <section aria-labelledby="recs"><SectionHeader id="recs" title="Recommended next" description="Chosen from weak topics, missed questions, due revisions, the Python stage you are in, and a project or mock interview when you are ready." />
             {calc.recs.length ? (
               <ul className="grid gap-3 md:grid-cols-2">
                 {calc.recs.map((r) => (

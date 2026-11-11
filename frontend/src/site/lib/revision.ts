@@ -6,36 +6,75 @@
 import type { QuestionSummary } from "../types";
 import type { PyExerciseMeta } from "./pyExercises";
 
+/** Days until the next review, by stage. A clean review moves up one stage; trouble moves it back. */
+export const LADDER = [1, 3, 7, 14, 30] as const;
+
 export const RULES = {
-  /** A wrong submit or a failed check. */
+  ladder: LADDER,
+  /** Wrong submit or failed check: back to the first stage. */
   incorrectDays: 1,
-  /** Correct, but slow (SQL: first solve took longer than slowMinutes) or after many failed tries. */
-  slowDays: 3,
-  /** Correct. */
-  correctDays: 7,
-  /** Correct this many times in a row: the problem is mastered and moves to periodic review. */
+  /** Correct, but the answer needed help: same gap again. Help means any of these: */
+  slowMinutes: 15,
+  /** Python: correct only after at least this many failed checks counts as slow. */
+  slowFailedChecks: 3,
+  /** Hint level at which an answer counts as helped (SQL ladder level 2 = first hint; Python = hints shown). */
+  helpHintLevel: 2,
+  /** This many attempts before the pass counts as helped. */
+  manyAttempts: 3,
+  /** Fast = done within this share of the goal time. A fast, clean answer after two clean ones skips a stage. */
+  fastShare: 0.5,
+  skipAfterClean: 2,
+  /** Correct this many times in a row: mastered (the 30 day gap). */
   masteredAfter: 3,
   masteredDays: 30,
-  slowMinutes: 15,
-  /** Python: correct only after at least this many failed checks counts as "slow". */
-  slowFailedChecks: 3,
 } as const;
 
-export interface RevOutcome { at: string; ok: boolean }
-export interface RevItem { due: string; interval: number; streak: number; last: string; history: RevOutcome[] }
+export interface RevOutcome {
+  at: string; ok: boolean;
+  /** A scheduled re-solve (there was already a schedule), not the first outcome. */
+  rev?: boolean;
+  /** Done after the due day. */
+  late?: boolean;
+}
+/** `stage` is an index into LADDER (the gap just scheduled); older items without it are read from `interval`. */
+export interface RevItem { due: string; interval: number; streak: number; last: string; history: RevOutcome[]; stage?: number }
 export type RevKey = `sql:${number}` | `py:${string}`;
 
 const DAY = 86_400_000;
 export const addDays = (day: string, n: number) => new Date(Date.parse(`${day}T00:00:00Z`) + n * DAY).toISOString().slice(0, 10);
 
-/** The next schedule after an outcome. */
-export function nextRevision(prev: RevItem | undefined, outcome: { correct: boolean; slow?: boolean }, now = new Date()): RevItem {
+/** Stage of an item scheduled before the ladder existed: the nearest step at or below its interval. */
+export const stageFromInterval = (interval: number) => Math.max(0, LADDER.reduce((best, d, i) => (d <= interval ? i : best), 0));
+export const stageOf = (r?: RevItem) => (r ? r.stage ?? stageFromInterval(r.interval) : -1);
+
+export interface Outcome {
+  correct: boolean;
+  /** Took longer than the slow limit. */
+  slow?: boolean;
+  /** Highest hint level (SQL) or hints shown (Python) before this answer. */
+  hints?: number;
+  /** Graded attempts up to and including this one. */
+  attempts?: number;
+  /** Finished within RULES.fastShare of the goal time. */
+  fast?: boolean;
+}
+
+/** An answer that needed help: slow, hints, or many attempts. */
+export const neededHelp = (o: Outcome) => Boolean(o.slow || (o.hints ?? 0) >= RULES.helpHintLevel || (o.attempts ?? 0) >= RULES.manyAttempts);
+
+/** The next schedule after an outcome (see RULES; every rule is also shown to the learner). */
+export function nextRevision(prev: RevItem | undefined, outcome: Outcome, now = new Date()): RevItem {
   const day = now.toISOString().slice(0, 10);
+  const before = stageOf(prev);
   const streak = outcome.correct ? (prev?.streak ?? 0) + 1 : 0;
-  const interval = !outcome.correct ? RULES.incorrectDays
-    : streak >= RULES.masteredAfter ? RULES.masteredDays
-      : outcome.slow ? RULES.slowDays : RULES.correctDays;
-  return { due: addDays(day, interval), interval, streak, last: now.toISOString(), history: [...(prev?.history ?? []), { at: now.toISOString(), ok: outcome.correct }].slice(-12) };
+  let stage: number;
+  if (!outcome.correct) stage = 0;
+  else if (before < 0) stage = 0; // first correct answer: look again tomorrow
+  else if (neededHelp(outcome)) stage = before; // correct, with help: the same gap again
+  else stage = Math.min(LADDER.length - 1, before + (outcome.fast && (prev?.streak ?? 0) >= RULES.skipAfterClean ? 2 : 1));
+  const interval = LADDER[stage];
+  const entry: RevOutcome = { at: now.toISOString(), ok: outcome.correct, ...(prev ? { rev: true, late: day > prev.due } : {}) };
+  return { due: addDays(day, interval), interval, streak, stage, last: now.toISOString(), history: [...(prev?.history ?? []), entry].slice(-20) };
 }
 
 export const stage = (r: RevItem) => (r.streak >= RULES.masteredAfter ? "Mastered" : r.streak === 0 ? "Relearning" : "Learning");
@@ -90,5 +129,29 @@ export function splitQueue(items: QueueItem[], today: string) {
 export function mergeRevision(a: Record<string, RevItem> = {}, b: Record<string, RevItem> = {}): Record<string, RevItem> {
   const out = { ...b };
   for (const [k, v] of Object.entries(a)) if (!out[k] || v.last > out[k].last) out[k] = v;
+  return out;
+}
+
+export interface RevisionStats {
+  week: { reviews: number; correct: number; onTime: number };
+  all: { reviews: number; correct: number; onTime: number };
+  /** Items per stage (index = LADDER index), plus how many are mastered. */
+  byStage: number[];
+  mastered: number;
+}
+
+/** Completion statistics from the review history. Only scheduled re-solves count as reviews. */
+export function revisionStats(revision: Record<string, RevItem> | undefined, today: string): RevisionStats {
+  const from = addDays(today, -6);
+  const out: RevisionStats = { week: { reviews: 0, correct: 0, onTime: 0 }, all: { reviews: 0, correct: 0, onTime: 0 }, byStage: LADDER.map(() => 0), mastered: 0 };
+  for (const r of Object.values(revision ?? {})) {
+    out.byStage[Math.min(LADDER.length - 1, stageOf(r))]++;
+    if (r.streak >= RULES.masteredAfter) out.mastered++;
+    for (const h of r.history) {
+      if (!h.rev) continue;
+      const bucket = h.at.slice(0, 10) >= from && h.at.slice(0, 10) <= today ? [out.week, out.all] : [out.all];
+      for (const b of bucket) { b.reviews++; if (h.ok) b.correct++; if (!h.late) b.onTime++; }
+    }
+  }
   return out;
 }

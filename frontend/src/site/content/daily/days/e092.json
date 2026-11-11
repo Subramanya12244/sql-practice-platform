@@ -1,0 +1,176 @@
+{
+  "id": "e092",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "database-design",
+      "constraints",
+      "primary-foreign-keys",
+      "normalization"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "postgresql-fundamentals"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Which inserts do the constraints reject?",
+      "kind": "python",
+      "prompt": "The `item` table below has a primary key, a `NOT NULL` column and a named `CHECK`. The list `attempts` holds four rows to insert. For each attempt, in order, run the insert with placeholders inside a `try` block and print `ok` when it succeeds or `rejected` when `sqlite3.IntegrityError` is raised. Expected output, one word per line: `ok`, `rejected`, `rejected`, `rejected`. (`sqlite3` is the stand-in here: it enforces these constraints like PostgreSQL does, but its column types are looser.)",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE item (sku TEXT PRIMARY KEY, name TEXT NOT NULL, price NUMERIC CONSTRAINT price_positive CHECK (price > 0))\")\nattempts = [(\"A1\", \"Pen\", 1.5), (\"A1\", \"Pencil\", 0.5), (\"B2\", None, 2.0), (\"C3\", \"Ink\", -1)]\n# insert each attempt and print ok or rejected\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE item (sku TEXT PRIMARY KEY, name TEXT NOT NULL, price NUMERIC CONSTRAINT price_positive CHECK (price > 0))\")\nattempts = [(\"A1\", \"Pen\", 1.5), (\"A1\", \"Pencil\", 0.5), (\"B2\", None, 2.0), (\"C3\", \"Ink\", -1)]\nfor row in attempts:\n    try:\n        conn.execute(\"INSERT INTO item VALUES (?, ?, ?)\", row)\n        print(\"ok\")\n    except sqlite3.IntegrityError:\n        print(\"rejected\")\n",
+      "hints": [
+        "Loop over `attempts` and put the insert in a `try` block.",
+        "Use `conn.execute(\"INSERT INTO item VALUES (?, ?, ?)\", row)` and print `ok` right after it.",
+        "The `except sqlite3.IntegrityError:` branch prints `rejected`; the duplicate key, the missing name and the negative price each raise it."
+      ],
+      "expected": "ok\nrejected\nrejected\nrejected"
+    },
+    {
+      "id": "g2",
+      "title": "Exact money: float versus numeric",
+      "kind": "sql",
+      "prompt": "In PostgreSQL, sum the value `0.1` over the ten rows of `generate_series(1, 10)` twice: once cast to `double precision` and once cast to `numeric`. Return one row with two boolean columns, `float_exact` and `numeric_exact`, each saying whether that total equals `1`.",
+      "starter": "SELECT 1 AS float_exact, 2 AS numeric_exact;\n",
+      "solution": "SELECT sum(0.1::double precision) = 1 AS float_exact,\n       sum(0.1::numeric) = 1 AS numeric_exact\nFROM generate_series(1, 10);\n",
+      "hints": [
+        "Both totals come from `sum(...)` over `generate_series(1, 10)`; the difference is the cast.",
+        "Cast the literal: `0.1::double precision` for one total and `0.1::numeric` for the other.",
+        "Compare each sum with `= 1` and give the columns the aliases `float_exact` and `numeric_exact`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Which staged rows have a valid amount?",
+      "kind": "sql",
+      "prompt": "The staging rows below are all text. Write a query on the `WITH stg(...)` CTE (keep it) that returns `row_num` and `amount` (cast to `numeric(10,2)`) for the rows whose amount text matches `^[0-9]+(\\.[0-9]{1,2})?$`, ordered by `row_num`. Use the `~` operator.",
+      "starter": "WITH stg(row_num, amount) AS (\n  VALUES (1, '19.90'), (2, '25'), (3, ''), (4, '-4'), (5, '7.555'), (6, '8.5')\n)\nSELECT row_num, amount FROM stg ORDER BY row_num;\n",
+      "solution": "WITH stg(row_num, amount) AS (\n  VALUES (1, '19.90'), (2, '25'), (3, ''), (4, '-4'), (5, '7.555'), (6, '8.5')\n)\nSELECT row_num, amount::numeric(10,2) AS amount\nFROM stg\nWHERE amount ~ '^[0-9]+(\\.[0-9]{1,2})?$'\nORDER BY row_num;\n",
+      "hints": [
+        "Keep only rows whose text passes the pattern, with a `WHERE` clause.",
+        "`WHERE amount ~ '^[0-9]+(\\.[0-9]{1,2})?$'` tests the text without casting it; cast only in the `SELECT` list.",
+        "`SELECT row_num, amount::numeric(10,2) AS amount FROM stg WHERE amount ~ '...' ORDER BY row_num`; rows 1, 2 and 6 pass."
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g4",
+      "title": "Draft DDL from dtypes",
+      "kind": "python",
+      "prompt": "The DataFrame `df` has an integer, a text, a float and a boolean column. Write `ddl(name, frame)` that returns a `CREATE TABLE` statement with one line per column, mapping dtype `int64` to `bigint`, `object` to `text`, `float64` to `numeric(10,2)` and `bool` to `boolean`. Each column line is `  <name> <type>` (two leading spaces), lines are joined with `,` and a newline, and the statement is `CREATE TABLE <name> (` + newline + columns + newline + `);`. Print `ddl(\"trip\", df)`.",
+      "starter": "import pandas as pd\n\ndf = pd.DataFrame({\"trip_id\": [1, 2], \"driver\": [\"Ana\", \"Ben\"], \"fare\": [12.5, 9.0], \"paid\": [True, False]})\nTYPES = {\"int64\": \"bigint\", \"object\": \"text\", \"float64\": \"numeric(10,2)\", \"bool\": \"boolean\"}\n\ndef ddl(name, frame):\n    pass\n\nprint(ddl(\"trip\", df))\n",
+      "solution": "import pandas as pd\n\ndf = pd.DataFrame({\"trip_id\": [1, 2], \"driver\": [\"Ana\", \"Ben\"], \"fare\": [12.5, 9.0], \"paid\": [True, False]})\nTYPES = {\"int64\": \"bigint\", \"object\": \"text\", \"float64\": \"numeric(10,2)\", \"bool\": \"boolean\"}\n\ndef ddl(name, frame):\n    lines = [f\"  {col} {TYPES[str(dtype)]}\" for col, dtype in frame.dtypes.items()]\n    return f\"CREATE TABLE {name} (\\n\" + \",\\n\".join(lines) + \"\\n);\"\n\nprint(ddl(\"trip\", df))\n",
+      "hints": [
+        "`frame.dtypes.items()` gives each column name with its dtype.",
+        "Look the dtype up with `TYPES[str(dtype)]` and build one string per column.",
+        "Join the column lines with `\",\\n\"` and wrap them in `CREATE TABLE ... (` and `);`."
+      ],
+      "expected": "CREATE TABLE trip (\n  trip_id bigint,\n  driver text,\n  fare numeric(10,2),\n  paid boolean\n);"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Reject reasons from staging",
+      "kind": "sql",
+      "prompt": "Using the `WITH stg(...)` CTE (keep it), return one row per rejected staging row with the columns `row_num` and `reason`, ordered by `row_num`. Apply the rules in this order and report the first that fails: `missing email` when `email` is an empty string, `bad quantity` when `qty` does not match `^[0-9]+$`, `bad status` when `status` is not one of `open`, `closed`. Rows that pass every rule are not returned.",
+      "starter": "WITH stg(row_num, email, qty, status) AS (\n  VALUES (1, 'a@x.com', '3', 'open'), (2, '', '2', 'open'), (3, 'c@x.com', 'two', 'closed'),\n         (4, 'd@x.com', '5', 'paused'), (5, '', 'x', 'bogus'), (6, 'f@x.com', '1', 'closed')\n)\nSELECT row_num FROM stg ORDER BY row_num;\n",
+      "solution": "WITH stg(row_num, email, qty, status) AS (\n  VALUES (1, 'a@x.com', '3', 'open'), (2, '', '2', 'open'), (3, 'c@x.com', 'two', 'closed'),\n         (4, 'd@x.com', '5', 'paused'), (5, '', 'x', 'bogus'), (6, 'f@x.com', '1', 'closed')\n), checked AS (\n  SELECT row_num,\n    CASE WHEN email = '' THEN 'missing email'\n         WHEN qty !~ '^[0-9]+$' THEN 'bad quantity'\n         WHEN status NOT IN ('open', 'closed') THEN 'bad status'\n    END AS reason\n  FROM stg\n)\nSELECT row_num, reason FROM checked WHERE reason IS NOT NULL ORDER BY row_num;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Infer a schema from sample rows",
+      "kind": "python",
+      "prompt": "Write `infer_ddl(name, rows)` for a list of dictionaries with the same keys (all values are strings; an empty string means missing). A column is `integer` when every non-empty value matches `[0-9]+`, otherwise `numeric(10,2)` when every non-empty value matches digits with an optional `.` and one or two decimals, otherwise `text`. A column is followed by ` NOT NULL` when no value is empty. Output: `CREATE TABLE <name> (` + newline, one line per column in key order as `  <key> <type>[ NOT NULL]` joined by `,` and a newline, then newline and `);`. Use the `re` module. Print the result for the sample rows.",
+      "starter": "import re\n\nrows = [\n    {\"id\": \"1\", \"price\": \"9.50\", \"code\": \"A-1\", \"qty\": \"3\"},\n    {\"id\": \"2\", \"price\": \"12\", \"code\": \"B-2\", \"qty\": \"\"},\n    {\"id\": \"3\", \"price\": \"7.25\", \"code\": \"C-3\", \"qty\": \"10\"},\n]\n\ndef infer_ddl(name, rows):\n    pass\n\nprint(infer_ddl(\"item\", rows))\n",
+      "solution": "import re\n\nrows = [\n    {\"id\": \"1\", \"price\": \"9.50\", \"code\": \"A-1\", \"qty\": \"3\"},\n    {\"id\": \"2\", \"price\": \"12\", \"code\": \"B-2\", \"qty\": \"\"},\n    {\"id\": \"3\", \"price\": \"7.25\", \"code\": \"C-3\", \"qty\": \"10\"},\n]\n\ndef infer_ddl(name, rows):\n    lines = []\n    for key in rows[0]:\n        values = [r[key] for r in rows]\n        filled = [v for v in values if v != \"\"]\n        if all(re.fullmatch(r\"[0-9]+\", v) for v in filled):\n            kind = \"integer\"\n        elif all(re.fullmatch(r\"[0-9]+(\\.[0-9]{1,2})?\", v) for v in filled):\n            kind = \"numeric(10,2)\"\n        else:\n            kind = \"text\"\n        null = \"\" if len(filled) < len(values) else \" NOT NULL\"\n        lines.append(f\"  {key} {kind}{null}\")\n    return f\"CREATE TABLE {name} (\\n\" + \",\\n\".join(lines) + \"\\n);\"\n\nprint(infer_ddl(\"item\", rows))\n",
+      "expected": "CREATE TABLE item (\n  id integer NOT NULL,\n  price numeric(10,2) NOT NULL,\n  code text NOT NULL,\n  qty integer\n);"
+    },
+    {
+      "id": "i3",
+      "title": "Promote with a foreign key and a reject table",
+      "kind": "python",
+      "prompt": "Using `sqlite3` with `PRAGMA foreign_keys = ON`, the tables `customer(email TEXT PRIMARY KEY)` and `sale(sale_id INTEGER PRIMARY KEY, email TEXT NOT NULL REFERENCES customer(email), amount NUMERIC NOT NULL CHECK (amount >= 0))` exist, and the all-text list `staged` holds raw rows `(row_num, sale_id, email, amount)`. Promote each row in a loop: reject it (store `(row_num, reason)` in a list) with reason `bad id` when `sale_id` is not digits, `bad amount` when `amount` is not a non-negative decimal (use `float()` in a `try`), otherwise attempt the insert and reject with reason `unknown customer` when `sqlite3.IntegrityError` is raised. Print `loaded=<n> rejected=<m>` and then each reject as `<row_num>: <reason>`. Expected: `loaded=2 rejected=4` and four reject lines.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"PRAGMA foreign_keys = ON\")\nconn.execute(\"CREATE TABLE customer (email TEXT PRIMARY KEY)\")\nconn.execute(\"CREATE TABLE sale (sale_id INTEGER PRIMARY KEY, email TEXT NOT NULL REFERENCES customer(email), amount NUMERIC NOT NULL CHECK (amount >= 0))\")\nconn.execute(\"INSERT INTO customer VALUES ('ana@x.com')\")\nconn.execute(\"INSERT INTO customer VALUES ('ben@x.com')\")\nstaged = [(1, \"10\", \"ana@x.com\", \"5.50\"), (2, \"x1\", \"ana@x.com\", \"2\"), (3, \"12\", \"zed@x.com\", \"4\"),\n          (4, \"13\", \"ben@x.com\", \"-3\"), (5, \"14\", \"ben@x.com\", \"abc\"), (6, \"15\", \"ben@x.com\", \"8\")]\nloaded = 0\nrejects = []\n# promote each staged row\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"PRAGMA foreign_keys = ON\")\nconn.execute(\"CREATE TABLE customer (email TEXT PRIMARY KEY)\")\nconn.execute(\"CREATE TABLE sale (sale_id INTEGER PRIMARY KEY, email TEXT NOT NULL REFERENCES customer(email), amount NUMERIC NOT NULL CHECK (amount >= 0))\")\nconn.execute(\"INSERT INTO customer VALUES ('ana@x.com')\")\nconn.execute(\"INSERT INTO customer VALUES ('ben@x.com')\")\nstaged = [(1, \"10\", \"ana@x.com\", \"5.50\"), (2, \"x1\", \"ana@x.com\", \"2\"), (3, \"12\", \"zed@x.com\", \"4\"),\n          (4, \"13\", \"ben@x.com\", \"-3\"), (5, \"14\", \"ben@x.com\", \"abc\"), (6, \"15\", \"ben@x.com\", \"8\")]\nloaded = 0\nrejects = []\nfor row_num, sale_id, email, amount in staged:\n    if not sale_id.isdigit():\n        rejects.append((row_num, \"bad id\"))\n        continue\n    try:\n        value = float(amount)\n    except ValueError:\n        value = -1\n    if value < 0:\n        rejects.append((row_num, \"bad amount\"))\n        continue\n    try:\n        with conn:\n            conn.execute(\"INSERT INTO sale VALUES (?, ?, ?)\", (int(sale_id), email, value))\n        loaded += 1\n    except sqlite3.IntegrityError:\n        rejects.append((row_num, \"unknown customer\"))\nprint(f\"loaded={loaded} rejected={len(rejects)}\")\nfor row_num, reason in rejects:\n    print(f\"{row_num}: {reason}\")\n",
+      "expected": "loaded=2 rejected=4\n2: bad id\n3: unknown customer\n4: bad amount\n5: bad amount",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A table has `amount numeric(10,2) CHECK (amount >= 0)` and no `NOT NULL`. What happens on `INSERT ... VALUES (NULL)` for amount?",
+      "options": [
+        "It is rejected with SQLSTATE 23514",
+        "It is accepted, because the CHECK condition is unknown and unknown passes",
+        "It is rejected with SQLSTATE 23502",
+        "It is stored as 0"
+      ],
+      "answer": 1,
+      "explanation": "A CHECK fails only when its condition is false. `NULL >= 0` is NULL (unknown), so the row passes. Only `NOT NULL` (23502) rejects it."
+    },
+    {
+      "id": "c2",
+      "question": "Why does a staging table usually have all `text` columns?",
+      "options": [
+        "Text is the fastest type in PostgreSQL",
+        "Any file content loads without a type error, so validation can be done and counted in SQL afterwards",
+        "Text columns enforce uniqueness",
+        "PostgreSQL cannot store numbers read from CSV"
+      ],
+      "answer": 1,
+      "explanation": "The point of staging is that landing cannot fail on dirty values. Typed columns would raise on the first bad value and roll back the whole statement."
+    },
+    {
+      "id": "c3",
+      "question": "A target has `customer_id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY` and `email text NOT NULL`. The same email is loaded twice. What happens?",
+      "options": [
+        "The second load is rejected by the primary key",
+        "Both rows are stored with different customer_id values, because nothing makes email unique",
+        "The second load updates the first row",
+        "PostgreSQL merges them"
+      ],
+      "answer": 1,
+      "explanation": "The primary key is a generated number, so each insert gets a new one. Duplicates by business key are prevented only by `UNIQUE (email)`."
+    },
+    {
+      "id": "c4",
+      "question": "What does `SELECT sum(0.1::double precision) = 1 FROM generate_series(1, 10)` return?",
+      "options": [
+        "`true`",
+        "`false`, because 0.1 has no exact binary form and the sum is slightly below 1",
+        "`NULL`",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "Ten additions of the nearest double to 0.1 give 0.9999999999999999, not 1. With `numeric` the same query returns `true`."
+    },
+    {
+      "id": "c5",
+      "question": "Which check on the text `2026-02-30` accepts it as a valid date?",
+      "options": [
+        "Casting it with `::date`",
+        "A regular expression for four digits, a dash, two digits, a dash and two digits",
+        "Neither: the cast raises `date/time field value out of range` and the pattern cannot know the calendar",
+        "Both accept it"
+      ],
+      "answer": 2,
+      "explanation": "The pattern only tests the shape, so it passes. The cast tests the calendar and raises an error that aborts the statement. Neither rejects the bad value cleanly, which is why dates are best checked row by row in Python."
+    }
+  ]
+}

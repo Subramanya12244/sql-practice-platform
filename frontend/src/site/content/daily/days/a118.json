@@ -1,0 +1,194 @@
+{
+  "id": "a118",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "python-numpy"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-groupby-agg",
+      "customer-transaction-stats"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "The matrix behind the heatmap",
+      "kind": "python",
+      "prompt": "Print the correlation matrix of `cols` in `orders`, rounded to 2 decimals, with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ncols = [\"quantity\", \"unit_price\", \"shipping_days\", \"revenue\"]\n\n# correlation matrix\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ncols = [\"quantity\", \"unit_price\", \"shipping_days\", \"revenue\"]\n\nprint(orders[cols].corr().round(2).to_string())\n",
+      "expected": "               quantity  unit_price  shipping_days  revenue\nquantity           1.00        0.06          -0.00     0.49\nunit_price         0.06        1.00           0.02     0.84\nshipping_days     -0.00        0.02           1.00     0.02\nrevenue            0.49        0.84           0.02     1.00",
+      "hints": [
+        "`DataFrame.corr()` gives the matrix.",
+        "Select the columns first: `orders[cols]`.",
+        "Round with `.round(2)` and print `to_string()`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Strongest pair",
+      "kind": "python",
+      "prompt": "Find the pair of different columns in `cols` with the largest absolute correlation. Print `<col a> & <col b>: <r>` with r rounded to 2 decimals (keep its sign), columns in the order they appear in `cols`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ncols = [\"quantity\", \"unit_price\", \"shipping_days\", \"revenue\"]\n\n# strongest off-diagonal pair\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ncols = [\"quantity\", \"unit_price\", \"shipping_days\", \"revenue\"]\n\ncorr = orders[cols].corr()\nbest = None\nfor i, a in enumerate(cols):\n    for b in cols[i + 1:]:\n        if best is None or abs(corr.loc[a, b]) > abs(corr.loc[best[0], best[1]]):\n            best = (a, b)\nprint(f\"{best[0]} & {best[1]}: {corr.loc[best[0], best[1]]:.2f}\")\n",
+      "expected": "unit_price & revenue: 0.84",
+      "hints": [
+        "Compare every pair once: the second loop starts after the first column.",
+        "Keep the best pair so far and compare absolute values.",
+        "Format the signed value with `:.2f`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Pivot for a heatmap",
+      "kind": "python",
+      "prompt": "Build the table of mean revenue by quarter (rows, from `order_date`) and category (columns), rounded to 0 decimals, and print the largest cell as `<category> in Q<quarter>: <value>` with an integer value.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ncols = [\"quantity\", \"unit_price\", \"shipping_days\", \"revenue\"]\n\n# mean revenue by quarter x category\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ncols = [\"quantity\", \"unit_price\", \"shipping_days\", \"revenue\"]\n\ntable = orders.pivot_table(index=orders[\"order_date\"].dt.quarter, columns=\"category\", values=\"revenue\", aggfunc=\"mean\").round(0)\nstacked = table.stack()\nquarter, category = stacked.idxmax()\nprint(f\"{category} in Q{quarter}: {int(stacked.max())}\")\n",
+      "expected": "Electronics in Q1: 581",
+      "hints": [
+        "`pivot_table` with `aggfunc=\"mean\"`.",
+        "`table.stack()` turns cells into one series with a two-level index.",
+        "`idxmax()` returns the (quarter, category) pair."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Choose the heatmap colour scale",
+      "kind": "written",
+      "prompt": "A colleague draws a heatmap of the correlation matrix with seaborn's default colour map and no `vmin` or `vmax`. Explain what can go wrong and write the corrected call.",
+      "starter": "# sns.heatmap(...)\n",
+      "solution": "```python\nsns.heatmap(corr, annot=True, fmt=\".2f\", vmin=-1, vmax=1, cmap=\"vlag\", ax=ax)\n```\n\nWithout fixed limits the colours are scaled to the smallest and largest value present, so a matrix whose strongest off-diagonal correlation is 0.2 is painted as vividly as one with 0.9 and readers over-read weak links; a sequential default map also hides the sign. The corrected call fixes the scale to the full -1 to 1 range with a diverging map centred on a neutral colour, and prints the number in each cell.",
+      "hints": [
+        "What does the colour range depend on?",
+        "Correlation has a natural range.",
+        "A diverging map has a neutral middle."
+      ],
+      "rubric": [
+        "Names the problem: colours scale to the data, hiding weak versus strong.",
+        "Sets vmin=-1 and vmax=1.",
+        "Uses a diverging map and annot=True."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Slope per category",
+      "kind": "python",
+      "prompt": "For each category in `orders` (alphabetical), fit the line `revenue` on `unit_price` with `np.polyfit(x, y, 1)` and print `category: slope=<slope rounded to 2> n=<rows>`. This is the number each facet's regression line would show.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ncols = [\"quantity\", \"unit_price\", \"shipping_days\", \"revenue\"]\n\n# slope per category\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ncols = [\"quantity\", \"unit_price\", \"shipping_days\", \"revenue\"]\n\nfor name, part in orders.groupby(\"category\"):\n    slope, intercept = np.polyfit(part[\"unit_price\"], part[\"revenue\"], 1)\n    print(f\"{name}: slope={slope:.2f} n={len(part)}\")\n",
+      "expected": "Beauty: slope=0.90 n=62\nElectronics: slope=0.78 n=41\nHome: slope=2.24 n=82\nSports: slope=2.55 n=55"
+    },
+    {
+      "id": "i2",
+      "title": "Top correlations as a function",
+      "kind": "python",
+      "prompt": "Write `top_pairs(df, k)` returning a list of `(col_a, col_b, r)` tuples for the `k` pairs of columns with the largest absolute correlation, each pair listed once (upper triangle), sorted by absolute value descending, with r rounded to 2 decimals. Print `top_pairs(orders[cols], 2)`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ncols = [\"quantity\", \"unit_price\", \"shipping_days\", \"revenue\"]\n\ndef top_pairs(df, k):\n    pass\n\n\nprint(top_pairs(orders[cols], 2))\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_orders():\n    rng = np.random.default_rng(7)\n    n = 240\n    category = rng.choice([\"Home\", \"Electronics\", \"Beauty\", \"Sports\"], size=n, p=[0.35, 0.2, 0.25, 0.2])\n    base = pd.Series({\"Home\": 45, \"Electronics\": 160, \"Beauty\": 28, \"Sports\": 60})\n    df = pd.DataFrame({\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n        \"category\": category,\n        \"quantity\": rng.integers(1, 6, n),\n        \"unit_price\": (base[category].to_numpy() * (0.8 + 0.4 * rng.random(n))).round(2),\n        \"shipping_days\": rng.integers(1, 9, n),\n    })\n    df[\"revenue\"] = (df[\"quantity\"] * df[\"unit_price\"]).round(2)\n    return df.sort_values(\"order_date\").reset_index(drop=True)\n\norders = make_orders()\ncols = [\"quantity\", \"unit_price\", \"shipping_days\", \"revenue\"]\n\ndef top_pairs(df, k):\n    corr = df.corr()\n    names = list(corr.columns)\n    pairs = [(a, b, round(float(corr.loc[a, b]), 2)) for i, a in enumerate(names) for b in names[i + 1:]]\n    pairs.sort(key=lambda p: abs(p[2]), reverse=True)\n    return pairs[:k]\n\n\nprint(top_pairs(orders[cols], 2))\n",
+      "expected": "[('unit_price', 'revenue', 0.84), ('quantity', 'revenue', 0.49)]"
+    },
+    {
+      "id": "i3",
+      "title": "Critique and redraw a pair plot",
+      "kind": "written",
+      "prompt": "A pair plot of 12 numeric columns coloured by category is unreadable. Describe two problems and write code that gives the reader a clearer overview: for example a correlation heatmap of all columns plus a pair plot of the three most related ones. Say how you would find those three columns.",
+      "starter": "# plan and code\n",
+      "solution": "With 12 columns the grid has 144 panels, so each is tiny, points overplot and a reader cannot find the pairs that matter; colouring by category adds a third encoding to every panel. A clearer overview is a heatmap of the 12-by-12 correlation matrix (one image, numbers annotated), then a pair plot of only the columns that matter.\n\n```python\ncorr = df.corr(numeric_only=True)\nsns.heatmap(corr, annot=True, fmt=\".1f\", vmin=-1, vmax=1, cmap=\"vlag\")\n# strongest pairs from the upper triangle\npairs = corr.where(np.triu(np.ones(corr.shape, dtype=bool), k=1)).stack()\ntop = pairs.abs().sort_values(ascending=False).head(3)\ncols = sorted({name for pair in top.index for name in pair})\nsns.pairplot(df[cols + [\"category\"]], hue=\"category\")\n```\n\nThe three columns are found from the upper triangle of the correlation matrix by absolute value, so each pair counts once.",
+      "rubric": [
+        "Names the overplotting or 144-panel problem.",
+        "Uses a correlation heatmap for overview.",
+        "Selects columns from the strongest absolute correlations.",
+        "Pair plot only for the chosen columns."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [
+      "matplotlib",
+      "seaborn",
+      "pandas",
+      "numpy"
+    ],
+    "note": "Examples 2 to 5 use seaborn with the Agg backend and print figure properties; run them on your own computer after `pip install matplotlib seaborn`, because the browser cannot load them. Example 1 and the graded exercises are pandas and NumPy only and run in the browser. Written exercises are self-assessed."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A correlation matrix has what values on its diagonal?",
+      "options": [
+        "1, since each column correlates perfectly with itself",
+        "0",
+        "The variance",
+        "It varies by column"
+      ],
+      "answer": 0,
+      "explanation": "Pearson correlation of a column with itself is 1 whatever the data."
+    },
+    {
+      "id": "c2",
+      "question": "Which call returns a grid object whose axes you read from `g.axes`?",
+      "options": [
+        "`sns.pairplot(df)`",
+        "`sns.heatmap(df)`",
+        "`sns.regplot(...)`",
+        "`sns.countplot(...)`"
+      ],
+      "answer": 0,
+      "explanation": "pairplot is figure-level and returns a PairGrid; the others return an axes."
+    },
+    {
+      "id": "c3",
+      "question": "A correlation of 0.02 between two columns means what?",
+      "options": [
+        "No straight-line relationship, though a curve could exist",
+        "The columns are independent",
+        "The columns are identical",
+        "Nothing, it is an error"
+      ],
+      "answer": 0,
+      "explanation": "Pearson correlation measures straight-line association. A curve can give a near-zero value, and zero correlation does not prove independence."
+    },
+    {
+      "id": "c4",
+      "question": "Why use `ci=None` in `regplot` for a test?",
+      "options": [
+        "The confidence band is estimated by random resampling, so it changes between runs",
+        "It makes the line straight",
+        "It removes the scatter",
+        "It speeds nothing"
+      ],
+      "answer": 0,
+      "explanation": "The band uses bootstrap resampling. The fitted line itself is deterministic and equals polyfit."
+    },
+    {
+      "id": "c5",
+      "question": "What does `sns.FacetGrid(df, col='category')` need before it draws anything?",
+      "options": [
+        "A call such as `g.map_dataframe(...)`",
+        "Nothing, it draws the data itself",
+        "An `ax=` argument",
+        "A pivot table"
+      ],
+      "answer": 0,
+      "explanation": "FacetGrid only creates the empty grid of panels; map_dataframe draws a chart in each."
+    }
+  ]
+}

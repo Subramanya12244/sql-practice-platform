@@ -1,0 +1,180 @@
+{
+  "id": "d060",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 20,
+    "independent": 60,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "transactions",
+      "views"
+    ],
+    "questions": [
+      184,
+      190
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "window-functions",
+      "indexing-optimization"
+    ],
+    "patterns": [
+      "top-n-per-group",
+      "gaps-and-islands"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Create and query a view",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "In one block create a view `expensive_products` with the columns `product_id`, `product_name`, `unit_price` of products whose `unit_price` is above 50, and then return `product_id`, `product_name` from the view, ordered by `product_id`.",
+      "starter": "SELECT product_id, product_name\nFROM products\nORDER BY product_id;\n",
+      "solution": "CREATE VIEW expensive_products AS\nSELECT product_id, product_name, unit_price\nFROM products\nWHERE unit_price > 50;\n\nSELECT product_id, product_name\nFROM expensive_products\nORDER BY product_id;\n",
+      "hints": [
+        "The starter reads the table directly. First create the view with CREATE VIEW name AS query;.",
+        "The view's query keeps the three columns and the condition unit_price > 50.",
+        "After the CREATE VIEW statement, SELECT product_id, product_name FROM expensive_products ORDER BY product_id;"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "A stale materialised view",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "In one block: create a materialised view `category_counts` with `category_id` and `products` (count of products per category); then run `UPDATE products SET category_id = 2 WHERE category_id = 1`; finally return one row with `stored_in_view` (the stored `products` value for category 1) and `live_in_table` (the current count of products with `category_id = 1`).",
+      "starter": "SELECT COUNT(*) AS stored_in_view, COUNT(*) AS live_in_table\nFROM products\nWHERE category_id = 1;\n",
+      "solution": "CREATE MATERIALIZED VIEW category_counts AS\nSELECT category_id, COUNT(*) AS products\nFROM products\nGROUP BY category_id;\n\nUPDATE products SET category_id = 2 WHERE category_id = 1;\n\nSELECT (SELECT products FROM category_counts WHERE category_id = 1) AS stored_in_view,\n       (SELECT COUNT(*) FROM products WHERE category_id = 1) AS live_in_table;\n",
+      "hints": [
+        "The stored value comes from the materialised view and the live value from the table.",
+        "Use two scalar subqueries in one SELECT.",
+        "SELECT (SELECT products FROM category_counts WHERE category_id = 1) AS stored_in_view, (SELECT COUNT(*) FROM products WHERE category_id = 1) AS live_in_table;"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Share of the category (windows)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For products in categories 1 and 2 return `product_id`, `category_id`, `unit_price` and `pct_of_category` (the product's price as a percentage of the total price of its category, rounded to 1 decimal). Order by `category_id`, `product_id`.",
+      "starter": "SELECT product_id, category_id, unit_price\nFROM products\nWHERE category_id IN (1, 2)\nORDER BY category_id, product_id;\n",
+      "solution": "SELECT product_id, category_id, unit_price,\n       ROUND(100.0 * unit_price / SUM(unit_price) OVER (PARTITION BY category_id), 1) AS pct_of_category\nFROM products\nWHERE category_id IN (1, 2)\nORDER BY category_id, product_id;\n",
+      "hints": [
+        "Day 49: a windowed SUM with PARTITION BY gives the category total on each row.",
+        "Divide unit_price by SUM(unit_price) OVER (PARTITION BY category_id) and multiply by 100.0.",
+        "ROUND(100.0 * unit_price / SUM(unit_price) OVER (PARTITION BY category_id), 1) AS pct_of_category."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Days between a customer's orders",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For customers ALFKI, BONAP and BERGS return `customer_id`, `order_id`, `order_date` and `days_since_prev` (days since the same customer's previous order, NULL for the first). Order by `customer_id`, `order_date`, `order_id`.",
+      "starter": "SELECT customer_id, order_id, order_date\nFROM orders\nWHERE customer_id IN ('ALFKI', 'BONAP', 'BERGS')\nORDER BY customer_id, order_date, order_id;\n",
+      "solution": "SELECT customer_id, order_id, order_date,\n       order_date - LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date, order_id) AS days_since_prev\nFROM orders\nWHERE customer_id IN ('ALFKI', 'BONAP', 'BERGS')\nORDER BY customer_id, order_date, order_id;\n",
+      "hints": [
+        "Day 51: LAG with PARTITION BY customer_id looks at the same customer's previous row.",
+        "Subtract LAG(order_date) from order_date; the difference of two dates is a number of days.",
+        "order_date - LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date, order_id) AS days_since_prev."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Monthly revenue report",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Checkpoint 1. For each calendar month with orders compute `revenue` (sum of `unit_price * quantity * (1 - discount)` rounded to 2 decimals). Return `month` (first day of the month as a date), `revenue`, `running_revenue` (cumulative revenue in month order) and `pct_change` (percentage change from the previous row's revenue, rounded to 1 decimal, NULL for the first month). Order by `month`.",
+      "starter": "SELECT date_trunc('month', o.order_date)::date AS month,\n       ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS revenue\nFROM orders AS o\nJOIN order_details AS od ON od.order_id = o.order_id\nGROUP BY 1\nORDER BY 1;\n",
+      "solution": "WITH monthly AS (\n  SELECT date_trunc('month', o.order_date)::date AS month,\n         ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS revenue\n  FROM orders AS o\n  JOIN order_details AS od ON od.order_id = o.order_id\n  GROUP BY 1\n)\nSELECT month, revenue,\n       SUM(revenue) OVER (ORDER BY month) AS running_revenue,\n       ROUND(100.0 * (revenue - LAG(revenue) OVER (ORDER BY month)) / NULLIF(LAG(revenue) OVER (ORDER BY month), 0), 1) AS pct_change\nFROM monthly\nORDER BY month;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Fast repeat buyers",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Checkpoint 2. For every customer with at least two orders, find the first and the second order (by `order_date`, then `order_id`). Return `customer_id`, `first_order` (date), `second_order` (date) and `days_between`, only for customers whose second order came within 400 days of the first. Order by `days_between`, then `customer_id`.",
+      "starter": "SELECT customer_id, MIN(order_date) AS first_order\nFROM orders\nGROUP BY customer_id\nORDER BY customer_id;\n",
+      "solution": "WITH numbered AS (\n  SELECT customer_id, order_date,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date, order_id) AS rn\n  FROM orders\n), pairs AS (\n  SELECT customer_id,\n         MAX(order_date) FILTER (WHERE rn = 1) AS first_order,\n         MAX(order_date) FILTER (WHERE rn = 2) AS second_order\n  FROM numbered\n  WHERE rn <= 2\n  GROUP BY customer_id\n)\nSELECT customer_id, first_order, second_order, second_order - first_order AS days_between\nFROM pairs\nWHERE second_order IS NOT NULL AND second_order - first_order <= 400\nORDER BY days_between, customer_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Team size in the organisation (stretch)",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Checkpoint 3. With a recursive CTE, count for every employee the size of their team: the employee plus everyone who reports to them directly or indirectly. Return `employee_id`, `last_name` and `team_size`, ordered by `team_size` descending, then `employee_id`.",
+      "starter": "SELECT employee_id, last_name, 1 AS team_size\nFROM employees\nORDER BY employee_id;\n",
+      "solution": "WITH RECURSIVE closure (ancestor, member) AS (\n  SELECT employee_id, employee_id FROM employees\n  UNION ALL\n  SELECT c.ancestor, e.employee_id\n  FROM closure AS c\n  JOIN employees AS e ON e.reports_to = c.member\n)\nSELECT e.employee_id, e.last_name, COUNT(*) AS team_size\nFROM closure AS c\nJOIN employees AS e ON e.employee_id = c.ancestor\nGROUP BY e.employee_id, e.last_name\nORDER BY team_size DESC, e.employee_id;\n",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A transfer debits account A, then the system crashes before crediting B, and the two steps were in one transaction. What is the state after recovery?",
+      "options": [
+        "A is debited and B is not",
+        "Neither account has changed",
+        "B is credited and A is not",
+        "The state is undefined"
+      ],
+      "answer": 1,
+      "explanation": "Atomicity means all or nothing: a transaction that did not commit is undone. Only with separate, uncommitted-together statements could A be debited alone."
+    },
+    {
+      "id": "c2",
+      "question": "What is the difference between a view and a materialised view?",
+      "options": [
+        "A view stores its result; a materialised view stores only the query",
+        "A view runs its query each time and stores no data; a materialised view stores the result and must be refreshed",
+        "They are the same in PostgreSQL",
+        "A materialised view is always current"
+      ],
+      "answer": 1,
+      "explanation": "A plain view is a saved query evaluated on every read. A materialised view keeps a stored copy that goes stale until REFRESH MATERIALIZED VIEW."
+    },
+    {
+      "id": "c3",
+      "question": "Inside an explicit PostgreSQL transaction, one statement fails. What happens to the next statement?",
+      "options": [
+        "It runs normally",
+        "It is refused with 'current transaction is aborted' until you ROLLBACK",
+        "It commits the earlier work",
+        "It retries the failed statement"
+      ],
+      "answer": 1,
+      "explanation": "PostgreSQL marks the transaction as aborted after an error and ignores further commands until ROLLBACK (or ROLLBACK TO a savepoint). It never commits automatically."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print? `conn.execute('UPDATE t SET n = n - 1')` then an exception inside a `with conn:` block, then `SELECT n`.",
+      "options": [
+        "The decreased value",
+        "The value before the update, because the block rolled back",
+        "An error about the connection",
+        "None; it prints nothing"
+      ],
+      "answer": 1,
+      "explanation": "Leaving the with-block by an exception rolls the transaction back, so the update is undone and the original value is read. On normal exit it would commit."
+    },
+    {
+      "id": "c5",
+      "question": "Which ACID property makes a committed change survive a power failure?",
+      "options": [
+        "Atomicity",
+        "Consistency",
+        "Isolation",
+        "Durability"
+      ],
+      "answer": 3,
+      "explanation": "Durability: once COMMIT returns, the change has been written to the write-ahead log on disk. Atomicity is all-or-nothing, consistency is about valid states and isolation about concurrent sessions."
+    }
+  ]
+}

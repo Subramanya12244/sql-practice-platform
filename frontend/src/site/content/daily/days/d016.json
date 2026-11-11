@@ -1,0 +1,176 @@
+{
+  "id": "d016",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-functions",
+      "python-fundamentals"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "format-sku-codes",
+      "first-repeated-order-id"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Default tax rate",
+      "prompt": "Define `with_tax(price, rate=0.2)` returning `round(price * (1 + rate), 2)`. Print `with_tax(50)`, then `with_tax(50, 0.1)`.",
+      "starter": "# define with_tax\n",
+      "solution": "def with_tax(price, rate=0.2):\n    return round(price * (1 + rate), 2)\n\nprint(with_tax(50))\nprint(with_tax(50, 0.1))\n",
+      "hints": [
+        "A default is written `rate=0.2` in the parameter list.",
+        "The function body is one `return` using `round(..., 2)`.",
+        "The first call omits the rate, so the default is used."
+      ],
+      "kind": "python",
+      "expected": "60.0\n55.0"
+    },
+    {
+      "id": "g2",
+      "title": "Keyword arguments",
+      "prompt": "Define `label(name, prefix=\"Mr\", suffix=\"\")` that returns the three parts joined with single spaces, without leaving extra spaces when `suffix` is empty (build a list of non-empty parts and use `\" \".join(parts)`). Print `label(\"Lovelace\")`, then `label(\"Lovelace\", prefix=\"Dr\")`, then `label(\"Lovelace\", suffix=\"PhD\", prefix=\"Prof\")`.",
+      "starter": "# define label\n",
+      "solution": "def label(name, prefix=\"Mr\", suffix=\"\"):\n    parts = [prefix, name]\n    if suffix:\n        parts.append(suffix)\n    return \" \".join(parts)\n\nprint(label(\"Lovelace\"))\nprint(label(\"Lovelace\", prefix=\"Dr\"))\nprint(label(\"Lovelace\", suffix=\"PhD\", prefix=\"Prof\"))\n",
+      "hints": [
+        "Start a list with the prefix and the name; add the suffix only when it is not empty.",
+        "`\" \".join(parts)` glues the strings with spaces.",
+        "Keyword arguments can be given in any order, so the third call needs no special handling."
+      ],
+      "kind": "python",
+      "expected": "Mr Lovelace\nDr Lovelace\nProf Lovelace PhD"
+    },
+    {
+      "id": "g3",
+      "title": "Any number of values",
+      "prompt": "Define `biggest_gap(*numbers)` that returns the largest value minus the smallest value, or `0` when no numbers are given. Print `biggest_gap(4, 19, 7)`, `biggest_gap(5)` and `biggest_gap()`.",
+      "starter": "# define biggest_gap\n",
+      "solution": "def biggest_gap(*numbers):\n    if not numbers:\n        return 0\n    return max(numbers) - min(numbers)\n\nprint(biggest_gap(4, 19, 7))\nprint(biggest_gap(5))\nprint(biggest_gap())\n",
+      "hints": [
+        "`*numbers` collects the arguments into a tuple.",
+        "An empty tuple is falsy, so `if not numbers:` can return early.",
+        "`max(numbers) - min(numbers)` works on a tuple."
+      ],
+      "kind": "python",
+      "expected": "15\n0\n0"
+    },
+    {
+      "id": "g4",
+      "title": "Shadowing",
+      "prompt": "The global `x` is 10. Define `change()` that assigns `x = 99` inside the function and prints `x`. Call it, then print the global `x` on the next line. The output must show that the global was not changed: `99` then `10`.",
+      "starter": "x = 10\n# define and call change, then print x\n",
+      "solution": "x = 10\n\ndef change():\n    x = 99\n    print(x)\n\nchange()\nprint(x)\n",
+      "hints": [
+        "An assignment inside a function creates a local name.",
+        "Define the function above the call and print inside it.",
+        "After `change()`, `print(x)` at the top level shows the global value."
+      ],
+      "kind": "python",
+      "expected": "99\n10"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Flexible price report",
+      "prompt": "Define `price_report(*prices, currency=\"EUR\", decimals=2, **tags)` returning a string of the form `3 items, total 299.75 EUR, avg 99.92 EUR` followed, for every tag in alphabetical key order, by ` | key=value`. With no prices the string is `0 items` (and still the tags). Print `price_report(120.5, 99.25, 80)`, `price_report(10, 20, currency=\"USD\", decimals=0, shop=\"A\", day=\"Mon\")` and `price_report(region=\"EU\")`.",
+      "starter": "# define price_report and print the three results\n",
+      "solution": "def price_report(*prices, currency=\"EUR\", decimals=2, **tags):\n    if prices:\n        total = sum(prices)\n        avg = total / len(prices)\n        text = f\"{len(prices)} items, total {total:.{decimals}f} {currency}, avg {avg:.{decimals}f} {currency}\"\n    else:\n        text = \"0 items\"\n    for key in sorted(tags):\n        text += f\" | {key}={tags[key]}\"\n    return text\n\nprint(price_report(120.5, 99.25, 80))\nprint(price_report(10, 20, currency=\"USD\", decimals=0, shop=\"A\", day=\"Mon\"))\nprint(price_report(region=\"EU\"))\n",
+      "kind": "python",
+      "expected": "3 items, total 299.75 EUR, avg 99.92 EUR\n2 items, total 30 USD, avg 15 USD | day=Mon | shop=A\n0 items | region=EU"
+    },
+    {
+      "id": "i2",
+      "title": "Safe collector",
+      "prompt": "Define `collect(item, bucket=None)` that adds `item` to `bucket` (a list) and returns the list, creating a new list when no bucket is given. Call `collect(1)`, `collect(2)`, then `shared = []; collect(3, shared); collect(4, shared)`. Print the first result, the second result, and `shared`, on three lines. Each call without a bucket must return a fresh list.",
+      "starter": "# define collect and make the calls\n",
+      "solution": "def collect(item, bucket=None):\n    if bucket is None:\n        bucket = []\n    bucket.append(item)\n    return bucket\n\nfirst = collect(1)\nsecond = collect(2)\nshared = []\ncollect(3, shared)\ncollect(4, shared)\nprint(first)\nprint(second)\nprint(shared)\n",
+      "kind": "python",
+      "expected": "[1]\n[2]\n[3, 4]"
+    },
+    {
+      "id": "i3",
+      "title": "Call through a dictionary (stretch)",
+      "prompt": "Define `build_line(date, category, amount, note=\"\")` returning `date | category | amount` with the amount to 2 decimals, followed by ` | note` only when the note is not empty. Given the records `rows = [{\"date\": \"2025-04-01\", \"category\": \"food\", \"amount\": 12.5}, {\"date\": \"2025-04-02\", \"category\": \"fun\", \"amount\": 8, \"note\": \"cinema\"}]`, print one line per record by calling `build_line(**row)` in a loop. Then print `build_line(*[\"2025-04-03\", \"rent\", 800])`.",
+      "starter": "rows = [{\"date\": \"2025-04-01\", \"category\": \"food\", \"amount\": 12.5}, {\"date\": \"2025-04-02\", \"category\": \"fun\", \"amount\": 8, \"note\": \"cinema\"}]\n# define build_line and print the lines\n",
+      "solution": "rows = [{\"date\": \"2025-04-01\", \"category\": \"food\", \"amount\": 12.5}, {\"date\": \"2025-04-02\", \"category\": \"fun\", \"amount\": 8, \"note\": \"cinema\"}]\n\ndef build_line(date, category, amount, note=\"\"):\n    line = f\"{date} | {category} | {amount:.2f}\"\n    if note:\n        line += f\" | {note}\"\n    return line\n\nfor row in rows:\n    print(build_line(**row))\nprint(build_line(*[\"2025-04-03\", \"rent\", 800]))\n",
+      "kind": "python",
+      "expected": "2025-04-01 | food | 12.50\n2025-04-02 | fun | 8.00 | cinema\n2025-04-03 | rent | 800.00",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nx = 5\ndef f():\n    x = 8\nf()\nprint(x)\n```",
+      "options": [
+        "`8`",
+        "`5`",
+        "`None`",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "The assignment inside `f` creates a local `x` that disappears when `f` returns. The global `x` is unchanged, so 5 prints."
+    },
+    {
+      "id": "c2",
+      "question": "What does this print?\n\n```python\ndef add(item, items=[]):\n    items.append(item)\n    return items\nadd(1)\nprint(add(2))\n```",
+      "options": [
+        "`[2]`",
+        "`[1, 2]`",
+        "`[1]`",
+        "An error"
+      ],
+      "answer": 1,
+      "explanation": "The default list is created once, when the function is defined, and shared by every call that uses it. The second call appends to the same list, so it holds both items."
+    },
+    {
+      "id": "c3",
+      "question": "Inside `def f(*args):`, called as `f(1, 2, 3)`, what is `args`?",
+      "options": [
+        "The list `[1, 2, 3]`",
+        "The tuple `(1, 2, 3)`",
+        "The set `{1, 2, 3}`",
+        "The number 3"
+      ],
+      "answer": 1,
+      "explanation": "`*args` collects the extra positional arguments into a tuple, which cannot be changed in place."
+    },
+    {
+      "id": "c4",
+      "question": "Which call is valid for `def f(a, b=2, c=3):`?",
+      "options": [
+        "`f(b=5, 1)`",
+        "`f(1, c=9)`",
+        "`f(a=1, 2)`",
+        "`f(1, b=2, b=3)`"
+      ],
+      "answer": 1,
+      "explanation": "Positional arguments must come before keyword arguments in a call, and a keyword can skip parameters that have defaults. The others put a positional argument after a keyword or repeat a keyword."
+    },
+    {
+      "id": "c5",
+      "question": "What does `describe(**{\"a\": 1})` do for `def describe(**fields):`?",
+      "options": [
+        "Passes the dictionary as one positional argument",
+        "Passes the keyword argument `a=1`, so `fields` is `{\"a\": 1}`",
+        "Raises an error because `**` is not allowed in a call",
+        "Passes the key `\"a\"` only"
+      ],
+      "answer": 1,
+      "explanation": "In a call, `**` spreads a dictionary into keyword arguments, so the call is the same as `describe(a=1)`."
+    }
+  ]
+}

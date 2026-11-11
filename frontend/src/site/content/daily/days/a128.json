@@ -1,0 +1,192 @@
+{
+  "id": "a128",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "dwh-dimension-tables",
+      "date-time-functions",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "sales-by-month",
+      "bucket-events-by-week"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "warehousing-track"
+    ],
+    "patterns": [
+      "missing-records"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Missing days",
+      "kind": "python",
+      "prompt": "Print `order days: <n>`, `calendar days: <m>` (days from the first to the last order date inclusive) and `days with no orders: <m - n>`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef validate_date_table(cal, sales_dates):\n    dates = cal[\"date\"]\n    return {\n        \"unique\": bool(dates.is_unique),\n        \"no blanks\": bool(dates.notna().all()),\n        \"contiguous\": bool((dates.sort_values().diff().dropna() == pd.to_timedelta(1, unit=\"D\")).all()),\n        \"covers sales\": bool(sales_dates.min() >= dates.min() and sales_dates.max() <= dates.max()),\n    }\n\nsales, customers, products, calendar = make_model()\nsales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n\n# missing days\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef validate_date_table(cal, sales_dates):\n    dates = cal[\"date\"]\n    return {\n        \"unique\": bool(dates.is_unique),\n        \"no blanks\": bool(dates.notna().all()),\n        \"contiguous\": bool((dates.sort_values().diff().dropna() == pd.to_timedelta(1, unit=\"D\")).all()),\n        \"covers sales\": bool(sales_dates.min() >= dates.min() and sales_dates.max() <= dates.max()),\n    }\n\nsales, customers, products, calendar = make_model()\nsales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n\nspan = pd.date_range(sales[\"order_date\"].min(), sales[\"order_date\"].max(), freq=\"D\")\nn = sales[\"order_date\"].nunique()\nprint(\"order days:\", n)\nprint(\"calendar days:\", len(span))\nprint(\"days with no orders:\", len(span) - n)\n",
+      "expected": "order days: 237\ncalendar days: 364\ndays with no orders: 127",
+      "hints": [
+        "`pd.date_range(first, last, freq=\"D\")` lists every day.",
+        "`nunique()` of the date column gives order days.",
+        "Subtract to get the missing days."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Revenue by month in calendar order",
+      "kind": "python",
+      "prompt": "Merge `sales` with `calendar` (`order_date` to `date`), group by `month_number` and `month_name`, and print `<month_name>: <revenue rounded to 0 decimals as int>` for each month in calendar order, for the first four months only.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef validate_date_table(cal, sales_dates):\n    dates = cal[\"date\"]\n    return {\n        \"unique\": bool(dates.is_unique),\n        \"no blanks\": bool(dates.notna().all()),\n        \"contiguous\": bool((dates.sort_values().diff().dropna() == pd.to_timedelta(1, unit=\"D\")).all()),\n        \"covers sales\": bool(sales_dates.min() >= dates.min() and sales_dates.max() <= dates.max()),\n    }\n\nsales, customers, products, calendar = make_model()\nsales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n\n# revenue by month, calendar order\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef validate_date_table(cal, sales_dates):\n    dates = cal[\"date\"]\n    return {\n        \"unique\": bool(dates.is_unique),\n        \"no blanks\": bool(dates.notna().all()),\n        \"contiguous\": bool((dates.sort_values().diff().dropna() == pd.to_timedelta(1, unit=\"D\")).all()),\n        \"covers sales\": bool(sales_dates.min() >= dates.min() and sales_dates.max() <= dates.max()),\n    }\n\nsales, customers, products, calendar = make_model()\nsales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n\nj = sales.merge(calendar, left_on=\"order_date\", right_on=\"date\")\ng = j.groupby([\"month_number\", \"month_name\"])[\"revenue\"].sum().round(0)\nfor (number, name), value in list(g.items())[:4]:\n    print(f\"{name}: {int(value)}\")\n",
+      "expected": "January: 11538\nFebruary: 16014\nMarch: 14955\nApril: 11122",
+      "hints": [
+        "The merge brings `month_number` and `month_name` onto each sale.",
+        "Group by both columns so the number sorts the names.",
+        "Take the first four items and print an f-string."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Fiscal columns",
+      "kind": "python",
+      "prompt": "Create a fiscal calendar for a fiscal year starting on 1 July (named by the year it ends). For `calendar`, add `fiscal_month = (month_number - 7) % 12 + 1` and `fiscal_year = year + (month_number >= 7)`. Print for the dates 2025-01-15, 2025-06-30 and 2025-07-01 the line `<date>: FY<fiscal_year> month <fiscal_month>`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef validate_date_table(cal, sales_dates):\n    dates = cal[\"date\"]\n    return {\n        \"unique\": bool(dates.is_unique),\n        \"no blanks\": bool(dates.notna().all()),\n        \"contiguous\": bool((dates.sort_values().diff().dropna() == pd.to_timedelta(1, unit=\"D\")).all()),\n        \"covers sales\": bool(sales_dates.min() >= dates.min() and sales_dates.max() <= dates.max()),\n    }\n\nsales, customers, products, calendar = make_model()\nsales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n\n# fiscal columns for a July start\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef validate_date_table(cal, sales_dates):\n    dates = cal[\"date\"]\n    return {\n        \"unique\": bool(dates.is_unique),\n        \"no blanks\": bool(dates.notna().all()),\n        \"contiguous\": bool((dates.sort_values().diff().dropna() == pd.to_timedelta(1, unit=\"D\")).all()),\n        \"covers sales\": bool(sales_dates.min() >= dates.min() and sales_dates.max() <= dates.max()),\n    }\n\nsales, customers, products, calendar = make_model()\nsales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n\ncal = calendar.assign(\n    fiscal_month=(calendar[\"month_number\"] - 7) % 12 + 1,\n    fiscal_year=calendar[\"year\"] + (calendar[\"month_number\"] >= 7).astype(int),\n)\nfor d in [\"2025-01-15\", \"2025-06-30\", \"2025-07-01\"]:\n    row = cal[cal[\"date\"] == d].iloc[0]\n    print(f\"{d}: FY{row['fiscal_year']} month {row['fiscal_month']}\")\n",
+      "expected": "2025-01-15: FY2025 month 7\n2025-06-30: FY2025 month 12\n2025-07-01: FY2026 month 1",
+      "hints": [
+        "The formulas are in the prompt.",
+        "`(month - 7) % 12 + 1` makes July month 1.",
+        "Add the boolean `month >= 7` to the year, converted to int."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Write the calendar steps",
+      "kind": "written",
+      "prompt": "Write the Power Query M or the DAX for a calendar from 1 January 2024 to 31 December 2026 with `year`, `quarter`, `month_number` and `month_name`, then list the four checks you run before marking it as the date table, and the sort setting for `month_name`.",
+      "starter": "Calendar code:\n...\nChecks:\n1. ...\nSort:\n...",
+      "solution": "```\nCalendar =\nADDCOLUMNS (\n    CALENDAR ( DATE ( 2024, 1, 1 ), DATE ( 2026, 12, 31 ) ),\n    \"year\", YEAR ( [Date] ),\n    \"quarter\", QUARTER ( [Date] ),\n    \"month_number\", MONTH ( [Date] ),\n    \"month_name\", FORMAT ( [Date], \"MMMM\" )\n)\n```\n\nChecks before marking it: the date column is a date type; the values are unique; there are no blanks; the dates are contiguous (1,096 rows for 2024 to 2026, since 2024 is a leap year) and they cover all dates in every fact table. Then `Table tools > Mark as date table`. Sort `month_name` by `month_number` with `Column tools > Sort by column`, so months appear in calendar order, not alphabetically.",
+      "hints": [
+        "Which function returns one row per day?",
+        "What does Mark as date table verify?",
+        "Names versus numbers."
+      ],
+      "rubric": [
+        "Uses CALENDAR with the right range and the four columns (or List.Dates in M).",
+        "Names unique, no blanks, contiguous and coverage as checks.",
+        "Sorts month_name by month_number."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Validate a calendar",
+      "kind": "python",
+      "prompt": "Use `validate_date_table` to test four calendars against the sales dates: the sample calendar, a copy with a duplicated first row, a copy with its last 40 days removed and a copy where the date 2025-03-01 is replaced by a blank (`NaT`) using `where`. Print the names of the failed checks for each as a list, in the order unique, no blanks, contiguous, covers sales, or `[]` for none. Print four lines.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef validate_date_table(cal, sales_dates):\n    dates = cal[\"date\"]\n    return {\n        \"unique\": bool(dates.is_unique),\n        \"no blanks\": bool(dates.notna().all()),\n        \"contiguous\": bool((dates.sort_values().diff().dropna() == pd.to_timedelta(1, unit=\"D\")).all()),\n        \"covers sales\": bool(sales_dates.min() >= dates.min() and sales_dates.max() <= dates.max()),\n    }\n\nsales, customers, products, calendar = make_model()\nsales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n\ncases = {\n    \"sample\": calendar,\n    \"duplicate\": pd.concat([calendar, calendar.iloc[[0]]]),\n    \"short\": calendar.iloc[:-40],\n    \"blank\": calendar.assign(date=calendar[\"date\"].where(calendar[\"date\"] != \"2025-03-01\")),\n}\n# print failed checks for each\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef validate_date_table(cal, sales_dates):\n    dates = cal[\"date\"]\n    return {\n        \"unique\": bool(dates.is_unique),\n        \"no blanks\": bool(dates.notna().all()),\n        \"contiguous\": bool((dates.sort_values().diff().dropna() == pd.to_timedelta(1, unit=\"D\")).all()),\n        \"covers sales\": bool(sales_dates.min() >= dates.min() and sales_dates.max() <= dates.max()),\n    }\n\nsales, customers, products, calendar = make_model()\nsales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n\ncases = {\n    \"sample\": calendar,\n    \"duplicate\": pd.concat([calendar, calendar.iloc[[0]]]),\n    \"short\": calendar.iloc[:-40],\n    \"blank\": calendar.assign(date=calendar[\"date\"].where(calendar[\"date\"] != \"2025-03-01\")),\n}\nfor name, cal in cases.items():\n    result = validate_date_table(cal, sales[\"order_date\"])\n    print(name, [check for check, ok in result.items() if not ok])\n",
+      "expected": "sample []\nduplicate ['unique', 'contiguous']\nshort ['covers sales']\nblank ['no blanks', 'contiguous']"
+    },
+    {
+      "id": "i2",
+      "title": "Fiscal quarter table",
+      "kind": "python",
+      "prompt": "Build the April-start fiscal calendar (`fiscal_year = year + (month_number >= 4)`, `fiscal_month = (month_number - 4) % 12 + 1`, `fiscal_quarter = (fiscal_month - 1) // 3 + 1`), merge it with `sales`, and print revenue by `(fiscal_year, fiscal_quarter)` as `FY<y> Q<q>: <revenue rounded to 0 decimals as int>` lines in order, and then `share of FY2026: <percent of total revenue in FY2026, rounded to 1 decimal>%`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef validate_date_table(cal, sales_dates):\n    dates = cal[\"date\"]\n    return {\n        \"unique\": bool(dates.is_unique),\n        \"no blanks\": bool(dates.notna().all()),\n        \"contiguous\": bool((dates.sort_values().diff().dropna() == pd.to_timedelta(1, unit=\"D\")).all()),\n        \"covers sales\": bool(sales_dates.min() >= dates.min() and sales_dates.max() <= dates.max()),\n    }\n\nsales, customers, products, calendar = make_model()\nsales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n\n# fiscal quarter revenue\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef make_model():\n    rng = np.random.default_rng(7)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 41),\n        \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n        \"country\": rng.choice([\"UK\", \"Germany\", \"France\", \"Spain\"], size=40),\n        \"segment\": rng.choice([\"Consumer\", \"Corporate\", \"Small Business\"], size=40, p=[0.5, 0.3, 0.2]),\n    })\n    names = [\"Desk\", \"Chair\", \"Bookcase\", \"Laptop\", \"Monitor\", \"Phone\", \"Notebook\", \"Pen Set\", \"Stapler\", \"Printer\", \"Lamp\", \"Cabinet\"]\n    categories = [\"Furniture\", \"Furniture\", \"Furniture\", \"Technology\", \"Technology\", \"Technology\",\n                  \"Office Supplies\", \"Office Supplies\", \"Office Supplies\", \"Technology\", \"Furniture\", \"Furniture\"]\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 13),\n        \"product_name\": names,\n        \"category\": categories,\n        \"unit_cost\": rng.integers(5, 120, size=12),\n    })\n    sales = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1401),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, 400), unit=\"D\"),\n        \"customer_id\": rng.integers(1, 41, 400),\n        \"product_id\": rng.integers(1, 13, 400),\n        \"quantity\": rng.integers(1, 8, 400),\n    })\n    cost = products.set_index(\"product_id\")[\"unit_cost\"]\n    sales[\"unit_price\"] = (cost[sales[\"product_id\"]].to_numpy() * (1.3 + 0.5 * rng.random(400))).round(2)\n    sales = sales.sort_values([\"order_date\", \"order_id\"]).reset_index(drop=True)\n    dates = pd.date_range(\"2025-01-01\", \"2025-12-31\", freq=\"D\")\n    calendar = pd.DataFrame({\n        \"date\": dates,\n        \"year\": dates.year,\n        \"quarter\": dates.quarter,\n        \"month_number\": dates.month,\n        \"month_name\": dates.strftime(\"%B\"),\n    })\n    return sales, customers, products, calendar\n\n\ndef validate_date_table(cal, sales_dates):\n    dates = cal[\"date\"]\n    return {\n        \"unique\": bool(dates.is_unique),\n        \"no blanks\": bool(dates.notna().all()),\n        \"contiguous\": bool((dates.sort_values().diff().dropna() == pd.to_timedelta(1, unit=\"D\")).all()),\n        \"covers sales\": bool(sales_dates.min() >= dates.min() and sales_dates.max() <= dates.max()),\n    }\n\nsales, customers, products, calendar = make_model()\nsales = sales.assign(revenue=sales[\"quantity\"] * sales[\"unit_price\"])\n\ncal = calendar.assign(\n    fiscal_year=calendar[\"year\"] + (calendar[\"month_number\"] >= 4).astype(int),\n    fiscal_month=(calendar[\"month_number\"] - 4) % 12 + 1,\n)\ncal[\"fiscal_quarter\"] = (cal[\"fiscal_month\"] - 1) // 3 + 1\nj = sales.merge(cal, left_on=\"order_date\", right_on=\"date\")\ng = j.groupby([\"fiscal_year\", \"fiscal_quarter\"])[\"revenue\"].sum().round(0)\nfor (y, q), v in g.items():\n    print(f\"FY{y} Q{q}: {int(v)}\")\nshare = j.loc[j[\"fiscal_year\"] == 2026, \"revenue\"].sum() / j[\"revenue\"].sum() * 100\nprint(f\"share of FY2026: {share:.1f}%\")\n",
+      "expected": "FY2025 Q4: 42507\nFY2026 Q1: 31562\nFY2026 Q2: 43468\nFY2026 Q3: 41287\nshare of FY2026: 73.2%"
+    },
+    {
+      "id": "i3",
+      "title": "Design the calendar for a real model",
+      "kind": "written",
+      "prompt": "A model has `Sales` (order_date, ship_date) and `Budget` (budget_month) fact tables and the company's year starts in October. Design the date table: columns to include, how you name the fiscal year, how many calendar tables you need and which relationships are active, what you validate before marking it, and the setting for sorting month names in fiscal order.",
+      "starter": "Columns:\nFiscal naming:\nRelationships:\nValidation:\nSorting:",
+      "solution": "Columns: `date`, `year`, `quarter`, `month_number`, `month_name`, plus `fiscal_year`, `fiscal_quarter`, `fiscal_month` (October is fiscal month 1: `(month - 10) % 12 + 1`) and `fiscal_month_name` if reports show fiscal order. Fiscal naming: state the convention in the model description, for example year in which the fiscal year ends, so Oct 2025 to Sep 2026 is FY2026 (`year + (month >= 10)`).\n\nRelationships: one marked `Calendar`, with the active relationship `Calendar[date]` to `Sales[order_date]`, an inactive one to `Sales[ship_date]` for calculations that need it, and a relationship to `Budget[budget_month]` (budget rows should hold the first day of the month, so they match a date). The calendar must cover all three date columns.\n\nValidation: unique dates, no blanks, contiguous, covers min and max of order, ship and budget dates, whole years. Sorting: sort `month_name` by `month_number`, and sort a fiscal month name column by `fiscal_month`.",
+      "rubric": [
+        "Includes fiscal columns with the right formula for an October start.",
+        "Documents the fiscal year naming convention.",
+        "One marked calendar with one active and one inactive relationship for Sales, and a relationship for Budget.",
+        "Validates the four properties and sorts names by number."
+      ],
+      "required": false
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Power BI Desktop is Windows-only and has no runtime in this course's browser (Power BI Service runs in a browser). The DAX and M for the calendar and the Desktop steps are shown as text. Every number and every check (validation, sort order, hierarchy totals, fiscal columns) is reproduced with pandas, which runs in the browser. The graded exercises are pandas replicas of the model checks; the written exercises are self-assessed."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "The Sales table has 237 distinct order dates in 2025. Why is it not enough as a date table?",
+      "options": [
+        "It misses days with no sales and has no year or month columns",
+        "It has too many dates",
+        "It cannot be related to anything",
+        "Dates cannot be grouped"
+      ],
+      "answer": 0,
+      "explanation": "A date table needs every day, including zero-sales days, and descriptive columns. Sales has 128 missing days in the year."
+    },
+    {
+      "id": "c2",
+      "question": "Which of these will make `Mark as date table` fail?",
+      "options": [
+        "A missing day inside the date range",
+        "Having a month_name column",
+        "Having fiscal columns",
+        "A year column"
+      ],
+      "answer": 0,
+      "explanation": "The date column must be unique, without blanks and contiguous, so one missing day fails the check."
+    },
+    {
+      "id": "c3",
+      "question": "Months appear as April, August, December, February. What is the fix?",
+      "options": [
+        "Sort month_name by month_number",
+        "Rename the months",
+        "Delete month_name",
+        "Convert months to text"
+      ],
+      "answer": 0,
+      "explanation": "The names sort alphabetically. Sort by column uses the number column to set the order."
+    },
+    {
+      "id": "c4",
+      "question": "For a fiscal year starting on 1 April, which fiscal month is January?",
+      "options": [
+        "10",
+        "1",
+        "4",
+        "9"
+      ],
+      "answer": 0,
+      "explanation": "(1 - 4) % 12 + 1 = 10: April is month 1, so January is month 10."
+    },
+    {
+      "id": "c5",
+      "question": "What does `CALENDAR(DATE(2025,1,1), DATE(2025,12,31))` return in DAX?",
+      "options": [
+        "A one-column table of dates named Date, one row per day",
+        "A single date",
+        "A table with year and month columns",
+        "The number of days"
+      ],
+      "answer": 0,
+      "explanation": "CALENDAR returns a table with one column named Date. You add year and month columns with ADDCOLUMNS or calculated columns."
+    }
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "id": "e100",
+  "time": {
+    "theory": 20,
+    "examples": 20,
+    "guided": 20,
+    "independent": 75,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "etl-error-handling",
+      "etl-loading",
+      "constraints"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl",
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Money to cents",
+      "kind": "python",
+      "prompt": "Write `to_cents(text)` for a text amount: strip spaces, return `None` for `n/a`, `-` or an empty string, treat `(x)` as negative, remove `$` and commas, and return an integer number of cents (`round(value * 100)`). Print the results for `[\"$1,200.50\", \"(50.00)\", \"n/a\", \" 0.07 \"]`, one per line. Expected output: `120050`, `-5000`, `None`, `7`.",
+      "starter": "def to_cents(text):\n    pass\n\nfor t in [\"$1,200.50\", \"(50.00)\", \"n/a\", \" 0.07 \"]:\n    print(to_cents(t))\n",
+      "solution": "def to_cents(text):\n    text = text.strip()\n    if text in (\"n/a\", \"-\", \"\"):\n        return None\n    negative = text.startswith(\"(\") and text.endswith(\")\")\n    value = float(text.strip(\"()\").replace(\"$\", \"\").replace(\",\", \"\"))\n    return int(round((-value if negative else value) * 100))\n\nfor t in [\"$1,200.50\", \"(50.00)\", \"n/a\", \" 0.07 \"]:\n    print(to_cents(t))\n",
+      "expected": "120050\n-5000\nNone\n7",
+      "hints": [
+        "Return early for the marker strings.",
+        "Remember the parentheses before removing them.",
+        "`int(round(value * 100))` avoids the float error in `value * 100`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "The count equation",
+      "kind": "python",
+      "prompt": "Write `counts_close(read, loaded, rejected)` that returns `True` when `read == loaded + rejected`. Print the result for `(7, 4, 3)` and for `(7, 4, 2)`, then print the number of missing rows for the second case as `missing 1`. Expected output: `True`, `False`, `missing 1`.",
+      "starter": "def counts_close(read, loaded, rejected):\n    return None\n\nprint(counts_close(7, 4, 3))\nprint(counts_close(7, 4, 2))\n",
+      "solution": "def counts_close(read, loaded, rejected):\n    return read == loaded + rejected\n\nprint(counts_close(7, 4, 3))\nprint(counts_close(7, 4, 2))\nprint(\"missing\", 7 - (4 + 2))\n",
+      "expected": "True\nFalse\nmissing 1",
+      "hints": [
+        "The equation is read equals loaded plus rejected.",
+        "The function can return the comparison directly.",
+        "The missing rows are `read - (loaded + rejected)`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Explain the difference",
+      "kind": "python",
+      "prompt": "The sheet reports a total of `155950` cents. The loaded rows sum to `154950`. The rejects are `[(1005, \"unknown customer\", 1000), (1002, \"duplicate order\", 30000), (1006, \"missing amount\", None)]`. Only rejects with the reason `unknown customer` were part of the sheet's total. Print the loaded sum plus the explained rejects, then print `closes` when it equals the reported total, otherwise `open`. Expected output: `155950` then `closes`.",
+      "starter": "reported = 155950\nloaded = 154950\nrejects = [(1005, \"unknown customer\", 1000), (1002, \"duplicate order\", 30000), (1006, \"missing amount\", None)]\nprint(loaded)\n",
+      "solution": "reported = 155950\nloaded = 154950\nrejects = [(1005, \"unknown customer\", 1000), (1002, \"duplicate order\", 30000), (1006, \"missing amount\", None)]\nexplained = sum(cents for _, reason, cents in rejects if reason == \"unknown customer\")\nprint(loaded + explained)\nprint(\"closes\" if loaded + explained == reported else \"open\")\n",
+      "expected": "155950\ncloses",
+      "hints": [
+        "Filter the rejects by the reason before summing.",
+        "Duplicates and missing amounts are not part of the sheet total.",
+        "`sum(cents for _, reason, cents in rejects if reason == \"unknown customer\")`."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Summarise the rejects in SQL",
+      "kind": "sql",
+      "prompt": "The block builds a `reject` table. Replace the last query so that it returns one row per reason with the columns `reason`, `n` (number of rows) and `cents` (sum of `amount_cents`, `0` when all are NULL), ordered by `reason`.",
+      "starter": "CREATE TABLE reject (order_id integer, reason text, amount_cents integer);\nINSERT INTO reject VALUES (1005, 'unknown customer', 1000), (1002, 'duplicate order', 30000), (1006, 'missing amount', NULL), (1007, 'unknown customer', 250);\nSELECT reason FROM reject ORDER BY reason;\n",
+      "solution": "CREATE TABLE reject (order_id integer, reason text, amount_cents integer);\nINSERT INTO reject VALUES (1005, 'unknown customer', 1000), (1002, 'duplicate order', 30000), (1006, 'missing amount', NULL), (1007, 'unknown customer', 250);\nSELECT reason, count(*) AS n, coalesce(sum(amount_cents), 0) AS cents\nFROM reject GROUP BY reason ORDER BY reason;\n",
+      "ordered": true,
+      "hints": [
+        "Group the rejects by the reason.",
+        "`count(*)` counts rows and `sum` ignores NULL values.",
+        "Wrap the sum in `coalesce(..., 0)` so that a group of only NULL amounts gives 0."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Reconcile a stock sheet",
+      "kind": "python",
+      "prompt": "The grid `raw` is a stock-movement sheet: a title, a header (`Item`, `Warehouse`, `Qty`), detail rows, a subtotal row, a `Total` row reporting `16` and no source note. `warehouses` holds the warehouses that exist. Write the pipeline in one script: find the header by the landmark `Item`, drop `Subtotal` and `Total` rows (remembering the reported total), convert `Qty` (text, `(x)` negative, `n/a` missing) to integers, then classify each detail row in order of the file as `missing qty` (qty missing), `unknown warehouse` (warehouse not in `warehouses`), `duplicate` (the same item and warehouse pair already accepted) or accepted. Print: `accepted ` and the list of accepted `(item, warehouse, qty)` tuples; `rejected ` and the list of `(item, reason)` tuples; `counts close: ` and `True` or `False` for read = accepted + rejected; and `total closes: ` and `True` or `False` for whether the sum of accepted qty plus the qty of rows rejected as `unknown warehouse` equals the reported total. The warehouse values are integers.",
+      "starter": "import pandas as pd\n\nnan = float(\"nan\")\nraw = pd.DataFrame([\n    [\"Stock movements\", nan, nan],\n    [\"Item\", \"Warehouse\", \"Qty\"],\n    [\"A1\", 1, \"10\"],\n    [\"A2\", 1, \"(4)\"],\n    [\"Subtotal W1\", nan, \"6\"],\n    [\"A3\", 2, \"7\"],\n    [\"A1\", 5, \"3\"],\n    [\"A3\", 2, \"7\"],\n    [\"A4\", 2, \"n/a\"],\n    [\"Total\", nan, \"16\"],\n])\nwarehouses = {1, 2}\n# pipeline\n",
+      "solution": "import pandas as pd\n\nnan = float(\"nan\")\nraw = pd.DataFrame([\n    [\"Stock movements\", nan, nan],\n    [\"Item\", \"Warehouse\", \"Qty\"],\n    [\"A1\", 1, \"10\"],\n    [\"A2\", 1, \"(4)\"],\n    [\"Subtotal W1\", nan, \"6\"],\n    [\"A3\", 2, \"7\"],\n    [\"A1\", 5, \"3\"],\n    [\"A3\", 2, \"7\"],\n    [\"A4\", 2, \"n/a\"],\n    [\"Total\", nan, \"16\"],\n])\nwarehouses = {1, 2}\nhead = int(raw.index[raw[0] == \"Item\"][0])\nbody = raw.iloc[head + 1:]\nlabel = body[0].astype(str)\n\ndef qty_of(text):\n    text = str(text).strip()\n    if text in (\"n/a\", \"-\", \"nan\", \"\"):\n        return None\n    value = int(text.strip(\"()\"))\n    return -value if text.startswith(\"(\") else value\n\nreported = qty_of(body.loc[label == \"Total\", 2].iloc[0])\ndetail = body[~label.str.startswith((\"Subtotal\", \"Total\"))]\naccepted, rejected, seen, unknown_qty = [], [], set(), 0\nfor item, wh, qty_text in detail.itertuples(index=False):\n    qty = qty_of(qty_text)\n    wh = int(wh)\n    if qty is None:\n        rejected.append((item, \"missing qty\"))\n    elif wh not in warehouses:\n        rejected.append((item, \"unknown warehouse\"))\n        unknown_qty += qty\n    elif (item, wh) in seen:\n        rejected.append((item, \"duplicate\"))\n    else:\n        seen.add((item, wh))\n        accepted.append((item, wh, qty))\nprint(\"accepted\", accepted)\nprint(\"rejected\", rejected)\nprint(\"counts close:\", len(detail) == len(accepted) + len(rejected))\nprint(\"total closes:\", sum(q for _, _, q in accepted) + unknown_qty == reported)\n",
+      "expected": "accepted [('A1', 1, 10), ('A2', 1, -4), ('A3', 2, 7)]\nrejected [('A1', 'unknown warehouse'), ('A3', 'duplicate'), ('A4', 'missing qty')]\ncounts close: True\ntotal closes: True"
+    },
+    {
+      "id": "i2",
+      "title": "Find the missing rows",
+      "kind": "python",
+      "prompt": "`source_ids` are the order ids read from a sheet (with repeats), `loaded_ids` the ids in the table, and `rejected_ids` the ids in the reject table. Print `read N loaded L rejected R` with the counts (`N` is the length of `source_ids`, `L` and `R` the lengths of the other lists), then `counts close: ` followed by `True` or `False`, then `missing: ` and the sorted list of ids that appear in `source_ids` but in neither `loaded_ids` nor `rejected_ids` (without repeats). Expected output: `read 8 loaded 4 rejected 2`, `counts close: False`, `missing: [105, 107]`.",
+      "starter": "source_ids = [101, 102, 103, 104, 105, 106, 107, 102]\nloaded_ids = [101, 102, 103, 104]\nrejected_ids = [102, 106]\n# print the report\n",
+      "solution": "source_ids = [101, 102, 103, 104, 105, 106, 107, 102]\nloaded_ids = [101, 102, 103, 104]\nrejected_ids = [102, 106]\nprint(\"read\", len(source_ids), \"loaded\", len(loaded_ids), \"rejected\", len(rejected_ids))\nprint(\"counts close:\", len(source_ids) == len(loaded_ids) + len(rejected_ids))\nprint(\"missing:\", sorted(set(source_ids) - set(loaded_ids) - set(rejected_ids)))\n",
+      "expected": "read 8 loaded 4 rejected 2\ncounts close: False\nmissing: [105, 107]"
+    },
+    {
+      "id": "i3",
+      "title": "Write the hand-over note",
+      "kind": "written",
+      "prompt": "Write the short note you would send the finance team after the load in Example 3: the counts, the control total, what was rejected and why, what you need from them, and what the pipeline does next month if a check fails.",
+      "starter": "Write the note here.",
+      "solution": "The February sales workbook was loaded: 7 rows were read, 4 were loaded (154,950 cents, or 1,549.50) and 3 were rejected. The sheet's total of 1,559.50 is explained: the loaded total plus 10.00 for order 1005, whose customer 9 is not in the customer sheet, equals the reported figure. Order 1002 appeared twice and the second copy was rejected as a duplicate; it was not part of your total either. Order 1006 has no amount. Please confirm customer 9 and send the amount for order 1006. If any check fails next month (counts, control total, duplicate or orphan keys), the pipeline stops before publishing and we will contact you with the reject list.",
+      "rubric": [
+        "States read, loaded and rejected counts",
+        "Explains the control total difference with the specific rejected order",
+        "Names each rejected row and the reason and asks for a concrete action",
+        "Says what happens automatically when a check fails"
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Why does the pipeline store money as integer cents?",
+      "options": [
+        "Databases cannot store decimals",
+        "Float arithmetic can drift by a cent, while integers sum exactly",
+        "Cents are required by PostgreSQL",
+        "Integers use less memory than text"
+      ],
+      "answer": 1,
+      "explanation": "Binary floating point cannot represent most decimals exactly, so sums of floats can differ in the last digits. Integers are exact. PostgreSQL has a `numeric` type for decimals too, but integers make the point plainly."
+    },
+    {
+      "id": "c2",
+      "question": "The sheet total is 1,559.50. The loaded rows sum to 1,549.50 and the only reject is an order of 10.00 for an unknown customer. What is the right conclusion?",
+      "options": [
+        "The load failed",
+        "The difference is explained: loaded plus the rejected amount equals the sheet total",
+        "The sheet total is wrong",
+        "Add 10.00 to the loaded table"
+      ],
+      "answer": 1,
+      "explanation": "A difference is acceptable when every part of it is explained by a recorded reject. The orphan order was in the sheet's total but cannot be loaded, so the arithmetic closes. Forcing the row into the table would break the foreign key."
+    },
+    {
+      "id": "c3",
+      "question": "Why is a count-only reconciliation weak?",
+      "options": [
+        "Counting is slow",
+        "A wrong amount or a swapped value leaves the counts unchanged",
+        "Counts cannot include rejects",
+        "SQL cannot count rows from a staging table"
+      ],
+      "answer": 1,
+      "explanation": "If a value is altered, or one row is dropped while another is duplicated, the counts can still match. A control total and key checks catch these cases."
+    },
+    {
+      "id": "c4",
+      "question": "What does `PASS` on every line of a report prove if the checks were written as `True` constants?",
+      "options": [
+        "That the load is correct",
+        "Nothing: a check that cannot fail tests nothing",
+        "That the database has constraints",
+        "That the report ran quickly"
+      ],
+      "answer": 1,
+      "explanation": "A check must be capable of failing. Run the report once against a deliberately corrupted load, as in Example 4, to see that it names the failing check."
+    },
+    {
+      "id": "c5",
+      "question": "In Example 3 the duplicate order 1002 is rejected. Why is its amount not added to the explained difference?",
+      "options": [
+        "Duplicates have no amount",
+        "The sheet's total counted that order once, and the first copy is already in the loaded sum",
+        "Duplicates are always zero",
+        "The rule only applies to numeric ids"
+      ],
+      "answer": 1,
+      "explanation": "The sheet total counted order 1002 once and that first copy is loaded. Adding the duplicate's amount would count it twice. Deciding which rejects were part of the reported total is a judgment from reading the sheet."
+    }
+  ],
+  "environment": {
+    "packages": [
+      "openpyxl",
+      "pandas"
+    ],
+    "note": "Example 5 writes a real workbook with openpyxl into a temporary folder and reads it back with `pd.read_excel(header=None)`; run it locally after `pip install openpyxl pandas`, because the browser cannot import openpyxl. Every other example and every graded exercise runs in the browser: the sheet is a DataFrame with the same raw shape, `sqlite3` stands in for PostgreSQL in Python, and the reconciliation queries run as PostgreSQL SQL on PGlite. Differences from PostgreSQL: SQLite needs `PRAGMA foreign_keys = ON`, has looser column types, and does not abort a transaction after a failed statement."
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "id": "d032",
+  "time": { "theory": 30, "examples": 30, "guided": 25, "independent": 30, "review": 15 },
+  "links": {
+    "notes": ["select"],
+    "questions": [169],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": ["sql-roadmap"],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Pick and rename customer columns",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `customers`, return three columns in this order: `customer_id`, `company_name` renamed to `company`, and `country`. Order by `customer_id` ascending and keep the first 5 rows. The headings of the result must be exactly `customer_id`, `company` and `country`.",
+      "starter": "-- customer_id, company_name AS company, country; first 5 customers by customer_id\nSELECT *\nFROM customers\nORDER BY customer_id\nLIMIT 5;\n",
+      "solution": "SELECT customer_id, company_name AS company, country\nFROM customers\nORDER BY customer_id\nLIMIT 5;\n",
+      "hints": [
+        "SELECT * returns all ten columns under their original names. Replace the star with a list of the three columns you want.",
+        "Rename a column by writing AS followed by the new name directly after the column: company_name AS company.",
+        "SELECT customer_id, company_name AS company, country FROM customers ORDER BY customer_id LIMIT 5;"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Employee names in 'Last, First' form",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For every employee return `employee_id`, a text column `full_name` formatted as the last name, a comma and a space, then the first name (for example `Davolio, Nancy`), and `hire_date`. Order by `employee_id` ascending. The result has 9 rows and the headings `employee_id`, `full_name`, `hire_date`.",
+      "starter": "-- employee_id, full_name as 'Last, First', hire_date for all employees\nSELECT employee_id, first_name, last_name, hire_date\nFROM employees\nORDER BY employee_id;\n",
+      "solution": "SELECT employee_id, last_name || ', ' || first_name AS full_name, hire_date\nFROM employees\nORDER BY employee_id;\n",
+      "hints": [
+        "You need one text column built from two columns, so use the concatenation operator || between them.",
+        "The pieces are last_name, the literal text ', ' (comma and space in single quotes) and first_name. Give the whole expression the alias full_name.",
+        "SELECT employee_id, last_name || ', ' || first_name AS full_name, hire_date FROM employees ORDER BY employee_id;"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Add 20 percent to every price",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "A tax of 20 percent is added to all prices. From `products` return `product_name`, `unit_price` and a calculated column `price_with_tax` equal to `unit_price * 1.2` rounded to 2 decimals. Order by `product_id` ascending and keep the first 6 rows. The headings must be exactly `product_name`, `unit_price`, `price_with_tax`.",
+      "starter": "-- product_name, unit_price, price_with_tax (unit_price * 1.2, 2 decimals); first 6 products by product_id\nSELECT product_name, unit_price, unit_price * 1.2\nFROM products\nORDER BY product_id\nLIMIT 6;\n",
+      "solution": "SELECT product_name, unit_price, ROUND(unit_price * 1.2, 2) AS price_with_tax\nFROM products\nORDER BY product_id\nLIMIT 6;\n",
+      "hints": [
+        "The starter already multiplies, but the expression has no name and is not rounded yet.",
+        "Wrap the multiplication in ROUND(value, 2) and then name the result with AS price_with_tax.",
+        "ROUND(unit_price * 1.2, 2) AS price_with_tax; unit_price is numeric, so ROUND with two arguments works without any cast."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Days allowed to deliver",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For each order, how many days does the customer allow for delivery? From `orders` return `order_id`, `order_date`, `required_date` and a column `days_allowed` that is `required_date` minus `order_date`. Order by `order_id` ascending and keep the first 5 rows. The headings must be exactly `order_id`, `order_date`, `required_date`, `days_allowed`.",
+      "starter": "-- order_id, order_date, required_date, days_allowed; first 5 orders by order_id\nSELECT order_id, order_date, required_date\nFROM orders\nORDER BY order_id\nLIMIT 5;\n",
+      "solution": "SELECT order_id, order_date, required_date, required_date - order_date AS days_allowed\nFROM orders\nORDER BY order_id\nLIMIT 5;\n",
+      "hints": [
+        "One column is missing: a value calculated from two existing date columns.",
+        "Subtracting one date from another returns the number of days between them as an integer.",
+        "Add required_date - order_date AS days_allowed to the select list, after required_date."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Gross, net and discount per order line",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For each row of `order_details` return, in this order: `order_id`, `product_id`, `gross_amount` (`quantity * unit_price`), `net_amount` (`quantity * unit_price * (1 - discount)` rounded to 2 decimals) and `discount_amount` (`gross_amount` minus the rounded `net_amount`). Remember that `discount` is a `real` column, so convert it before rounding. Order by `order_id` ascending, then `product_id` ascending, and keep the first 8 rows.",
+      "starter": "-- order_id, product_id, gross_amount, net_amount (2 decimals), discount_amount\nSELECT order_id, product_id, quantity * unit_price AS gross_amount,\n       ROUND(quantity * unit_price * (1 - discount), 2) AS net_amount\nFROM order_details\nORDER BY order_id, product_id\nLIMIT 8;\n",
+      "solution": "SELECT order_id,\n       product_id,\n       quantity * unit_price AS gross_amount,\n       ROUND(quantity * unit_price * (1 - CAST(discount AS numeric)), 2) AS net_amount,\n       quantity * unit_price - ROUND(quantity * unit_price * (1 - CAST(discount AS numeric)), 2) AS discount_amount\nFROM order_details\nORDER BY order_id, product_id\nLIMIT 8;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Product label with a whole-number price",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `products` return, in this order: `product_id`; `label`, the text made of the product name, the words ` costs ` (with spaces around) and the unit price converted to text, for example `Chai costs 18.00`; `whole_price`, the unit price cast to an integer; and `stock_value`, `unit_price * units_in_stock`. Order by `product_id` ascending and keep the first 8 rows.",
+      "starter": "-- product_id, label, whole_price, stock_value; first 8 products\nSELECT product_id, product_name AS label, unit_price AS whole_price\nFROM products\nORDER BY product_id\nLIMIT 8;\n",
+      "solution": "SELECT product_id,\n       product_name || ' costs ' || CAST(unit_price AS text) AS label,\n       CAST(unit_price AS integer) AS whole_price,\n       unit_price * units_in_stock AS stock_value\nFROM products\nORDER BY product_id\nLIMIT 8;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Employee age at hire and tenure",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. From `employees` return `employee_id`; `full_name` (first name, a space, last name); `age_at_hire`, the number of days between `birth_date` and `hire_date` divided by 365 using integer division; and `tenure_days`, the number of days from `hire_date` up to the date 1998-12-31 (write it as `DATE '1998-12-31'`). Order by `employee_id` ascending. All 9 employees are returned.",
+      "starter": "-- employee_id, full_name, age_at_hire, tenure_days\nSELECT employee_id, first_name || ' ' || last_name AS full_name, hire_date - birth_date AS age_at_hire\nFROM employees\nORDER BY employee_id;\n",
+      "solution": "SELECT employee_id,\n       first_name || ' ' || last_name AS full_name,\n       (hire_date - birth_date) / 365 AS age_at_hire,\n       DATE '1998-12-31' - hire_date AS tenure_days\nFROM employees\nORDER BY employee_id;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `SELECT 9 / 2;` return in PostgreSQL?",
+      "options": ["4.5", "4", "5", "4.0"],
+      "answer": 1,
+      "explanation": "Both operands are integers, so PostgreSQL performs integer division and discards the fraction: the result is 4. To get 4.5 at least one side must be numeric, for example 9 / 2.0. The result is never rounded up to 5 and never printed as 4.0."
+    },
+    {
+      "id": "c2",
+      "question": "A learner forgets a comma and runs `SELECT product_id product_name FROM products;`. What comes back?",
+      "options": [
+        "Two columns named product_id and product_name",
+        "One column named product_name that contains the product IDs",
+        "A syntax error",
+        "One column named product_id that contains the product names"
+      ],
+      "answer": 1,
+      "explanation": "The keyword AS is optional, so the second word is read as an alias for product_id. The query runs without any error and returns the numeric IDs under the heading product_name. This is why writing AS explicitly is good practice."
+    },
+    {
+      "id": "c3",
+      "question": "Which of these queries fails with an error? (`order_details.unit_price` is numeric, `discount` is real, `quantity` is integer.)",
+      "options": [
+        "SELECT ROUND(unit_price * 1.2, 2) FROM products;",
+        "SELECT ROUND(quantity * unit_price * (1 - discount), 2) FROM order_details;",
+        "SELECT ROUND(quantity * unit_price, 2) FROM order_details;",
+        "SELECT ROUND(CAST(discount AS numeric), 2) FROM order_details;"
+      ],
+      "answer": 1,
+      "explanation": "Multiplying numeric by real is calculated in floating point (double precision), and PostgreSQL has no ROUND(double precision, integer). The other three expressions are numeric all the way through, or cast to numeric first, so ROUND works. Fix the failing query with CAST(discount AS numeric)."
+    },
+    {
+      "id": "c4",
+      "question": "What does `SELECT CAST(15.5 AS integer);` return?",
+      "options": ["15", "16", "15.5", "It raises an error because 15.5 is not an integer"],
+      "answer": 1,
+      "explanation": "Casting a numeric value to integer rounds to the nearest whole number, with halves rounded away from zero, so 15.5 becomes 16. It does not truncate to 15, and it does not raise an error; the conversion is allowed and just loses the fraction."
+    },
+    {
+      "id": "c5",
+      "question": "What happens when you run `SELECT unit_price * 2 AS double_price, double_price + 1 FROM products;`?",
+      "options": [
+        "It returns two columns, the second being double_price plus 1",
+        "It fails with the error that the column double_price does not exist",
+        "It returns double_price plus 1 and silently ignores the first column",
+        "It works only if double_price is wrapped in double quotes"
+      ],
+      "answer": 1,
+      "explanation": "All expressions in one select list are evaluated independently, so an alias defined in the list is not visible to the other expressions. Repeat the calculation, as in (unit_price * 2) + 1, or use a subquery later in the course. Quoting does not help."
+    },
+    {
+      "id": "c6",
+      "question": "What does `SELECT DATE '1998-05-06' - DATE '1998-05-01';` return?",
+      "options": ["5", "A date: 0000-00-05", "The text '5 days'", "An error, because dates cannot be subtracted"],
+      "answer": 0,
+      "explanation": "In PostgreSQL, date minus date returns an integer number of days, here 5. Dates can certainly be subtracted. The result is a plain integer, not a date and not text (an interval only appears when you subtract timestamps)."
+    }
+  ]
+}

@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 import { RotateCcw, Sparkles } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { InlineMarkdown, Markdown } from "../components/Markdown";
-import { Button, ButtonLink, Container, Difficulty, PageHeader, QuestionCard, Skeleton } from "../components/ui";
+import { Button, ButtonLink, Container, Difficulty, PageHeader, QuestionCard, Skeleton, StatCard } from "../components/ui";
 import { Seo } from "../lib/seo";
 import { loadQuestion } from "../lib/data";
 import { reviewQuestion, today, toggleRevisionMark, useProgress } from "../lib/progress";
-import { RULES, improvement, revisionQueue, splitQueue, stage } from "../lib/revision";
+import { RULES, improvement, revisionQueue, revisionStats, splitQueue, stage } from "../lib/revision";
 import { practiceNext, topicScores } from "../lib/insights";
 import type { Question } from "../types";
 
@@ -64,13 +64,27 @@ export function ReviewPage() {
       <details className="mb-4 rounded-card border border-surface-border bg-surface-raised p-4 text-sm">
         <summary className="cursor-pointer font-semibold text-ink">How the schedule works</summary>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-muted">
-          <li>Wrong submit or failed check: back in <strong className="text-ink">{RULES.incorrectDays} day</strong>.</li>
-          <li>Correct but slow (SQL: first solve took over {RULES.slowMinutes} minutes; Python: passed after {RULES.slowFailedChecks}+ failed checks): back in <strong className="text-ink">{RULES.slowDays} days</strong>.</li>
-          <li>Correct: back in <strong className="text-ink">{RULES.correctDays} days</strong>.</li>
-          <li>Correct {RULES.masteredAfter} times in a row: mastered, periodic review every <strong className="text-ink">{RULES.masteredDays} days</strong>.</li>
+          <li>Gaps between reviews: <strong className="text-ink">{RULES.ladder.join(" → ")} days</strong>. A clean review moves a problem up one step.</li>
+          <li>Wrong submit or failed check: back to <strong className="text-ink">{RULES.incorrectDays} day</strong>.</li>
+          <li>Correct but with help (a hint from level {RULES.helpHintLevel}, {RULES.manyAttempts}+ attempts, or slow: SQL over {RULES.slowMinutes} minutes, Python {RULES.slowFailedChecks}+ failed checks): the <strong className="text-ink">same gap</strong> again.</li>
+          <li>Correct, fast (within half your goal time) after {RULES.skipAfterClean} clean answers in a row: skips a step.</li>
+          <li>Correct {RULES.masteredAfter} times in a row: marked mastered. The longest gap is <strong className="text-ink">{RULES.masteredDays} days</strong>.</li>
           <li>Concepts you mark below put their problems in today's queue.</li>
         </ul>
       </details>
+
+      {day && (() => {
+        const st = revisionStats(progress.revision, day);
+        const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "—");
+        return (
+          <section aria-label="Revision statistics" className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <StatCard label="Reviews this week" value={st.week.reviews} hint={st.all.reviews ? `${st.all.reviews} in total` : "none yet"} />
+            <StatCard label="Remembered" value={pct(st.week.correct, st.week.reviews)} hint="this week" />
+            <StatCard label="On time" value={pct(st.week.onTime, st.week.reviews)} hint="done by the due day" />
+            <StatCard label="Mastered" value={st.mastered} hint={`${st.byStage.reduce((a, b) => a + b, 0)} scheduled`} />
+          </section>
+        );
+      })()}
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
         {[["Overdue", parts.overdue.length, "text-danger"], ["Due today", parts.today.length, "text-ink"], ["Upcoming", parts.upcoming.length, "text-ink-muted"]].map(([label, n, tone]) => (

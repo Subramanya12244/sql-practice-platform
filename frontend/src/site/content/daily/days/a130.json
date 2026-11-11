@@ -1,0 +1,187 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "filter-clause",
+      "group-by",
+      "conditional-aggregation"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "sales-by-month"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": [
+      "conditional-aggregation",
+      "pivot-report"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Evaluate a filter context",
+      "kind": "python",
+      "prompt": "Using `revenue(ctx)`, print the revenue for the context `Segment = Corporate` and `Country = Germany`, then for `Segment = Corporate` alone, one number per line.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\n# two contexts\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\nprint(revenue({\"segment\": [\"Corporate\"], \"country\": [\"Germany\"]}))\nprint(revenue({\"segment\": [\"Corporate\"]}))\n",
+      "hints": [
+        "A context is a dict from column name to a list of allowed values.",
+        "Use the keys \"segment\" and \"country\".",
+        "Call revenue with both keys, then with only segment."
+      ],
+      "expected": "10725.0\n37905.0"
+    },
+    {
+      "id": "g2",
+      "title": "CALCULATE replaces a filter",
+      "kind": "python",
+      "prompt": "The visual cell has the context `category = Services` and `country = France`. Print the value of `CALCULATE([Total Revenue], Products[category] = \"Hardware\")` there using `calculate`, then the plain measure in the same cell, one per line (the CALCULATE value first).",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\ncell = {\"category\": [\"Services\"], \"country\": [\"France\"]}\n# CALCULATE value, then plain value\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\ncell = {\"category\": [\"Services\"], \"country\": [\"France\"]}\nprint(calculate(cell, category=[\"Hardware\"]))\nprint(revenue(cell))\n",
+      "hints": [
+        "calculate takes keyword arguments for the changed columns.",
+        "Pass category=[\"Hardware\"].",
+        "The plain value is revenue(cell)."
+      ],
+      "expected": "5925.0\n6187.5"
+    },
+    {
+      "id": "g3",
+      "title": "Share of total with ALL",
+      "kind": "python",
+      "prompt": "For each country print `country share` where share is `DIVIDE([Total Revenue], CALCULATE([Total Revenue], ALL(Customers)))` (use `calculate(ctx, country=None)` for the denominator), rounded to 4 decimals, as `France 0.2531` style lines, countries in alphabetical order.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\n# share of total per country\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\nden = calculate({}, country=None)\nfor c in [\"France\", \"Germany\", \"Spain\", \"UK\"]:\n    print(c, round(revenue({\"country\": [c]}) / den, 4))\n",
+      "hints": [
+        "The denominator removes the country filter.",
+        "calculate({}, country=None) is the unfiltered total.",
+        "Divide each country's revenue by it and round to 4 decimals."
+      ],
+      "expected": "France 0.2532\nGermany 0.2897\nSpain 0.2479\nUK 0.2093"
+    },
+    {
+      "id": "g4",
+      "title": "Predict the matrix cell (written)",
+      "kind": "written",
+      "prompt": "A matrix has `Products[category]` on rows and a slicer on `Customers[country] = UK`. The measure is `X = CALCULATE([Total Revenue], ALL(Products[category]))`. State what the Software row shows and what the Hardware row shows, and why.",
+      "starter": "Software row: ...\nHardware row: ...",
+      "solution": "Both rows show the same number: the revenue of all categories for UK customers, 14,047.50 in the sample model. `ALL(Products[category])` removes the row's category filter, so the category no longer restricts the sales. The slicer filter on `Customers[country]` is on a different table and column, so it stays. A measure that ignores the row heading and repeats one value on every row is the typical symptom of an `ALL` that removes the grouping filter.",
+      "rubric": [
+        "Both rows show the same value.",
+        "The value is UK revenue across all categories.",
+        "Explains that ALL removes only the category filter and the country slicer stays."
+      ],
+      "hints": [
+        "Which filters does ALL(category) remove?",
+        "The slicer is on another column.",
+        "So every row evaluates with only the country filter."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Segment against the all-segments baseline",
+      "kind": "python",
+      "prompt": "For each `segment` print `segment revenue all_segments_revenue share_of_all` as a table with those four columns (the baseline uses `calculate` with `segment=None`, share rounded to 4 decimals), built with `pd.DataFrame` and printed with `to_string(index=False)`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\n# build the table\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\nrows = []\nfor s in [\"Corporate\", \"Retail\"]:\n    r = revenue({\"segment\": [s]})\n    a = calculate({\"segment\": [s]}, segment=None)\n    rows.append((s, r, a, round(r / a, 4)))\nprint(pd.DataFrame(rows, columns=[\"segment\", \"revenue\", \"all_segments_revenue\", \"share_of_all\"]).to_string(index=False))\n",
+      "expected": "  segment  revenue  all_segments_revenue  share_of_all\nCorporate  37905.0               67132.5        0.5646\n   Retail  29227.5               67132.5        0.4354"
+    },
+    {
+      "id": "i2",
+      "title": "FILTER and a row condition",
+      "kind": "python",
+      "prompt": "Replicate `CALCULATE([Total Revenue], FILTER(Sales, Sales[quantity] >= 4))` for each `category` (rows of a matrix). Print `category count revenue` as a table via `groupby(...).agg(count=..., revenue=...)` on the rows with `quantity >= 4`, revenue rounded to 2 decimals, with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\n# rows with quantity >= 4 per category\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\nbig = fact[fact[\"quantity\"] >= 4]\nprint(big.groupby(\"category\")[\"revenue\"].agg(count=\"count\", revenue=\"sum\").round(2).to_string())\n",
+      "expected": "          count  revenue\ncategory                \nHardware     59  13657.5\nServices     48  13192.5\nSoftware     48  12420.0"
+    },
+    {
+      "id": "i3",
+      "title": "Context transition by customer tier (stretch)",
+      "kind": "python",
+      "prompt": "Replicate the calculated column `Customers[Customer Revenue] = [Total Revenue]` and a second column `Tier` that is \"High\" when the customer revenue is at least 1500, else \"Standard\". Print the number of customers and the revenue per tier as `Tier  customers  revenue` using `groupby(\"Tier\")`, revenue rounded to 2 decimals, with `to_string()`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\n# customer revenue, tiers, summary\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\nrng = np.random.default_rng(7)\ncountries = [\"UK\", \"Germany\", \"France\", \"Spain\"]\ncats = [\"Hardware\", \"Software\", \"Services\"]\ncustomers = pd.DataFrame({\n    \"customer_id\": range(1, 41),\n    \"customer_name\": [f\"Customer {i:02d}\" for i in range(1, 41)],\n    \"country\": [countries[i % 4] for i in range(40)],\n    \"segment\": [[\"Retail\", \"Corporate\"][(i // 4) % 2] for i in range(40)],\n})\nproducts = pd.DataFrame({\n    \"product_id\": range(1, 13),\n    \"product_name\": [f\"Product {i:02d}\" for i in range(1, 13)],\n    \"category\": [cats[i % 3] for i in range(12)],\n    \"unit_cost\": [float(10 + 5 * i) for i in range(12)],\n})\nn = 400\nsales = pd.DataFrame({\n    \"order_id\": range(1, n + 1),\n    \"order_date\": pd.to_datetime(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 365, n), unit=\"D\"),\n    \"customer_id\": rng.integers(1, 41, n),\n    \"product_id\": rng.integers(1, 13, n),\n    \"quantity\": rng.integers(1, 6, n),\n})\nsales[\"unit_price\"] = (sales[\"product_id\"].map(products.set_index(\"product_id\")[\"unit_cost\"]) * 1.5).round(2)\ncalendar = pd.DataFrame({\"date\": pd.date_range(\"2025-01-01\", \"2025-12-31\")})\ncalendar[\"year\"] = calendar[\"date\"].dt.year\ncalendar[\"quarter\"] = calendar[\"date\"].dt.quarter\ncalendar[\"month_number\"] = calendar[\"date\"].dt.month\ncalendar[\"month_name\"] = calendar[\"date\"].dt.strftime(\"%B\")\nsales[\"revenue\"] = sales[\"quantity\"] * sales[\"unit_price\"]\nfact = (sales.merge(customers, on=\"customer_id\").merge(products, on=\"product_id\")\n        .merge(calendar, left_on=\"order_date\", right_on=\"date\"))\ndef revenue(ctx):\n    d = fact\n    for col, vals in ctx.items():\n        d = d[d[col].isin(vals)]\n    return round(float(d[\"revenue\"].sum()), 2)\n\ndef calculate(ctx, **changes):\n    new = dict(ctx)\n    for col, vals in changes.items():\n        if vals is None:\n            new.pop(col, None)\n        else:\n            new[col] = vals\n    return revenue(new)\n\ncr = sales.groupby(\"customer_id\")[\"revenue\"].sum().reindex(customers[\"customer_id\"], fill_value=0)\ntier = cr.map(lambda v: \"High\" if v >= 1500 else \"Standard\").rename(\"Tier\")\nout = pd.DataFrame({\"Tier\": tier, \"revenue\": cr}).groupby(\"Tier\")[\"revenue\"].agg(customers=\"count\", revenue=\"sum\").round(2)\nprint(out.to_string())\n",
+      "required": false,
+      "expected": "          customers  revenue\nTier                        \nHigh             27  56820.0\nStandard         13  10312.5"
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "DAX needs Power BI Desktop (Windows-only) or the Power BI Service in a browser, neither of which runs here. The graded exercises use a pandas function that models a filter context as a dictionary of selected values, so CALCULATE, ALL and context transition can be checked in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "In the matrix row for Software, what does CALCULATE([Total Revenue], Products[category] = \"Hardware\") return?",
+      "options": [
+        "Blank, because Software and Hardware do not overlap",
+        "Hardware revenue, because the filter on category is replaced",
+        "The sum of Hardware and Software",
+        "The grand total"
+      ],
+      "answer": 1,
+      "explanation": "A boolean filter on a column replaces the existing filter on that column, so the Software row shows Hardware revenue. The filters would only intersect if they were on different columns."
+    },
+    {
+      "id": "c2",
+      "question": "A calculated column on Customers is defined as SUM(Sales[Revenue]). What does each customer row show?",
+      "options": [
+        "That customer's revenue",
+        "The total revenue of all sales",
+        "Blank",
+        "The number of the customer's orders"
+      ],
+      "answer": 1,
+      "explanation": "A row context is not a filter, so SUM sees the whole Sales table and repeats the total. CALCULATE (context transition) turns the row into a filter and gives per-customer revenue."
+    },
+    {
+      "id": "c3",
+      "question": "With a slicer on country = UK, what does DIVIDE([Total Revenue], CALCULATE([Total Revenue], ALL(Products))) compute?",
+      "options": [
+        "Category revenue over all UK revenue",
+        "Category revenue over revenue of all countries",
+        "Always 1",
+        "The share of Sales rows"
+      ],
+      "answer": 0,
+      "explanation": "ALL(Products) removes only filters on the Products table. The UK slicer is on Customers and stays, so the share is within the UK."
+    },
+    {
+      "id": "c4",
+      "question": "What does FILTER(Sales, Sales[Revenue] > 300) return?",
+      "options": [
+        "A number: the sum of large sales",
+        "The Sales rows whose revenue is above 300",
+        "A single column",
+        "All rows, with a flag column"
+      ],
+      "answer": 1,
+      "explanation": "FILTER returns a table: the rows that pass the condition. CALCULATE then uses that table as a filter. It does not aggregate anything itself."
+    },
+    {
+      "id": "c5",
+      "question": "In the pandas model, calculate(ctx, category=None) mirrors which DAX idea?",
+      "options": [
+        "A boolean filter",
+        "ALL on the category column",
+        "Context transition",
+        "A measure reference"
+      ],
+      "answer": 1,
+      "explanation": "Setting a column to None drops its entry from the context, which is what ALL does to the filter on that column. Other entries remain, as other filters do in DAX."
+    }
+  ],
+  "id": "a130"
+}

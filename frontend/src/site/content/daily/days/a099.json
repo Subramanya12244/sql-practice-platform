@@ -1,0 +1,193 @@
+{
+  "id": "a099",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "left-join",
+      "union-all",
+      "join-cardinality",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "merge-customers-precedence",
+      "pandas-clean-dataframe"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "joins"
+    ],
+    "patterns": [
+      "unmatched-records",
+      "anti-join"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Left Outer merge and expand",
+      "kind": "python",
+      "prompt": "Replicate Merge Queries (Left Outer on `Code`) and expanding `Price`. Print the number of rows, then the `Price` column as a list (a missing price is `nan`).",
+      "starter": "import pandas as pd\n\norders = pd.DataFrame({\"Order\": [1, 2, 3, 4, 5], \"Code\": [\"P1\", \"P2\", \"P1\", \"P9\", \"P3\"], \"Qty\": [3, 5, 2, 1, 4]})\nprices = pd.DataFrame({\"Code\": [\"P1\", \"P2\", \"P3\", \"P4\"], \"Price\": [10, 25, 7, 40]})\n\n# left merge, print rows and Price list\n",
+      "solution": "import pandas as pd\n\norders = pd.DataFrame({\"Order\": [1, 2, 3, 4, 5], \"Code\": [\"P1\", \"P2\", \"P1\", \"P9\", \"P3\"], \"Qty\": [3, 5, 2, 1, 4]})\nprices = pd.DataFrame({\"Code\": [\"P1\", \"P2\", \"P3\", \"P4\"], \"Price\": [10, 25, 7, 40]})\n\nm = orders.merge(prices, on=\"Code\", how=\"left\")\nprint(len(m))\nprint(m[\"Price\"].tolist())\n",
+      "hints": [
+        "Left Outer keeps all rows of the first table.",
+        "orders.merge(prices, on=\"Code\", how=\"left\")",
+        "Print len(m) and m[\"Price\"].tolist()."
+      ],
+      "expected": "5\n[10.0, 25.0, 10.0, nan, 7.0]"
+    },
+    {
+      "id": "g2",
+      "title": "Left Anti: orders without a price",
+      "kind": "python",
+      "prompt": "Replicate a Left Anti merge: print the list of `Order` numbers whose `Code` is not in `prices`, then the list of price `Code` values that no order uses (a Right Anti), each on its own line.",
+      "starter": "import pandas as pd\n\norders = pd.DataFrame({\"Order\": [1, 2, 3, 4, 5], \"Code\": [\"P1\", \"P2\", \"P1\", \"P9\", \"P3\"], \"Qty\": [3, 5, 2, 1, 4]})\nprices = pd.DataFrame({\"Code\": [\"P1\", \"P2\", \"P3\", \"P4\"], \"Price\": [10, 25, 7, 40]})\n\n# two anti-joins\n",
+      "solution": "import pandas as pd\n\norders = pd.DataFrame({\"Order\": [1, 2, 3, 4, 5], \"Code\": [\"P1\", \"P2\", \"P1\", \"P9\", \"P3\"], \"Qty\": [3, 5, 2, 1, 4]})\nprices = pd.DataFrame({\"Code\": [\"P1\", \"P2\", \"P3\", \"P4\"], \"Price\": [10, 25, 7, 40]})\n\nprint(orders.loc[~orders[\"Code\"].isin(prices[\"Code\"]), \"Order\"].tolist())\nprint(prices.loc[~prices[\"Code\"].isin(orders[\"Code\"]), \"Code\"].tolist())\n",
+      "hints": [
+        "An anti-join keeps rows with no match in the other table.",
+        "isin tests membership; ~ negates it.",
+        "orders[~orders[\"Code\"].isin(prices[\"Code\"])] and the reverse for prices."
+      ],
+      "expected": "[4]\n['P4']"
+    },
+    {
+      "id": "g3",
+      "title": "Append and rename",
+      "kind": "python",
+      "prompt": "January has columns `Region`, `Qty`; February has `Region`, `Quantity`. Rename February's column to `Qty` and append the two (reset the index). Print the number of rows and the total `Qty` as an integer, on two lines.",
+      "starter": "import pandas as pd\n\njan = pd.DataFrame({\"Region\": [\"North\", \"South\"], \"Qty\": [3, 5]})\nfeb = pd.DataFrame({\"Region\": [\"East\", \"North\", \"West\"], \"Quantity\": [4, 6, 1]})\n# rename, append, print\n",
+      "solution": "import pandas as pd\n\njan = pd.DataFrame({\"Region\": [\"North\", \"South\"], \"Qty\": [3, 5]})\nfeb = pd.DataFrame({\"Region\": [\"East\", \"North\", \"West\"], \"Quantity\": [4, 6, 1]})\nall_rows = pd.concat([jan, feb.rename(columns={\"Quantity\": \"Qty\"})], ignore_index=True)\nprint(len(all_rows))\nprint(int(all_rows[\"Qty\"].sum()))\n",
+      "hints": [
+        "Append matches columns by name.",
+        "Rename Quantity to Qty first.",
+        "pd.concat([jan, feb.rename(columns={\"Quantity\": \"Qty\"})], ignore_index=True)"
+      ],
+      "expected": "5\n19"
+    },
+    {
+      "id": "g4",
+      "title": "Read the M script (written)",
+      "kind": "written",
+      "prompt": "Explain what each line of this script does, and say what changes if `JoinKind.LeftOuter` is replaced by `JoinKind.Inner`:\n\nlet\n    Source = Excel.CurrentWorkbook(){[Name=\"Orders\"]}[Content],\n    Merged = Table.NestedJoin(Source, {\"Code\"}, Prices, {\"Code\"}, \"P\", JoinKind.LeftOuter),\n    Expanded = Table.ExpandTableColumn(Merged, \"P\", {\"Price\"}, {\"Price\"}),\n    Added = Table.AddColumn(Expanded, \"Amount\", each [Qty] * [Price], type number)\nin\n    Added",
+      "starter": "Source: ...\nMerged: ...\nExpanded: ...\nAdded: ...\nInner instead of Left Outer: ...",
+      "solution": "`Source` reads the workbook Table named Orders. `Merged` joins it to the query `Prices` on the `Code` column, keeping every order and putting the matching price rows in a nested-table column named `P`. `Expanded` turns that nested column into an ordinary `Price` column. `Added` adds `Amount`, computed for each row by `each [Qty] * [Price]`, with the data type number. The `in` line says that the output of the query is the last step, `Added`. With `JoinKind.Inner` only orders whose code exists in `Prices` stay; unpriced orders disappear from the result instead of showing null.",
+      "hints": [
+        "Each step name refers to the previous one.",
+        "Left Outer keeps all rows of the first table.",
+        "Inner keeps only matched rows."
+      ],
+      "rubric": [
+        "Explains Source, Merged, Expanded and Added correctly.",
+        "Explains `each [Qty] * [Price]` as a row-by-row formula.",
+        "States that Inner drops unmatched orders while Left Outer keeps them with null."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Chain: append, merge, custom columns",
+      "kind": "python",
+      "prompt": "Build the chain: append `jan` and `feb`, left-merge `prices` on `Code`, add `Amount = Qty * Price` and `Size` = `Big` when `Qty >= 3` else `Small`. Print the table with `to_string(index=False)`, then on a new line `Unpriced` followed by the list of unpriced `Code` values.",
+      "starter": "import numpy as np\nimport pandas as pd\n\njan = pd.DataFrame({\"Code\": [\"P1\", \"P2\"], \"Qty\": [3, 5]})\nfeb = pd.DataFrame({\"Code\": [\"P3\", \"P9\", \"P1\"], \"Qty\": [4, 1, 2]})\nprices = pd.DataFrame({\"Code\": [\"P1\", \"P2\", \"P3\"], \"Price\": [10, 25, 7]})\n# append, merge, add columns, print\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\njan = pd.DataFrame({\"Code\": [\"P1\", \"P2\"], \"Qty\": [3, 5]})\nfeb = pd.DataFrame({\"Code\": [\"P3\", \"P9\", \"P1\"], \"Qty\": [4, 1, 2]})\nprices = pd.DataFrame({\"Code\": [\"P1\", \"P2\", \"P3\"], \"Price\": [10, 25, 7]})\nd = pd.concat([jan, feb], ignore_index=True).merge(prices, on=\"Code\", how=\"left\")\nd[\"Amount\"] = d[\"Qty\"] * d[\"Price\"]\nd[\"Size\"] = np.where(d[\"Qty\"] >= 3, \"Big\", \"Small\")\nprint(d.to_string(index=False))\nprint(\"Unpriced\", d.loc[d[\"Price\"].isna(), \"Code\"].tolist())\n",
+      "expected": "Code  Qty  Price  Amount  Size\n  P1    3   10.0    30.0   Big\n  P2    5   25.0   125.0   Big\n  P3    4    7.0    28.0   Big\n  P9    1    NaN     NaN Small\n  P1    2   10.0    20.0 Small\nUnpriced ['P9']"
+    },
+    {
+      "id": "i2",
+      "title": "Safe merge: clean keys and de-duplicate",
+      "kind": "python",
+      "prompt": "The order codes are messy and the price list has a duplicate with an older and newer `Date`. Clean order codes (strip, upper), keep only the latest price per code (largest `Date`), left-merge and print the rows after merge as an integer, then the total `Qty*Price` of the matched rows as a float, on two lines. Unmatched rows add 0.",
+      "starter": "import pandas as pd\n\norders = pd.DataFrame({\"Code\": [\" p1\", \"P2 \", \"p1\", \"P7\"], \"Qty\": [2, 3, 1, 5]})\nprices = pd.DataFrame({\"Code\": [\"P1\", \"P1\", \"P2\"], \"Price\": [10, 12, 20], \"Date\": pd.to_datetime([\"2025-01-01\", \"2025-03-01\", \"2025-01-01\"])})\n# clean, latest price, merge, print\n",
+      "solution": "import pandas as pd\n\norders = pd.DataFrame({\"Code\": [\" p1\", \"P2 \", \"p1\", \"P7\"], \"Qty\": [2, 3, 1, 5]})\nprices = pd.DataFrame({\"Code\": [\"P1\", \"P1\", \"P2\"], \"Price\": [10, 12, 20], \"Date\": pd.to_datetime([\"2025-01-01\", \"2025-03-01\", \"2025-01-01\"])})\norders[\"Code\"] = orders[\"Code\"].str.strip().str.upper()\nlatest = prices.sort_values(\"Date\").drop_duplicates(\"Code\", keep=\"last\")[[\"Code\", \"Price\"]]\nm = orders.merge(latest, on=\"Code\", how=\"left\")\nprint(len(m))\nprint(float((m[\"Qty\"] * m[\"Price\"]).fillna(0).sum()))\n",
+      "expected": "4\n96.0"
+    },
+    {
+      "id": "i3",
+      "title": "Append a folder of files (written, stretch)",
+      "kind": "written",
+      "required": false,
+      "prompt": "Twelve monthly workbooks have the same layout but the sales column is named `Qty` in some and `Quantity` in others, and one file has an extra `Comment` column. Describe how you would build a single refreshable table in Power Query, what happens to the columns at append, how you would fix the names, and which check proves nothing was lost.",
+      "starter": "Plan: ...",
+      "solution": "Create one query per file (or one query per month Table) that imports and cleans that file, and give each a rename step so that `Quantity` becomes `Qty` before the append; this is done in the query for each file, not after the append, because Table.Combine matches columns by name. Then use Home, Append Queries as New with the twelve queries. The `Comment` column is kept and is null for the rows from files without it. Set data types after the append, remove duplicates if the files overlap, and load the result. Checks: the row count equals the sum of the row counts of the twelve source queries, and the sum of Qty equals the sum of the totals in the source files; a new month is added by adding its query to the append and using Refresh All.",
+      "rubric": [
+        "Renames columns before the append because columns match by name.",
+        "Explains that the extra column is kept with nulls.",
+        "Gives a row-count or total reconciliation check."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [],
+    "note": "Merge, append, custom columns and the Advanced Editor are in Power Query in Excel for Windows 2016 or later and Microsoft 365; Microsoft 365 for Mac has the editor with fewer connectors, and Excel 2010 and 2013 need the add-in. LibreOffice Calc has no Power Query. The M scripts shown are for reading and are not executed here. The graded exercises replicate merge, append and custom columns with pandas, which runs in the browser."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Orders has 4 rows. Prices has the code P1 twice. Two orders use P1. After a Left Outer merge on Code, how many rows?",
+      "options": [
+        "4",
+        "6",
+        "2",
+        "8"
+      ],
+      "answer": 1,
+      "explanation": "Each order for P1 matches both price rows, so each is repeated: 2 orders x 2 prices + 2 other orders = 6. A merge is a join, not a first-match lookup."
+    },
+    {
+      "id": "c2",
+      "question": "Which merge kind lists the orders whose product is missing from the price list?",
+      "options": [
+        "Inner",
+        "Full Outer",
+        "Left Anti",
+        "Right Outer"
+      ],
+      "answer": 2,
+      "explanation": "Left Anti returns the rows of the first table that have no match in the second. Inner returns only matches, and the other two keep matched rows too."
+    },
+    {
+      "id": "c3",
+      "question": "One table has a column Qty and another has Quantity. What does Append Queries give?",
+      "options": [
+        "One column named Qty",
+        "Two columns, each partly null",
+        "An error",
+        "One column named Quantity"
+      ],
+      "answer": 1,
+      "explanation": "Append matches columns by name. Different names create two columns, each null for the rows from the other table; rename first."
+    },
+    {
+      "id": "c4",
+      "question": "Which M expression is valid for a custom column that tests Qty?",
+      "options": [
+        "IF([Qty]>=3,\"Big\",\"Small\")",
+        "if [Qty] >= 3 then \"Big\" else \"Small\"",
+        "=IF([Qty]>=3,\"Big\",\"Small\")",
+        "if([Qty]>=3,\"Big\",\"Small\")"
+      ],
+      "answer": 1,
+      "explanation": "M uses lower-case keywords in the form if ... then ... else, and it is case-sensitive. The other options are worksheet formula syntax."
+    },
+    {
+      "id": "c5",
+      "question": "What does `each [Qty] * [Price]` do?",
+      "options": [
+        "Multiplies the totals of two columns",
+        "Computes the product for every row",
+        "Creates a Table",
+        "Joins two queries"
+      ],
+      "answer": 1,
+      "explanation": "each makes a function applied to every row, and [Field] reads the field of the current row. The result is one product per row, not a total."
+    }
+  ]
+}

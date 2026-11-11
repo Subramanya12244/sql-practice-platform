@@ -1,0 +1,175 @@
+{
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "etl-data-validation",
+      "etl-pipeline-monitoring",
+      "etl-idempotency"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Reject with a reason",
+      "kind": "python",
+      "prompt": "Write `split_rows(rows)` that takes a list of `(order_id, amount_text)` pairs and returns `(good, rejected)`. A row is good when `amount_text` converts with `float()`; otherwise it goes to `rejected` as `(order_id, 'bad amount')`. Print `good` then `rejected`.",
+      "starter": "rows = [(1, '12.50'), (2, 'abc'), (3, '7'), (4, ''), (5, '1e2')]\n\ndef split_rows(rows):\n    pass\n\ngood, rejected = split_rows(rows)\nprint(good)\nprint(rejected)\n",
+      "solution": "rows = [(1, '12.50'), (2, 'abc'), (3, '7'), (4, ''), (5, '1e2')]\n\ndef split_rows(rows):\n    good, rejected = [], []\n    for oid, text in rows:\n        try:\n            float(text)\n        except ValueError:\n            rejected.append((oid, 'bad amount'))\n        else:\n            good.append((oid, text))\n    return good, rejected\n\ngood, rejected = split_rows(rows)\nprint(good)\nprint(rejected)\n",
+      "hints": [
+        "Try the conversion and catch `ValueError`; the empty string and `'abc'` both raise it.",
+        "Use `try`/`except ValueError`/`else` so the good branch runs only if no error happened.",
+        "Append `(oid, text)` to `good` in the `else` branch and `(oid, 'bad amount')` to `rejected` in the `except` branch."
+      ],
+      "expected": "[(1, '12.50'), (3, '7'), (5, '1e2')]\n[(2, 'bad amount'), (4, 'bad amount')]"
+    },
+    {
+      "id": "g2",
+      "title": "Row accounting",
+      "kind": "python",
+      "prompt": "A run reports `source=20`, `loaded=13`, `rejected=3`, `excluded=2` and `duplicates=1`. Write `accounted(loaded, rejected, excluded, duplicates)` and print two lines: `accounted 19` and `missing 1`, where missing is the source count minus the accounted rows.",
+      "starter": "source, loaded, rejected, excluded, duplicates = 20, 13, 3, 2, 1\n\ndef accounted(loaded, rejected, excluded, duplicates):\n    pass\n\n# Your code here\n",
+      "solution": "source, loaded, rejected, excluded, duplicates = 20, 13, 3, 2, 1\n\ndef accounted(loaded, rejected, excluded, duplicates):\n    return loaded + rejected + excluded + duplicates\n\nn = accounted(loaded, rejected, excluded, duplicates)\nprint('accounted', n)\nprint('missing', source - n)\n",
+      "hints": [
+        "The four outcomes together should equal the source count.",
+        "`accounted` is the sum of the four arguments.",
+        "`missing` is `source - accounted(...)`; print both with their labels."
+      ],
+      "expected": "accounted 19\nmissing 1"
+    },
+    {
+      "id": "g3",
+      "title": "Check query on the target",
+      "kind": "sql",
+      "prompt": "The table `orders_clean` is the pipeline's target. Write one query returning `n` (rows), `total_cents` (sum of `amount_cents`), `bad_currency` (rows whose currency is not in `USD`, `EUR`, `GBP`) and `null_customer` (rows with a NULL `customer_id`).",
+      "starter": "CREATE TABLE orders_clean (order_id int, customer_id int, amount_cents int, currency text);\nINSERT INTO orders_clean VALUES (1, 10, 125050, 'USD'), (2, NULL, 3500, 'usd'), (3, 12, 1875, 'EUR'), (4, 13, 500, 'CHF');\n\nSELECT COUNT(*) AS n FROM orders_clean;\n",
+      "solution": "CREATE TABLE orders_clean (order_id int, customer_id int, amount_cents int, currency text);\nINSERT INTO orders_clean VALUES (1, 10, 125050, 'USD'), (2, NULL, 3500, 'usd'), (3, 12, 1875, 'EUR'), (4, 13, 500, 'CHF');\n\nSELECT COUNT(*) AS n,\n       SUM(amount_cents) AS total_cents,\n       COUNT(*) FILTER (WHERE currency NOT IN ('USD', 'EUR', 'GBP')) AS bad_currency,\n       COUNT(*) FILTER (WHERE customer_id IS NULL) AS null_customer\nFROM orders_clean;\n",
+      "hints": [
+        "All four numbers come from one scan, so use aggregates without `GROUP BY`.",
+        "`COUNT(*) FILTER (WHERE condition)` counts only rows meeting a condition.",
+        "NULL needs `IS NULL`, not `= NULL`; lowercase `'usd'` is not in the allowed list."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Threshold verdict line",
+      "kind": "python",
+      "prompt": "Write `verdict(name, value, warn, crit)` returning `<name> <value as percent, 1 decimal> <STATUS>`, where STATUS is `CRITICAL` above `crit`, `WARN` above `warn`, else `OK`. Print the verdict for `reject_rate` 0.25 with limits 0.10 and 0.30, then for `null_rate` 0.004 with limits 0.01 and 0.05.",
+      "starter": "def verdict(name, value, warn, crit):\n    pass\n\nprint(verdict('reject_rate', 0.25, 0.10, 0.30))\nprint(verdict('null_rate', 0.004, 0.01, 0.05))\n",
+      "solution": "def verdict(name, value, warn, crit):\n    status = 'CRITICAL' if value > crit else 'WARN' if value > warn else 'OK'\n    return f'{name} {value:.1%} {status}'\n\nprint(verdict('reject_rate', 0.25, 0.10, 0.30))\nprint(verdict('null_rate', 0.004, 0.01, 0.05))\n",
+      "hints": [
+        "Decide the status first, then format the string.",
+        "Check `crit` before `warn`, as the more severe level wins.",
+        "`f'{name} {value:.1%} {status}'` formats 0.25 as `25.0%`."
+      ],
+      "expected": "reject_rate 25.0% WARN\nnull_rate 0.4% OK"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Pipeline on new data",
+      "kind": "python",
+      "prompt": "Complete the pipeline for the orders in the starter. Rules: reject rows whose amount is not a number (reason `bad amount`) or whose `customer` is empty (`missing customer`); exclude rows with status `failed`; keep the latest `ts` per `id` (string comparison); amounts in cents via `Decimal`. Print, in this order: `source <n>`, `loaded <n>`, `rejected <n>`, `excluded <n>`, `duplicates <n>`, `accounted <true if the four outcomes add up to source>` (print `True` or `False`), `reject_rate <value as percent with 1 decimal>`, and `loaded ids <sorted list>`.",
+      "starter": "from decimal import Decimal, InvalidOperation\n\nrows = [\n    {'id': 1, 'customer': 'c1', 'amount': '10.00', 'status': 'paid', 'ts': '2026-02-01'},\n    {'id': 2, 'customer': 'c2', 'amount': 'n/a', 'status': 'paid', 'ts': '2026-02-01'},\n    {'id': 3, 'customer': '', 'amount': '5.50', 'status': 'paid', 'ts': '2026-02-01'},\n    {'id': 4, 'customer': 'c4', 'amount': '8.00', 'status': 'failed', 'ts': '2026-02-02'},\n    {'id': 5, 'customer': 'c5', 'amount': '20.00', 'status': 'paid', 'ts': '2026-02-02'},\n    {'id': 5, 'customer': 'c5', 'amount': '22.00', 'status': 'refunded', 'ts': '2026-02-03'},\n    {'id': 6, 'customer': 'c6', 'amount': '1,000.00', 'status': 'paid', 'ts': '2026-02-03'},\n    {'id': 7, 'customer': 'c7', 'amount': '3.25', 'status': 'paid', 'ts': '2026-02-03'},\n    {'id': 8, 'customer': 'c8', 'amount': '9.99', 'status': 'paid', 'ts': '2026-02-04'},\n    {'id': 9, 'customer': 'c9', 'amount': '4.00', 'status': 'failed', 'ts': '2026-02-04'},\n]\n\n# Your code here\n",
+      "solution": "from decimal import Decimal, InvalidOperation\n\nrows = [\n    {'id': 1, 'customer': 'c1', 'amount': '10.00', 'status': 'paid', 'ts': '2026-02-01'},\n    {'id': 2, 'customer': 'c2', 'amount': 'n/a', 'status': 'paid', 'ts': '2026-02-01'},\n    {'id': 3, 'customer': '', 'amount': '5.50', 'status': 'paid', 'ts': '2026-02-01'},\n    {'id': 4, 'customer': 'c4', 'amount': '8.00', 'status': 'failed', 'ts': '2026-02-02'},\n    {'id': 5, 'customer': 'c5', 'amount': '20.00', 'status': 'paid', 'ts': '2026-02-02'},\n    {'id': 5, 'customer': 'c5', 'amount': '22.00', 'status': 'refunded', 'ts': '2026-02-03'},\n    {'id': 6, 'customer': 'c6', 'amount': '1,000.00', 'status': 'paid', 'ts': '2026-02-03'},\n    {'id': 7, 'customer': 'c7', 'amount': '3.25', 'status': 'paid', 'ts': '2026-02-03'},\n    {'id': 8, 'customer': 'c8', 'amount': '9.99', 'status': 'paid', 'ts': '2026-02-04'},\n    {'id': 9, 'customer': 'c9', 'amount': '4.00', 'status': 'failed', 'ts': '2026-02-04'},\n]\n\nrejected = excluded = 0\ncandidates = []\nfor r in rows:\n    try:\n        cents = int(Decimal(r['amount'].replace(',', '')) * 100)\n    except InvalidOperation:\n        rejected += 1\n        continue\n    if not r['customer']:\n        rejected += 1\n        continue\n    if r['status'] == 'failed':\n        excluded += 1\n        continue\n    candidates.append((r['id'], r['ts'], cents))\nlatest = {}\nfor i, ts, cents in candidates:\n    if i not in latest or ts > latest[i][0]:\n        latest[i] = (ts, cents)\nloaded = len(latest)\nduplicates = len(candidates) - loaded\nprint('source', len(rows))\nprint('loaded', loaded)\nprint('rejected', rejected)\nprint('excluded', excluded)\nprint('duplicates', duplicates)\nprint('accounted', loaded + rejected + excluded + duplicates == len(rows))\nprint(f'reject_rate {rejected / len(rows):.1%}')\nprint('loaded ids', sorted(latest))\n",
+      "expected": "source 10\nloaded 5\nrejected 2\nexcluded 2\nduplicates 1\naccounted True\nreject_rate 20.0%\nloaded ids [1, 5, 6, 7, 8]"
+    },
+    {
+      "id": "i2",
+      "title": "Validate a damaged target",
+      "kind": "python",
+      "prompt": "The dictionaries `expected` and `target` map `order_id` to `(amount_cents, currency)`. Write `validate(expected, target)` returning a list of strings: `count: expected E got G` if the sizes differ, `sum: expected E got G` if the amount sums differ, then for each key in sorted order `missing K`, `extra K`, or `key K column amount_cents: expected A got B` / `key K column currency: expected A got B` (amount first) for shared keys that differ. Print every returned line, then print `problems <n>`.",
+      "starter": "expected = {1: (1000, 'USD'), 2: (2500, 'EUR'), 3: (700, 'USD'), 4: (1200, 'GBP')}\ntarget = {1: (1000, 'USD'), 2: (2050, 'EUR'), 4: (1200, 'USD'), 5: (50, 'USD')}\n\ndef validate(expected, target):\n    return []\n\nfor line in validate(expected, target):\n    print(line)\nprint('problems', len(validate(expected, target)))\n",
+      "solution": "expected = {1: (1000, 'USD'), 2: (2500, 'EUR'), 3: (700, 'USD'), 4: (1200, 'GBP')}\ntarget = {1: (1000, 'USD'), 2: (2050, 'EUR'), 4: (1200, 'USD'), 5: (50, 'USD')}\n\ndef validate(expected, target):\n    out = []\n    if len(expected) != len(target):\n        out.append(f'count: expected {len(expected)} got {len(target)}')\n    se = sum(v[0] for v in expected.values())\n    st = sum(v[0] for v in target.values())\n    if se != st:\n        out.append(f'sum: expected {se} got {st}')\n    for k in sorted(set(expected) | set(target)):\n        if k not in target:\n            out.append(f'missing {k}')\n        elif k not in expected:\n            out.append(f'extra {k}')\n        else:\n            for i, name in enumerate(['amount_cents', 'currency']):\n                if expected[k][i] != target[k][i]:\n                    out.append(f'key {k} column {name}: expected {expected[k][i]} got {target[k][i]}')\n    return out\n\nfor line in validate(expected, target):\n    print(line)\nprint('problems', len(validate(expected, target)))\n",
+      "expected": "sum: expected 5400 got 4300\nkey 2 column amount_cents: expected 2500 got 2050\nmissing 3\nkey 4 column currency: expected GBP got USD\nextra 5\nproblems 5"
+    },
+    {
+      "id": "i3",
+      "title": "Pipeline summary query",
+      "kind": "sql",
+      "required": false,
+      "prompt": "Table `orders_clean(order_id, amount_cents, currency, loaded_date)` holds loads from several days. Return one row per `loaded_date` with columns `loaded_date`, `n` (rows), `total_cents`, `currencies` (the number of distinct currencies) and `flag`, which is `'check'` when `n` is less than half the average daily row count over all days (use a window function over the daily counts) and `'ok'` otherwise. Order by `loaded_date`.",
+      "starter": "CREATE TABLE orders_clean (order_id int, amount_cents int, currency text, loaded_date date);\nINSERT INTO orders_clean VALUES (1, 100, 'USD', '2026-01-01'), (2, 200, 'EUR', '2026-01-01'), (3, 300, 'USD', '2026-01-01'), (4, 400, 'USD', '2026-01-01'), (5, 150, 'USD', '2026-01-02'), (6, 250, 'USD', '2026-01-03'), (7, 350, 'GBP', '2026-01-03'), (8, 450, 'USD', '2026-01-03'), (9, 50, 'EUR', '2026-01-03');\n\nSELECT loaded_date FROM orders_clean ORDER BY loaded_date LIMIT 5;\n",
+      "solution": "CREATE TABLE orders_clean (order_id int, amount_cents int, currency text, loaded_date date);\nINSERT INTO orders_clean VALUES (1, 100, 'USD', '2026-01-01'), (2, 200, 'EUR', '2026-01-01'), (3, 300, 'USD', '2026-01-01'), (4, 400, 'USD', '2026-01-01'), (5, 150, 'USD', '2026-01-02'), (6, 250, 'USD', '2026-01-03'), (7, 350, 'GBP', '2026-01-03'), (8, 450, 'USD', '2026-01-03'), (9, 50, 'EUR', '2026-01-03');\n\nWITH d AS (\n  SELECT loaded_date, COUNT(*) AS n, SUM(amount_cents) AS total_cents, COUNT(DISTINCT currency) AS currencies\n  FROM orders_clean\n  GROUP BY loaded_date\n)\nSELECT loaded_date, n, total_cents, currencies,\n       CASE WHEN n < 0.5 * AVG(n) OVER () THEN 'check' ELSE 'ok' END AS flag\nFROM d\nORDER BY loaded_date;\n",
+      "ordered": true
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A run reads 8 rows, loads 4, rejects 2, excludes 1 failed order and removes 1 duplicate. What does the accounting check say?",
+      "options": [
+        "8 = 4 + 2 + 1 + 1, so every row is accounted for",
+        "It fails because only 4 rows were loaded",
+        "It cannot be checked without the source",
+        "It fails because rejects are not counted"
+      ],
+      "answer": 0,
+      "explanation": "Every source row must end as loaded, rejected, excluded or removed as a duplicate. Here 4 + 2 + 1 + 1 equals 8. Fewer rows loaded than read is normal when the rules remove rows."
+    },
+    {
+      "id": "c2",
+      "question": "Why does the damaged run read the rows back from the database before validating?",
+      "options": [
+        "Reading is faster than keeping rows in memory",
+        "The bug was introduced while loading, and only the table shows what was actually stored",
+        "SQLite requires a read after every write",
+        "It avoids needing the expected rows"
+      ],
+      "answer": 1,
+      "explanation": "Validating the in-memory rows would compare the expectation with itself and pass. The table is the target; only reading it back reveals what the load actually wrote."
+    },
+    {
+      "id": "c3",
+      "question": "The clean run prints `reject_rate 25.0% WARN`. What is the right reaction?",
+      "options": [
+        "Raise the threshold to hide the warning",
+        "Look at the reject list: the feed has unreadable rows, so the warning is correct and informative",
+        "Delete the rejected rows from the report",
+        "Treat it as a pipeline bug"
+      ],
+      "answer": 1,
+      "explanation": "The warning reflects real feed quality: two of eight rows were unreadable. Widening the threshold hides the information, and nothing is wrong with the pipeline; the right action is to review the rejects with the data owner."
+    },
+    {
+      "id": "c4",
+      "question": "In the SQL example, `currency IN ('USD', 'EUR', 'GBP')` is a CHECK constraint. What happens on `INSERT ... 'usd'`?",
+      "options": [
+        "It is stored as USD",
+        "The insert is refused with a constraint error",
+        "It is stored but flagged",
+        "The constraint is skipped for text"
+      ],
+      "answer": 1,
+      "explanation": "A CHECK constraint that evaluates to false refuses the row, and PostgreSQL does not convert case. Normalising to upper case in the transform is what prevents the error."
+    },
+    {
+      "id": "c5",
+      "question": "Which test proves that your validation can actually fail?",
+      "options": [
+        "Assert that a clean load gives an empty problem list",
+        "Load deliberately damaged data and assert that the problem list is not empty",
+        "Assert that the report prints something",
+        "Run the pipeline twice"
+      ],
+      "answer": 1,
+      "explanation": "A validation that has never been seen to fail may be checking nothing. Damaging the target on purpose and asserting that problems are reported proves the check works; the clean-run assertion alone cannot."
+    }
+  ],
+  "id": "e141"
+}

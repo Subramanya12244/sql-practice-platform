@@ -1,0 +1,171 @@
+{
+  "id": "a172",
+  "time": {
+    "theory": 20,
+    "examples": 25,
+    "guided": 25,
+    "independent": 65,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas",
+      "database-design"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "customer-transaction-stats"
+    ],
+    "projects": [
+      "python-data-cleaning",
+      "sales-analytics-pipeline"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": [
+      "find-duplicates"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Table inventory",
+      "kind": "python",
+      "prompt": "Using the generator, print one line per table in alphabetical order of table name, in the form `<table>: <rows> rows`. Then print `tables: <count>`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\n# Your code here\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\nfor name in sorted(t):\n    print(f\"{name}: {len(t[name])} rows\")\nprint(\"tables:\", len(t))\n",
+      "expected": "campaigns: 4 rows\ncustomers: 120 rows\norders: 510 rows\nproducts: 20 rows\nreturns: 63 rows\ntables: 5",
+      "hints": [
+        "Loop over `sorted(t)` to get the names in order.",
+        "Use `len(t[name])` for the row count of each table.",
+        "Finish with `print(\"tables:\", len(t))`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Broken relationships",
+      "kind": "python",
+      "prompt": "Print three lines: `orders without customer: <n>`, `orders without product: <n>` and `returns without order: <n>`, counting rows of the raw tables whose foreign key is missing from the parent table.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\n# Your code here\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\no = t[\"orders\"]\nprint(\"orders without customer:\", int((~o[\"customer_id\"].isin(t[\"customers\"][\"customer_id\"])).sum()))\nprint(\"orders without product:\", int((~o[\"product_id\"].isin(t[\"products\"][\"product_id\"])).sum()))\nprint(\"returns without order:\", int((~t[\"returns\"][\"order_id\"].isin(o[\"order_id\"])).sum()))\n",
+      "expected": "orders without customer: 6\norders without product: 0\nreturns without order: 3",
+      "hints": [
+        "`isin` gives True where the value exists in the parent column.",
+        "Use `~` to flip the Boolean Series and `.sum()` to count the Trues.",
+        "Wrap the sum in `int(...)` so a plain number prints."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Raw revenue by category",
+      "kind": "python",
+      "prompt": "Merge orders with products on `product_id`, compute line revenue as `quantity * unit_price * (1 - discount_pct / 100)`, then print one line per category in alphabetical order in the form `<category>: <revenue>` with revenue summed over all raw rows and rounded to 2 decimals.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\n# Your code here\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\no = t[\"orders\"].merge(t[\"products\"], on=\"product_id\")\no[\"revenue\"] = o[\"quantity\"] * o[\"unit_price\"] * (1 - o[\"discount_pct\"] / 100)\nfor cat, v in o.groupby(\"category\")[\"revenue\"].sum().items():\n    print(f\"{cat}: {v:.2f}\")\n",
+      "expected": "beauty: 16398.57\nelectronics: 16544.55\nhome: 10665.39\nsports: 17198.61",
+      "hints": [
+        "Merge first, then add a `revenue` column.",
+        "`groupby(\"category\")[\"revenue\"].sum()` gives one total per category, already sorted by category.",
+        "Loop over `.items()` and format with `f\"{v:.2f}\"`."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Rule scorecard",
+      "kind": "python",
+      "prompt": "Build a scorecard for these raw-data rules and print one line per rule in this order, in the form `<rule>: <violations> (<pct>%) <status>`, where pct is violations divided by the rows checked times 100, rounded to 2 decimals, and status is `ok` when violations are 0 and `FAIL` otherwise: `duplicate_orders` (rows checked: orders; violations: `duplicated()` rows), `bad_quantity` (orders with quantity <= 0), `orphan_customer` (orders whose customer_id is not in customers), `bad_country` (customers whose country is not one of DE, FR, UK, US), `orphan_return` (returns whose order_id is not in orders). Finish with `failing: <count>`.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\n# Your code here\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\no, c, r = t[\"orders\"], t[\"customers\"], t[\"returns\"]\nrules = [\n    (\"duplicate_orders\", int(o.duplicated().sum()), len(o)),\n    (\"bad_quantity\", int((o[\"quantity\"] <= 0).sum()), len(o)),\n    (\"orphan_customer\", int((~o[\"customer_id\"].isin(c[\"customer_id\"])).sum()), len(o)),\n    (\"bad_country\", int((~c[\"country\"].isin([\"DE\", \"FR\", \"UK\", \"US\"])).sum()), len(c)),\n    (\"orphan_return\", int((~r[\"order_id\"].isin(o[\"order_id\"])).sum()), len(r)),\n]\nfailing = 0\nfor name, n, total in rules:\n    status = \"ok\" if n == 0 else \"FAIL\"\n    failing += n > 0\n    print(f\"{name}: {n} ({n / total * 100:.2f}%) {status}\")\nprint(\"failing:\", failing)\n",
+      "expected": "duplicate_orders: 10 (1.96%) FAIL\nbad_quantity: 5 (0.98%) FAIL\norphan_customer: 6 (1.18%) FAIL\nbad_country: 8 (6.67%) FAIL\norphan_return: 3 (4.76%) FAIL\nfailing: 5"
+    },
+    {
+      "id": "i2",
+      "title": "Repeat customers on raw data",
+      "kind": "python",
+      "prompt": "Question Q4 asks for the share of customers who order more than once. On the raw data, drop duplicate order rows, keep only orders whose customer exists in `customers`, then count orders per customer. Print `customers with orders: <n>`, `repeat customers: <n>` (two or more orders) and `repeat share: <pct>%` with pct rounded to 1 decimal.",
+      "starter": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\n# Your code here\n",
+      "solution": "import numpy as np\nimport pandas as pd\n\n\ndef generate(seed=7):\n    \"\"\"Seeded online-store data with planted defects: 500 orders, 120 customers, 20 products.\"\"\"\n    rng = np.random.default_rng(seed)\n    customers = pd.DataFrame({\n        \"customer_id\": np.arange(1, 121),\n        \"country\": rng.choice([\"DE\", \"FR\", \"UK\", \"US\"], 120, p=[0.3, 0.2, 0.2, 0.3]),\n        \"signup_date\": pd.Timestamp(\"2024-07-01\") + pd.to_timedelta(rng.integers(0, 180, 120), unit=\"D\"),\n    })\n    customers.loc[rng.choice(120, 8, replace=False), \"country\"] = \"us \"\n    products = pd.DataFrame({\n        \"product_id\": np.arange(1, 21),\n        \"category\": np.repeat([\"home\", \"beauty\", \"sports\", \"electronics\"], 5),\n        \"unit_price\": (10 + rng.random(20) * 90).round(2),\n    })\n    campaigns = pd.DataFrame({\n        \"campaign_id\": [0, 1, 2, 3],\n        \"channel\": [\"organic\", \"email\", \"paid_search\", \"social\"],\n        \"spend\": [0.0, 800.0, 2500.0, 1200.0],\n    })\n    n = 500\n    orders = pd.DataFrame({\n        \"order_id\": np.arange(1001, 1001 + n),\n        \"customer_id\": rng.integers(1, 121, n),\n        \"product_id\": rng.integers(1, 21, n),\n        \"order_date\": pd.Timestamp(\"2025-01-01\") + pd.to_timedelta(rng.integers(0, 180, n), unit=\"D\"),\n        \"quantity\": rng.integers(1, 5, n),\n        \"discount_pct\": rng.choice([0, 10, 20], n, p=[0.6, 0.25, 0.15]),\n        \"campaign_id\": rng.choice([0, 1, 2, 3], n, p=[0.4, 0.2, 0.25, 0.15]),\n    })\n    orders.loc[rng.choice(n, 5, replace=False), \"quantity\"] = -1\n    orders.loc[rng.choice(n, 6, replace=False), \"customer_id\"] = 999\n    orders = pd.concat([orders, orders.sample(10, random_state=1)], ignore_index=True)\n    returned = rng.choice(np.arange(1001, 1001 + n), 60, replace=False)\n    returns = pd.DataFrame({\n        \"order_id\": np.concatenate([returned, [9001, 9002, 9003]]),\n        \"reason\": rng.choice([\"damaged\", \"wrong_item\", \"changed_mind\"], 63, p=[0.3, 0.2, 0.5]),\n    })\n    return {\"orders\": orders, \"customers\": customers, \"products\": products, \"campaigns\": campaigns, \"returns\": returns}\n\n\nt = generate()\no = t[\"orders\"].drop_duplicates()\no = o[o[\"customer_id\"].isin(t[\"customers\"][\"customer_id\"])]\nper = o.groupby(\"customer_id\").size()\nrepeat = int((per >= 2).sum())\nprint(\"customers with orders:\", len(per))\nprint(\"repeat customers:\", repeat)\nprint(f\"repeat share: {repeat / len(per) * 100:.1f}%\")\n",
+      "expected": "customers with orders: 119\nrepeat customers: 110\nrepeat share: 92.4%"
+    },
+    {
+      "id": "i3",
+      "title": "Scoping note for a new question",
+      "kind": "written",
+      "prompt": "Write a scoping note of about 150 words for this question about the capstone data: 'Do discounted orders have a different basket size?'. Include the metric definitions, the columns needed, one quality rule that could distort the answer, and how you would know the question is answered.",
+      "starter": "Metric:\nColumns:\nRule at risk:\nDone when:\n",
+      "solution": "Metric: basket size is `quantity` per valid order, compared between orders with `discount_pct` equal to 0 and orders with a discount above 0 (also shown per discount level).\n\nColumns: `orders.quantity`, `orders.discount_pct`, `orders.order_id` (to count each order once).\n\nRule at risk: duplicated order rows would double count some baskets, and negative quantities would pull the average down, so R1 and R2 must be cleaned first.\n\nDone when: a table shows the mean and median quantity and the order count for each group on the cleaned data, a base size is stated for every group, and the difference is reported with a caveat that discount level was not randomly assigned.",
+      "rubric": [
+        "Defines basket size and the groups compared.",
+        "Lists columns that exist in the data.",
+        "Names a rule that can distort the result and says why.",
+        "States a checkable finish condition."
+      ],
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Which question is strongest?",
+      "options": [
+        "Analyse sales",
+        "Which channel returns the most net revenue per unit of spend, so budget can move?",
+        "Show some charts of orders",
+        "What is in the orders table?"
+      ],
+      "answer": 1,
+      "explanation": "A strong question names a metric, a comparison and a decision. The others name none of these, so you cannot tell when they are answered."
+    },
+    {
+      "id": "c2",
+      "question": "`orders` has 510 rows, `order_id` is not unique and 10 rows are exact repeats. What does `o.duplicated().sum()` return?",
+      "options": [
+        "10",
+        "500",
+        "510",
+        "0"
+      ],
+      "answer": 0,
+      "explanation": "`duplicated()` marks the later copies of repeated rows, so the count equals the number of extra rows, 10. 500 is the number of distinct orders and 0 would mean no repeats."
+    },
+    {
+      "id": "c3",
+      "question": "Why check `orders.customer_id.isin(customers.customer_id)` instead of the number of customers?",
+      "options": [
+        "Customers has too many rows",
+        "The number of customers says nothing about whether each order's customer exists",
+        "isin is faster than len",
+        "Foreign keys are always valid"
+      ],
+      "answer": 1,
+      "explanation": "A parent table's size does not tell you whether every child key has a parent. `isin` tests each order directly, and here 6 orders have no customer."
+    },
+    {
+      "id": "c4",
+      "question": "What is the purpose of success criteria on the first day?",
+      "options": [
+        "To decorate the README",
+        "To make 'finished' a set of checks that code can run",
+        "To replace the quality rules",
+        "To choose the chart colours"
+      ],
+      "answer": 1,
+      "explanation": "Success criteria such as zero remaining violations and a reproducible report are testable. Without them the project ends when you run out of time."
+    },
+    {
+      "id": "c5",
+      "question": "Net revenue in this capstone is...",
+      "options": [
+        "Line revenue of all raw rows",
+        "Line revenue of valid orders that were not returned",
+        "Spend divided by revenue",
+        "Quantity times unit price without discount"
+      ],
+      "answer": 1,
+      "explanation": "The definition excludes invalid rows (counted and reported) and returned orders, and it applies the discount. Raw revenue includes defects."
+    }
+  ]
+}

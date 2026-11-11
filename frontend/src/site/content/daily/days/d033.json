@@ -1,0 +1,144 @@
+{
+  "id": "d033",
+  "time": { "theory": 30, "examples": 25, "guided": 25, "independent": 35, "review": 15 },
+  "links": {
+    "notes": ["where", "comparison-operators", "logical-operators"],
+    "questions": [170],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": ["sql-roadmap"],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Cheap products",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "List the products that cost less than 10. Return `product_id`, `product_name` and `unit_price` (in that order) from `products`, keeping only rows where `unit_price` is below 10, ordered by `product_id` ascending.",
+      "starter": "-- Products with unit_price below 10, ordered by product_id\nSELECT product_id, product_name, unit_price\nFROM products\nORDER BY product_id;\n",
+      "solution": "SELECT product_id, product_name, unit_price\nFROM products\nWHERE unit_price < 10\nORDER BY product_id;\n",
+      "hints": [
+        "The starter returns every product. A WHERE clause between FROM and ORDER BY will discard the rows you do not want.",
+        "Use the comparison operator for 'less than' with the number 10 (no quotes around numbers).",
+        "WHERE unit_price < 10 goes after FROM products and before ORDER BY product_id."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Customers in two countries",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `customer_id`, `company_name`, `city` and `country` (in that order) for customers located in Germany or Mexico, ordered by `customer_id` ascending. Use `IN` for the country test.",
+      "starter": "-- Customers in Germany or Mexico; use IN\nSELECT customer_id, company_name, city, country\nFROM customers\nWHERE country = 'Germany'\nORDER BY customer_id;\n",
+      "solution": "SELECT customer_id, company_name, city, country\nFROM customers\nWHERE country IN ('Germany', 'Mexico')\nORDER BY customer_id;\n",
+      "hints": [
+        "The starter only keeps Germany. You want rows whose country is either of two values.",
+        "IN takes a list of values in parentheses, separated by commas: column IN (value_1, value_2). Text values need single quotes.",
+        "WHERE country IN ('Germany', 'Mexico')"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Expensive freight in early 1998",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Return `order_id`, `order_date` and `freight` (in that order) for orders placed from 1998-01-01 to 1998-03-31, both days included, and whose `freight` is greater than 50. Order by `order_id` ascending. Use `BETWEEN` for the dates and `AND` to combine the two conditions.",
+      "starter": "-- Orders from 1998-01-01 to 1998-03-31 with freight above 50\nSELECT order_id, order_date, freight\nFROM orders\nWHERE freight > 50\nORDER BY order_id;\n",
+      "solution": "SELECT order_id, order_date, freight\nFROM orders\nWHERE order_date BETWEEN '1998-01-01' AND '1998-03-31' AND freight > 50\nORDER BY order_id;\n",
+      "hints": [
+        "The starter applies the freight rule but ignores the date range.",
+        "Add a second condition on order_date with BETWEEN low AND high, joined to the first one with AND. Dates are written as text like '1998-01-01'.",
+        "WHERE order_date BETWEEN '1998-01-01' AND '1998-03-31' AND freight > 50"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Find names with a pattern",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Find customers whose company name contains the word `delikatessen` in any combination of upper and lower case. Return `customer_id` and `company_name` (in that order), ordered by `customer_id` ascending.",
+      "starter": "-- Company names containing 'delikatessen', in any case\nSELECT customer_id, company_name\nFROM customers\nWHERE company_name LIKE '%delikatessen%'\nORDER BY customer_id;\n",
+      "solution": "SELECT customer_id, company_name\nFROM customers\nWHERE company_name ILIKE '%delikatessen%'\nORDER BY customer_id;\n",
+      "hints": [
+        "Run the starter: it returns no rows, because the names are written with a capital D and LIKE is case sensitive.",
+        "PostgreSQL has a case-insensitive version of LIKE.",
+        "Replace LIKE with ILIKE and keep the pattern '%delikatessen%'."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Employees by place and hire date",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `employees` return `employee_id`, `first_name`, `last_name`, `title` and `city` (in that order) for employees who work in the UK or in the city Seattle (so the `country` test and the `city` test are alternatives) and who were hired on or after 1994-01-01 (the hire rule applies to both groups). Order by `employee_id` ascending.",
+      "starter": "-- UK or Seattle employees hired on or after 1994-01-01\nSELECT employee_id, first_name, last_name, title, city\nFROM employees\nWHERE country = 'UK' OR city = 'Seattle' AND hire_date >= '1994-01-01'\nORDER BY employee_id;\n",
+      "solution": "SELECT employee_id, first_name, last_name, title, city\nFROM employees\nWHERE (country = 'UK' OR city = 'Seattle') AND hire_date >= '1994-01-01'\nORDER BY employee_id;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Mid-sized freight to two markets",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "From `orders` return `order_id`, `ship_country`, `ship_via` and `freight` (in that order) for orders shipped to Germany or France, that did not use the shipper with id 2, and whose freight is between 40 and 120 (both ends included). Order by `order_id` ascending.",
+      "starter": "-- Germany or France, not shipper 2, freight between 40 and 120\nSELECT order_id, ship_country, ship_via, freight\nFROM orders\nWHERE ship_country IN ('Germany', 'France') AND freight BETWEEN 40 AND 120\nORDER BY order_id;\n",
+      "solution": "SELECT order_id, ship_country, ship_via, freight\nFROM orders\nWHERE ship_country IN ('Germany', 'France') AND ship_via <> 2 AND freight BETWEEN 40 AND 120\nORDER BY order_id;\n"
+    },
+    {
+      "id": "i3",
+      "title": "A tidy assortment of mid-priced products",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. From `products` return `product_id`, `product_name`, `category_id` and `unit_price` (in that order) for products that are not discontinued, cost between 10 and 30 (both ends included), belong to category 1, 2 or 3, and whose name does not start with an upper-case C. Order by `product_id` ascending.",
+      "starter": "-- Active products priced 10 to 30 in categories 1-3 whose name does not start with C\nSELECT product_id, product_name, category_id, unit_price\nFROM products\nWHERE unit_price BETWEEN 10 AND 30 AND category_id IN (1, 2, 3)\nORDER BY product_id;\n",
+      "solution": "SELECT product_id, product_name, category_id, unit_price\nFROM products\nWHERE NOT discontinued\n  AND unit_price BETWEEN 10 AND 30\n  AND category_id IN (1, 2, 3)\n  AND product_name NOT LIKE 'C%'\nORDER BY product_id;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "In `employees`, 4 people work in the UK and 5 in the USA; of the 5 Americans only one was hired after 1993-12-31. How many rows does `WHERE country = 'UK' OR country = 'USA' AND hire_date > '1993-12-31'` return?",
+      "options": ["3", "4", "5", "9"],
+      "answer": 2,
+      "explanation": "AND is evaluated before OR, so the condition means: country is UK, or (country is USA and hired after 1993-12-31). That keeps 4 UK employees plus 1 American hired after 1993, which is 5 rows. Writing parentheses around the two countries would give 3 rows, which is the answer people expect and the reason to always use parentheses."
+    },
+    {
+      "id": "c2",
+      "question": "Four products cost 10.00, 10.00, 10.00 and 12.00; no other product costs between 10 and 12. How many rows does `WHERE unit_price BETWEEN 10 AND 12` return?",
+      "options": ["0, because BETWEEN excludes both ends", "1, because only the 12.00 product is strictly inside the range", "4, because BETWEEN includes both ends", "It depends on the sort order"],
+      "answer": 2,
+      "explanation": "BETWEEN a AND b is the same as >= a AND <= b, so both limits count. All four products match. Row order never changes how many rows pass a filter."
+    },
+    {
+      "id": "c3",
+      "question": "The company names 'Bottom-Dollar Markets' and 'White Clover Markets' exist. What does `WHERE company_name LIKE '%market%'` return for them?",
+      "options": ["Both rows", "Neither row, because LIKE is case sensitive and the names contain 'Markets' with a capital M", "Only the first row, because the wildcard stops at the hyphen", "An error, because % must come at the end"],
+      "answer": 1,
+      "explanation": "LIKE compares characters exactly, so 'market' does not match 'Markets'. ILIKE would match both. A % wildcard can appear at the start, the end or both, and it matches any characters, hyphens included."
+    },
+    {
+      "id": "c4",
+      "question": "All 91 customers have a NULL `region`. How many rows does `SELECT * FROM customers WHERE region <> 'WA';` return?",
+      "options": ["91, because no region equals 'WA'", "0, because comparing NULL with anything is unknown, not true", "1", "It raises an error because region is NULL"],
+      "answer": 1,
+      "explanation": "NULL <> 'WA' evaluates to unknown, not true, and WHERE keeps only rows where the condition is true. So no row passes, even though no region is 'WA'. People often expect 91; that would be true only if NULL counted as 'not WA'. The statement is valid, so it does not raise an error."
+    },
+    {
+      "id": "c5",
+      "question": "What does `SELECT customer_id FROM customers WHERE country = 'Germany' OR 'France';` do?",
+      "options": ["Returns customers in Germany or France", "Returns only German customers", "Fails, because 'France' on its own is not a true/false condition", "Returns all customers"],
+      "answer": 2,
+      "explanation": "Each side of OR must be a complete condition. PostgreSQL tries to read 'France' as a boolean value and fails with an invalid boolean input error. The correct forms are country = 'Germany' OR country = 'France', or country IN ('Germany', 'France')."
+    },
+    {
+      "id": "c6",
+      "question": "Which customer_id values match `customer_id LIKE 'B____'` (B followed by four underscores)?",
+      "options": ["B", "BERGS", "BLAUSEE", "bergs"],
+      "answer": 1,
+      "explanation": "Each underscore stands for exactly one character, so the pattern needs a capital B followed by exactly four more characters, five in all: BERGS fits. 'B' is too short, 'BLAUSEE' is too long, and lower-case 'bergs' fails because LIKE is case sensitive."
+    }
+  ]
+}

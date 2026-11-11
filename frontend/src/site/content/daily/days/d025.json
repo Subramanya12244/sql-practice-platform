@@ -1,0 +1,188 @@
+{
+  "id": "d025",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-oop"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "employee-raise-class",
+      "order-line-class",
+      "lru-cache-class"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Override a method",
+      "prompt": "`Animal` has a method `sound()` returning `...`. Write `Dog(Animal)` and `Cat(Animal)` that override it to return `woof` and `meow`. Print the sound of `Animal()`, `Dog()` and `Cat()` on three lines. Expected output: `...`, `woof`, `meow`.",
+      "starter": "class Animal:\n    def sound(self):\n        return \"...\"\n\n# Add Dog and Cat and print the three sounds\n",
+      "solution": "class Animal:\n    def sound(self):\n        return \"...\"\n\nclass Dog(Animal):\n    def sound(self):\n        return \"woof\"\n\nclass Cat(Animal):\n    def sound(self):\n        return \"meow\"\n\nfor animal in (Animal(), Dog(), Cat()):\n    print(animal.sound())\n",
+      "kind": "python",
+      "expected": "...\nwoof\nmeow",
+      "hints": [
+        "Put the parent class name in brackets after the child class name.",
+        "Define `sound` again in each child with the new return value.",
+        "`class Dog(Animal):` with `def sound(self): return \"woof\"`; do the same for `Cat`."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Call the parent initialiser",
+      "prompt": "`Vehicle` stores `wheels`. Write `Car(Vehicle)` whose `__init__` takes `brand`, calls `super().__init__(4)` and stores the brand. Print `c.brand` and `c.wheels` for `Car(\"Volvo\")`. Expected output: `Volvo` then `4`.",
+      "starter": "class Vehicle:\n    def __init__(self, wheels):\n        self.wheels = wheels\n\n# Add Car and print brand and wheels\n",
+      "solution": "class Vehicle:\n    def __init__(self, wheels):\n        self.wheels = wheels\n\nclass Car(Vehicle):\n    def __init__(self, brand):\n        super().__init__(4)\n        self.brand = brand\n\nc = Car(\"Volvo\")\nprint(c.brand)\nprint(c.wheels)\n",
+      "kind": "python",
+      "expected": "Volvo\n4",
+      "hints": [
+        "The child's `__init__` replaces the parent's, so the parent's must be called by hand.",
+        "`super()` gives access to the parent; do not pass `self`.",
+        "`super().__init__(4)` then `self.brand = brand`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Sortable objects",
+      "prompt": "Add `__lt__` to `Student` so that students sort by `score`, and `__repr__` that shows `Student('ana', 90)`. Print `sorted(students)`. Expected output: the list ordered by score from lowest to highest.",
+      "starter": "class Student:\n    def __init__(self, name, score):\n        self.name = name\n        self.score = score\n\nstudents = [Student(\"ana\", 90), Student(\"bo\", 72), Student(\"cy\", 85)]\nprint(students)\n",
+      "solution": "class Student:\n    def __init__(self, name, score):\n        self.name = name\n        self.score = score\n\n    def __lt__(self, other):\n        return self.score < other.score\n\n    def __repr__(self):\n        return f\"Student({self.name!r}, {self.score})\"\n\nstudents = [Student(\"ana\", 90), Student(\"bo\", 72), Student(\"cy\", 85)]\nprint(sorted(students))\n",
+      "kind": "python",
+      "expected": "[Student('bo', 72), Student('cy', 85), Student('ana', 90)]",
+      "hints": [
+        "`sorted` compares objects with `<`, which calls `__lt__`.",
+        "`__lt__(self, other)` returns a boolean comparing the two scores.",
+        "Return `self.score < other.score`; `__repr__` returns an f-string with `!r` on the name."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "A dataclass",
+      "prompt": "Convert the class idea into a dataclass `Product` with `name: str`, `price: float` and `stock: int = 0`. Create `Product(\"pen\", 1.5)` and `Product(\"book\", 12.0, 3)` and print both, then print whether the first equals `Product(\"pen\", 1.5, 0)`. Expected output has three lines.",
+      "starter": "from dataclasses import dataclass\n\n# Define Product and print the results\n",
+      "solution": "from dataclasses import dataclass\n\n@dataclass\nclass Product:\n    name: str\n    price: float\n    stock: int = 0\n\np1 = Product(\"pen\", 1.5)\np2 = Product(\"book\", 12.0, 3)\nprint(p1)\nprint(p2)\nprint(p1 == Product(\"pen\", 1.5, 0))\n",
+      "kind": "python",
+      "expected": "Product(name='pen', price=1.5, stock=0)\nProduct(name='book', price=12.0, stock=3)\nTrue",
+      "hints": [
+        "Put `@dataclass` on the line above `class Product:`.",
+        "Each field is `name: type`; a default follows `=`.",
+        "Fields without a default come first, then `stock: int = 0`; `==` compares all fields."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Report hierarchy",
+      "prompt": "Write a base class `Report` with `title` and a method `render()` returning `== <title> ==`, and a subclass `SalesReport` taking a title and a list of `(region, amount)` pairs, whose `render()` calls the parent's `render()` and then adds one line per region in the given order as `<region>: <amount>` (amount with two decimals) and a final `Total: <sum>` line. Return the whole text joined with newlines. Print `SalesReport(\"Q1\", [(\"North\", 100), (\"South\", 50.5)]).render()` and then `Report(\"Plain\").render()`.",
+      "starter": "# Write Report and SalesReport\n",
+      "solution": "class Report:\n    def __init__(self, title):\n        self.title = title\n\n    def render(self):\n        return f\"== {self.title} ==\"\n\nclass SalesReport(Report):\n    def __init__(self, title, rows):\n        super().__init__(title)\n        self.rows = rows\n\n    def render(self):\n        lines = [super().render()]\n        for region, amount in self.rows:\n            lines.append(f\"{region}: {amount:.2f}\")\n        lines.append(f\"Total: {sum(a for _, a in self.rows):.2f}\")\n        return \"\\n\".join(lines)\n\nprint(SalesReport(\"Q1\", [(\"North\", 100), (\"South\", 50.5)]).render())\nprint(Report(\"Plain\").render())\n",
+      "kind": "python",
+      "expected": "== Q1 ==\nNorth: 100.00\nSouth: 50.50\nTotal: 150.50\n== Plain =="
+    },
+    {
+      "id": "i2",
+      "title": "Frozen, sortable records",
+      "prompt": "Define a frozen, ordered dataclass `Release` with fields `major: int`, `minor: int`, `patch: int = 0`, plus a method `label()` returning `v<major>.<minor>.<patch>`. Sort the releases `(1, 10)`, `(1, 2, 5)`, `(0, 9)`, `(1, 2)` and print the labels joined by `, `. Then use `max` on the same list to print the newest label, and show that a `set` of the list removes a duplicate `Release(1, 2)` by printing the set size when `Release(1, 2, 0)` is added to the list.",
+      "starter": "from dataclasses import dataclass\n\n# Define Release and print the three results\n",
+      "solution": "from dataclasses import dataclass\n\n@dataclass(order=True, frozen=True)\nclass Release:\n    major: int\n    minor: int\n    patch: int = 0\n\n    def label(self):\n        return f\"v{self.major}.{self.minor}.{self.patch}\"\n\nreleases = [Release(1, 10), Release(1, 2, 5), Release(0, 9), Release(1, 2)]\nprint(\", \".join(r.label() for r in sorted(releases)))\nprint(max(releases).label())\nreleases.append(Release(1, 2, 0))\nprint(len(set(releases)))\n",
+      "kind": "python",
+      "expected": "v0.9.0, v1.2.0, v1.2.5, v1.10.0\nv1.10.0\n4"
+    },
+    {
+      "id": "i3",
+      "title": "Shapes with composition",
+      "prompt": "Write a base class `Shape` with `area()` returning 0 and `__lt__` comparing areas. Subclass `Rect(w, h)` and `Circle(r)` (use `3.14159` for pi) overriding `area()`. Write a class `Drawing` that holds a list of shapes (composition) with `add(shape)`, `total_area()` and `largest()` (returns the shape with the largest area). Build a drawing with `Rect(2, 3)`, `Circle(1)` and `Rect(1, 1)`. Print `Total: ` plus the total area rounded to 2 decimals, and the class name of the largest shape using `type(...).__name__`, and the areas of the sorted shapes rounded to 2 decimals as a list.",
+      "starter": "# Write Shape, Rect, Circle and Drawing\n",
+      "solution": "class Shape:\n    def area(self):\n        return 0\n\n    def __lt__(self, other):\n        return self.area() < other.area()\n\nclass Rect(Shape):\n    def __init__(self, w, h):\n        self.w, self.h = w, h\n\n    def area(self):\n        return self.w * self.h\n\nclass Circle(Shape):\n    def __init__(self, r):\n        self.r = r\n\n    def area(self):\n        return 3.14159 * self.r ** 2\n\nclass Drawing:\n    def __init__(self):\n        self.shapes = []\n\n    def add(self, shape):\n        self.shapes.append(shape)\n\n    def total_area(self):\n        return sum(s.area() for s in self.shapes)\n\n    def largest(self):\n        return max(self.shapes, key=lambda s: s.area())\n\nd = Drawing()\nfor s in (Rect(2, 3), Circle(1), Rect(1, 1)):\n    d.add(s)\nprint(f\"Total: {d.total_area():.2f}\")\nprint(type(d.largest()).__name__)\nprint([round(s.area(), 2) for s in sorted(d.shapes)])\n",
+      "kind": "python",
+      "expected": "Total: 10.14\nRect\n[1, 3.14, 6]",
+      "required": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this print?\n\n```python\nclass A:\n    def hi(self):\n        return \"A\"\nclass B(A):\n    def hi(self):\n        return \"B\" + super().hi()\nprint(B().hi())\n```",
+      "options": [
+        "A",
+        "B",
+        "BA",
+        "AB"
+      ],
+      "answer": 2,
+      "explanation": "`B.hi` runs first and adds `\"B\"` in front of the parent's result. `super().hi()` returns `\"A\"`, so the result is `BA`. The parent's method is not skipped because `super()` calls it explicitly."
+    },
+    {
+      "id": "c2",
+      "question": "A subclass defines `__init__` but does not call `super().__init__()`. What happens to attributes set by the parent's `__init__`?",
+      "options": [
+        "They are inherited anyway with default values",
+        "They are never created, so using them raises AttributeError",
+        "They are copied from the class",
+        "Python calls the parent's init automatically afterwards"
+      ],
+      "answer": 1,
+      "explanation": "Defining `__init__` in the child replaces the parent's, and Python does not call it for you. The parent's attributes therefore do not exist until you call `super().__init__(...)`."
+    },
+    {
+      "id": "c3",
+      "question": "What does this print?\n\n```python\nfrom dataclasses import dataclass\n@dataclass\nclass P:\n    x: int\n    y: int = 0\nprint(P(1) == P(1, 0))\n```",
+      "options": [
+        "True",
+        "False",
+        "It raises TypeError",
+        "None"
+      ],
+      "answer": 0,
+      "explanation": "The generated `__eq__` compares all fields, and `P(1)` has `y` set to its default 0. Without `@dataclass`, two separate objects would compare unequal."
+    },
+    {
+      "id": "c4",
+      "question": "Why does `items: list = []` inside a dataclass raise an error?",
+      "options": [
+        "Mutable defaults would be shared by every object, so Python requires default_factory",
+        "Lists cannot be dataclass fields",
+        "Defaults must be integers",
+        "The annotation must be `List`"
+      ],
+      "answer": 0,
+      "explanation": "A single list object would be shared by all instances, the same trap as a class attribute. `field(default_factory=list)` creates a fresh list for each object."
+    },
+    {
+      "id": "c5",
+      "question": "Which relationship is best modelled with composition rather than inheritance?",
+      "options": [
+        "An Order has several OrderLines",
+        "A Manager is an Employee",
+        "A Circle is a Shape",
+        "A SavingsAccount is an Account"
+      ],
+      "answer": 0,
+      "explanation": "An order contains lines: the relationship reads 'has a'. The other three read 'is a', which fits inheritance."
+    },
+    {
+      "id": "c6",
+      "question": "What does this print?\n\n```python\nclass M:\n    def __init__(self, n):\n        self.n = n\n    def __len__(self):\n        return self.n\nprint(len(M(3)))\n```",
+      "options": [
+        "3",
+        "0",
+        "It raises TypeError",
+        "<M object>"
+      ],
+      "answer": 0,
+      "explanation": "`len(obj)` calls `obj.__len__()`, which returns 3. Without `__len__` the call would raise `TypeError`."
+    }
+  ]
+}

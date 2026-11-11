@@ -1,0 +1,183 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-pipeline-monitoring",
+      "etl-error-handling",
+      "python-logging"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "incremental-loading",
+      "end-to-end-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Derive run metrics",
+      "kind": "python",
+      "prompt": "Write `metrics(run)` for a dict with `started`, `finished`, `read` and `quarantined` (seconds and counts) returning `(duration, quarantine_pct)` where the percentage is `100 * quarantined / read` rounded to 1 decimal. Print the result for `{\"started\": 1000, \"finished\": 1070, \"read\": 103, \"quarantined\": 4}`. Expected output: `(70, 3.9)`.",
+      "starter": "def metrics(run):\n    pass\n\nprint(metrics({\"started\": 1000, \"finished\": 1070, \"read\": 103, \"quarantined\": 4}))\n",
+      "solution": "def metrics(run):\n    return run[\"finished\"] - run[\"started\"], round(100 * run[\"quarantined\"] / run[\"read\"], 1)\n\nprint(metrics({\"started\": 1000, \"finished\": 1070, \"read\": 103, \"quarantined\": 4}))\n",
+      "hints": [
+        "The duration is finish minus start.",
+        "The percentage is `100 * quarantined / read`, rounded.",
+        "`return run[\"finished\"] - run[\"started\"], round(100 * run[\"quarantined\"] / run[\"read\"], 1)`"
+      ],
+      "expected": "(70, 3.9)"
+    },
+    {
+      "id": "g2",
+      "title": "Freshness check",
+      "kind": "python",
+      "prompt": "Write `freshness(newest, now, max_hours)` for `datetime` values returning `\"OK\"` when the age in hours is at most `max_hours`, else `\"STALE\"`. Print the result for newest 2025-03-05 03:30 and 2025-03-03 23:00 with now 2025-03-05 12:00 and a limit of 26 hours. Expected output: `OK` then `STALE`.",
+      "starter": "from datetime import datetime\n\ndef freshness(newest, now, max_hours):\n    pass\n\nnow = datetime(2025, 3, 5, 12, 0)\nprint(freshness(datetime(2025, 3, 5, 3, 30), now, 26))\nprint(freshness(datetime(2025, 3, 3, 23, 0), now, 26))\n",
+      "solution": "from datetime import datetime\n\ndef freshness(newest, now, max_hours):\n    age = (now - newest).total_seconds() / 3600\n    return \"OK\" if age <= max_hours else \"STALE\"\n\nnow = datetime(2025, 3, 5, 12, 0)\nprint(freshness(datetime(2025, 3, 5, 3, 30), now, 26))\nprint(freshness(datetime(2025, 3, 3, 23, 0), now, 26))\n",
+      "hints": [
+        "Subtracting two datetimes gives a timedelta.",
+        "`.total_seconds() / 3600` converts it to hours.",
+        "Return `\"OK\" if age <= max_hours else \"STALE\"`."
+      ],
+      "expected": "OK\nSTALE"
+    },
+    {
+      "id": "g3",
+      "title": "Relative volume check",
+      "kind": "python",
+      "prompt": "Write `volume_alert(history, current, ratio)` returning `True` when `current` is below `ratio` times the median of the `history` list. Print the result for history `[100, 104, 98, 103]` with current 41 and 99 and ratio 0.5, one per line. Expected output: `True` then `False`.",
+      "starter": "from statistics import median\n\ndef volume_alert(history, current, ratio):\n    pass\n\nprint(volume_alert([100, 104, 98, 103], 41, 0.5))\nprint(volume_alert([100, 104, 98, 103], 99, 0.5))\n",
+      "solution": "from statistics import median\n\ndef volume_alert(history, current, ratio):\n    return current < ratio * median(history)\n\nprint(volume_alert([100, 104, 98, 103], 41, 0.5))\nprint(volume_alert([100, 104, 98, 103], 99, 0.5))\n",
+      "hints": [
+        "The baseline is the median of the history.",
+        "Compare `current` with `ratio * baseline`.",
+        "`return current < ratio * median(history)`"
+      ],
+      "expected": "True\nFalse"
+    },
+    {
+      "id": "g4",
+      "title": "Latest run per pipeline",
+      "kind": "sql",
+      "prompt": "On PGlite the table `runs(pipeline, run_id, status)` is created for you. Return `pipeline`, `run_id` and `status` of the latest run (largest `run_id`) of each pipeline, ordered by `pipeline`, using `ROW_NUMBER()` in a subquery.",
+      "starter": "CREATE TABLE runs (pipeline text, run_id int, status text);\nINSERT INTO runs VALUES ('orders', 1, 'ok'), ('orders', 2, 'failed'), ('customers', 1, 'ok'), ('customers', 2, 'ok'), ('customers', 3, 'failed');\nSELECT pipeline FROM runs ORDER BY pipeline, run_id LIMIT 1;\n",
+      "solution": "CREATE TABLE runs (pipeline text, run_id int, status text);\nINSERT INTO runs VALUES ('orders', 1, 'ok'), ('orders', 2, 'failed'), ('customers', 1, 'ok'), ('customers', 2, 'ok'), ('customers', 3, 'failed');\nSELECT pipeline, run_id, status\nFROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY pipeline ORDER BY run_id DESC) AS rn FROM runs) t\nWHERE rn = 1\nORDER BY pipeline;\n",
+      "hints": [
+        "Number each pipeline's runs, newest first.",
+        "`ROW_NUMBER() OVER (PARTITION BY pipeline ORDER BY run_id DESC)`.",
+        "Keep `rn = 1` in the outer query and order by `pipeline`."
+      ],
+      "ordered": true
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Evaluate alert rules",
+      "kind": "python",
+      "prompt": "Write `evaluate(metrics)` using the `RULES` list in the starter. Each rule has `name`, `metric`, `op` (`<` or `>`), `threshold` and `severity`. Return the messages `[<severity>] <name>: <value> <op> <threshold>` for the rules that fire, in rule order. Print the messages (one per line, or `no alerts`) for the two metric dictionaries in the starter.",
+      "starter": "RULES = [\n    {\"name\": \"empty\", \"metric\": \"read\", \"op\": \"<\", \"threshold\": 1, \"severity\": \"critical\"},\n    {\"name\": \"quarantine\", \"metric\": \"rate\", \"op\": \">\", \"threshold\": 0.05, \"severity\": \"critical\"},\n    {\"name\": \"slow\", \"metric\": \"seconds\", \"op\": \">\", \"threshold\": 120, \"severity\": \"warning\"},\n]\n\ndef evaluate(metrics):\n    return []\n\nfor m in [{\"read\": 100, \"rate\": 0.02, \"seconds\": 60}, {\"read\": 100, \"rate\": 0.2, \"seconds\": 300}]:\n    lines = evaluate(m)\n    print(\"\\n\".join(lines) if lines else \"no alerts\")\n",
+      "solution": "RULES = [\n    {\"name\": \"empty\", \"metric\": \"read\", \"op\": \"<\", \"threshold\": 1, \"severity\": \"critical\"},\n    {\"name\": \"quarantine\", \"metric\": \"rate\", \"op\": \">\", \"threshold\": 0.05, \"severity\": \"critical\"},\n    {\"name\": \"slow\", \"metric\": \"seconds\", \"op\": \">\", \"threshold\": 120, \"severity\": \"warning\"},\n]\n\ndef evaluate(metrics):\n    out = []\n    for r in RULES:\n        value = metrics[r[\"metric\"]]\n        fired = value < r[\"threshold\"] if r[\"op\"] == \"<\" else value > r[\"threshold\"]\n        if fired:\n            out.append(f\"[{r['severity']}] {r['name']}: {value} {r['op']} {r['threshold']}\")\n    return out\n\nfor m in [{\"read\": 100, \"rate\": 0.02, \"seconds\": 60}, {\"read\": 100, \"rate\": 0.2, \"seconds\": 300}]:\n    lines = evaluate(m)\n    print(\"\\n\".join(lines) if lines else \"no alerts\")\n",
+      "expected": "no alerts\n[critical] quarantine: 0.2 > 0.05\n[warning] slow: 300 > 120"
+    },
+    {
+      "id": "i2",
+      "title": "Monitor a run history",
+      "kind": "python",
+      "prompt": "Create the table `etl_runs(run_id, read, seconds)` from the starter rows in `sqlite3`. Use SQL to read the last run and the previous runs, compute the median of the previous `read` values and of the previous `seconds` values in Python, and print `volume ratio <r>` and `duration ratio <r>` (each rounded to 2 decimals) followed by `ALERT` when the volume ratio is below 0.5 or the duration ratio is above 3, else `ok`, on one line each: `volume ratio 0.40 ALERT`.",
+      "starter": "import sqlite3\nfrom statistics import median\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE etl_runs (run_id INTEGER, read INTEGER, seconds INTEGER)\")\nconn.executemany(\"INSERT INTO etl_runs VALUES (?, ?, ?)\", [(1, 100, 60), (2, 104, 65), (3, 98, 58), (4, 103, 70), (5, 41, 300)])\n# Your code here\n",
+      "solution": "import sqlite3\nfrom statistics import median\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE etl_runs (run_id INTEGER, read INTEGER, seconds INTEGER)\")\nconn.executemany(\"INSERT INTO etl_runs VALUES (?, ?, ?)\", [(1, 100, 60), (2, 104, 65), (3, 98, 58), (4, 103, 70), (5, 41, 300)])\nlast = conn.execute(\"SELECT read, seconds FROM etl_runs ORDER BY run_id DESC LIMIT 1\").fetchone()\nprev = conn.execute(\"SELECT read, seconds FROM etl_runs WHERE run_id < (SELECT MAX(run_id) FROM etl_runs)\").fetchall()\nvolume = last[0] / median(r[0] for r in prev)\nduration = last[1] / median(r[1] for r in prev)\nprint(f\"volume ratio {volume:.2f}\", \"ALERT\" if volume < 0.5 else \"ok\")\nprint(f\"duration ratio {duration:.2f}\", \"ALERT\" if duration > 3 else \"ok\")\n",
+      "expected": "volume ratio 0.40 ALERT\nduration ratio 4.80 ALERT"
+    },
+    {
+      "id": "i3",
+      "title": "Design the monitoring",
+      "kind": "written",
+      "prompt": "Design the monitoring for the nightly orders pipeline: the columns of the `etl_runs` table, three freshness or volume checks with honest thresholds and how you would choose each threshold from history, which alerts page a person and which go to a daily summary, one alert message written out in full, and two problems monitoring will not detect.",
+      "starter": "Run table columns:\nChecks and thresholds:\nPage or summary:\nExample message:\nNot detected:\n",
+      "solution": "Columns: pipeline, run_id, window or day, started_at, finished_at, rows_read, rows_loaded, rows_quarantined, status and an error message. Checks: freshness of `orders_clean` (newest `updated_at` under 26 hours, based on the nightly schedule plus a margin); volume (rows read above 50 percent of the median of the last 14 same-weekday runs); duration (below three times the median, and below the time to the next scheduled run). Thresholds come from looking at at least a month of history: set them outside the normal spread but inside what would hurt, and review them when they fire for harmless reasons. Page: a failed run, freshness over the limit, a run that read zero rows; summary: slow runs and a quarantine rate above its usual level. Example message: `[critical] orders: freshness 31.4 h > 26 h; last successful run 2025-03-03 03:12 UTC; check the scheduler and the last run log`. Not detected: wrong values with plausible counts (for example amounts in the wrong currency) and rows missing in both source and target; these need data quality checks and reconciliation against the source.",
+      "required": false,
+      "rubric": [
+        "Lists run table columns that allow counts, duration, freshness and status to be computed.",
+        "Chooses thresholds from history, ideally relative to a median, and justifies them.",
+        "Separates paging alerts from summary items.",
+        "Writes an actionable message with the pipeline, metric, value, threshold and what to check.",
+        "Names problems that monitoring cannot detect and says what covers them."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "The scheduler stopped and no run started for two days. Which check detects it?",
+      "options": [
+        "The failed run counter",
+        "Freshness: now minus the newest loaded timestamp",
+        "Quarantine rate",
+        "Throughput"
+      ],
+      "answer": 1,
+      "explanation": "Nothing ran, so no run failed and no run has a rate. Only freshness, measured from the data or the last successful run, grows and fires."
+    },
+    {
+      "id": "c2",
+      "question": "Why compare a run with the median of recent runs instead of using a fixed row threshold?",
+      "options": [
+        "It is easier",
+        "The baseline follows normal level changes, and 60 rows can be a collapse on a day that normally has 1,000",
+        "The median is always larger",
+        "It avoids a table"
+      ],
+      "answer": 1,
+      "explanation": "A fixed threshold is wrong whenever the normal volume changes. A ratio to the median adapts and is not distorted by one bad run."
+    },
+    {
+      "id": "c3",
+      "question": "Why pass `now` into `freshness(newest, now, max_hours)` instead of calling the clock inside?",
+      "options": [
+        "It is faster",
+        "The check can be tested with a fixed time and gives reproducible results",
+        "datetime requires it",
+        "The clock is unreliable"
+      ],
+      "answer": 1,
+      "explanation": "A function that reads the clock cannot be tested for a specific moment. Injecting `now` is the same idea as the fake clock of Day 129."
+    },
+    {
+      "id": "c4",
+      "question": "What is alert fatigue?",
+      "options": [
+        "A slow alerting system",
+        "Rules that fire too often get ignored, so real problems are missed",
+        "A broken pager",
+        "Too few rules"
+      ],
+      "answer": 1,
+      "explanation": "People mute noisy alerts. Fewer alerts with honest thresholds keep the important one visible."
+    },
+    {
+      "id": "c5",
+      "question": "A run reads 98 rows, loads 98 and finishes `ok`, but every amount is in cents where dollars were expected. What does monitoring show?",
+      "options": [
+        "An alert",
+        "Nothing wrong: counts and status look normal, so a data quality check is needed",
+        "A stale warning",
+        "A volume drop"
+      ],
+      "answer": 1,
+      "explanation": "Monitoring measures behaviour, not value correctness. Validation rules and reconciliation catch wrong values."
+    }
+  ],
+  "id": "e130"
+}

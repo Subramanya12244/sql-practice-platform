@@ -1,0 +1,182 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "etl-batch-processing",
+      "etl-loading",
+      "etl-streaming-fundamentals"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Cut into batches",
+      "kind": "python",
+      "prompt": "Write `batches(items, size)` that returns a list of lists, each with at most `size` items, in order. Print the result for `list(range(7))` with size 3. Expected output: `[[0, 1, 2], [3, 4, 5], [6]]`.",
+      "starter": "def batches(items, size):\n    pass\n\nprint(batches(list(range(7)), 3))\n",
+      "solution": "def batches(items, size):\n    return [items[i:i + size] for i in range(0, len(items), size)]\n\nprint(batches(list(range(7)), 3))\n",
+      "hints": [
+        "Step through the list in jumps of `size`.",
+        "`range(0, len(items), size)` gives the starting positions.",
+        "`[items[i:i + size] for i in range(0, len(items), size)]`"
+      ],
+      "expected": "[[0, 1, 2], [3, 4, 5], [6]]"
+    },
+    {
+      "id": "g2",
+      "title": "Count the round trips",
+      "kind": "python",
+      "prompt": "Write `round_trips(rows, batch_size)` returning the number of batches needed for `rows` rows (the last may be partial) using integer arithmetic, no loops and no imports. Print the results for `(5000, 1)`, `(5000, 1000)` and `(5001, 1000)`, one per line. Expected output: `5000`, `5`, `6`.",
+      "starter": "def round_trips(rows, batch_size):\n    pass\n\nfor rows, size in [(5000, 1), (5000, 1000), (5001, 1000)]:\n    print(round_trips(rows, size))\n",
+      "solution": "def round_trips(rows, batch_size):\n    return -(-rows // batch_size)\n\nfor rows, size in [(5000, 1), (5000, 1000), (5001, 1000)]:\n    print(round_trips(rows, size))\n",
+      "hints": [
+        "You need to round the division up.",
+        "`-(-a // b)` is ceiling division for integers.",
+        "`return -(-rows // batch_size)`"
+      ],
+      "expected": "5000\n5\n6"
+    },
+    {
+      "id": "g3",
+      "title": "A half-open window",
+      "kind": "python",
+      "prompt": "Write `in_window(t, lo, hi)` returning `True` when `lo <= t < hi` for ISO date strings. Print the results for the boundary dates `\"2025-03-02\"` against the windows `(\"2025-03-01\", \"2025-03-02\")` and `(\"2025-03-02\", \"2025-03-03\")`, one per line. Expected output: `False` then `True`.",
+      "starter": "def in_window(t, lo, hi):\n    pass\n\nprint(in_window(\"2025-03-02\", \"2025-03-01\", \"2025-03-02\"))\nprint(in_window(\"2025-03-02\", \"2025-03-02\", \"2025-03-03\"))\n",
+      "solution": "def in_window(t, lo, hi):\n    return lo <= t < hi\n\nprint(in_window(\"2025-03-02\", \"2025-03-01\", \"2025-03-02\"))\nprint(in_window(\"2025-03-02\", \"2025-03-02\", \"2025-03-03\"))\n",
+      "hints": [
+        "The start is included and the end is excluded.",
+        "ISO date strings compare correctly as text.",
+        "`return lo <= t < hi`"
+      ],
+      "expected": "False\nTrue"
+    },
+    {
+      "id": "g4",
+      "title": "Windows in SQL",
+      "kind": "sql",
+      "prompt": "On PGlite the table `loads(load_id, loaded_at)` is created for you. Return `day` (the date) and `n` (rows) for the half-open window from `2025-03-02` up to but not including `2025-03-04`, grouped by day and ordered by day. Cast with `loaded_at::date AS day`.",
+      "starter": "CREATE TABLE loads (load_id int, loaded_at timestamp);\nINSERT INTO loads VALUES (1,'2025-03-01 23:59:59'),(2,'2025-03-02 00:00:00'),(3,'2025-03-02 10:00:00'),(4,'2025-03-03 23:59:59'),(5,'2025-03-04 00:00:00');\nSELECT load_id FROM loads ORDER BY load_id LIMIT 1;\n",
+      "solution": "CREATE TABLE loads (load_id int, loaded_at timestamp);\nINSERT INTO loads VALUES (1,'2025-03-01 23:59:59'),(2,'2025-03-02 00:00:00'),(3,'2025-03-02 10:00:00'),(4,'2025-03-03 23:59:59'),(5,'2025-03-04 00:00:00');\nSELECT loaded_at::date AS day, COUNT(*) AS n\nFROM loads\nWHERE loaded_at >= '2025-03-02' AND loaded_at < '2025-03-04'\nGROUP BY loaded_at::date\nORDER BY day;\n",
+      "hints": [
+        "Use two comparisons, not BETWEEN.",
+        "`WHERE loaded_at >= '2025-03-02' AND loaded_at < '2025-03-04'`.",
+        "Group by `loaded_at::date` and order by `day`."
+      ],
+      "ordered": true
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Batched load with a progress log",
+      "kind": "python",
+      "prompt": "Create the table `t(id INTEGER PRIMARY KEY, v INTEGER)` and load the 10 rows in the starter in batches of 4 with `executemany`, committing after each batch. Collect progress lines `batch <n>: <rows loaded so far>` and print them, then print `total <count from SELECT COUNT(*)>`. Expected output: three progress lines then the total.",
+      "starter": "import sqlite3\n\nrows = [(i, i * 10) for i in range(1, 11)]\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE t (id INTEGER PRIMARY KEY, v INTEGER)\")\n# Your code here\n",
+      "solution": "import sqlite3\n\nrows = [(i, i * 10) for i in range(1, 11)]\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE t (id INTEGER PRIMARY KEY, v INTEGER)\")\nprogress = []\nloaded = 0\nfor n, start in enumerate(range(0, len(rows), 4), start=1):\n    batch = rows[start:start + 4]\n    conn.executemany(\"INSERT INTO t VALUES (?, ?)\", batch)\n    conn.commit()\n    loaded += len(batch)\n    progress.append(f\"batch {n}: {loaded}\")\nprint(\"\\n\".join(progress))\nprint(\"total\", conn.execute(\"SELECT COUNT(*) FROM t\").fetchone()[0])\n",
+      "expected": "batch 1: 4\nbatch 2: 8\nbatch 3: 10\ntotal 10"
+    },
+    {
+      "id": "i2",
+      "title": "Tile a period with windows",
+      "kind": "python",
+      "prompt": "Write `windows(start, end, hours)` for ISO datetimes given as `datetime` objects returning the list of `(lo, hi)` pairs of half-open windows of `hours` hours, with the last window cut at `end`. Print each pair as `<lo:%Y-%m-%d %H:%M> to <hi:%Y-%m-%d %H:%M>` for the period 2025-03-01 00:00 to 2025-03-01 10:00 in 4-hour windows. Expected output: three lines.",
+      "starter": "from datetime import datetime, timedelta\n\ndef windows(start, end, hours):\n    return []\n\nfor lo, hi in windows(datetime(2025, 3, 1, 0), datetime(2025, 3, 1, 10), 4):\n    print(f\"{lo:%Y-%m-%d %H:%M} to {hi:%Y-%m-%d %H:%M}\")\n",
+      "solution": "from datetime import datetime, timedelta\n\ndef windows(start, end, hours):\n    out = []\n    current = start\n    while current < end:\n        out.append((current, min(current + timedelta(hours=hours), end)))\n        current += timedelta(hours=hours)\n    return out\n\nfor lo, hi in windows(datetime(2025, 3, 1, 0), datetime(2025, 3, 1, 10), 4):\n    print(f\"{lo:%Y-%m-%d %H:%M} to {hi:%Y-%m-%d %H:%M}\")\n",
+      "expected": "2025-03-01 00:00 to 2025-03-01 04:00\n2025-03-01 04:00 to 2025-03-01 08:00\n2025-03-01 08:00 to 2025-03-01 10:00"
+    },
+    {
+      "id": "i3",
+      "title": "Plan the nightly load",
+      "kind": "written",
+      "prompt": "A nightly job loads the previous day's orders (about 4 million rows) into PostgreSQL. Propose: the cron expression, the window it processes and why the run is not at 00:00, a starting batch size with the reasons for and against going larger or smaller, what is committed and logged after each batch, and how you would stop two runs from overlapping if one night's run takes 26 hours.",
+      "starter": "Schedule and window:\nBatch size:\nCommit and log:\nOverlap guard:\n",
+      "solution": "Schedule and window: `30 3 * * *` runs at 03:30 and processes the half-open window from yesterday 00:00 up to today 00:00; it does not start at midnight because late orders are still arriving and the previous day's data may be incomplete. Batch size: start at 5,000 rows, a setting that can be tuned; larger batches cut round trips (800 trips for 4 million rows) but use more memory and make a failed batch more expensive to redo, smaller ones raise the trip count and overhead; measure throughput at several sizes and choose where it flattens. Commit and log: commit after every batch and log the window, the batch number and the rows loaded so far, so a failure shows where it stopped. Overlap guard: record a running lock or a run row in a state table with the window and refuse to start while it is marked running; also fix the root cause by lengthening the interval or splitting the window, because a 26-hour job on a daily schedule can never catch up.",
+      "required": false,
+      "rubric": [
+        "Gives a valid cron expression and a half-open window for the previous day.",
+        "Explains why the job is delayed after midnight (late data).",
+        "Chooses a batch size and states a trade-off in both directions.",
+        "Commits and logs per batch with enough detail to see where a failure stopped.",
+        "Proposes a lock or state-table guard against overlapping runs."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "Loading 10,000 rows with `executemany` in batches of 1,000 makes how many round trips?",
+      "options": [
+        "1",
+        "10",
+        "1,000",
+        "10,000"
+      ],
+      "answer": 1,
+      "explanation": "Ten batches means ten statements. A batch size of 1 would make 10,000, and one giant batch would make 1."
+    },
+    {
+      "id": "c2",
+      "question": "Why use `lo <= t < hi` and not `BETWEEN lo AND hi` for daily windows?",
+      "options": [
+        "BETWEEN is slower",
+        "A row at exactly the boundary would be counted in two windows",
+        "BETWEEN does not accept dates",
+        "`<` is required by SQL"
+      ],
+      "answer": 1,
+      "explanation": "BETWEEN includes both ends, so a row stamped at midnight belongs to the window ending then and the one starting then. Half-open windows tile the period exactly."
+    },
+    {
+      "id": "c3",
+      "question": "Throughput stops improving at large batch sizes mainly because:",
+      "options": [
+        "The database refuses",
+        "The fixed per-trip overhead is already a small share of the total time, so only per-row cost remains",
+        "Python slows down",
+        "Rows get lost"
+      ],
+      "answer": 1,
+      "explanation": "Once there are few round trips, the overhead per row is tiny and the per-row cost dominates. Memory use, however, keeps growing with batch size."
+    },
+    {
+      "id": "c4",
+      "question": "What does the cron expression `0 2 * * *` mean?",
+      "options": [
+        "Every 2 minutes",
+        "At 02:00 every day",
+        "At 00:02 every day",
+        "At 2 a.m. on the 2nd of each month"
+      ],
+      "answer": 1,
+      "explanation": "The fields are minute, hour, day of month, month, day of week: minute 0, hour 2, every day."
+    },
+    {
+      "id": "c5",
+      "question": "A 90-minute job is scheduled hourly. What is the risk?",
+      "options": [
+        "None",
+        "A second run starts while the first is still running, and the two may write the same rows",
+        "The job runs faster",
+        "The schedule is invalid"
+      ],
+      "answer": 1,
+      "explanation": "Runs overlap. Use a guard (lock or state row), a longer interval or a faster job."
+    }
+  ],
+  "id": "e123"
+}

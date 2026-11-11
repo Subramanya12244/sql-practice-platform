@@ -1,0 +1,186 @@
+{
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 40,
+    "review": 10
+  },
+  "links": {
+    "notes": [
+      "constraints",
+      "primary-foreign-keys",
+      "etl-data-validation",
+      "database-design"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "data-validation-pipeline"
+    ],
+    "mindmaps": [
+      "etl-track"
+    ],
+    "patterns": [
+      "find-duplicates",
+      "unmatched-records",
+      "anti-join"
+    ]
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Duplicate keys",
+      "kind": "sql",
+      "prompt": "On PGlite the table `qc_items(item_id, name)` is created for you with repeated ids. Return `item_id` and `copies` (the number of rows) for every `item_id` that appears more than once, ordered by `item_id`.",
+      "starter": "CREATE TABLE qc_items (item_id int, name text);\nINSERT INTO qc_items VALUES (1, 'a'), (2, 'b'), (2, 'b2'), (3, 'c'), (3, 'c'), (3, 'c3'), (4, 'd');\nSELECT item_id, name FROM qc_items ORDER BY item_id, name LIMIT 3;\n",
+      "solution": "CREATE TABLE qc_items (item_id int, name text);\nINSERT INTO qc_items VALUES (1, 'a'), (2, 'b'), (2, 'b2'), (3, 'c'), (3, 'c'), (3, 'c3'), (4, 'd');\nSELECT item_id, COUNT(*) AS copies\nFROM qc_items\nGROUP BY item_id\nHAVING COUNT(*) > 1\nORDER BY item_id;\n",
+      "hints": [
+        "Group by the key and keep groups with more than one row.",
+        "`GROUP BY item_id HAVING COUNT(*) > 1`.",
+        "Select `item_id, COUNT(*) AS copies` and order by `item_id`."
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g2",
+      "title": "Orphan rows",
+      "kind": "sql",
+      "prompt": "On PGlite the tables `qc_parents(parent_id)` and `qc_children(child_id, parent_id)` are created for you. Return `child_id` and `parent_id` of the children whose `parent_id` is not NULL and does not exist in `qc_parents`, ordered by `child_id`. Use `NOT EXISTS`.",
+      "starter": "CREATE TABLE qc_parents (parent_id int);\nCREATE TABLE qc_children (child_id int, parent_id int);\nINSERT INTO qc_parents VALUES (1), (2);\nINSERT INTO qc_children VALUES (10, 1), (11, 3), (12, NULL), (13, 2), (14, 4);\nSELECT child_id FROM qc_children ORDER BY child_id LIMIT 2;\n",
+      "solution": "CREATE TABLE qc_parents (parent_id int);\nCREATE TABLE qc_children (child_id int, parent_id int);\nINSERT INTO qc_parents VALUES (1), (2);\nINSERT INTO qc_children VALUES (10, 1), (11, 3), (12, NULL), (13, 2), (14, 4);\nSELECT c.child_id, c.parent_id\nFROM qc_children c\nWHERE c.parent_id IS NOT NULL\n  AND NOT EXISTS (SELECT 1 FROM qc_parents p WHERE p.parent_id = c.parent_id)\nORDER BY c.child_id;\n",
+      "hints": [
+        "An orphan has a reference that points to nothing.",
+        "Exclude NULL references, then test `NOT EXISTS` against the parent table.",
+        "`WHERE c.parent_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM qc_parents p WHERE p.parent_id = c.parent_id)`"
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g3",
+      "title": "One violation report",
+      "kind": "sql",
+      "prompt": "On PGlite the table `qc_payments(payment_id, amount, method)` is created for you. Return two columns `check_name` and `violations`, ordered by `check_name`, with exactly three rows: `missing method` (rows where `method IS NULL`), `negative amount` (rows where `amount < 0`) and `duplicate payment_id` (the number of ids that appear more than once). Use `UNION ALL`.",
+      "starter": "CREATE TABLE qc_payments (payment_id int, amount numeric(10,2), method text);\nINSERT INTO qc_payments VALUES (1, 10.00, 'card'), (2, -3.00, NULL), (3, 5.00, 'cash'), (3, 5.00, 'cash'), (4, NULL, NULL), (5, -1.00, 'card');\nSELECT 'x' AS check_name, 0 AS violations;\n",
+      "solution": "CREATE TABLE qc_payments (payment_id int, amount numeric(10,2), method text);\nINSERT INTO qc_payments VALUES (1, 10.00, 'card'), (2, -3.00, NULL), (3, 5.00, 'cash'), (3, 5.00, 'cash'), (4, NULL, NULL), (5, -1.00, 'card');\nSELECT check_name, violations FROM (\n  SELECT 'missing method' AS check_name, COUNT(*) AS violations FROM qc_payments WHERE method IS NULL\n  UNION ALL SELECT 'negative amount', COUNT(*) FROM qc_payments WHERE amount < 0\n  UNION ALL SELECT 'duplicate payment_id', COUNT(*) FROM (SELECT payment_id FROM qc_payments GROUP BY payment_id HAVING COUNT(*) > 1) d\n) r\nORDER BY check_name;\n",
+      "hints": [
+        "Each check is a `SELECT 'name', COUNT(*) ...`; stack them with `UNION ALL`.",
+        "The duplicate check counts the groups returned by `GROUP BY payment_id HAVING COUNT(*) > 1`.",
+        "Wrap the stack in a subquery and order by `check_name`."
+      ],
+      "ordered": true
+    },
+    {
+      "id": "g4",
+      "title": "A constraint rejects the row",
+      "kind": "python",
+      "prompt": "Create the table `t(id INTEGER PRIMARY KEY, amount REAL NOT NULL CHECK (amount >= 0))` in `sqlite3` and attempt to insert `(1, 5.0)`, `(1, 6.0)`, `(2, -1.0)` and `(3, None)`. For each attempt print `accepted` or `rejected`. Expected output: `accepted` then three `rejected` lines.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE t (id INTEGER PRIMARY KEY, amount REAL NOT NULL CHECK (amount >= 0))\")\n# Your code here\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE t (id INTEGER PRIMARY KEY, amount REAL NOT NULL CHECK (amount >= 0))\")\nfor row in [(1, 5.0), (1, 6.0), (2, -1.0), (3, None)]:\n    try:\n        conn.execute(\"INSERT INTO t VALUES (?, ?)\", row)\n        print(\"accepted\")\n    except sqlite3.IntegrityError:\n        print(\"rejected\")\n",
+      "hints": [
+        "Each failing insert raises `sqlite3.IntegrityError`.",
+        "Wrap each insert in `try` / `except sqlite3.IntegrityError`.",
+        "Print `accepted` after the insert in `try` and `rejected` in `except`."
+      ],
+      "expected": "accepted\nrejected\nrejected\nrejected"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Clean, then constrain",
+      "kind": "sql",
+      "prompt": "On PGlite the table `qc_stock(sku, qty)` is created with defects (a duplicate sku, a NULL qty and a negative qty). Write the statements that delete the defective rows (keep the first row of each sku using `MIN(ctid)`, delete rows where `qty IS NULL OR qty < 0`), add a primary key on `sku` and a check `qty >= 0`, and finish with a query returning `sku` and `qty` of the remaining rows ordered by `sku`.",
+      "starter": "CREATE TABLE qc_stock (sku text, qty int);\nINSERT INTO qc_stock VALUES ('A', 5), ('B', 3), ('B', 9), ('C', NULL), ('D', -2), ('E', 7);\nSELECT sku, qty FROM qc_stock ORDER BY sku LIMIT 2;\n",
+      "solution": "CREATE TABLE qc_stock (sku text, qty int);\nINSERT INTO qc_stock VALUES ('A', 5), ('B', 3), ('B', 9), ('C', NULL), ('D', -2), ('E', 7);\nDELETE FROM qc_stock WHERE ctid NOT IN (SELECT MIN(ctid) FROM qc_stock GROUP BY sku);\nDELETE FROM qc_stock WHERE qty IS NULL OR qty < 0;\nALTER TABLE qc_stock ADD CONSTRAINT qc_stock_pk PRIMARY KEY (sku);\nALTER TABLE qc_stock ADD CONSTRAINT qc_stock_qty_ck CHECK (qty >= 0);\nSELECT sku, qty FROM qc_stock ORDER BY sku;\n",
+      "ordered": true
+    },
+    {
+      "id": "i2",
+      "title": "Constraint catalogue",
+      "kind": "sql",
+      "prompt": "On PGlite create the tables `qc_a(id int CONSTRAINT qc_a_pk PRIMARY KEY)` and `qc_b(id int CONSTRAINT qc_b_pk PRIMARY KEY, a_id int CONSTRAINT qc_b_a_fk REFERENCES qc_a (id), qty int CONSTRAINT qc_b_qty_ck CHECK (qty > 0))` inside the block and return from `information_schema.table_constraints` the columns `table_name`, `constraint_name` and `constraint_type` for constraints whose name matches the regular expression `_(pk|ck|fk)$` and whose table name starts with `qc_`, ordered by table name and constraint name.",
+      "starter": "SELECT 'qc_a' AS table_name, 'x' AS constraint_name, 'y' AS constraint_type;\n",
+      "solution": "CREATE TABLE qc_a (id int CONSTRAINT qc_a_pk PRIMARY KEY);\nCREATE TABLE qc_b (id int CONSTRAINT qc_b_pk PRIMARY KEY, a_id int CONSTRAINT qc_b_a_fk REFERENCES qc_a (id), qty int CONSTRAINT qc_b_qty_ck CHECK (qty > 0));\nSELECT table_name, constraint_name, constraint_type\nFROM information_schema.table_constraints\nWHERE constraint_name ~ '_(pk|ck|fk)$' AND table_name LIKE 'qc\\_%'\nORDER BY table_name, constraint_name;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "Choose prevent or detect",
+      "kind": "written",
+      "prompt": "For each rule decide whether to enforce it with a constraint, check it with a query after the load, or both, and explain why: (a) `order_id` is unique; (b) `status` is one of three values; (c) every order's customer exists, in a warehouse that loads tables in parallel and cannot guarantee order; (d) the sum of loaded amounts equals the source control total; (e) the newest row is less than 26 hours old; (f) `amount` is never negative and never missing. For (c) also choose an `ON DELETE` action for orders when a customer is deleted, and say why.",
+      "starter": "(a)\n(b)\n(c)\n(d)\n(e)\n(f)\nON DELETE:\n",
+      "solution": "(a) Constraint (primary key) and a duplicate check on the staging data: the key makes a duplicate load fail loudly, and the query finds duplicates before the load so they can be quarantined. (b) A `CHECK` constraint on the target and a validity query on staging, so invalid values are quarantined instead of failing the load. (c) A check query for orphans after the load, because parallel loading means the parent may not exist yet when the child arrives and a foreign key would reject good rows; a foreign key can be added where load order is controlled. `ON DELETE SET NULL` or `RESTRICT` for orders, because orders are financial history and must not disappear when a customer record is removed; `CASCADE` would delete them. (d) Check query or reconciliation only: no constraint can compare the table with an outside control total. (e) Check query or monitoring only: freshness depends on the clock and the load, not on a single row. (f) `NOT NULL` plus `CHECK (amount >= 0)`, because a CHECK alone lets NULL pass, and a staging query to quarantine rows that would violate them.",
+      "required": false,
+      "rubric": [
+        "Uses constraints for rules about a single row or key and queries for rules a constraint cannot express (totals, freshness).",
+        "Notes that a CHECK alone lets NULL pass and pairs it with NOT NULL.",
+        "Recognises that foreign keys can be unsuitable when loads are parallel and uses an orphan query.",
+        "Chooses a non-cascading ON DELETE action for orders with a reason."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A column has `CHECK (amount >= 0)` and no `NOT NULL`. What happens when you insert a row with a NULL amount?",
+      "options": [
+        "The row is rejected",
+        "The row is accepted, because the check expression is NULL, not false",
+        "The statement errors on syntax",
+        "The amount becomes 0"
+      ],
+      "answer": 1,
+      "explanation": "A CHECK rejects a row only when the expression is false. NULL means unknown and passes, so presence needs NOT NULL."
+    },
+    {
+      "id": "c2",
+      "question": "`SELECT * FROM orders WHERE customer_id NOT IN (SELECT customer_id FROM customers)` returns no rows even though orphans exist. A likely cause is:",
+      "options": [
+        "The customers table is empty",
+        "The subquery returns a NULL, which makes NOT IN unknown for every row",
+        "The join order",
+        "A missing index"
+      ],
+      "answer": 1,
+      "explanation": "If the subquery contains any NULL, `x NOT IN (...)` is never true. `NOT EXISTS` avoids the trap."
+    },
+    {
+      "id": "c3",
+      "question": "Why clean the data before `ALTER TABLE ... ADD CONSTRAINT`?",
+      "options": [
+        "It is faster",
+        "The statement validates all existing rows and fails if any violates the rule",
+        "The constraint deletes bad rows",
+        "It changes the column type"
+      ],
+      "answer": 1,
+      "explanation": "Adding a constraint checks the current rows first. Find and fix violations with a check query beforehand."
+    },
+    {
+      "id": "c4",
+      "question": "Which `ON DELETE` action keeps order rows when their customer is deleted?",
+      "options": [
+        "CASCADE",
+        "SET NULL (or RESTRICT, which blocks the delete)",
+        "None, rows always disappear",
+        "CHECK"
+      ],
+      "answer": 1,
+      "explanation": "SET NULL clears the reference and keeps the order; RESTRICT refuses the delete. CASCADE deletes the children."
+    },
+    {
+      "id": "c5",
+      "question": "Which rule cannot be expressed as a constraint on the target table?",
+      "options": [
+        "The status is one of three values",
+        "The loaded total equals the source control total",
+        "The id is unique",
+        "The amount is not null"
+      ],
+      "answer": 1,
+      "explanation": "A constraint sees only the rows of the table being written. Comparing with an outside total needs a check query or reconciliation."
+    }
+  ],
+  "id": "e135"
+}

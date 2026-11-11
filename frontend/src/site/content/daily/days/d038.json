@@ -1,0 +1,191 @@
+{
+  "id": "d038",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "case",
+      "count-case-when",
+      "conditional-aggregation",
+      "filter-clause"
+    ],
+    "questions": [
+      177,
+      178,
+      182
+    ],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "aggregation"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Label the first products",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For products with `product_id` up to 12, return `product_id`, `product_name` and `price_label` (in that order). The label is `cheap` when `unit_price` is below 15, `mid` when it is from 15 up to but not including 40, and `dear` otherwise. Order by `product_id`.",
+      "starter": "-- Label products with product_id <= 12 as cheap, mid or dear\nSELECT product_id, product_name, 'mid' AS price_label\nFROM products\nWHERE product_id <= 12\nORDER BY product_id;\n",
+      "solution": "SELECT product_id, product_name,\n       CASE\n         WHEN unit_price < 15 THEN 'cheap'\n         WHEN unit_price < 40 THEN 'mid'\n         ELSE 'dear'\n       END AS price_label\nFROM products\nWHERE product_id <= 12\nORDER BY product_id;\n",
+      "hints": [
+        "The starter gives every row the same label. A CASE expression chooses the label per row.",
+        "Test the lowest band first: WHEN unit_price < 15 THEN 'cheap'. The next WHEN only sees prices of 15 or more.",
+        "CASE WHEN unit_price < 15 THEN 'cheap' WHEN unit_price < 40 THEN 'mid' ELSE 'dear' END AS price_label"
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Split German contact names",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For customers in Germany, return `customer_id`, `first_name` and `last_name` (in that order), where the contact name is split at the space with `SPLIT_PART`. Order by `customer_id`.",
+      "starter": "-- First and last name of German contacts\nSELECT customer_id, contact_name AS first_name, contact_name AS last_name\nFROM customers\nWHERE country = 'Germany'\nORDER BY customer_id;\n",
+      "solution": "SELECT customer_id,\n       SPLIT_PART(contact_name, ' ', 1) AS first_name,\n       SPLIT_PART(contact_name, ' ', 2) AS last_name\nFROM customers\nWHERE country = 'Germany'\nORDER BY customer_id;\n",
+      "hints": [
+        "The starter repeats the full contact name. You need a function that returns one piece of the text.",
+        "SPLIT_PART(text, delimiter, n) returns the n-th piece, counting from 1. The delimiter here is a space.",
+        "SPLIT_PART(contact_name, ' ', 1) AS first_name and SPLIT_PART(contact_name, ' ', 2) AS last_name"
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Gross prices of expensive products",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For products with `unit_price` of 50 or more, return `product_id`, `name_upper` (the product name in upper case) and `gross_price` (the price times 1.2, rounded to 2 decimals), in that order. Order by `product_id`.",
+      "starter": "-- Upper-case names and gross prices (price * 1.2) for products priced 50 or more\nSELECT product_id, product_name AS name_upper, unit_price AS gross_price\nFROM products\nWHERE unit_price >= 50\nORDER BY product_id;\n",
+      "solution": "SELECT product_id,\n       UPPER(product_name) AS name_upper,\n       ROUND(unit_price * 1.2, 2) AS gross_price\nFROM products\nWHERE unit_price >= 50\nORDER BY product_id;\n",
+      "hints": [
+        "The WHERE and ORDER BY are right. Two select-list expressions are wrong.",
+        "UPPER(text) changes case; ROUND(number, 2) rounds to two decimals.",
+        "UPPER(product_name) AS name_upper, ROUND(unit_price * 1.2, 2) AS gross_price"
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Shipped and open orders per carrier",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For each carrier (`ship_via`) return `orders` (all orders), `shipped` (orders whose `shipped_date` is not NULL) and `open_orders` (orders whose `shipped_date` is NULL), in that order after `ship_via`. Use conditional aggregation, with no `WHERE`. Order by `ship_via`.",
+      "starter": "-- Orders, shipped and open per carrier\nSELECT ship_via, COUNT(*) AS orders, COUNT(*) AS shipped, COUNT(*) AS open_orders\nFROM orders\nGROUP BY ship_via\nORDER BY ship_via;\n",
+      "solution": "SELECT ship_via,\n       COUNT(*) AS orders,\n       SUM(CASE WHEN shipped_date IS NOT NULL THEN 1 ELSE 0 END) AS shipped,\n       SUM(CASE WHEN shipped_date IS NULL THEN 1 ELSE 0 END) AS open_orders\nFROM orders\nGROUP BY ship_via\nORDER BY ship_via;\n",
+      "hints": [
+        "All three columns of the starter count every row. Two of them must count only a subset.",
+        "Put CASE inside SUM: add 1 when the condition is true and 0 otherwise. A NULL test uses IS NULL.",
+        "SUM(CASE WHEN shipped_date IS NULL THEN 1 ELSE 0 END) AS open_orders"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Price bands of active products",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "Ignore discontinued products. Put each remaining product into a band: `low` below 20, `middle` from 20 up to but not including 50, `high` for 50 or more. Return `band`, `products` (count) and `avg_price` (average `unit_price` rounded to 2 decimals), ordered from the lowest band to the highest (lowest average first).",
+      "starter": "-- Bands of active products\nSELECT 'all' AS band, COUNT(*) AS products, ROUND(AVG(unit_price), 2) AS avg_price\nFROM products\nWHERE NOT discontinued;\n",
+      "solution": "SELECT CASE\n         WHEN unit_price < 20 THEN 'low'\n         WHEN unit_price < 50 THEN 'middle'\n         ELSE 'high'\n       END AS band,\n       COUNT(*) AS products,\n       ROUND(AVG(unit_price), 2) AS avg_price\nFROM products\nWHERE NOT discontinued\nGROUP BY 1\nORDER BY avg_price;\n"
+    },
+    {
+      "id": "i2",
+      "title": "Late and on-time shipments by country",
+      "kind": "sql",
+      "ordered": true,
+      "prompt": "For each `ship_country` return `orders`, `late` (orders with `shipped_date` after `required_date`), `on_time` (orders shipped on or before `required_date`) and `open_orders` (no ship date), then `pct_late`: late orders as a percentage of all orders, rounded to 1 decimal (use `100.0 *` so the division is not an integer division). Keep only countries with at least 8 orders. Order by `orders` descending, then `ship_country`.",
+      "starter": "-- Late, on-time and open orders per country (countries with 8+ orders)\nSELECT ship_country, COUNT(*) AS orders\nFROM orders\nGROUP BY ship_country\nHAVING COUNT(*) >= 8\nORDER BY orders DESC, ship_country;\n",
+      "solution": "SELECT ship_country,\n       COUNT(*) AS orders,\n       COUNT(*) FILTER (WHERE shipped_date > required_date) AS late,\n       COUNT(*) FILTER (WHERE shipped_date <= required_date) AS on_time,\n       COUNT(*) FILTER (WHERE shipped_date IS NULL) AS open_orders,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE shipped_date > required_date) / COUNT(*), 1) AS pct_late\nFROM orders\nGROUP BY ship_country\nHAVING COUNT(*) >= 8\nORDER BY orders DESC, ship_country;\n"
+    },
+    {
+      "id": "i3",
+      "title": "Short names and long company names",
+      "kind": "sql",
+      "required": false,
+      "ordered": true,
+      "prompt": "Stretch task. For customers in Germany, the UK or the USA return `customer_id`, `short_name` (the first letter of the contact's first name, then a full stop and a space, then the last name, for example `M. Anders`; build it from `SPLIT_PART`, `LEFT` and `||`) and `name_size` (`long` when `company_name` has 25 or more characters, otherwise `short`). Order by `customer_id`.",
+      "starter": "-- Short contact name and company-name size for German, UK and US customers\nSELECT customer_id, contact_name AS short_name, 'short' AS name_size\nFROM customers\nWHERE country IN ('Germany', 'UK', 'USA')\nORDER BY customer_id;\n",
+      "solution": "SELECT customer_id,\n       LEFT(SPLIT_PART(contact_name, ' ', 1), 1) || '. ' || SPLIT_PART(contact_name, ' ', 2) AS short_name,\n       CASE WHEN LENGTH(company_name) >= 25 THEN 'long' ELSE 'short' END AS name_size\nFROM customers\nWHERE country IN ('Germany', 'UK', 'USA')\nORDER BY customer_id;\n"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does `SELECT 7 / 2` return in PostgreSQL?",
+      "options": [
+        "3.5",
+        "3",
+        "4",
+        "An error, because 7 is not divisible by 2"
+      ],
+      "answer": 1,
+      "explanation": "Both operands are integers, so the division is an integer division and the fraction is dropped: 3. Writing 7 / 2.0 or 7::numeric / 2 gives 3.5. It does not round to 4, and it is not an error."
+    },
+    {
+      "id": "c2",
+      "question": "A product costs 20.00. Given `CASE WHEN unit_price < 30 THEN 'A' WHEN unit_price < 10 THEN 'B' ELSE 'C' END`, which label would a product at 5.00 get?",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "NULL"
+      ],
+      "answer": 0,
+      "explanation": "The first true WHEN wins and the rest are never examined. 5.00 is below 30, so it gets A and the branch for B can never be reached. Put the narrowest condition first."
+    },
+    {
+      "id": "c3",
+      "question": "What does `SELECT CASE WHEN 1 = 2 THEN 'yes' END` return?",
+      "options": [
+        "'no'",
+        "An empty string",
+        "NULL",
+        "An error, because ELSE is required"
+      ],
+      "answer": 2,
+      "explanation": "When no WHEN is true and there is no ELSE, CASE returns NULL. ELSE is optional in SQL, which is why a forgotten ELSE shows up as NULL labels in a report."
+    },
+    {
+      "id": "c4",
+      "question": "What do `SELECT 'ab' || NULL` and `SELECT CONCAT('ab', NULL)` return?",
+      "options": [
+        "NULL and ab",
+        "ab and ab",
+        "NULL and NULL",
+        "abNULL and ab"
+      ],
+      "answer": 0,
+      "explanation": "The || operator returns NULL if either side is NULL, but CONCAT treats NULL as empty text. Neither writes the word NULL into the result."
+    },
+    {
+      "id": "c5",
+      "question": "In `orders`, 100 orders exist and 50 have freight of at least 100. What does `SELECT SUM(CASE WHEN freight >= 100 THEN 1 ELSE 0 END) / COUNT(*) FROM orders` return?",
+      "options": [
+        "0.5",
+        "0",
+        "50",
+        "1"
+      ],
+      "answer": 1,
+      "explanation": "Both the SUM result (50) and COUNT(*) (100) are integers, so the division is an integer division and the fraction 0.5 is cut to 0. Cast one side to numeric (or multiply by 1.0) to get 0.5."
+    },
+    {
+      "id": "c6",
+      "question": "What does `SELECT POSITION('z' IN 'abc')` return?",
+      "options": [
+        "NULL",
+        "-1",
+        "0",
+        "3"
+      ],
+      "answer": 2,
+      "explanation": "POSITION counts from 1 and returns 0 when the text is not found. It does not return NULL or -1 as some other languages and databases do."
+    }
+  ]
+}

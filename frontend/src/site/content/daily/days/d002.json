@@ -1,0 +1,184 @@
+{
+  "id": "d002",
+  "time": {
+    "theory": 30,
+    "examples": 20,
+    "guided": 30,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-variables-data-types"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Store and print values",
+      "prompt": "Create a variable `customer` that holds the text `Asha` and a variable `age` that holds the whole number `29`. Then print one line, `Asha is 29`, by passing the variables (not typed-in values) to a single `print()` call together with the text `is`.",
+      "starter": "# Create the two variables, then print the sentence\n",
+      "solution": "customer = \"Asha\"\nage = 29\nprint(customer, \"is\", age)\n",
+      "hints": [
+        "Use `name = value` to create each variable. Text needs quotes, the number does not.",
+        "`print()` accepts several arguments separated by commas and puts one space between them.",
+        "The final line is `print(customer, \"is\", age)`. The variable names go without quotes, the word `is` goes in quotes."
+      ],
+      "kind": "python",
+      "expected": "Asha is 29"
+    },
+    {
+      "id": "g2",
+      "title": "Name the type of each value",
+      "prompt": "Print the type of each of these five values, one per line, in this order: `42`, `3.14`, `\"42\"`, `True`, `None`. Use `type()` on each value. The expected output starts with `<class 'int'>` and ends with `<class 'NoneType'>`.",
+      "starter": "print(42)\nprint(3.14)\nprint(\"42\")\nprint(True)\nprint(None)\n",
+      "solution": "print(type(42))\nprint(type(3.14))\nprint(type(\"42\"))\nprint(type(True))\nprint(type(None))\n",
+      "hints": [
+        "`type(value)` returns the type of a value, and `print()` can show that result.",
+        "Wrap each value: `print(type(42))`. Do the same for the other four values.",
+        "The five lines are `print(type(42))`, `print(type(3.14))`, `print(type(\"42\"))`, `print(type(True))` and `print(type(None))`."
+      ],
+      "kind": "python",
+      "expected": "<class 'int'>\n<class 'float'>\n<class 'str'>\n<class 'bool'>\n<class 'NoneType'>"
+    },
+    {
+      "id": "g3",
+      "title": "Convert text before calculating",
+      "prompt": "The variables `price_text` (`\"19.50\"`) and `quantity_text` (`\"4\"`) hold values that arrived as text. Convert the price to a float and the quantity to an integer, multiply them, and print the result on a line of its own. The expected output is `78.0`.",
+      "starter": "price_text = \"19.50\"\nquantity_text = \"4\"\nprint(price_text + quantity_text)\n",
+      "solution": "price_text = \"19.50\"\nquantity_text = \"4\"\nprice = float(price_text)\nquantity = int(quantity_text)\nprint(price * quantity)\n",
+      "hints": [
+        "`+` between two strings joins them, so the text must become numbers before you multiply.",
+        "Use `float(price_text)` for the price and `int(quantity_text)` for the quantity.",
+        "Store the converted values in new names such as `price` and `quantity`, then `print(price * quantity)`."
+      ],
+      "kind": "python",
+      "expected": "78.0"
+    },
+    {
+      "id": "g4",
+      "title": "Update a balance step by step",
+      "prompt": "Start a variable `balance` at `100`. Add `25` to it by assigning back to the same variable, then subtract `40` the same way. Finally print one line with the text `Balance:` and the variable. The expected output is `Balance: 85`.",
+      "starter": "balance = 100\nprint(\"Balance:\", balance)\n",
+      "solution": "balance = 100\nbalance = balance + 25\nbalance = balance - 40\nprint(\"Balance:\", balance)\n",
+      "hints": [
+        "A variable can be reassigned: the right side is calculated first using the current value.",
+        "Write `balance = balance + 25` and then a similar line for the subtraction.",
+        "After the two update lines, `print(\"Balance:\", balance)` shows `Balance: 85`."
+      ],
+      "kind": "python",
+      "expected": "Balance: 85"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Order line summary",
+      "prompt": "An order line arrives as three texts: `item = \"Notebook\"`, `unit_price_text = \"2.75\"` and `quantity_text = \"12\"`. Convert the price to a float and the quantity to an integer, calculate the line total, and print exactly these five lines. The last line must show the types of the converted price and quantity, using `type()`.\n\n```text\nItem: Notebook\nUnit price: 2.75\nQuantity: 12\nLine total: 33.0\nTypes: <class 'float'> <class 'int'>\n```",
+      "starter": "item = \"Notebook\"\nunit_price_text = \"2.75\"\nquantity_text = \"12\"\n",
+      "solution": "item = \"Notebook\"\nunit_price_text = \"2.75\"\nquantity_text = \"12\"\n\nunit_price = float(unit_price_text)\nquantity = int(quantity_text)\nline_total = unit_price * quantity\n\nprint(\"Item:\", item)\nprint(\"Unit price:\", unit_price)\nprint(\"Quantity:\", quantity)\nprint(\"Line total:\", line_total)\nprint(\"Types:\", type(unit_price), type(quantity))\n",
+      "kind": "python",
+      "expected": "Item: Notebook\nUnit price: 2.75\nQuantity: 12\nLine total: 33.0\nTypes: <class 'float'> <class 'int'>"
+    },
+    {
+      "id": "i2",
+      "title": "Join or add",
+      "prompt": "Two variables are given: `x = 7` (an integer) and `y = \"3\"` (a string). Print four lines. Line 1: the integer sum of `x` and `y` (convert `y` first). Line 2: the text made by joining `x` and `y` side by side (convert `x` first). Line 3: `x` as a float. Line 4: the type of the value printed on line 2. Expected output:\n\n```text\n10\n73\n7.0\n<class 'str'>\n```",
+      "starter": "x = 7\ny = \"3\"\n",
+      "solution": "x = 7\ny = \"3\"\n\nprint(x + int(y))\njoined = str(x) + y\nprint(joined)\nprint(float(x))\nprint(type(joined))\n",
+      "kind": "python",
+      "expected": "10\n73\n7.0\n<class 'str'>"
+    },
+    {
+      "id": "i3",
+      "title": "What do conversions return?",
+      "required": false,
+      "prompt": "Print six lines, one for each conversion below, in this exact format: the expression as text, then ` -> `, then the value Python returns. Let Python compute every value; do not type the answers. The expressions, in order, are `int(3.9)`, `int(-3.9)`, `int(\"12\")`, `float(7)`, `str(3.0)` and `int(True)`.\n\n```text\nint(3.9) -> 3\nint(-3.9) -> -3\nint(\"12\") -> 12\nfloat(7) -> 7.0\nstr(3.0) -> 3.0\nint(True) -> 1\n```",
+      "starter": "# Print one line per conversion\n",
+      "solution": "print(\"int(3.9) ->\", int(3.9))\nprint(\"int(-3.9) ->\", int(-3.9))\nprint('int(\"12\") ->', int(\"12\"))\nprint(\"float(7) ->\", float(7))\nprint(\"str(3.0) ->\", str(3.0))\nprint(\"int(True) ->\", int(True))\n",
+      "kind": "python",
+      "expected": "int(3.9) -> 3\nint(-3.9) -> -3\nint(\"12\") -> 12\nfloat(7) -> 7.0\nstr(3.0) -> 3.0\nint(True) -> 1"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this program print?\n\n```python\nx = 5\ny = x\nx = 9\nprint(y)\n```",
+      "options": [
+        "9",
+        "5",
+        "x",
+        "Nothing: it raises an error"
+      ],
+      "answer": 1,
+      "explanation": "`y = x` copies the value 5 that `x` had at that moment. Changing `x` afterwards attaches the name `x` to a new value but does not touch `y`. A variable does not follow another variable around, so 9 is wrong."
+    },
+    {
+      "id": "c2",
+      "question": "What does this program print?\n\n```python\nprint(\"5\" + \"5\")\n```",
+      "options": [
+        "10",
+        "55",
+        "\"5\" \"5\"",
+        "It raises a TypeError"
+      ],
+      "answer": 1,
+      "explanation": "Both values are strings because of the quotes, and `+` on strings joins them, giving 55. Addition (10) would need two numbers. A TypeError happens only when a string is combined with a number."
+    },
+    {
+      "id": "c3",
+      "question": "What is the type of the value `3.0`?",
+      "options": [
+        "int, because it equals a whole number",
+        "float, because of the decimal point",
+        "str, because it is typed with a dot",
+        "bool, because it is a constant"
+      ],
+      "answer": 1,
+      "explanation": "A number written with a decimal point is a float, even when its value is whole. The type depends on how the value is written or computed, not on whether the number could be shown without decimals."
+    },
+    {
+      "id": "c4",
+      "question": "Which of these is a valid Python variable name?",
+      "options": [
+        "2nd_place",
+        "total-price",
+        "total_price",
+        "class"
+      ],
+      "answer": 2,
+      "explanation": "Names may use letters, digits and underscores but cannot start with a digit (`2nd_place`), contain a hyphen (`total-price`, which Python reads as a subtraction) or be a keyword (`class`). `total_price` follows every rule."
+    },
+    {
+      "id": "c5",
+      "question": "What does this program print?\n\n```python\nprint(int(7.9))\n```",
+      "options": [
+        "8",
+        "7",
+        "7.9",
+        "7.0"
+      ],
+      "answer": 1,
+      "explanation": "`int()` cuts off the decimal part and never rounds, so 7.9 becomes 7. The answer 8 assumes rounding, which is the job of `round()` (covered tomorrow). The result is an int, so it has no `.0`."
+    },
+    {
+      "id": "c6",
+      "question": "What does this program print?\n\n```python\ncount = 3\ncount = count + 1\nprint(count)\n```",
+      "options": [
+        "3",
+        "4",
+        "count + 1",
+        "It raises an error because count cannot equal count + 1"
+      ],
+      "answer": 1,
+      "explanation": "`=` is assignment, not an equation. Python calculates the right side with the current value (3 + 1 = 4) and then attaches the name `count` to the result. The error answer treats `=` as the mathematical equals sign."
+    }
+  ]
+}

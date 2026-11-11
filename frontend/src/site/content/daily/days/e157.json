@@ -1,0 +1,192 @@
+{
+  "id": "e157",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "airflow-architecture",
+      "airflow-dags",
+      "airflow-tasks"
+    ],
+    "questions": [],
+    "pyExercises": [],
+    "projects": [
+      "airflow-etl-pipeline"
+    ],
+    "mindmaps": [
+      "airflow-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Levels of a DAG",
+      "kind": "python",
+      "prompt": "The `Dag` class is given. Build a DAG with tasks `a`, `b`, `c`, `d` where `a` precedes `b` and `c`, and `b` and `c` both precede `d`. Print `dag.levels()`.",
+      "starter": "import sqlite3\n\n\nclass Dag:\n    def __init__(self, dag_id):\n        self.dag_id = dag_id\n        self.tasks = {}\n        self.upstream = {}\n\n    def add_task(self, task_id, func=None):\n        if task_id in self.tasks:\n            raise ValueError(f\"duplicate task_id {task_id}\")\n        self.tasks[task_id] = func or (lambda: None)\n        self.upstream[task_id] = set()\n\n    def link(self, upstream_id, downstream_id):\n        self.upstream[downstream_id].add(upstream_id)\n\n    def levels(self):\n        remaining = {t: set(u) for t, u in self.upstream.items()}\n        result = []\n        while remaining:\n            ready = sorted(t for t, u in remaining.items() if not u)\n            if not ready:\n                raise ValueError(\"cycle detected\")\n            result.append(ready)\n            for t in ready:\n                del remaining[t]\n            for u in remaining.values():\n                u.difference_update(ready)\n        return result\n\n    def order(self):\n        return [t for level in self.levels() for t in level]\n\n# build the DAG and print its levels\n",
+      "solution": "import sqlite3\n\n\nclass Dag:\n    def __init__(self, dag_id):\n        self.dag_id = dag_id\n        self.tasks = {}\n        self.upstream = {}\n\n    def add_task(self, task_id, func=None):\n        if task_id in self.tasks:\n            raise ValueError(f\"duplicate task_id {task_id}\")\n        self.tasks[task_id] = func or (lambda: None)\n        self.upstream[task_id] = set()\n\n    def link(self, upstream_id, downstream_id):\n        self.upstream[downstream_id].add(upstream_id)\n\n    def levels(self):\n        remaining = {t: set(u) for t, u in self.upstream.items()}\n        result = []\n        while remaining:\n            ready = sorted(t for t, u in remaining.items() if not u)\n            if not ready:\n                raise ValueError(\"cycle detected\")\n            result.append(ready)\n            for t in ready:\n                del remaining[t]\n            for u in remaining.values():\n                u.difference_update(ready)\n        return result\n\n    def order(self):\n        return [t for level in self.levels() for t in level]\n\ndag = Dag(\"demo\")\nfor t in [\"a\", \"b\", \"c\", \"d\"]:\n    dag.add_task(t)\ndag.link(\"a\", \"b\")\ndag.link(\"a\", \"c\")\ndag.link(\"b\", \"d\")\ndag.link(\"c\", \"d\")\nprint(dag.levels())\n",
+      "hints": [
+        "add_task creates a task; link(up, down) adds a dependency.",
+        "Add all four tasks, then four links.",
+        "print(dag.levels()) at the end."
+      ],
+      "expected": "[['a'], ['b', 'c'], ['d']]"
+    },
+    {
+      "id": "g2",
+      "title": "Roots and leaves",
+      "kind": "python",
+      "prompt": "Using the DAG built below, print two lines: `roots: ` and the sorted tasks with no upstream tasks, then `leaves: ` and the sorted tasks that no other task depends on (use `dag.upstream`).",
+      "starter": "import sqlite3\n\n\nclass Dag:\n    def __init__(self, dag_id):\n        self.dag_id = dag_id\n        self.tasks = {}\n        self.upstream = {}\n\n    def add_task(self, task_id, func=None):\n        if task_id in self.tasks:\n            raise ValueError(f\"duplicate task_id {task_id}\")\n        self.tasks[task_id] = func or (lambda: None)\n        self.upstream[task_id] = set()\n\n    def link(self, upstream_id, downstream_id):\n        self.upstream[downstream_id].add(upstream_id)\n\n    def levels(self):\n        remaining = {t: set(u) for t, u in self.upstream.items()}\n        result = []\n        while remaining:\n            ready = sorted(t for t, u in remaining.items() if not u)\n            if not ready:\n                raise ValueError(\"cycle detected\")\n            result.append(ready)\n            for t in ready:\n                del remaining[t]\n            for u in remaining.values():\n                u.difference_update(ready)\n        return result\n\n    def order(self):\n        return [t for level in self.levels() for t in level]\n\ndag = Dag(\"demo\")\nfor t in [\"a\", \"b\", \"c\", \"d\", \"e\"]:\n    dag.add_task(t)\ndag.link(\"a\", \"c\")\ndag.link(\"b\", \"c\")\ndag.link(\"c\", \"d\")\ndag.link(\"c\", \"e\")\n# print roots and leaves\n",
+      "solution": "import sqlite3\n\n\nclass Dag:\n    def __init__(self, dag_id):\n        self.dag_id = dag_id\n        self.tasks = {}\n        self.upstream = {}\n\n    def add_task(self, task_id, func=None):\n        if task_id in self.tasks:\n            raise ValueError(f\"duplicate task_id {task_id}\")\n        self.tasks[task_id] = func or (lambda: None)\n        self.upstream[task_id] = set()\n\n    def link(self, upstream_id, downstream_id):\n        self.upstream[downstream_id].add(upstream_id)\n\n    def levels(self):\n        remaining = {t: set(u) for t, u in self.upstream.items()}\n        result = []\n        while remaining:\n            ready = sorted(t for t, u in remaining.items() if not u)\n            if not ready:\n                raise ValueError(\"cycle detected\")\n            result.append(ready)\n            for t in ready:\n                del remaining[t]\n            for u in remaining.values():\n                u.difference_update(ready)\n        return result\n\n    def order(self):\n        return [t for level in self.levels() for t in level]\n\ndag = Dag(\"demo\")\nfor t in [\"a\", \"b\", \"c\", \"d\", \"e\"]:\n    dag.add_task(t)\ndag.link(\"a\", \"c\")\ndag.link(\"b\", \"c\")\ndag.link(\"c\", \"d\")\ndag.link(\"c\", \"e\")\nroots = sorted(t for t, up in dag.upstream.items() if not up)\nused = set().union(*dag.upstream.values())\nleaves = sorted(t for t in dag.tasks if t not in used)\nprint(\"roots:\", roots)\nprint(\"leaves:\", leaves)\n",
+      "hints": [
+        "A root has an empty upstream set.",
+        "A leaf is a task that never appears in anyone's upstream set.",
+        "Union all upstream sets, then take the tasks not in the union."
+      ],
+      "expected": "roots: ['a', 'b']\nleaves: ['d', 'e']"
+    },
+    {
+      "id": "g3",
+      "title": "Detect cycles",
+      "kind": "python",
+      "prompt": "For each of the two DAGs below, print `ok` if `order()` works and `cycle` if it raises `ValueError`, one line each, in the order given.",
+      "starter": "import sqlite3\n\n\nclass Dag:\n    def __init__(self, dag_id):\n        self.dag_id = dag_id\n        self.tasks = {}\n        self.upstream = {}\n\n    def add_task(self, task_id, func=None):\n        if task_id in self.tasks:\n            raise ValueError(f\"duplicate task_id {task_id}\")\n        self.tasks[task_id] = func or (lambda: None)\n        self.upstream[task_id] = set()\n\n    def link(self, upstream_id, downstream_id):\n        self.upstream[downstream_id].add(upstream_id)\n\n    def levels(self):\n        remaining = {t: set(u) for t, u in self.upstream.items()}\n        result = []\n        while remaining:\n            ready = sorted(t for t, u in remaining.items() if not u)\n            if not ready:\n                raise ValueError(\"cycle detected\")\n            result.append(ready)\n            for t in ready:\n                del remaining[t]\n            for u in remaining.values():\n                u.difference_update(ready)\n        return result\n\n    def order(self):\n        return [t for level in self.levels() for t in level]\n\ndef build(edges, tasks):\n    d = Dag(\"x\")\n    for t in tasks:\n        d.add_task(t)\n    for up, down in edges:\n        d.link(up, down)\n    return d\n\n\ncases = [\n    ([(\"a\", \"b\"), (\"b\", \"c\")], [\"a\", \"b\", \"c\"]),\n    ([(\"a\", \"b\"), (\"b\", \"c\"), (\"c\", \"a\")], [\"a\", \"b\", \"c\"]),\n]\n# print ok or cycle for each\n",
+      "solution": "import sqlite3\n\n\nclass Dag:\n    def __init__(self, dag_id):\n        self.dag_id = dag_id\n        self.tasks = {}\n        self.upstream = {}\n\n    def add_task(self, task_id, func=None):\n        if task_id in self.tasks:\n            raise ValueError(f\"duplicate task_id {task_id}\")\n        self.tasks[task_id] = func or (lambda: None)\n        self.upstream[task_id] = set()\n\n    def link(self, upstream_id, downstream_id):\n        self.upstream[downstream_id].add(upstream_id)\n\n    def levels(self):\n        remaining = {t: set(u) for t, u in self.upstream.items()}\n        result = []\n        while remaining:\n            ready = sorted(t for t, u in remaining.items() if not u)\n            if not ready:\n                raise ValueError(\"cycle detected\")\n            result.append(ready)\n            for t in ready:\n                del remaining[t]\n            for u in remaining.values():\n                u.difference_update(ready)\n        return result\n\n    def order(self):\n        return [t for level in self.levels() for t in level]\n\ndef build(edges, tasks):\n    d = Dag(\"x\")\n    for t in tasks:\n        d.add_task(t)\n    for up, down in edges:\n        d.link(up, down)\n    return d\n\n\ncases = [\n    ([(\"a\", \"b\"), (\"b\", \"c\")], [\"a\", \"b\", \"c\"]),\n    ([(\"a\", \"b\"), (\"b\", \"c\"), (\"c\", \"a\")], [\"a\", \"b\", \"c\"]),\n]\nfor edges, tasks in cases:\n    try:\n        build(edges, tasks).order()\n        print(\"ok\")\n    except ValueError:\n        print(\"cycle\")\n",
+      "hints": [
+        "Use build(edges, tasks) to create each DAG.",
+        "order() raises ValueError for a cycle.",
+        "try/except ValueError around dag.order()."
+      ],
+      "expected": "ok\ncycle"
+    },
+    {
+      "id": "g4",
+      "title": "Explain the DAG file",
+      "kind": "written",
+      "prompt": "Using the Airflow DAG file in the lesson, explain in your own words what `extract >> transform >> load` declares, what the scheduler does with the file, and which line would be a mistake if it called an external API at the top level.",
+      "starter": "The >> line:\nThe scheduler:\nA mistake:\n",
+      "solution": "`extract >> transform >> load` declares dependencies: transform may start only after extract has succeeded, and load only after transform. The scheduler parses the file repeatedly to learn the DAG, creates DAG runs when their time has come and queues the task instances whose upstream tasks have succeeded; workers run the tasks and every state is written to the metadata database. A call to an external API at the top level of the file (outside a task function) would run on every parse, not once per run, so it would hit the API and slow the scheduler constantly; the call belongs inside a task.",
+      "rubric": [
+        "States that >> orders tasks (upstream before downstream).",
+        "Says the scheduler parses the file repeatedly and starts ready task instances.",
+        "Identifies top-level code as running on every parse.",
+        "Says the call should move into a task."
+      ],
+      "hints": [
+        "Read >> as 'before'.",
+        "Think about how often the scheduler reads the file.",
+        "Where does work belong in a DAG file?"
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Blast radius of a failure",
+      "kind": "python",
+      "prompt": "Write `downstream(dag, task_id)` returning the sorted list of all tasks that depend on `task_id` directly or indirectly (not including itself). Build the DAG in `BUILD` below and print `downstream(dag, \"transform\")`, `downstream(dag, \"load\")` and `downstream(dag, \"report\")`, one list per line.",
+      "starter": "import sqlite3\n\n\nclass Dag:\n    def __init__(self, dag_id):\n        self.dag_id = dag_id\n        self.tasks = {}\n        self.upstream = {}\n\n    def add_task(self, task_id, func=None):\n        if task_id in self.tasks:\n            raise ValueError(f\"duplicate task_id {task_id}\")\n        self.tasks[task_id] = func or (lambda: None)\n        self.upstream[task_id] = set()\n\n    def link(self, upstream_id, downstream_id):\n        self.upstream[downstream_id].add(upstream_id)\n\n    def levels(self):\n        remaining = {t: set(u) for t, u in self.upstream.items()}\n        result = []\n        while remaining:\n            ready = sorted(t for t, u in remaining.items() if not u)\n            if not ready:\n                raise ValueError(\"cycle detected\")\n            result.append(ready)\n            for t in ready:\n                del remaining[t]\n            for u in remaining.values():\n                u.difference_update(ready)\n        return result\n\n    def order(self):\n        return [t for level in self.levels() for t in level]\n\ndag = Dag(\"orders_etl\")\nfor task_id in [\"extract\", \"transform\", \"load\", \"validate\", \"report\"]:\n    dag.add_task(task_id)\ndag.link(\"extract\", \"transform\")\ndag.link(\"transform\", \"validate\")\ndag.link(\"transform\", \"load\")\ndag.link(\"validate\", \"report\")\ndag.link(\"load\", \"report\")\n\n\ndef downstream(dag, task_id):\n    return []\n\n\n# print three lists\n",
+      "solution": "import sqlite3\n\n\nclass Dag:\n    def __init__(self, dag_id):\n        self.dag_id = dag_id\n        self.tasks = {}\n        self.upstream = {}\n\n    def add_task(self, task_id, func=None):\n        if task_id in self.tasks:\n            raise ValueError(f\"duplicate task_id {task_id}\")\n        self.tasks[task_id] = func or (lambda: None)\n        self.upstream[task_id] = set()\n\n    def link(self, upstream_id, downstream_id):\n        self.upstream[downstream_id].add(upstream_id)\n\n    def levels(self):\n        remaining = {t: set(u) for t, u in self.upstream.items()}\n        result = []\n        while remaining:\n            ready = sorted(t for t, u in remaining.items() if not u)\n            if not ready:\n                raise ValueError(\"cycle detected\")\n            result.append(ready)\n            for t in ready:\n                del remaining[t]\n            for u in remaining.values():\n                u.difference_update(ready)\n        return result\n\n    def order(self):\n        return [t for level in self.levels() for t in level]\n\ndag = Dag(\"orders_etl\")\nfor task_id in [\"extract\", \"transform\", \"load\", \"validate\", \"report\"]:\n    dag.add_task(task_id)\ndag.link(\"extract\", \"transform\")\ndag.link(\"transform\", \"validate\")\ndag.link(\"transform\", \"load\")\ndag.link(\"validate\", \"report\")\ndag.link(\"load\", \"report\")\n\n\ndef downstream(dag, task_id):\n    found = set()\n    frontier = [task_id]\n    while frontier:\n        current = frontier.pop()\n        for t, ups in dag.upstream.items():\n            if current in ups and t not in found:\n                found.add(t)\n                frontier.append(t)\n    return sorted(found)\n\n\nfor t in [\"transform\", \"load\", \"report\"]:\n    print(downstream(dag, t))\n",
+      "expected": "['load', 'report', 'validate']\n['report']\n[]"
+    },
+    {
+      "id": "i2",
+      "title": "Rerun only what did not succeed",
+      "kind": "python",
+      "prompt": "Write `run(dag, states, broken)`: go through `dag.order()`; skip tasks already `success` in `states`; a task whose upstream tasks are not all `success` gets `upstream_failed`; a task whose id is in `broken` gets `failed`; otherwise it gets `success`. It updates `states` in place. Run it once with `broken = {\"transform\"}` on an empty `states` dict and print `sorted(states.items())`, then run it again with `broken = set()` on the same dict and print `sorted(states.items())` again.",
+      "starter": "import sqlite3\n\n\nclass Dag:\n    def __init__(self, dag_id):\n        self.dag_id = dag_id\n        self.tasks = {}\n        self.upstream = {}\n\n    def add_task(self, task_id, func=None):\n        if task_id in self.tasks:\n            raise ValueError(f\"duplicate task_id {task_id}\")\n        self.tasks[task_id] = func or (lambda: None)\n        self.upstream[task_id] = set()\n\n    def link(self, upstream_id, downstream_id):\n        self.upstream[downstream_id].add(upstream_id)\n\n    def levels(self):\n        remaining = {t: set(u) for t, u in self.upstream.items()}\n        result = []\n        while remaining:\n            ready = sorted(t for t, u in remaining.items() if not u)\n            if not ready:\n                raise ValueError(\"cycle detected\")\n            result.append(ready)\n            for t in ready:\n                del remaining[t]\n            for u in remaining.values():\n                u.difference_update(ready)\n        return result\n\n    def order(self):\n        return [t for level in self.levels() for t in level]\n\ndag = Dag(\"orders_etl\")\nfor task_id in [\"extract\", \"transform\", \"load\", \"validate\", \"report\"]:\n    dag.add_task(task_id)\ndag.link(\"extract\", \"transform\")\ndag.link(\"transform\", \"validate\")\ndag.link(\"transform\", \"load\")\ndag.link(\"validate\", \"report\")\ndag.link(\"load\", \"report\")\n\n\ndef run(dag, states, broken):\n    pass\n\n\nstates = {}\n# run twice and print after each run\n",
+      "solution": "import sqlite3\n\n\nclass Dag:\n    def __init__(self, dag_id):\n        self.dag_id = dag_id\n        self.tasks = {}\n        self.upstream = {}\n\n    def add_task(self, task_id, func=None):\n        if task_id in self.tasks:\n            raise ValueError(f\"duplicate task_id {task_id}\")\n        self.tasks[task_id] = func or (lambda: None)\n        self.upstream[task_id] = set()\n\n    def link(self, upstream_id, downstream_id):\n        self.upstream[downstream_id].add(upstream_id)\n\n    def levels(self):\n        remaining = {t: set(u) for t, u in self.upstream.items()}\n        result = []\n        while remaining:\n            ready = sorted(t for t, u in remaining.items() if not u)\n            if not ready:\n                raise ValueError(\"cycle detected\")\n            result.append(ready)\n            for t in ready:\n                del remaining[t]\n            for u in remaining.values():\n                u.difference_update(ready)\n        return result\n\n    def order(self):\n        return [t for level in self.levels() for t in level]\n\ndag = Dag(\"orders_etl\")\nfor task_id in [\"extract\", \"transform\", \"load\", \"validate\", \"report\"]:\n    dag.add_task(task_id)\ndag.link(\"extract\", \"transform\")\ndag.link(\"transform\", \"validate\")\ndag.link(\"transform\", \"load\")\ndag.link(\"validate\", \"report\")\ndag.link(\"load\", \"report\")\n\n\ndef run(dag, states, broken):\n    for task_id in dag.order():\n        if states.get(task_id) == \"success\":\n            continue\n        if any(states.get(u) != \"success\" for u in dag.upstream[task_id]):\n            states[task_id] = \"upstream_failed\"\n        elif task_id in broken:\n            states[task_id] = \"failed\"\n        else:\n            states[task_id] = \"success\"\n\n\nstates = {}\nrun(dag, states, {\"transform\"})\nprint(sorted(states.items()))\nrun(dag, states, set())\nprint(sorted(states.items()))\n",
+      "expected": "[('extract', 'success'), ('load', 'upstream_failed'), ('report', 'upstream_failed'), ('transform', 'failed'), ('validate', 'upstream_failed')]\n[('extract', 'success'), ('load', 'success'), ('report', 'success'), ('transform', 'success'), ('validate', 'success')]"
+    },
+    {
+      "id": "i3",
+      "title": "Design a DAG",
+      "kind": "written",
+      "required": false,
+      "prompt": "Design the DAG for this job: download a daily file, validate it, load it into a staging table, then in parallel refresh two reporting tables, and finally send a notification. List the tasks, write the dependency line with `>>` (use a list for the parallel tasks), and explain which tasks end up `upstream_failed` if validation fails.",
+      "starter": "Tasks:\n\nDependencies:\n\nIf validate fails:\n",
+      "solution": "Tasks: `download`, `validate`, `load_staging`, `refresh_sales`, `refresh_customers`, `notify`. Dependencies: `download >> validate >> load_staging >> [refresh_sales, refresh_customers] >> notify`. The two refresh tasks depend only on `load_staging`, so they can run in parallel; `notify` waits for both. If `validate` fails, it is `failed`, and every task after it (`load_staging`, `refresh_sales`, `refresh_customers`, `notify`) is `upstream_failed`; `download` stays `success`. After the cause is fixed, clearing `validate` lets the downstream tasks run again.",
+      "rubric": [
+        "Lists the tasks with unique ids and the right dependency chain.",
+        "Shows the two refresh tasks as parallel after load_staging.",
+        "Names all four downstream tasks as upstream_failed.",
+        "Distinguishes the failed task from the upstream_failed tasks."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "apache-airflow"
+    ],
+    "note": "Airflow is not installed in the browser or in this course environment, so the DAG file in the lesson is shown in a fence, is not executed, and every number or result in the lesson comes from the pure-Python DAG model. To run real Airflow, create a virtual environment and install apache-airflow with the official constraints file for your Airflow and Python versions (pip install \"apache-airflow==<version>\" --constraint <constraints-url>), then run airflow standalone and put the DAG file in the dags folder; or use the official Docker Compose file from the Airflow documentation. Import paths differ between Airflow 2 and 3, so follow the documentation of the version you install."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does 'acyclic' mean for a DAG?",
+      "options": [
+        "Tasks must run on a fixed time",
+        "Following the dependency arrows never leads back to the starting task",
+        "Every task has exactly one upstream task",
+        "Tasks cannot run in parallel"
+      ],
+      "answer": 1,
+      "explanation": "A cycle would make tasks wait for each other forever. Parallel tasks and tasks with several upstreams are normal."
+    },
+    {
+      "id": "c2",
+      "question": "In the model, load and validate both depend only on transform. What does that allow?",
+      "options": [
+        "They must run in alphabetical order",
+        "They are in the same level and may run in parallel",
+        "They are the same task",
+        "The DAG has a cycle"
+      ],
+      "answer": 1,
+      "explanation": "Tasks with no dependency between them are ready at the same moment. The model sorts names only to make output stable."
+    },
+    {
+      "id": "c3",
+      "question": "Task B depends on A, C depends on B. A fails. What are the states of B and C?",
+      "options": [
+        "B failed, C failed",
+        "B upstream_failed, C upstream_failed",
+        "B success, C upstream_failed",
+        "Both skipped"
+      ],
+      "answer": 1,
+      "explanation": "Only A raised an error. Tasks that cannot run because of an upstream failure get upstream_failed; they were not attempted."
+    },
+    {
+      "id": "c4",
+      "question": "What does this print? calls = {'n': 0}; def f(): calls['n'] += 1; [f() for _ in range(3)]; print(calls['n']) (a model of top-level code and parsing)",
+      "options": [
+        "0",
+        "1",
+        "3",
+        "It depends on the task"
+      ],
+      "answer": 2,
+      "explanation": "Top-level code runs each time the file is parsed, here three times. Only task functions run once per task instance."
+    },
+    {
+      "id": "c5",
+      "question": "Where does Airflow keep the states of task instances?",
+      "options": [
+        "In the memory of the scheduler",
+        "In the metadata database",
+        "In the DAG file",
+        "On the workers' disks"
+      ],
+      "answer": 1,
+      "explanation": "All components share the metadata database; that is why a restarted scheduler can continue and why the UI shows states from every worker."
+    }
+  ]
+}

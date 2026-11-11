@@ -1,0 +1,182 @@
+{
+  "time": {
+    "theory": 35,
+    "examples": 30,
+    "guided": 25,
+    "independent": 25,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-database-connectivity",
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "group-and-aggregate"
+    ],
+    "projects": [
+      "csv-to-postgres-etl"
+    ],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "id": "a159",
+  "guided": [
+    {
+      "id": "g1",
+      "title": "A parameterised extract",
+      "kind": "python",
+      "prompt": "Below is a `sales` table. Write `extract(conn, status)` that returns a DataFrame with the columns `region` and `revenue` (sum of `amount`) for rows with the given status, grouped by region and ordered by region, using a `?` parameter. Print `extract(conn, 'paid').to_string(index=False)`.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (month TEXT, region TEXT, amount REAL, status TEXT)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?, ?, ?)\", [\n    (\"2025-01\", \"north\", 100.0, \"paid\"), (\"2025-01\", \"south\", 60.0, \"paid\"), (\"2025-01\", \"north\", 40.0, \"failed\"),\n    (\"2025-02\", \"north\", 80.0, \"paid\"), (\"2025-02\", \"south\", 90.0, \"paid\"), (\"2025-03\", \"south\", 70.0, \"paid\"),\n    (\"2025-03\", \"north\", 30.0, \"paid\"), (\"2025-03\", \"south\", 20.0, \"refunded\"),\n])\n\ndef extract(conn, status):\n    pass\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (month TEXT, region TEXT, amount REAL, status TEXT)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?, ?, ?)\", [\n    (\"2025-01\", \"north\", 100.0, \"paid\"), (\"2025-01\", \"south\", 60.0, \"paid\"), (\"2025-01\", \"north\", 40.0, \"failed\"),\n    (\"2025-02\", \"north\", 80.0, \"paid\"), (\"2025-02\", \"south\", 90.0, \"paid\"), (\"2025-03\", \"south\", 70.0, \"paid\"),\n    (\"2025-03\", \"north\", 30.0, \"paid\"), (\"2025-03\", \"south\", 20.0, \"refunded\"),\n])\n\ndef extract(conn, status):\n    sql = 'SELECT region, SUM(amount) AS revenue FROM sales WHERE status = ? GROUP BY region ORDER BY region'\n    return pd.read_sql_query(sql, conn, params=(status,))\n\nprint(extract(conn, 'paid').to_string(index=False))\nconn.close()\n",
+      "hints": [
+        "Use pd.read_sql_query(sql, conn, params=(status,)).",
+        "The SQL is SELECT region, SUM(amount) AS revenue FROM sales WHERE status = ? GROUP BY region ORDER BY region.",
+        "Print the DataFrame with to_string(index=False)."
+      ],
+      "expected": "region  revenue\n north    210.0\n south    220.0"
+    },
+    {
+      "id": "g2",
+      "title": "Transform without touching the input",
+      "kind": "python",
+      "prompt": "Using the same table, build `df` with the paid revenue per region (columns `region`, `revenue`). Write `transform(df)` that returns a copy with an extra column `share_pct`: each region's revenue divided by the total, times 100, rounded to 1 decimal. Print the result with `to_string(index=False)`, then print `'input columns:', list(df.columns)` to show the input did not change.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (month TEXT, region TEXT, amount REAL, status TEXT)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?, ?, ?)\", [\n    (\"2025-01\", \"north\", 100.0, \"paid\"), (\"2025-01\", \"south\", 60.0, \"paid\"), (\"2025-01\", \"north\", 40.0, \"failed\"),\n    (\"2025-02\", \"north\", 80.0, \"paid\"), (\"2025-02\", \"south\", 90.0, \"paid\"), (\"2025-03\", \"south\", 70.0, \"paid\"),\n    (\"2025-03\", \"north\", 30.0, \"paid\"), (\"2025-03\", \"south\", 20.0, \"refunded\"),\n])\n\ndf = pd.read_sql_query(\"SELECT region, SUM(amount) AS revenue FROM sales WHERE status = 'paid' GROUP BY region ORDER BY region\", conn)\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (month TEXT, region TEXT, amount REAL, status TEXT)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?, ?, ?)\", [\n    (\"2025-01\", \"north\", 100.0, \"paid\"), (\"2025-01\", \"south\", 60.0, \"paid\"), (\"2025-01\", \"north\", 40.0, \"failed\"),\n    (\"2025-02\", \"north\", 80.0, \"paid\"), (\"2025-02\", \"south\", 90.0, \"paid\"), (\"2025-03\", \"south\", 70.0, \"paid\"),\n    (\"2025-03\", \"north\", 30.0, \"paid\"), (\"2025-03\", \"south\", 20.0, \"refunded\"),\n])\n\ndf = pd.read_sql_query(\"SELECT region, SUM(amount) AS revenue FROM sales WHERE status = 'paid' GROUP BY region ORDER BY region\", conn)\n\ndef transform(df):\n    out = df.copy()\n    out['share_pct'] = (out['revenue'] / out['revenue'].sum() * 100).round(1)\n    return out\n\nprint(transform(df).to_string(index=False))\nprint('input columns:', list(df.columns))\nconn.close()\n",
+      "hints": [
+        "Start the function with out = df.copy().",
+        "share_pct = revenue / revenue.sum() * 100, then .round(1).",
+        "Return out, and print the original df.columns afterwards."
+      ],
+      "expected": "region  revenue  share_pct\n north    210.0       48.8\n south    220.0       51.2\ninput columns: ['region', 'revenue']"
+    },
+    {
+      "id": "g3",
+      "title": "Pivot the monthly result",
+      "kind": "python",
+      "prompt": "Query the paid revenue per month and region from the `sales` table (columns `month`, `region`, `revenue`, ordered by month then region), then use `pivot_table` with months as the index, regions as columns, `fill_value=0`, and print the wide table with `to_string()`.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (month TEXT, region TEXT, amount REAL, status TEXT)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?, ?, ?)\", [\n    (\"2025-01\", \"north\", 100.0, \"paid\"), (\"2025-01\", \"south\", 60.0, \"paid\"), (\"2025-01\", \"north\", 40.0, \"failed\"),\n    (\"2025-02\", \"north\", 80.0, \"paid\"), (\"2025-02\", \"south\", 90.0, \"paid\"), (\"2025-03\", \"south\", 70.0, \"paid\"),\n    (\"2025-03\", \"north\", 30.0, \"paid\"), (\"2025-03\", \"south\", 20.0, \"refunded\"),\n])\n\nlong = None\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (month TEXT, region TEXT, amount REAL, status TEXT)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?, ?, ?)\", [\n    (\"2025-01\", \"north\", 100.0, \"paid\"), (\"2025-01\", \"south\", 60.0, \"paid\"), (\"2025-01\", \"north\", 40.0, \"failed\"),\n    (\"2025-02\", \"north\", 80.0, \"paid\"), (\"2025-02\", \"south\", 90.0, \"paid\"), (\"2025-03\", \"south\", 70.0, \"paid\"),\n    (\"2025-03\", \"north\", 30.0, \"paid\"), (\"2025-03\", \"south\", 20.0, \"refunded\"),\n])\n\nlong = pd.read_sql_query(\"SELECT month, region, SUM(amount) AS revenue FROM sales WHERE status = 'paid' GROUP BY month, region ORDER BY month, region\", conn)\nwide = long.pivot_table(index='month', columns='region', values='revenue', aggfunc='sum', fill_value=0)\nprint(wide.to_string())\nconn.close()\n",
+      "hints": [
+        "Group by month and region in the SQL, with SUM(amount) AS revenue.",
+        "long.pivot_table(index='month', columns='region', values='revenue', ...).",
+        "Add aggfunc='sum' and fill_value=0, then print(wide.to_string())."
+      ],
+      "expected": "region   north  south\nmonth                \n2025-01  100.0   60.0\n2025-02   80.0   90.0\n2025-03   30.0   70.0"
+    },
+    {
+      "id": "g4",
+      "title": "Catch the fan-out",
+      "kind": "python",
+      "prompt": "The `orders` table has 3 orders and `tags` has two rows for order 2. Compute `SUM(amount)` from `orders` alone and after joining to `tags`, then print `alone 350.0 joined 550.0 inflated True` using an f-string with the values and the comparison `joined != alone`.",
+      "starter": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE orders (order_id INTEGER, amount REAL)')\nconn.execute('CREATE TABLE tags (order_id INTEGER, tag TEXT)')\nconn.executemany('INSERT INTO orders VALUES (?, ?)', [(1, 100.0), (2, 200.0), (3, 50.0)])\nconn.executemany('INSERT INTO tags VALUES (?, ?)', [(1, 'a'), (2, 'b'), (2, 'c'), (3, 'a')])\n",
+      "solution": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\nconn.execute('CREATE TABLE orders (order_id INTEGER, amount REAL)')\nconn.execute('CREATE TABLE tags (order_id INTEGER, tag TEXT)')\nconn.executemany('INSERT INTO orders VALUES (?, ?)', [(1, 100.0), (2, 200.0), (3, 50.0)])\nconn.executemany('INSERT INTO tags VALUES (?, ?)', [(1, 'a'), (2, 'b'), (2, 'c'), (3, 'a')])\nalone = conn.execute('SELECT SUM(amount) FROM orders').fetchone()[0]\njoined = conn.execute('SELECT SUM(o.amount) FROM orders o JOIN tags t ON t.order_id = o.order_id').fetchone()[0]\nprint(f'alone {alone} joined {joined} inflated {joined != alone}')\nconn.close()\n",
+      "hints": [
+        "Two queries: one on orders only, one joining orders o to tags t on order_id.",
+        "Both use SUM for the amount column, and fetchone()[0] takes the number.",
+        "f'alone {alone} joined {joined} inflated {joined != alone}'."
+      ],
+      "expected": "alone 350.0 joined 550.0 inflated True"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "A pipeline with a run log",
+      "kind": "python",
+      "prompt": "Using the `sales` table, write `run(conn, start, end)` where `start` and `end` are month texts (use `month >= ? AND month < ?`). It must query paid revenue per region, assert that there is one row per region, add `share_pct` (1 decimal) with a copy, and return a dict `{'start': start, 'end': end, 'rows': <number of rows>, 'total': <rounded revenue total as float>, 'top': <region with highest revenue>}`. Call it for `'2025-01'` to `'2025-03'` (so January and February only), print the dict, then call it again and print `same: True` or `same: False` for whether the two dicts are equal.",
+      "starter": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (month TEXT, region TEXT, amount REAL, status TEXT)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?, ?, ?)\", [\n    (\"2025-01\", \"north\", 100.0, \"paid\"), (\"2025-01\", \"south\", 60.0, \"paid\"), (\"2025-01\", \"north\", 40.0, \"failed\"),\n    (\"2025-02\", \"north\", 80.0, \"paid\"), (\"2025-02\", \"south\", 90.0, \"paid\"), (\"2025-03\", \"south\", 70.0, \"paid\"),\n    (\"2025-03\", \"north\", 30.0, \"paid\"), (\"2025-03\", \"south\", 20.0, \"refunded\"),\n])\n\ndef run(conn, start, end):\n    pass\n",
+      "solution": "import sqlite3\nimport pandas as pd\n\nconn = sqlite3.connect(\":memory:\")\nconn.execute(\"CREATE TABLE sales (month TEXT, region TEXT, amount REAL, status TEXT)\")\nconn.executemany(\"INSERT INTO sales VALUES (?, ?, ?, ?)\", [\n    (\"2025-01\", \"north\", 100.0, \"paid\"), (\"2025-01\", \"south\", 60.0, \"paid\"), (\"2025-01\", \"north\", 40.0, \"failed\"),\n    (\"2025-02\", \"north\", 80.0, \"paid\"), (\"2025-02\", \"south\", 90.0, \"paid\"), (\"2025-03\", \"south\", 70.0, \"paid\"),\n    (\"2025-03\", \"north\", 30.0, \"paid\"), (\"2025-03\", \"south\", 20.0, \"refunded\"),\n])\n\ndef run(conn, start, end):\n    sql = \"SELECT region, SUM(amount) AS revenue FROM sales WHERE status = 'paid' AND month >= ? AND month < ? GROUP BY region ORDER BY region\"\n    df = pd.read_sql_query(sql, conn, params=(start, end))\n    assert not df.duplicated(['region']).any()\n    out = df.copy()\n    out['share_pct'] = (out['revenue'] / out['revenue'].sum() * 100).round(1)\n    top = out.sort_values('revenue', ascending=False, kind='stable').iloc[0]['region']\n    return {'start': start, 'end': end, 'rows': len(out), 'total': round(float(out['revenue'].sum()), 2), 'top': top}\n\nfirst = run(conn, '2025-01', '2025-03')\nprint(first)\nprint('same:', first == run(conn, '2025-01', '2025-03'))\nconn.close()\n",
+      "expected": "{'start': '2025-01', 'end': '2025-03', 'rows': 2, 'total': 330.0, 'top': 'north'}\nsame: True"
+    },
+    {
+      "id": "i2",
+      "title": "Monthly orders with a running total",
+      "kind": "sql",
+      "prompt": "On the browser database, return one row per month of 1997 with the columns `month` (the first day of the month, as a date), `orders` (number of orders) and `running_total` (cumulative number of orders up to and including that month, using a window function). Order by `month` and return only the first 6 rows. Use `date_trunc('month', order_date)::date` and a CTE or subquery.",
+      "starter": "SELECT order_date\nFROM orders\nWHERE order_date >= DATE '1997-01-01'\nLIMIT 6;\n",
+      "solution": "WITH monthly AS (\n  SELECT date_trunc('month', order_date)::date AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_date >= DATE '1997-01-01' AND order_date < DATE '1998-01-01'\n  GROUP BY 1\n)\nSELECT month, orders, SUM(orders) OVER (ORDER BY month) AS running_total\nFROM monthly\nORDER BY month\nLIMIT 6;\n",
+      "ordered": true
+    },
+    {
+      "id": "i3",
+      "title": "A reproducibility checklist",
+      "kind": "written",
+      "prompt": "A colleague sends a notebook that builds a monthly revenue report. It reads a global DataFrame `df`, edits it in place, uses `datetime.now()` to pick the month, and joins orders to a payments table before summing the amount. In 5 to 8 sentences, list the changes you would make so that the report becomes reproducible and correct, and name the check that would have caught the join problem.",
+      "starter": "Write your answer here.",
+      "solution": "I would turn the notebook into functions that take their inputs as arguments: an extract function with start and end parameters instead of datetime.now(), so that the month is an explicit choice that can be repeated later. The transform function would start with df.copy() and return a new DataFrame, so that running it twice gives the same result and the global data is never changed. I would give every query an ORDER BY so row order cannot change between runs. For the join, I would aggregate the payments table to one row per order before joining, or sum a measure that belongs to the many side, and I would add a grain check (no duplicated order ids) and a reconciliation of the total before and after the join; the reconciliation, comparing the sum from orders alone with the sum after the join, would have shown the inflated number. Finally I would write a run log with the parameters, the number of rows and the total, and keep it with the output.",
+      "required": false,
+      "rubric": [
+        "Replaces datetime.now() with explicit parameters",
+        "Avoids in-place changes of shared data (copy, return new object)",
+        "Fixes the fan-out by aggregating the many side or reconciling totals",
+        "Mentions deterministic ordering or a run log"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A query returns one row per order and you join it to a payments table where some orders have two payments, then `SUM(o.amount)`. What happens to the total?",
+      "options": [
+        "It is too high, because orders with two payments are counted twice",
+        "It is unchanged, because SUM ignores duplicates",
+        "The query fails with a duplicate key error",
+        "It is too low because the join drops rows"
+      ],
+      "answer": 0,
+      "explanation": "A join repeats the left row for every match on the right. SUM does not remove repeats and the database raises no error, so the total is silently inflated."
+    },
+    {
+      "id": "c2",
+      "question": "What does `print(wide['total'].pct_change(fill_method=None).iloc[0])` show for the first month of a series?",
+      "options": [
+        "nan, because there is no earlier month to compare",
+        "0.0, because there is no change",
+        "An error, because the first row has no predecessor",
+        "The value of the first month"
+      ],
+      "answer": 0,
+      "explanation": "pct_change compares each row with the previous one. The first row has no previous row, so the result is missing (NaN). It is not zero and no error is raised."
+    },
+    {
+      "id": "c3",
+      "question": "A function does `df['x'] = df['x'] * 2` on the DataFrame passed in and returns the sum. You call it twice on the same object. What is the second sum compared with the first?",
+      "options": [
+        "Twice as large, because the first call changed the input",
+        "The same, because the function returns a number",
+        "Half as large",
+        "The same, because pandas copies on assignment"
+      ],
+      "answer": 0,
+      "explanation": "The assignment changes the caller's DataFrame. The second call doubles the already doubled column. Copying inside the function (df.copy()) prevents this."
+    },
+    {
+      "id": "c4",
+      "question": "Why use `order_date >= '2025-03-01' AND order_date < '2025-04-01'` for March instead of `order_date <= '2025-03-31'`?",
+      "options": [
+        "The half-open range also catches rows with a time later on the 31st and never double counts the boundary",
+        "It runs faster",
+        "<= is not allowed on dates",
+        "It makes the query parameterised"
+      ],
+      "answer": 0,
+      "explanation": "With timestamps, '2025-03-31 14:00' is greater than '2025-03-31', so the <= version loses that day's afternoon rows. The next month's start as an exclusive end works for dates and timestamps alike."
+    },
+    {
+      "id": "c5",
+      "question": "Where should the aggregation of 40 million order rows to 24 monthly rows happen?",
+      "options": [
+        "In the query, so only 24 rows travel to pandas",
+        "In pandas, because it is more flexible",
+        "In Excel after exporting",
+        "Anywhere: the result is the same and the cost is the same"
+      ],
+      "answer": 0,
+      "explanation": "The result is the same but the cost is not: aggregating in the database moves 24 rows instead of 40 million. Reshaping the small result (pivot, growth) is then cheap in pandas."
+    }
+  ]
+}

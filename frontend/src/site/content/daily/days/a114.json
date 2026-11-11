@@ -1,0 +1,190 @@
+{
+  "id": "a114",
+  "time": {
+    "theory": 35,
+    "examples": 25,
+    "guided": 25,
+    "independent": 30,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-pandas"
+    ],
+    "questions": [],
+    "pyExercises": [
+      "pandas-groupby-agg",
+      "percent-change"
+    ],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Visual ratio of a truncated bar",
+      "kind": "python",
+      "prompt": "Two bars show 120 and 150. For each axis baseline in `[0, 80, 100]`, print one line `baseline B: visual ratio R` where R is `(150 - B) / (120 - B)` rounded to 2 decimals (for example `baseline 0: visual ratio 1.25`).",
+      "starter": "a, b = 120, 150\nfor baseline in [0, 80, 100]:\n    pass\n",
+      "solution": "a, b = 120, 150\nfor baseline in [0, 80, 100]:\n    print(f\"baseline {baseline}: visual ratio {(b - baseline) / (a - baseline):.2f}\")\n",
+      "expected": "baseline 0: visual ratio 1.25\nbaseline 80: visual ratio 1.75\nbaseline 100: visual ratio 2.50",
+      "hints": [
+        "Visible height is the value minus the baseline.",
+        "Divide the visible height of the larger bar by that of the smaller.",
+        "Format with `:.2f` inside an f-string."
+      ]
+    },
+    {
+      "id": "g2",
+      "title": "Sorted bar data",
+      "kind": "python",
+      "prompt": "Using the `sales` table, print the categories ordered from highest to lowest revenue as a single comma-separated line (for example `A, B, C`), with no other output.",
+      "starter": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"category\": [\"Toys\", \"Home\", \"Beauty\", \"Sports\", \"Electronics\", \"Garden\"],\n    \"revenue\": [12400, 31800, 20900, 18700, 45200, 2600],\n})\n\n# print the category names, highest revenue first\n",
+      "solution": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"category\": [\"Toys\", \"Home\", \"Beauty\", \"Sports\", \"Electronics\", \"Garden\"],\n    \"revenue\": [12400, 31800, 20900, 18700, 45200, 2600],\n})\n\nordered = sales.sort_values(\"revenue\", ascending=False)\nprint(\", \".join(ordered[\"category\"]))\n",
+      "expected": "Electronics, Home, Beauty, Sports, Toys, Garden",
+      "hints": [
+        "Sort the DataFrame by the revenue column.",
+        "Use `ascending=False` for highest first.",
+        "Join the sorted category column with `\", \".join(...)`."
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Which categories belong in 'Other'",
+      "kind": "python",
+      "prompt": "Using `sales`, compute each category's share of total revenue in percent (rounded to 1 decimal). Print the categories with a share below 5 percent, one per line as `name: share%`, in the original table order. The chart brief says to group them into `Other`.",
+      "starter": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"category\": [\"Toys\", \"Home\", \"Beauty\", \"Sports\", \"Electronics\", \"Garden\"],\n    \"revenue\": [12400, 31800, 20900, 18700, 45200, 2600],\n})\n\n# shares and the small categories\n",
+      "solution": "import pandas as pd\n\nsales = pd.DataFrame({\n    \"category\": [\"Toys\", \"Home\", \"Beauty\", \"Sports\", \"Electronics\", \"Garden\"],\n    \"revenue\": [12400, 31800, 20900, 18700, 45200, 2600],\n})\n\nshare = (sales.set_index(\"category\")[\"revenue\"] / sales[\"revenue\"].sum() * 100).round(1)\nfor name, value in share[share < 5].items():\n    print(f\"{name}: {value}%\")\n",
+      "expected": "Garden: 2.0%",
+      "hints": [
+        "Divide each revenue by the total and multiply by 100.",
+        "Filter the series with a boolean condition `share < 5`.",
+        "Loop over `.items()` and print an f-string."
+      ]
+    },
+    {
+      "id": "g4",
+      "title": "Critique a chart brief",
+      "kind": "written",
+      "prompt": "A colleague's chart shows monthly revenue for 12 months as a 3-D pie chart with a legend, titled `Revenue`. The reader needs to know whether revenue is rising. Write the corrected chart brief using the template from the lesson (question, variables, family, chart, check).",
+      "starter": "Question: ...\nVariables: ...\nFamily: ...\nChart: ...\nCheck: ...",
+      "solution": "Question: Is monthly revenue rising over the year?\n\nVariables: month (time, ordered), revenue (numeric).\n\nFamily: trend.\n\nChart: line chart with 12 points, months on the x axis in calendar order, revenue on the y axis with units. A 3-D pie fails twice: the question is about change over ordered time, which a pie cannot show, and 12 slices are unreadable.\n\nCheck: label the y axis with the unit, state the finding in the title (for example `Revenue rose in H2 after a dip in March`), no legend because there is one series, and a non-zero baseline is acceptable for the line if the axis is labelled.",
+      "hints": [
+        "Start from the reader's question.",
+        "Which family does 'is it rising' belong to?",
+        "Pies show composition at one moment, not change."
+      ],
+      "rubric": [
+        "Names the family as trend and rejects the pie for ordered time.",
+        "Chooses a line chart with months in order.",
+        "Mentions the axis label and a title that states the finding.",
+        "Removes the 3-D effect and the unneeded legend."
+      ]
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Chart-choice function",
+      "kind": "python",
+      "prompt": "Write `choose(family, n_categories)` returning `'bar'` for `comparison`, `'line'` for `trend`, `'histogram'` for `distribution`, `'scatter'` for `relationship`, `'stacked bar'` for `composition` when `n_categories <= 5`, and `'sorted bar'` for composition otherwise; raise `ValueError` for any other family. Print the results for `('comparison', 6)`, `('composition', 3)`, `('composition', 9)`, then print `error` if `choose('map', 1)` raises, each on its own line.",
+      "starter": "def choose(family, n_categories):\n    pass\n",
+      "solution": "def choose(family, n_categories):\n    table = {\"comparison\": \"bar\", \"trend\": \"line\", \"distribution\": \"histogram\", \"relationship\": \"scatter\"}\n    if family in table:\n        return table[family]\n    if family == \"composition\":\n        return \"stacked bar\" if n_categories <= 5 else \"sorted bar\"\n    raise ValueError(family)\n\n\nprint(choose(\"comparison\", 6))\nprint(choose(\"composition\", 3))\nprint(choose(\"composition\", 9))\ntry:\n    choose(\"map\", 1)\nexcept ValueError:\n    print(\"error\")\n",
+      "expected": "bar\nstacked bar\nsorted bar\nerror"
+    },
+    {
+      "id": "i2",
+      "title": "Exaggeration factor",
+      "kind": "python",
+      "prompt": "A dashboard shows bars for two regions: North 2480, South 2400, with the axis starting at 2300. Compute the true ratio North/South and the visual ratio of bar heights, both rounded to 3 decimals, and the exaggeration factor `(visual - 1) / (true - 1)` rounded to 1 decimal. Print three lines in exactly the format `true X`, `visual Y`, `factor Z`.",
+      "starter": "north, south, baseline = 2480, 2400, 2300\n",
+      "solution": "north, south, baseline = 2480, 2400, 2300\ntrue = north / south\nvisual = (north - baseline) / (south - baseline)\nprint(f\"true {true:.3f}\")\nprint(f\"visual {visual:.3f}\")\nprint(f\"factor {(visual - 1) / (true - 1):.1f}\")\n",
+      "expected": "true 1.033\nvisual 1.800\nfactor 24.0"
+    },
+    {
+      "id": "i3",
+      "title": "Write the chart code and defend it",
+      "kind": "written",
+      "prompt": "Using the `sales` table from the guided exercises, write matplotlib code (it need not run in the browser) that draws a sorted horizontal bar chart of revenue with a zero baseline, a title that states the finding and a labelled axis. Then write two sentences explaining each design choice using ideas from this lesson.",
+      "starter": "import matplotlib.pyplot as plt\n\n# your chart code\n\n# your two sentences\n",
+      "solution": "```python\nimport matplotlib.pyplot as plt\nimport pandas as pd\n\nsales = pd.DataFrame({\"category\": [\"Toys\", \"Home\", \"Beauty\", \"Sports\", \"Electronics\", \"Garden\"],\n                      \"revenue\": [12400, 31800, 20900, 18700, 45200, 2600]})\nordered = sales.sort_values(\"revenue\")\nfig, ax = plt.subplots()\nax.barh(ordered[\"category\"], ordered[\"revenue\"])\nax.set_xlim(left=0)\nax.set_xlabel(\"Revenue (GBP)\")\nax.set_title(\"Electronics earns the most revenue\")\n```\n\nThe bars are sorted because the question is a comparison, and a sorted order lets the reader see the ranking at a glance (ascending order puts the largest bar at the top of a horizontal chart). The axis starts at zero because bar length encodes the value, so a non-zero start would exaggerate differences, and the title states the finding so the reader does not have to infer it.",
+      "rubric": [
+        "Bars are sorted by revenue.",
+        "Value axis starts at zero.",
+        "The axis has a label with the unit.",
+        "The title states a finding, and the explanation links choices to the lesson."
+      ]
+    }
+  ],
+  "environment": {
+    "packages": [
+      "matplotlib"
+    ],
+    "note": "Example 3 uses matplotlib, which the browser cannot load: run it on your own computer after `pip install matplotlib`. The graded exercises are plain Python and run in the browser; the written exercises are self-assessed."
+  },
+  "checks": [
+    {
+      "id": "c1",
+      "question": "A bar chart shows 96 and 100 on an axis that starts at 90. What does a reader see?",
+      "options": [
+        "The second bar looks about 67 percent taller than the first",
+        "The second bar looks about 4 percent taller than the first",
+        "Both bars look equal because the values are close",
+        "The first bar disappears"
+      ],
+      "answer": 0,
+      "explanation": "Visible heights are 6 and 10, so the ratio is 1.67. The true ratio is 1.04. Option B describes the real difference, not what the truncated chart shows."
+    },
+    {
+      "id": "c2",
+      "question": "Which question belongs to the distribution family?",
+      "options": [
+        "How wide is the spread of order values?",
+        "Which region sold the most?",
+        "Did revenue rise this quarter?",
+        "Do bigger orders ship later?"
+      ],
+      "answer": 0,
+      "explanation": "Spread of values is a distribution question. The others are comparison, trend and relationship."
+    },
+    {
+      "id": "c3",
+      "question": "Which visual channel do readers compare most accurately?",
+      "options": [
+        "Position on a common scale",
+        "Area",
+        "Colour hue",
+        "Angle"
+      ],
+      "answer": 0,
+      "explanation": "Position along a shared axis is the most accurate channel; area and hue are weaker, and angle is in between."
+    },
+    {
+      "id": "c4",
+      "question": "When is removing a gridline justified?",
+      "options": [
+        "When it answers no question the reader has",
+        "Always, because gridlines are clutter",
+        "Never, because gridlines are data",
+        "Only in bar charts"
+      ],
+      "answer": 0,
+      "explanation": "Remove an element when it serves no purpose; light gridlines can help readers read values, so the rule is not 'always'."
+    },
+    {
+      "id": "c5",
+      "question": "A line chart of 12 months starts its y axis at 900 instead of 0. Is that acceptable?",
+      "options": [
+        "Yes, if the axis is labelled and the change is not exaggerated",
+        "No, every chart needs a zero baseline",
+        "Only if the line is thick",
+        "Yes, because lines have no baseline"
+      ],
+      "answer": 0,
+      "explanation": "Lines encode value by position and slope, not length, so a labelled non-zero baseline is acceptable. Bars need zero because their length is the value."
+    }
+  ]
+}

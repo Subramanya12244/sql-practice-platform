@@ -1,0 +1,184 @@
+{
+  "id": "d003",
+  "time": {
+    "theory": 30,
+    "examples": 25,
+    "guided": 25,
+    "independent": 35,
+    "review": 15
+  },
+  "links": {
+    "notes": [
+      "python-fundamentals",
+      "python-variables-data-types"
+    ],
+    "questions": [],
+    "projects": [],
+    "mindmaps": [
+      "python-track"
+    ],
+    "patterns": []
+  },
+  "guided": [
+    {
+      "id": "g1",
+      "title": "Split seconds into hours, minutes and seconds",
+      "prompt": "The variable `total_seconds` holds `5025`. Use `//` and `%` to work out the whole hours, the remaining whole minutes and the remaining seconds, and print three lines: `Hours: 1`, `Minutes: 23` and `Seconds: 45` (with the calculated numbers).",
+      "starter": "total_seconds = 5025\nprint(total_seconds)\n",
+      "solution": "total_seconds = 5025\nhours = total_seconds // 3600\nremaining = total_seconds % 3600\nminutes = remaining // 60\nseconds = remaining % 60\nprint(\"Hours:\", hours)\nprint(\"Minutes:\", minutes)\nprint(\"Seconds:\", seconds)\n",
+      "hints": [
+        "There are 3600 seconds in an hour. `//` gives the whole hours and `%` gives what is left over.",
+        "Work on the leftover seconds next: divide them by 60 with `//` for minutes, and use `%` 60 for the seconds.",
+        "Store `remaining = total_seconds % 3600`, then `minutes = remaining // 60` and `seconds = remaining % 60`, and print the three labelled lines."
+      ],
+      "kind": "python",
+      "expected": "Hours: 1\nMinutes: 23\nSeconds: 45"
+    },
+    {
+      "id": "g2",
+      "title": "Average of three scores",
+      "prompt": "Three test scores are stored in `a`, `b` and `c` (80, 90 and 85). Print their average. The expected output is `85.0`. The starter calculates the wrong figure: fix the expression, do not type the answer.",
+      "starter": "a = 80\nb = 90\nc = 85\nprint(a + b + c / 3)\n",
+      "solution": "a = 80\nb = 90\nc = 85\nprint((a + b + c) / 3)\n",
+      "hints": [
+        "Division is worked out before addition, so only `c` is divided in the starter.",
+        "Parentheses change the order: whatever is inside them is calculated first.",
+        "Put the sum in parentheses and divide it by 3: `(a + b + c) / 3`."
+      ],
+      "kind": "python",
+      "expected": "85.0"
+    },
+    {
+      "id": "g3",
+      "title": "Price with tax, rounded",
+      "prompt": "A product costs `49.99` and the tax rate is `0.08` (8 percent). Calculate the price including tax by multiplying the price by `1 + rate`, round the result to 2 decimal places, and print `Total: 53.99`. The number must be calculated by your code.",
+      "starter": "price = 49.99\nrate = 0.08\nprint(\"Total:\", price * (1 + rate))\n",
+      "solution": "price = 49.99\nrate = 0.08\ntotal = price * (1 + rate)\nprint(\"Total:\", round(total, 2))\n",
+      "hints": [
+        "The unrounded total has many decimals. Rounding is done by the `round()` function.",
+        "`round(value, 2)` keeps two digits after the decimal point.",
+        "Print `\"Total:\"` followed by `round(price * (1 + rate), 2)`, or calculate the total first and round that variable."
+      ],
+      "kind": "python",
+      "expected": "Total: 53.99"
+    },
+    {
+      "id": "g4",
+      "title": "Whole pages and a square side",
+      "prompt": "Import the `math` module. There are 47 items and each page holds 10, so print the number of pages needed (partial pages count) as `Pages: 5`. Then print the side length of a square whose area is 144 as `Square side: 12.0`. Both numbers must be calculated by your code.",
+      "starter": "items = 47\nper_page = 10\narea = 144\nprint(\"Pages:\", items / per_page)\n",
+      "solution": "import math\n\nitems = 47\nper_page = 10\narea = 144\nprint(\"Pages:\", math.ceil(items / per_page))\nprint(\"Square side:\", math.sqrt(area))\n",
+      "hints": [
+        "Start with `import math`. Partial pages must be rounded up, not to the nearest value.",
+        "`math.ceil(x)` rounds up to a whole number and `math.sqrt(x)` returns the square root.",
+        "Print `math.ceil(items / per_page)` after the label `Pages:` and `math.sqrt(area)` after `Square side:`."
+      ],
+      "kind": "python",
+      "expected": "Pages: 5\nSquare side: 12.0"
+    }
+  ],
+  "independent": [
+    {
+      "id": "i1",
+      "title": "Cash payout in notes",
+      "prompt": "A cash machine must pay out `amount = 387` using notes of 100, 50 and 10, always using as many large notes as possible. Print four lines, calculated with `//` and `%`, in exactly this form:\n\n```text\n100 notes: 3\n50 notes: 1\n10 notes: 3\nLeft over: 7\n```",
+      "starter": "amount = 387\n",
+      "solution": "amount = 387\nhundreds = amount // 100\nremaining = amount % 100\nfifties = remaining // 50\nremaining = remaining % 50\ntens = remaining // 10\nremaining = remaining % 10\nprint(\"100 notes:\", hundreds)\nprint(\"50 notes:\", fifties)\nprint(\"10 notes:\", tens)\nprint(\"Left over:\", remaining)\n",
+      "kind": "python",
+      "expected": "100 notes: 3\n50 notes: 1\n10 notes: 3\nLeft over: 7"
+    },
+    {
+      "id": "i2",
+      "title": "Revenue change report",
+      "prompt": "Last month's revenue is `last = 1250.0` and this month's is `current = 1387.5`. Print two lines. The first shows the percentage change, `(current - last) / last * 100`, rounded to 1 decimal place. The second shows the absolute difference, using `abs()`. Expected output:\n\n```text\nChange: 11.0 %\nDifference: 137.5\n```",
+      "starter": "last = 1250.0\ncurrent = 1387.5\n",
+      "solution": "last = 1250.0\ncurrent = 1387.5\nchange = (current - last) / last * 100\nprint(\"Change:\", round(change, 1), \"%\")\nprint(\"Difference:\", abs(current - last))\n",
+      "kind": "python",
+      "expected": "Change: 11.0 %\nDifference: 137.5"
+    },
+    {
+      "id": "i3",
+      "title": "Circle measurements and tiles",
+      "required": false,
+      "prompt": "A circular rug has a radius of `7.5`. Using `math.pi`, print three lines: its area rounded to 2 decimals, its circumference (`2 * pi * radius`) rounded to 2 decimals, and the number of whole 1 square unit tiles needed to cover at least the full area (round up). Expected output:\n\n```text\nArea: 176.71\nCircumference: 47.12\nTiles: 177\n```",
+      "starter": "radius = 7.5\n",
+      "solution": "import math\n\nradius = 7.5\narea = math.pi * radius ** 2\ncircumference = 2 * math.pi * radius\nprint(\"Area:\", round(area, 2))\nprint(\"Circumference:\", round(circumference, 2))\nprint(\"Tiles:\", math.ceil(area))\n",
+      "kind": "python",
+      "expected": "Area: 176.71\nCircumference: 47.12\nTiles: 177"
+    }
+  ],
+  "checks": [
+    {
+      "id": "c1",
+      "question": "What does this program print?\n\n```python\nprint(7 // 2, 7 % 2)\n```",
+      "options": [
+        "3.5 1",
+        "3 1",
+        "4 1",
+        "3 0.5"
+      ],
+      "answer": 1,
+      "explanation": "`7 // 2` is floor division, 3, and `7 % 2` is the remainder after taking out three 2s, which is 1. The value 3.5 would come from `/`. Floor division rounds down, so 4 is wrong."
+    },
+    {
+      "id": "c2",
+      "question": "What does this program print?\n\n```python\nprint(2 + 3 * 4)\n```",
+      "options": [
+        "20",
+        "14",
+        "24",
+        "9"
+      ],
+      "answer": 1,
+      "explanation": "Multiplication has higher precedence than addition, so `3 * 4` is calculated first (12) and then 2 is added. The answer 20 comes from reading left to right, which Python does not do for operators of different precedence."
+    },
+    {
+      "id": "c3",
+      "question": "What does this program print?\n\n```python\nprint(10 / 2)\n```",
+      "options": [
+        "5",
+        "5.0",
+        "2.0",
+        "5.5"
+      ],
+      "answer": 1,
+      "explanation": "The `/` operator always returns a float, even when the division is exact, so the result is 5.0. To get the integer 5 you would use `10 // 2`."
+    },
+    {
+      "id": "c4",
+      "question": "What does this program print?\n\n```python\nprint(round(2.5))\n```",
+      "options": [
+        "3",
+        "2",
+        "2.5",
+        "2.0"
+      ],
+      "answer": 1,
+      "explanation": "Python rounds exact halves to the nearest even number, so 2.5 becomes 2 (and 3.5 becomes 4). Rounding every half up, which gives 3, is the school rule but not Python's. `round(x)` with one argument returns an int, so there is no `.0`."
+    },
+    {
+      "id": "c5",
+      "question": "What does this program print?\n\n```python\nprint(-7 // 2)\n```",
+      "options": [
+        "-3",
+        "-4",
+        "-3.5",
+        "3"
+      ],
+      "answer": 1,
+      "explanation": "Floor division rounds down towards negative infinity, and the next whole number below -3.5 is -4. The answer -3 would be truncation towards zero, which is what `int(-7 / 2)` does."
+    },
+    {
+      "id": "c6",
+      "question": "What does this program print?\n\n```python\nprint(0.1 + 0.2)\n```",
+      "options": [
+        "0.3",
+        "0.30000000000000004",
+        "0.3000",
+        "It raises an error"
+      ],
+      "answer": 1,
+      "explanation": "0.1 and 0.2 cannot be stored exactly in binary, so their sum is a tiny bit more than 0.3, and Python prints the full stored value. This is normal float behaviour in every language and is why results are rounded before they are shown."
+    }
+  ]
+}

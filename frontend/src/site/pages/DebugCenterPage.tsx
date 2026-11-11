@@ -262,7 +262,7 @@ export function DebugCenterPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-surface-border pb-3">
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-accent" />
-            <h3 className="font-semibold text-ink">Recent Diagnostic Events ({filteredEvents.length})</h3>
+            <h3 className="font-semibold text-ink">Recent Diagnostic Events ({filteredEvents.length}) <span className="text-xs font-normal text-ink-faint">· saved on this device for 90 days, code and secrets removed</span></h3>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -296,6 +296,10 @@ export function DebugCenterPage() {
               <option value="PACKAGE_LOADING_ERROR">Package Loading</option>
               <option value="DATABASE_SYNC_ERROR">Database Sync</option>
               <option value="PROJECT_VALIDATION_ERROR">Project Validation</option>
+              <option value="APPLICATION_ERROR">Application</option>
+              <option value="WORKER_ERROR">Worker</option>
+              <option value="AUTHENTICATION_ERROR">Sign-in</option>
+              <option value="NETWORK_ERROR">Network</option>
             </select>
           </div>
         </div>

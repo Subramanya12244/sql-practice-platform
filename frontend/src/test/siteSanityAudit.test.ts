@@ -20,6 +20,7 @@ describe("Sanity Audit: Navigation and Routing", () => {
   it("header groups and footer links are fully in sync", () => {
     expect(NAV_GROUPS.map((g) => g.id)).toEqual([
       "dashboard",
+      "daily",
       "learn",
       "practice",
       "projects",
