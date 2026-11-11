@@ -226,3 +226,36 @@ test("DAG simulator: run, see retries and an upstream failure, retry, break a ta
   await expect(page.getByText("Saved on this device.")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("database design playground: relationship exercise, real PostgreSQL, normalization and index demo", async ({ page }) => {
+  test.setTimeout(150_000);
+  await page.goto("/schema-designer");
+  await expect(page.getByRole("heading", { name: "Database design playground" })).toBeVisible();
+  // Start from the one-to-many exercise: its starter has no foreign key, so the check explains what to add.
+  await page.getByLabel("Start from").selectOption({ label: "Exercise: A customer has many orders" });
+  await page.getByRole("button", { name: "Check my design" }).click();
+  await expect(page.getByRole("status").filter({ hasText: /Add a foreign key from orders to customers/ })).toBeVisible();
+  // Add the foreign key through the UI and check again.
+  const ordersTable = page.getByRole("group", { name: "Table orders" });
+  await ordersTable.getByRole("button", { name: "Add column" }).click();
+  await ordersTable.getByLabel("Column name").last().fill("customer_id");
+  await ordersTable.getByLabel("References").last().selectOption("customers.customer_id");
+  await page.getByRole("button", { name: "Check my design" }).click();
+  await expect(page.getByText("That works.")).toBeVisible();
+  // Create it in PostgreSQL; the orphan-row demo shows referential integrity.
+  await page.getByRole("button", { name: "Create in database" }).click();
+  await expect(page.getByText(/Created 2 tables: customers, orders/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText(/foreign key constraint/)).toBeVisible();
+  // Normalization exercise.
+  await page.getByRole("tab", { name: "Normalization exercises" }).click();
+  const card = page.getByRole("region", { name: "Remove a transitive dependency" });
+  await card.getByRole("textbox").fill("emp_id, emp_name, dept_id\ndept_id, dept_name, dept_location");
+  await card.getByRole("button", { name: "Check" }).click();
+  await expect(card.getByText("Correct.")).toBeVisible();
+  // Index demo.
+  await page.getByRole("tab", { name: "Indexes" }).click();
+  await page.getByRole("button", { name: "Run the demo" }).click();
+  await expect(page.getByText("Before the index")).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText(/Seq Scan/).first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
