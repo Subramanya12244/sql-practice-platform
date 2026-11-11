@@ -206,3 +206,23 @@ test("ETL builder: run the example, read the log, break the wiring, save and reo
   await expect(page.getByRole("alert").filter({ hasText: /needs 1 input but has 0/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("DAG simulator: run, see retries and an upstream failure, retry, break a task, save", async ({ page }) => {
+  await page.goto("/dag-simulator");
+  await expect(page.getByRole("heading", { name: "Pipeline orchestration simulator" })).toBeVisible();
+  await page.getByRole("button", { name: "Run the schedule" }).click();
+  const log = page.getByRole("region", { name: "Run log" });
+  await expect(log).toContainText("UP_FOR_RETRY (retry_delay=5m)"); // extract flaked then recovered
+  await expect(log).toContainText("marking it FAILED"); // validate fails on the first run
+  await expect(log).toContainText("upstream_failed and does not run"); // load never started
+  await expect(page.getByRole("table", { name: "DAG runs" })).toContainText("Failed");
+  await page.getByRole("button", { name: "Retry failed tasks" }).click();
+  await expect(log).toContainText("cleared validate, load"); // bad data: the retry runs but fails again
+  // Break the DAG: a task that depends on itself through a cycle is explained.
+  await page.getByRole("button", { name: "extract", exact: true }).first().click();
+  await page.getByRole("group", { name: "Runs after" }).getByLabel("load").check();
+  await expect(page.getByRole("alert").filter({ hasText: /circle/ })).toBeVisible();
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Saved on this device.")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
