@@ -10,6 +10,7 @@ import type { Progress } from "./progress";
 import type { PyExerciseMeta } from "./pyExercises";
 import { PY_CATEGORIES, type PyStat } from "./pyPractice";
 import type { QuestionSummary } from "../types";
+import { DAY_BY_ID, PHASE_BY_ID, dayHref } from "./daily";
 
 export type MistakeKind = "sql" | "python";
 
@@ -86,6 +87,16 @@ export function classifyPyMistake(text: string): string {
   if (/Exception|raise|exception/.test(t) && /not raised|did not raise|expected .* raise/i.test(t)) return "exceptions";
   if (/AssertionError|fails a hidden test|A test failed|expected|!=/.test(t)) return "wrong-output";
   return "other";
+}
+
+// ── Daily Learning refs ──────────────────────────────────────────────────
+/** Notebook key for a Daily Learning exercise: "daily:<dayId>#<exerciseId>", one entry per exercise however often it fails. */
+export const dailyMistakeRef = (dayId: string, exId: string) => `daily:${dayId}#${exId}`;
+
+/** Fields a failed Daily Learning check shares; `topicHint` is the lesson's topics, used to pick a SQL category from a wrong result. */
+export function dailyMistake(dayId: string, exId: string, kind: MistakeKind) {
+  const day = DAY_BY_ID.get(dayId);
+  return { ref: dailyMistakeRef(dayId, exId), kind, topic: day?.phase ?? "daily", topicHint: (day?.topics ?? []).join(" ") };
 }
 
 // ── Pure updates (the progress store calls these) ────────────────────────
@@ -174,6 +185,15 @@ export function buildNotebook({ index, exercises, progress, pyStats }: Inputs): 
       m = { ref, kind: "python", topic: e.category || "other", categories: { other: failed }, count: failed, runErrors: 0, firstAt: st!.lastAt, lastAt: st!.lastAt, solved: progress.lessons?.[ref] };
     }
     if (m && m.count + m.runErrors > 0) rows.push(make(m, `${e.code} ${e.title}`, `/practice/python/${e.slug}`, e.difficulty, pyLabel(e.category || "other"), notes));
+  }
+  // Daily Learning exercises: the stored entry is all there is (the lesson content is not loaded here).
+  for (const m of Object.values(stored)) {
+    if (!m.ref.startsWith("daily:") || m.count + m.runErrors === 0) continue;
+    const [dayId, exId] = m.ref.slice(6).split("#");
+    const day = DAY_BY_ID.get(dayId);
+    if (!day) continue;
+    const phase = PHASE_BY_ID.get(day.phase);
+    rows.push(make(m, `Day ${day.day} ${day.title} (${exId})`, dayHref(day), "Daily", `Daily · ${phase?.title ?? "Lesson"}`, []));
   }
   return rows.sort((a, b) => b.lastAt.localeCompare(a.lastAt));
 }

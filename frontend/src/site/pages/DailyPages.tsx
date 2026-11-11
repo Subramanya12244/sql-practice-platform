@@ -6,6 +6,8 @@ import { Badge, Button, Card, Container, PageHeader, ProgressBar } from "../comp
 import { Markdown } from "../components/Markdown";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { LearningCalendar, PathPanel, ProgrammeOverview, RevisionPanel, Roadmap, StatusIcon, TodayCard } from "../components/daily/DailyDashboard";
+import { StudyTimePanel } from "../components/daily/StudyTimePanel";
+import { StudyTimer } from "../components/daily/StudyTimer";
 import { CompletePanel, ExampleRunner, ExerciseRunner, KnowledgeCheck } from "../components/daily/LessonUi";
 import { PATHS, PHASE_BY_ID, dayHref, findDay, neighbours, prerequisitesOf, type BranchId, type DayMeta, type PathId } from "../lib/daily";
 import { STATUS_LABEL, completionOf, dayStatus, isDone, type DayRecord } from "../lib/dailyProgress";
@@ -38,6 +40,7 @@ export function DailyPage() {
         <RevisionPanel view={view} />
         <Roadmap view={view} previewPath={preview} />
         <LearningCalendar view={view} />
+        <StudyTimePanel view={view} />
       </div>
     </Container>
   );
@@ -191,7 +194,7 @@ function LessonForDay({ day, content, links }: { day: DayMeta; content: NonNulla
   return (
     <Container>
       {seo}
-      <DayHeader day={day} view={view} />
+      <DayHeader day={day} view={view}><StudyTimer dayId={day.id} className="mt-3" /></DayHeader>
       <div className="space-y-5 pb-16">
         <Prerequisites day={day} view={view} />
         <div id="lesson-top" className="scroll-mt-20">

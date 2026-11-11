@@ -7,7 +7,9 @@ import type { Block, Check as CheckQ, Exercise } from "../../lib/daily";
 import { renderResultText, sameOutput } from "../../lib/daily";
 import { MAX_DRAFT_CHARS, checkScore, completionOf, masteryOf, withCheckResult, withId, type DayRecord } from "../../lib/dailyProgress";
 import type { DayExtras } from "../../lib/daily";
-import { completeExercise, scheduleDayReview, updateDay } from "../../lib/progress";
+import { completeExercise, markMistakeSolved, recordMistake, scheduleDayReview, updateDay } from "../../lib/progress";
+import { classifyPyMistake, classifySqlMistake, dailyMistake } from "../../lib/mistakes";
+import { explainError } from "../../lib/errorHelp";
 import { track } from "../../lib/activity";
 import { runPython, PY_TIMEOUT_MS } from "../../lib/pyRunner";
 import { runQuery, submitQuery } from "../../lib/browserDb";
@@ -203,11 +205,14 @@ function GradedExercise({ dayId, ex, guided, rec, index }: { dayId: string; ex: 
     let ok = false;
     let message = "";
     let details: string[] = [];
+    let errorText = ""; // runtime error text, used only to pick a SQL mistake category (never stored)
+    let pyCategory = "wrong-output"; // the program ran but printed the wrong thing, unless it crashed (see below)
     if (kind === "python") {
       const r = await execute("python", code, ex.stdin);
       setOut(r);
       ok = r.ok && sameOutput(r.text, ex.expected ?? "");
       message = ok ? "Correct. The output matches exactly." : r.ok ? "The program ran, but the output is not what the task asks for." : "The program stopped with an error.";
+      if (!r.ok) pyCategory = classifyPyMistake(r.text);
       if (r.ok && !ok) details = ["Compare your output with the expected output line by line (spaces and capital letters count)."];
     } else {
       const r = await submitQuery(code, ex.solution, !!ex.ordered, null);
@@ -215,15 +220,20 @@ function GradedExercise({ dayId, ex, guided, rec, index }: { dayId: string; ex: 
       message = r.message || (ok ? "Correct. Your result matches." : "The result does not match yet.");
       details = r.feedback ?? [];
       const shown = await runQuery(code);
+      if (!shown.success) errorText = shown.message ?? "";
       setOut(shown.success ? { ok: true, text: renderResultText(shown.columns, shown.rows), columns: shown.columns, rows: shown.rows } : { ok: false, text: shown.message ?? "" });
     }
     setBusy(false);
     setVerdict({ ok, message, details });
     track(kind === "python" ? "python_submitted" : "sql_submitted", `daily:${dayId}:${ex.id}`, { passed: ok });
+    const mistake = dailyMistake(dayId, ex.id, kind);
     if (ok) {
+      markMistakeSolved(mistake.ref);
       updateDay(dayId, (r) => ({ ...r, attempted: withId(r.attempted, ex.id), passed: withId(r.passed, ex.id), drafts: { ...r.drafts, [ex.id]: code.slice(0, MAX_DRAFT_CHARS) } }), true);
       completeExercise(`daily:${dayId}#${ex.id}`);
     } else {
+      // A failed graded check goes into the Mistake Notebook: a count and a category, never the learner's code.
+      recordMistake({ ...mistake, category: kind === "python" ? pyCategory : classifySqlMistake(explainError(errorText)?.title, mistake.topicHint), graded: true });
       setFails((n) => n + 1);
       updateDay(dayId, (r) => ({ ...r, attempted: withId(r.attempted, ex.id) }));
     }

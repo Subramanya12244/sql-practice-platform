@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { track } from "./activity";
 import { RULES, nextRevision, type Outcome } from "./revision";
 import { activeTiming, mergeSessions, noteHint, type SolveSession } from "./solveSessions";
+import { mergeStudy } from "./dailyStudy";
 import { applyMistake, applySolved, applyUnderstood, type MistakeInput } from "./mistakes";
 
 /** Per-visitor progress, kept in localStorage. Every access is guarded: storage may be unavailable. */
@@ -452,6 +453,20 @@ export function updateDay(id: string, fn: (r: import("./dailyProgress").DayRecor
     daily: { ...daily, startedOn: daily.startedOn ?? today(), days: { ...daily.days, [id]: next } },
     ...(counts ? bump(p) : {}),
   });
+  sink?.state(current);
+}
+
+/**
+ * Append a finished study session to a lesson. Idempotent by session id (a retry or sync replay cannot double-count).
+ * Unlike updateDay it leaves startedAt, lastVisit, the daily goal and the streak alone: time on page is not work done.
+ */
+export function recordStudy(id: string, session: import("./dailyStudy").StudySession) {
+  const p = read();
+  const daily = p.daily ?? { days: {} };
+  const prev = daily.days[id] ?? {};
+  if (prev.study?.some((x) => x.id === session.id && x.endedAt >= session.endedAt)) return;
+  const next = { ...prev, study: mergeStudy(prev.study, [session]) };
+  write({ ...p, daily: { ...daily, startedOn: daily.startedOn ?? today(), days: { ...daily.days, [id]: next } } });
   sink?.state(current);
 }
 
