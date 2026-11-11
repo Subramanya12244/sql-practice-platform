@@ -4,7 +4,7 @@ import { CheckCircle2, Circle, Lightbulb, Loader2, Play, Table2 } from "lucide-r
 import { registerDataset, runQuery } from "../../lib/browserDb";
 import { runPython } from "../../lib/pyRunner";
 import { runPythonTask, runSqlTask, type PythonTask, type SqlTask } from "../../lib/tasks";
-import { profileSql, qualityScore, readProfile, type GuidedExercise, type ProfileResult } from "../../lib/lab/guided";
+import { profileSql, qualityScore, readProfile, runExerciseQuery, type GuidedExercise, type ProfileResult } from "../../lib/lab/guided";
 import { Badge, Button, Skeleton } from "../ui";
 
 const CodeEditor = lazy(() => import("../CodeEditor"));
@@ -86,7 +86,7 @@ function ExerciseView({ e, passed, onPass }: { e: GuidedExercise; passed: boolea
     if (e.profile) void runQuery(profileSql(e.profile.before), dataset).then((r) => { if (r.success && r.rows[0]) setScore({ before: readProfile(r.rows[0]) }); });
   }, [e, dataset, isSql]);
 
-  const q = (sql: string) => runQuery(sql, dataset);
+  const q = (sql: string) => runExerciseQuery(e, sql);
   async function look(table: string) {
     setBusy("run"); setOut(null); setStdout(null);
     const r = await q(`SELECT * FROM ${table} LIMIT 20`);

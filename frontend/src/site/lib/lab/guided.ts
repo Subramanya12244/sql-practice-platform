@@ -5,6 +5,7 @@
  * require the starter to fail, so no exercise can ship with a broken answer.
  */
 import type { PythonTask, SqlTask } from "../tasks";
+import { registerDataset, runQuery } from "../browserDb";
 
 export type Dimension = "Completeness" | "Accuracy" | "Consistency" | "Uniqueness" | "Validity";
 export const DIMENSIONS: Dimension[] = ["Completeness", "Accuracy", "Consistency", "Uniqueness", "Validity"];
@@ -53,4 +54,18 @@ export function qualityScore(p: ProfileResult): { score: number; completeness: n
   const completeness = Math.round((1 - p.nullCells / Math.max(1, p.cells)) * 100);
   const uniqueness = Math.round((p.distinctRows / p.rows) * 100);
   return { score: Math.round((completeness + uniqueness) / 2), completeness, uniqueness };
+}
+
+/** The dataset id an exercise's tables live in. */
+export const exerciseDataset = (e: Pick<GuidedExercise, "id">) => `guided-${e.id}`;
+
+/**
+ * Register the exercise's dataset, then run `sql` on it. Registration is idempotent, and doing it here (not only in the page's mount
+ * effect) closes a window: a click can arrive after hydration but before that passive effect has run, and a query for an
+ * unregistered dataset fails with "Unknown dataset".
+ */
+export function runExerciseQuery(e: Pick<GuidedExercise, "id" | "setup">, sql: string) {
+  const dataset = exerciseDataset(e);
+  registerDataset({ id: dataset, sql: e.setup });
+  return runQuery(sql, dataset);
 }

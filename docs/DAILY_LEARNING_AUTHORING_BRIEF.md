@@ -1,7 +1,27 @@
 # Daily Learning: authoring brief for lesson writers
 
+## Rules for the concurrent authoring waves (these override anything below that conflicts)
+
+- **One writing location.** All work happens in the integration worktree `/Users/subramanyaacharya/Downloads/project/sql-practice-platform-integration` (branch `integration/daily-learning-evolution`). Never write to `/Users/subramanyaacharya/Downloads/project/sql-practice-platform` (the original checkout) or `../sql-practice-platform-evolution`.
+- **Exclusive ownership.** You write only the `<id>.md` and `<id>.json` files for the ids assigned to you, in `frontend/src/site/content/daily/days/`. Nobody else writes those ids, and you write no other file in the repository. Do not edit `curriculum.json`, the manifest, the coverage report, tests, library code or docs. Do not run git commands.
+- **No manifest.** Do not touch `docs/DAILY_LEARNING_AUTHORING_MANIFEST.jsonl`. The coordinator records a lesson only after validating it independently.
+- **Validation you run:** `cd /Users/subramanyaacharya/Downloads/project/sql-practice-platform-integration/frontend && DAILY_DAYS=<id or range> npx vitest run src/test/siteDaily.test.ts --maxConcurrency=2` after every lesson. Fix every failure. Use `--maxConcurrency=2` (the machine is shared by ten writers).
+- **Validation you do not run:** do not run `scripts/daily-browser-verify.mjs` or any browser. The coordinator runs the real-Pyodide check and the SQL check centrally. Write browser-run examples carefully anyway, following the platform rules in `docs/DAILY_LEARNING_CONTENT.md` (32-bit browser: no default-integer dtype prints; pandas FutureWarnings fail the test; seeded `rng.random/integers/normal` only; no `pd.Timedelta(days=n)`: use `pd.to_timedelta(n, unit="D")` or `pd.DateOffset`).
+- **Save each lesson as soon as it passes**, then continue. Work in chunks of about five lessons. If you receive an API 429 or rate-limit error, stop immediately, keep every file already saved, and report which ids are saved and which are unfinished.
+- **Scratch files** go in your own private folder under the scratchpad directory, never in the repository.
+- **Dependencies on other writers' days.** Days are written concurrently, so a lesson before yours may not exist yet. Use the curriculum titles and topics for earlier days, and never assume details of a lesson you cannot read. Where the plan gives a shared specification (below), follow it exactly so concurrently written days agree.
+- **Final report** (short): ids saved, your range test line, per-day theory prose words, links, days needing software the browser cannot run and their graded alternatives, unverified facts, problems.
+
+### Shared specifications for concurrently written days
+
+- **Power BI sample model (analyst a124–a137, written by two writers):** tables `Sales(order_id, order_date, customer_id, product_id, quantity, unit_price)`, `Customers(customer_id, customer_name, country, segment)`, `Products(product_id, product_name, category, unit_cost)`, and a `Calendar` date table (date, year, quarter, month_number, month_name). Sales is the fact table; one-to-many relationships Customers to Sales, Products to Sales, Calendar to Sales on order_date. Revenue = `quantity * unit_price`. Define the same small data in pandas inside each day's code (a seeded `np.random.default_rng(7)`, 12 months of 2025, 40 customers, 12 products, 400 orders).
+- **Orders API stand-in (engineer e101–e113, written by two writers):** `GET /orders?page=N&page_size=P` returning `{"data": [...], "page": N, "total_pages": T}` with order records `{order_id, customer_id, amount_cents, currency, status, created_at}`, 120 orders, statuses `paid|refunded|failed`, API key header `X-Api-Key`, a 429 with `Retry-After` on every third request in the rate-limit days. Target table `orders(order_id PRIMARY KEY, customer_id, amount_cents, currency, status, created_at)`.
+- **Engineer ETL pipeline (e120–e131, written by two writers):** extract orders from a list/CSV text, transform with small pure functions (`clean_amount`, `parse_ts`, `dedupe_latest`), load into a `sqlite3` table `orders_clean`; incremental runs track a `watermark` stored in a one-row table `etl_state`.
+- **Capstones:** each capstone route is written by one writer from its first day, so the project stays coherent.
+
+
 You write complete lessons for DataForge's Daily Learning programme. Each lesson is one learner-day of about two hours.
-Repository: `/Users/subramanyaacharya/Downloads/project/sql-practice-platform`. Work only inside `frontend/src/site/content/daily/days/`.
+Repository: `/Users/subramanyaacharya/Downloads/project/sql-practice-platform-integration`. Work only inside `frontend/src/site/content/daily/days/`.
 
 ## Rules
 
@@ -24,12 +44,12 @@ Repository: `/Users/subramanyaacharya/Downloads/project/sql-practice-platform`. 
 1. Plan the day: the objectives, the three or four ideas, the worked examples in increasing difficulty, and exercises that combine them.
 2. Write `<id>.md`, then `<id>.json`. Produce every `output` block and every `expected` value by running the code. Never write output from memory.
 3. Run the checks for your range and fix every failure:
-   `cd /Users/subramanyaacharya/Downloads/project/sql-practice-platform/frontend && DAILY_DAYS=<first>..<last> npx vitest run src/test/siteDaily.test.ts --maxConcurrency=4`
+   `cd /Users/subramanyaacharya/Downloads/project/sql-practice-platform-integration/frontend && DAILY_DAYS=<first>..<last> npx vitest run src/test/siteDaily.test.ts --maxConcurrency=4`
    Use your own range. While you work through a range the later days do not exist yet; the checks only look at days that have files.
 4. Only then start the next day. Never leave a day with one of its two files.
 5. After the last day, run the checks for the whole range once more.
 
-Python for tests is `/Users/subramanyaacharya/Downloads/project/sql-practice-platform/.venv-daily/bin/python` (numpy, pandas, scipy, statsmodels, matplotlib, seaborn, plotly, requests, sqlalchemy, pytest, openpyxl, pydantic). For SQL, the test runs your query on the browser database (PGlite) and prints the result as text, so run the test to see the exact text. You can also explore with `npx vitest` output or small node scripts that you delete afterwards; leave no helper files behind.
+Python for tests is `/Users/subramanyaacharya/Downloads/project/sql-practice-platform-integration/.venv-daily/bin/python` (numpy, pandas, scipy, statsmodels, matplotlib, seaborn, plotly, requests, sqlalchemy, pytest, openpyxl, pydantic). For SQL, the test runs your query on the browser database (PGlite) and prints the result as text, so run the test to see the exact text. You can also explore with `npx vitest` output or small node scripts that you delete afterwards; leave no helper files behind.
 
 ## Quality bar
 

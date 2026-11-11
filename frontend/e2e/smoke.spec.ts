@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
 
 const timerSeconds = async (p: Page) => {
   const t = await p.getByRole("timer").first().innerText();

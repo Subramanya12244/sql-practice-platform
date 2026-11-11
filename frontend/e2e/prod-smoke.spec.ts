@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Loads each key route of a prerendered build and fails on any page error (this includes React hydration errors #418/#423/#425).
 // It creates no accounts and writes nothing but browser-local state.

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Run against a prerendered build to exercise hydration (the Vite dev server does not prerender):
 //   E2E_BASE_URL=http://localhost:<port> npx playwright test e2e/guided-labs.spec.ts
