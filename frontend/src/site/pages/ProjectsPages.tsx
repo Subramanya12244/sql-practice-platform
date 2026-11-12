@@ -15,6 +15,7 @@ import type { ExecuteResult } from "../../types";
 import { track } from "../lib/activity";
 import { ProjectCelebration } from "../components/ProjectCelebration";
 import { PythonWorkspace } from "../components/PythonWorkspace";
+import { HelpTooltip } from "../help/HelpTooltip";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
 
@@ -62,12 +63,12 @@ export function ProjectsIndexPage() {
         title="Projects lab"
         intro="Build real pipelines step by step. SQL steps are checked against a real PostgreSQL database and Python steps run tests in a sandbox — a project is only Completed when its checks pass."
       />
-      <div className="mb-6 grid grid-cols-3 gap-3">
+      <div data-help="projects-stats" className="mb-6 grid grid-cols-3 gap-3">
         <StatCard label="Projects" value={all.length} hint={`${all.reduce((s, p) => s + p.taskCount, 0)} tasks in total`} />
         <StatCard label="In progress" value={active} hint="Started, not yet completed" />
         <StatCard label="Completed" value={done} hint="All checks passed or approved" />
       </div>
-      <div className="mb-5">
+      <div data-help="projects-tabs" className="mb-5">
         <Tabs label="Projects view" value={mine ? "mine" : "all"} onChange={(v) => setMine(v === "mine")} tabs={[{ id: "all", label: "Project library" }, { id: "mine", label: `My projects${active + done ? ` (${active + done})` : ""}` }]} />
       </div>
       {mine && !shown.length && <EmptyState icon={FolderGit2} title="No projects started yet" action={<button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => setMine(false)}>Browse the library</button>}>Start any task in a project and it shows up here with its progress.</EmptyState>}
@@ -75,7 +76,7 @@ export function ProjectsIndexPage() {
         const group = shown.filter((p) => p.level === level);
         if (!group.length) return null;
         return (
-          <section key={level} className="mb-8">
+          <section key={level} data-help="projects-level" className="mb-8">
             <h2 className="font-display text-xl font-bold text-ink">{level}</h2>
             <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {group.map((p) => (
@@ -285,12 +286,12 @@ export function ProjectPage() {
         {project.technologies.join(" · ")} · about {Math.round(project.minutes / 60 * 10) / 10} h · dataset <Link to={`/playground?db=${project.dataset}`} className="text-accent hover:underline">{project.dataset}</Link>
         {prereqs.length > 0 && <> · before you start: {prereqs.map((n, i) => <span key={n.slug}><Link to={`/notes/${n.slug}`} className="text-accent hover:underline">{n.title}</Link>{i < prereqs.length - 1 ? ", " : ""}</span>)}</>}
       </p>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-soft" role="img" aria-label={`${passed} of ${automated.length} automated checks passed`}>
+      <div data-help="project-progress" className="mt-3 h-2 overflow-hidden rounded-full bg-surface-soft" role="img" aria-label={`${passed} of ${automated.length} automated checks passed`}>
         <div className="h-full bg-success transition-[width] duration-slow ease-out" style={{ width: `${automated.length ? (100 * passed) / automated.length : 0}%` }} />
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
         <span className="text-ink-muted">
-          <strong className="text-ink">{passed}/{automated.length}</strong> automated checks passed ·{" "}
+          <strong className="text-ink">{passed}/{automated.length}</strong> automated checks passed <HelpTooltip id="validation-check" label="How are my answers graded automatically?" /> ·{" "}
           <strong className="text-ink">{project.tasks.length - automated.length}</strong> manual review requirements
         </span>
         {automated.find((t) => !progress.tasks[t.id]?.passed) && passed > 0 && passed < automated.length && (
@@ -303,7 +304,7 @@ export function ProjectPage() {
         )}
       </div>
 
-      <div className="mt-4 rounded-lg border border-surface-border bg-surface-raised p-3.5 text-xs">
+      <div data-help="project-flow" className="mt-4 rounded-lg border border-surface-border bg-surface-raised p-3.5 text-xs">
         <p className="font-semibold uppercase tracking-wider text-ink-faint text-[10px]">Pipeline Architecture & Validation Flow</p>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-ink">
           <span className="rounded bg-surface-soft px-2 py-1 font-mono">Dataset: {project.dataset}</span>
@@ -326,7 +327,7 @@ export function ProjectPage() {
         />
       )}
 
-      <article className="mt-6 max-w-4xl">
+      <article data-help="project-tasks" className="mt-6 max-w-4xl">
         {parts.map((part, i) =>
           i % 2 === 0 ? (
             <Markdown key={i} source={part} />
@@ -340,7 +341,7 @@ export function ProjectPage() {
         )}
       </article>
 
-      <section className="mt-10 max-w-4xl rounded-card border border-surface-border bg-surface-raised p-5" aria-labelledby="submit">
+      <section data-help="project-submit" className="mt-10 max-w-4xl rounded-card border border-surface-border bg-surface-raised p-5" aria-labelledby="submit">
         <h2 id="submit" className="font-display text-lg font-bold text-ink">Submit your project</h2>
         <p className="mt-1 text-sm text-ink-muted">
           {status === "Completed"

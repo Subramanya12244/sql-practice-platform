@@ -12,6 +12,8 @@ import { SITE_NAME } from "../lib/seo";
 import { useMyReviews } from "../lib/reviews";
 import { Container } from "./ui";
 import { useAuth } from "../lib/auth";
+import { HelpProvider } from "../help/HelpProvider";
+import { HelpButton } from "../help/HelpButton";
 
 /** Focused pages without the sidebar. */
 const AUTH_PATHS = ["/login", "/signup", "/reset-password"];
@@ -170,6 +172,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
   );
 
   return (
+    <HelpProvider>
     <div className="flex min-h-full flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-on-accent">
         Skip to content
@@ -182,6 +185,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
           </Link>
           <div className="ml-auto hidden items-center gap-1.5 lg:flex">
             {searchButton}
+            <HelpButton />
             <ThemeButton />
             {bell}
             {account}
@@ -190,6 +194,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
             <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search" className="rounded-lg p-2.5 text-ink-muted hover:bg-hover/5">
               <Search className="h-5 w-5" />
             </button>
+            <HelpButton compact />
             {bell}
             <button type="button" className="rounded-lg p-2.5 text-ink-muted hover:bg-hover/5" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls="mobile-nav" aria-label={open ? "Close menu" : "Open menu"}>
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -280,5 +285,6 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
       </div>
       </div>
     </div>
+    </HelpProvider>
   );
 }

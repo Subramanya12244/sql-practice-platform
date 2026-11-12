@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Gauge } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Container, PageHeader, QuestionCard } from "../components/ui";
+import { HelpTooltip } from "../help/HelpTooltip";
 import { Seo } from "../lib/seo";
 import { today, useProgress } from "../lib/progress";
 import { assessReadiness, type Dimension, type Level, type TopicReadiness } from "../lib/readiness";
@@ -80,7 +81,7 @@ export function ReadinessPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-card border border-surface-border bg-surface-raised p-4">
-          <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-ink-faint"><Gauge className="h-3.5 w-3.5" aria-hidden /> Estimated readiness</p>
+          <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-ink-faint"><Gauge className="h-3.5 w-3.5" aria-hidden /> Estimated readiness <HelpTooltip id="readiness-estimate" label="What is the readiness estimate?" /></p>
           <p className="mt-1 font-display text-3xl font-bold text-ink">{r.overall === null ? "—" : `${r.overall}/100`}</p>
           <p className="mt-1 text-xs text-ink-muted">{r.evidenceNote}</p>
         </div>

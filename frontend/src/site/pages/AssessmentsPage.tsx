@@ -4,6 +4,7 @@ import { CheckCircle2, Circle, ClipboardCheck, Loader2, Play, Save, Timer, Troph
 import { Badge, Button, Card, Container, Difficulty, EmptyState, PageHeader, SegmentedProgress, Skeleton, StatCard } from "../components/ui";
 import { Markdown } from "../components/Markdown";
 import { Seo } from "../lib/seo";
+import { HelpTooltip } from "../help/HelpTooltip";
 import { useAuth } from "../lib/auth";
 import { accountsEnabled, getSupabase } from "../lib/supabase";
 import { runQuery } from "../lib/browserDb";
@@ -99,7 +100,7 @@ export function AssessmentsPage() {
                       <label className="text-sm text-ink-muted">Time limit<select value={cfg.minutes} onChange={(e) => setCfg({ ...cfg, minutes: Number(e.target.value) })} className={`${INPUT} mt-1 w-full`}>{[15, 30, 45, 60, 90].map((n) => <option key={n} value={n}>{n} minutes</option>)}</select></label>
                     </div>
                     <p className="mt-3 text-xs text-ink-muted">{available} question{available === 1 ? "" : "s"} match these settings{available < cfg.count ? `; the assessment will have ${available}` : ""}.</p>
-                    <Button className="mt-3" onClick={() => void start()} disabled={busy || !available}>{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Timer className="h-4 w-4" aria-hidden />} Start assessment</Button>
+                    <Button className="mt-3" onClick={() => void start()} disabled={busy || !available}>{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Timer className="h-4 w-4" aria-hidden />} Start assessment</Button> <HelpTooltip id="timed-assessment" label="What is a timed assessment?" />
                     <ul className="mt-4 list-disc space-y-1 pl-5 text-xs text-ink-muted">
                       <li>The timer is the server's: reloading doesn't pause it, and answers saved after the deadline are refused.</li>
                       <li>Run your code as often as you like; only <strong>Save answer</strong> counts, and you get no right/wrong feedback until you submit.</li>

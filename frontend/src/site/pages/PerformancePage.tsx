@@ -11,6 +11,7 @@ import { formatDuration } from "../lib/solveSessions";
 import { groupMastery, heatmap, overall, streaks, topicRows, weeklySeconds, type MasteryLevel, type TopicRow } from "../lib/solveAnalytics";
 import { generateInsights, recommendations, type ProjectState } from "../lib/learningInsights";
 import { getProjectProgress } from "../lib/projects";
+import { HelpTooltip } from "../help/HelpTooltip";
 
 const LEVEL: Record<MasteryLevel, { label: string; tone: "success" | "accent" | "warn" | "neutral" }> = {
   strong: { label: "Strong", tone: "success" },
@@ -144,19 +145,19 @@ export function PerformancePage() {
             </EmptyState>
           )}
 
-          <section aria-labelledby="overall"><SectionHeader id="overall" title="Overall" description="From timed sessions on this device and your account." />
+          <section data-help="analytics-overall" aria-labelledby="overall"><SectionHeader id="overall" title="Overall" description="From timed sessions on this device and your account." />
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <StatCard label="Active learning time" value={n(sessions.length ? calc.o.totalActiveSec : null, formatDuration)} icon={Clock} />
               <StatCard label="Challenges attempted" value={calc.o.attempted} hint={`${calc.o.sessions} session${calc.o.sessions === 1 ? "" : "s"}`} icon={BarChart3} />
               <StatCard label="Challenges completed" value={calc.o.completed} icon={Trophy} />
               <StatCard label="Success rate" value={n(calc.o.successRate, (x) => `${x}%`)} hint="completed of attempted" icon={Target} />
-              <StatCard label="Average solve time" value={n(calc.o.avgSolveSec, formatDuration)} />
+              <StatCard label="Average solve time" value={n(calc.o.avgSolveSec, formatDuration)} hint={<HelpTooltip id="solve-time" label="What is solve time?" />} />
               <StatCard label="Fastest solve" value={n(calc.o.fastest?.sec ?? null, formatDuration)} hint={calc.o.fastest ? calc.o.fastest.ref.replace("sql:", "Q").replace("py:", "") : undefined} />
               <StatCard label="Attempts per solve" value={n(calc.o.avgAttemptsPerSolve)} hint="average, lower is cleaner" />
             </div>
           </section>
 
-          <section aria-labelledby="activity"><SectionHeader id="activity" title="Activity" /><Heatmap sessions={progress.sessions} /></section>
+          <section data-help="analytics-activity" aria-labelledby="activity"><SectionHeader id="activity" title="Activity" /><Heatmap sessions={progress.sessions} /></section>
 
           {calc.insights.length > 0 && (
             <section aria-labelledby="insights"><SectionHeader id="insights" title="What your records say" description="Short observations, each with what it is based on. They appear only when there is enough data." />
@@ -172,7 +173,7 @@ export function PerformancePage() {
             </section>
           )}
 
-          <section aria-labelledby="strength"><SectionHeader id="strength" title="Topic strength" description="Based on what you completed (harder questions count more), recent results, attempts per solve and hints used. Speed is never part of it." />
+          <section data-help="analytics-strength" aria-labelledby="strength"><SectionHeader id="strength" title="Topic strength" description="Based on what you completed (harder questions count more), recent results, attempts per solve and hints used. Speed is never part of it." action={<HelpTooltip id="topic-strength" label="How is topic strength worked out?" />} />
             <div className="grid items-start gap-4 lg:grid-cols-2">
               <TopicList title="Strong topics" rows={calc.groups.strong} empty="None yet. Solving a few questions in a topic without hints makes it strong." />
               <TopicList title="Needs practice" rows={calc.groups.needsPractice} empty="Nothing is struggling right now." />
@@ -181,7 +182,7 @@ export function PerformancePage() {
             </div>
           </section>
 
-          <section aria-labelledby="recs"><SectionHeader id="recs" title="Recommended next" description="Chosen from weak topics, missed questions, due revisions, the Python stage you are in, and a project or mock interview when you are ready." />
+          <section data-help="analytics-recommended" aria-labelledby="recs"><SectionHeader id="recs" title="Recommended next" description="Chosen from weak topics, missed questions, due revisions, the Python stage you are in, and a project or mock interview when you are ready." />
             {calc.recs.length ? (
               <ul className="grid gap-3 md:grid-cols-2">
                 {calc.recs.map((r) => (
@@ -195,7 +196,7 @@ export function PerformancePage() {
             ) : <p className="text-sm text-ink-muted">You are caught up. Pick any topic to keep going.</p>}
           </section>
 
-          <section aria-labelledby="bytopic"><SectionHeader id="bytopic" title="By topic" description="Time and results per curriculum topic (SQL topics and Python categories)." />
+          <section data-help="analytics-by-topic" aria-labelledby="bytopic"><SectionHeader id="bytopic" title="By topic" description="Time and results per curriculum topic (SQL topics and Python categories)." />
             <div className="overflow-x-auto rounded-card border border-surface-border">
               <table className="w-full min-w-[34rem] text-left text-sm">
                 <caption className="sr-only">Practice time and results by topic</caption>

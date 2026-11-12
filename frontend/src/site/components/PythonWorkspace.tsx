@@ -30,6 +30,9 @@ import { runPythonTask, type TaskResult, type TestCounts } from "../lib/tasks";
 import type { PythonTask } from "../lib/tasks";
 import { validateVirtualPath, VFS_LIMITS } from "../lib/virtualFs";
 import { Badge, IconButton, Skeleton } from "./ui";
+import { HelpTooltip } from "../help/HelpTooltip";
+import { useHelpExample } from "../help/exampleBridge";
+import type { HelpExample } from "../help/types";
 
 const CodeEditor = lazy(() => import("./CodeEditor"));
 
@@ -148,6 +151,21 @@ export function PythonWorkspace({
       return next;
     });
   };
+
+  // Help "Try Example": goes into its own help_example.py tab. solution.py and every other learner file stay untouched,
+  // and graded checks only ever read solution.py, so the example is never part of a submission.
+  const loadHelpExample = (example: HelpExample) => {
+    const name = "help_example.py";
+    if (!(name in files) && Object.keys(files).length >= VFS_LIMITS.MAX_FILES) {
+      alert(`Cannot create more than ${VFS_LIMITS.MAX_FILES} files. Delete a file you no longer need, then try the example again.`);
+      return;
+    }
+    updateFileContent(name, example.code.endsWith("\n") ? example.code : `${example.code}\n`);
+    setOpenTabs((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    setActiveFile(name);
+    setActiveBottomTab("output");
+  };
+  useHelpExample("python", "the Python workspace", { isDirty: () => false, load: loadHelpExample, ready: clientReady });
 
   // External code restore sync
   useEffect(() => {
@@ -385,6 +403,7 @@ export function PythonWorkspace({
   return (
     <div
       aria-label={`Python workspace: ${title}`}
+      data-help="py-workspace"
       className={`flex flex-col overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel transition-all duration-base ${
         fullScreen ? "fixed inset-0 z-50 rounded-none" : ""
       } ${className}`}
@@ -426,6 +445,7 @@ export function PythonWorkspace({
           ) : (
             <Badge tone="neutral">Python 3.13</Badge>
           )}
+          <HelpTooltip id="pyodide" label="What is Pyodide and where does my code run?" />
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -458,6 +478,7 @@ export function PythonWorkspace({
             onClick={runScript}
             disabled={!!busy}
             title="Execute active file in script mode"
+            data-help="py-run"
             className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-surface-border bg-surface-raised px-3 text-xs font-semibold text-ink transition-all duration-fast hover:bg-surface-overlay active:scale-[0.98] disabled:opacity-50"
           >
             {busy === "run" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5 text-accent" />}
@@ -471,12 +492,14 @@ export function PythonWorkspace({
               onClick={checkTests}
               disabled={!!busy}
               title="Grade solution.py with test harness"
+              data-help="py-check"
               className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3 text-xs font-semibold text-on-accent shadow-glow transition-all duration-fast hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
             >
               {busy === "check" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5" />}
               <span>Check Tests</span>
             </button>
           )}
+          <HelpTooltip id="check-tests" label="How do trying code and testing it differ?" />
 
           {busy && (
             <button
@@ -500,7 +523,7 @@ export function PythonWorkspace({
       <div className="flex min-h-0 flex-1">
         {/* Left Side: File Explorer */}
         {sidebarOpen && (
-          <aside className="w-48 shrink-0 border-r border-surface-border bg-surface-overlay/30 p-2 text-xs">
+          <aside data-help="py-files" className="w-48 shrink-0 border-r border-surface-border bg-surface-overlay/30 p-2 text-xs">
             <div className="mb-2 flex items-center justify-between text-ink-faint">
               <span className="font-semibold uppercase tracking-wider text-[10px]">Files</span>
               <button
@@ -633,7 +656,7 @@ export function PythonWorkspace({
           </div>
 
           {/* Monaco Code Editor */}
-          <div className="min-h-0 flex-1">
+          <div className="min-h-0 flex-1" data-help="py-editor">
             {/* The editor is lazy-loaded: React's server renderer cannot suspend, so prerender and the first client render show the same skeleton and the editor mounts after. */}
             {!clientReady ? <Skeleton className="h-full rounded-none" /> : (
             <Suspense fallback={<Skeleton className="h-full rounded-none" />}>
@@ -658,6 +681,7 @@ export function PythonWorkspace({
               <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
                 <button
                   type="button"
+                  data-help="py-output-tab"
                   onClick={() => setActiveBottomTab("output")}
                   className={`flex items-center gap-1 rounded px-2 py-0.5 font-medium transition-colors ${
                     activeBottomTab === "output" ? "bg-accent-dim text-accent" : "text-ink-muted hover:text-ink"
@@ -668,6 +692,7 @@ export function PythonWorkspace({
                 {task && (
                   <button
                     type="button"
+                    data-help="py-tests-tab"
                     onClick={() => setActiveBottomTab("tests")}
                     className={`flex items-center gap-1 rounded px-2 py-0.5 font-medium transition-colors ${
                       activeBottomTab === "tests" ? "bg-accent-dim text-accent" : "text-ink-muted hover:text-ink"
@@ -683,6 +708,7 @@ export function PythonWorkspace({
                 )}
                 <button
                   type="button"
+                  data-help="py-stdin-tab"
                   onClick={() => setActiveBottomTab("stdin")}
                   className={`flex items-center gap-1 rounded px-2 py-0.5 font-medium transition-colors ${
                     activeBottomTab === "stdin" ? "bg-accent-dim text-accent" : "text-ink-muted hover:text-ink"
@@ -703,7 +729,7 @@ export function PythonWorkspace({
             </div>
 
             {/* Output Panel Content */}
-            <div className="flex-1 overflow-auto p-3 font-mono text-xs text-ink" role="region" aria-label="Console Output">
+            <div className="flex-1 overflow-auto p-3 font-mono text-xs text-ink" role="region" aria-label="Console Output" data-help="py-console">
               {activeBottomTab === "output" && (
                 <pre className="whitespace-pre-wrap font-mono leading-relaxed">
                   {terminalOutput || <span className="text-ink-faint">Press &ldquo;Run Script&rdquo; to execute the active file.</span>}
@@ -747,6 +773,7 @@ export function PythonWorkspace({
                 <div className="flex h-full flex-col">
                   <p className="mb-1 text-[11px] text-ink-faint">
                     Lines entered here are provided to Python&apos;s <code>input()</code> during script execution:
+                    <HelpTooltip id="stdin-input" label="What is the Stdin tab for?" className="ml-1" />
                   </p>
                   <textarea
                     value={stdin}
