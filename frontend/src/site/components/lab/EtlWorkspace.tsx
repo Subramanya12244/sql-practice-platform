@@ -5,6 +5,8 @@ import { Play, Plus, Save, Trash2 } from "lucide-react";
 import { NODE_INFO, PRESET_CLEAN_ORDERS, SAMPLES, dbTables, runPipeline, validatePipeline, type EtlNode, type NodeKind, type Pipeline, type Row, type RunResult } from "../../lib/lab/etl";
 import { deleteDoc, listDocs, loadDoc, saveDoc } from "../../lib/lab/store";
 import { Button } from "../ui";
+import { HelpTooltip } from "../../help/HelpTooltip";
+import { useHelpExample } from "../../help/exampleBridge";
 
 const KIND_ORDER = Object.keys(NODE_INFO) as NodeKind[];
 const STATUS_CLS: Record<string, string> = { ok: "border-success", error: "border-danger", skipped: "border-warn", idle: "border-surface-border" };
@@ -84,6 +86,12 @@ export default function EtlWorkspace() {
   const edges: Edge[] = p.nodes.flatMap((n) => n.inputs.map((i) => ({ id: `${i}-${n.id}`, source: i, target: n.id, markerEnd: { type: MarkerType.ArrowClosed } })));
 
   const run = () => setResult(runPipeline(p));
+  // Help "Try Example": the builder has one preset (Load example). Anything other than that untouched preset counts as learner work.
+  useHelpExample("etl", "the ETL builder", {
+    isDirty: () => p !== PRESET_CLEAN_ORDERS,
+    load: () => { edit(PRESET_CLEAN_ORDERS); setSel("src"); setDocId(undefined); setName("Clean orders"); },
+    ready: true,
+  });
   const save = () => { const id = saveDoc("etl", { id: docId, name, data: p }); if (id) { setDocId(id); setSaved(listDocs("etl")); setMsg("Saved on this device."); } else setMsg("Could not save: browser storage is full or blocked."); };
   const load = (id: string) => { const d = loadDoc<Pipeline>("etl", id); if (d) { setP(d); setResult(null); setDocId(id); setName(saved.find((s) => s.id === id)?.name ?? "My pipeline"); setSel(null); setMsg(null); } };
 
@@ -92,10 +100,11 @@ export default function EtlWorkspace() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Pipeline actions">
-        <Button onClick={run} disabled={!p.nodes.length}><Play className="h-4 w-4" aria-hidden /> Run pipeline</Button>
+      <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Pipeline actions" data-help="etl-toolbar">
+        <Button onClick={run} disabled={!p.nodes.length} data-help="etl-run"><Play className="h-4 w-4" aria-hidden /> Run pipeline</Button>
         <Button variant="secondary" onClick={() => { edit(PRESET_CLEAN_ORDERS); setSel("src"); setDocId(undefined); setName("Clean orders"); }}>Load example</Button>
         <Button variant="ghost" onClick={() => { edit({ nodes: [] }); setSel(null); setDocId(undefined); }}>New</Button>
+        <HelpTooltip id="de-reset-vs-clear" label="What is the difference between Load example and New?" />
         <span className="ml-auto flex flex-wrap items-center gap-2">
           <input aria-label="Pipeline name" value={name} onChange={(e) => setName(e.target.value)} className={`${INPUT} w-40`} maxLength={60} />
           <Button variant="secondary" onClick={save}><Save className="h-4 w-4" aria-hidden /> Save</Button>
@@ -111,10 +120,10 @@ export default function EtlWorkspace() {
       {msg && <p role="status" className="text-xs text-ink-muted">{msg}</p>}
 
       <div className="grid gap-4 lg:grid-cols-[13rem_minmax(0,1fr)_18rem]">
-        <nav aria-label="Add a step" className="space-y-3">
+        <nav aria-label="Add a step" className="space-y-3" data-help="etl-palette">
           {(["Source", "Transform", "Validate", "Load"] as const).map((g) => (
-            <div key={g}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">{g}</p>
+            <div key={g} data-help={`etl-group-${g.toLowerCase()}`}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">{g}{g === "Validate" && <HelpTooltip id="validate" label="What does validation do here?" className="ml-1" />}{g === "Load" && <HelpTooltip id="load" label="What does loading do here?" className="ml-1" />}</p>
               <ul className="mt-1 space-y-1">
                 {KIND_ORDER.filter((k) => NODE_INFO[k].group === g).map((k) => (
                   <li key={k}><button type="button" onClick={() => add(k)} title={NODE_INFO[k].help} className="flex w-full items-center gap-1.5 rounded-lg border border-surface-border px-2 py-1 text-left text-xs text-ink hover:border-accent"><Plus className="h-3 w-3 shrink-0 text-accent" aria-hidden />{NODE_INFO[k].title}</button></li>
@@ -124,7 +133,7 @@ export default function EtlWorkspace() {
           ))}
         </nav>
 
-        <div className="min-w-0">
+        <div className="min-w-0" data-help="etl-canvas">
           <div className="h-[380px] overflow-hidden rounded-card border border-surface-border bg-surface" role="region" aria-label="Pipeline canvas. Select a step to edit it, drag between steps to connect them, or use the Input fields in the step panel.">
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodeClick={(_, n) => setSel(n.id)} onPaneClick={() => setSel(null)} onConnect={connect}
               onNodeDragStop={(_, n) => setPos((s) => ({ ...s, [n.id]: n.position }))} fitView fitViewOptions={{ padding: 0.2 }} proOptions={{ hideAttribution: true }} nodesConnectable>
@@ -134,7 +143,7 @@ export default function EtlWorkspace() {
           {wiring.length > 0 && <ul role="alert" className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-warn">{wiring.map((w) => <li key={w}>{w}</li>)}</ul>}
         </div>
 
-        <aside aria-label="Step settings" className="space-y-2 rounded-card border border-surface-border bg-surface-raised p-3">
+        <aside aria-label="Step settings" className="space-y-2 rounded-card border border-surface-border bg-surface-raised p-3" data-help="etl-step-settings">
           {!node ? <p className="text-sm text-ink-muted">Select a step to change it, or add one from the left.</p> : (
             <>
               <h2 className="text-sm font-semibold text-ink">{NODE_INFO[node.kind].title}</h2>
@@ -156,7 +165,7 @@ export default function EtlWorkspace() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section aria-label="Data preview" className="min-w-0 space-y-2">
+        <section aria-label="Data preview" className="min-w-0 space-y-2" data-help="etl-preview">
           <h2 className="text-sm font-semibold text-ink">Data preview</h2>
           {!result ? <p className="text-sm text-ink-muted">Run the pipeline to see the data going into and out of the selected step.</p>
             : !node ? <p className="text-sm text-ink-muted">Select a step to see its data.</p>
@@ -165,7 +174,7 @@ export default function EtlWorkspace() {
                 {result.outputs[node.id] ? <Table rows={result.outputs[node.id]} caption="Output rows" /> : <p className="text-sm text-ink-muted">This step produced no output ({result.status[node.id]}).</p>}
               </>}
         </section>
-        <section aria-label="Run log" className="min-w-0">
+        <section aria-label="Run log" className="min-w-0" data-help="etl-log">
           <h2 className="text-sm font-semibold text-ink">Run log {result && <span className={`ml-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${result.ok ? "bg-success-dim text-success" : "bg-danger-dim text-danger"}`}>{result.ok ? "Succeeded" : "Did not finish"}</span>}</h2>
           {!result ? <p className="mt-1 text-sm text-ink-muted">Nothing has run yet.</p> : (
             <ol className="mt-1 space-y-1 font-mono text-xs" aria-live="polite">
@@ -220,6 +229,7 @@ function NodeConfig({ node, cols, setCfg }: { node: EtlNode; cols: string[]; set
           ))}
         </ul>
         <button type="button" onClick={() => setCfg("rules", [...rules, { column: "", rule: "not-null" }])} className="text-xs font-medium text-accent hover:underline">Add a rule</button>
+        <HelpTooltip id="rejected-records" label="What happens to rows that break a rule?" className="ml-1" />
       </>
     );
     case "output": return <Field label="Destination table name"><input value={s("name")} onChange={(e) => setCfg("name", e.target.value)} className={INPUT} /></Field>;

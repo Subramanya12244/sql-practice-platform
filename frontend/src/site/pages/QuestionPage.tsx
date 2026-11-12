@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom";
 import { sendTo } from "../lib/handoff";
 import { VizView } from "../components/VizView";
+import { ExplainPanel } from "../components/visual/ExplainPanel";
 import { addSession, getExecs, getSessions, highlightInEditor, type ExecRecord, type VizSession } from "../lib/vizHistory";
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { HintLadder } from "../components/HintLadder";
@@ -287,6 +288,7 @@ export function QuestionPage() {
                         }}
                       />
                     )}
+                    <ExplainPanel ctx={{ lang: "sql", code: latest, topic: q.topic, prompt: q.title }} />
                   </div>
                 )
               )}

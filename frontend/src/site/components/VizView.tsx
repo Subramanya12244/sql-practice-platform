@@ -1,9 +1,15 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { SampleTable } from "./SampleTable";
 import { PlanTree, parsePlan, type PlanNode } from "./PlanTree";
 import { Markdown } from "./Markdown";
+import { PlaybackBar, usePlayback } from "./visual/Playback";
+import { SetOpView } from "./visual/SetOpView";
+import { RowFlow } from "./visual/RowFlow";
+import { MotionToggle } from "./visual/MotionToggle";
+import { useReducedMotion } from "../lib/visual/motion";
+import { traceRows, type RowTrace } from "../lib/visual/rowTrace";
 import { runQuery } from "../lib/browserDb";
 import { visualize, type Provenance, type Stage, type Visualization } from "../lib/visualize";
 import { analyze, cteFlow, type Structure } from "../lib/sqlAst";
@@ -28,6 +34,7 @@ export function SourceBadge({ s }: { s: Source }) {
 }
 
 function clauseRange(v: Visualization, stage: Stage): [number, number] | undefined {
+  if (stage.range) return stage.range;
   const key = stage.clause === "distinct" || stage.clause === "window" ? "select" : stage.clause === "limit" ? (v.parsed.ranges.limit ? "limit" : "offset") : stage.clause;
   return v.parsed.ranges[key as keyof typeof v.parsed.ranges];
 }
@@ -206,7 +213,13 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
   const [plan, setPlan] = useState<{ node: PlanNode | null; error?: string } | null>(null);
   const [analyzed, setAnalyzed] = useState<{ node: PlanNode | null; error?: string; ms?: number } | null>(null);
   const [counts, setCounts] = useState<{ ctes: Record<string, number | string>; branches: (number | string)[] }>({ ctes: {}, branches: [] });
-  const [step, setStep] = useState(0);
+  const reduced = useReducedMotion();
+  // Row-level data for the stage animations: fetched after the stages, never blocks them, and never runs the learner's query.
+  const [trace, setTrace] = useState<{ viz: Visualization; t: RowTrace } | null>(null);
+  const tracing = useRef<Promise<unknown>>(Promise.resolve());
+  const pb = usePlayback(v?.stages.length ?? 0);
+  const step = pb.index;
+  const setStep = (i: number) => pb.dispatch({ type: "seek", index: i });
   const [tab, setTab] = useState<"logical" | "flow" | "rel" | "structure" | "plan">("logical");
   const run = (q: string) => runQuery(q, dataset);
   const body = sql.trim().replace(/;\s*$/, "");
@@ -248,7 +261,7 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
       if (!alive) return;
       setCounts(c);
       setBusy(false);
-      if (structure.branches.length > 1 || viz.unsupported) setTab("structure");
+      if (viz.unsupported) setTab("structure");
       onDone?.({
         structure: [structure.statement, structure.joins.length ? `${structure.joins.length} join(s)` : "", structure.ctes.length ? `${structure.ctes.length} CTE(s)` : "", structure.subqueries ? `${structure.subqueries} subquery(ies)` : "", structure.windows ? `${structure.windows} window fn` : ""].filter(Boolean).join(" · "),
         stages: viz.stages.map((s) => s.clause),
@@ -263,7 +276,19 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [body, dataset]);
 
+  useEffect(() => {
+    if (!v || v.unsupported) return;
+    let live = true;
+    setTrace(null);
+    const job = traceRows(body, run, v).then((t) => { if (live) setTrace({ viz: v, t }); }).catch(() => undefined);
+    tracing.current = job;
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [v]);
+
   async function runAnalyze() {
+    // EXPLAIN ANALYZE really runs the query; never overlap it with the row-trace queries.
+    await tracing.current;
     if (!confirm("EXPLAIN ANALYZE actually runs your query once (8s limit, rolled back). Continue?")) return;
     const started = performance.now();
     const r = await run(`EXPLAIN (ANALYZE, FORMAT JSON) ${body}`);
@@ -334,11 +359,11 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
                   {s.source && <SourceBadge s={s.source} />}
                 </div>
                 <div className="mt-2"><HighlightedSql sql={body} range={clauseRange(v, s)} clause={s.clause} /></div>
+                <div className="mb-1 flex justify-end"><MotionToggle /></div>
+                <RowFlow stage={s} prev={stages[step - 1]} reduced={reduced} frame={trace?.viz === v ? trace.t.frames[step] : undefined} stageIndex={step} speed={pb.speed} refining={!trace || trace.viz !== v} />
+                {s.setOp && <div className="mt-3"><SetOpView data={s.setOp} /></div>}
                 <div className="mt-3"><StageView s={s} /></div>
-                <div className="mt-4 flex justify-between">
-                  <button type="button" disabled={step === 0} onClick={() => setStep((x) => x - 1)} className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-3 py-1.5 text-sm disabled:opacity-40"><ChevronLeft className="h-4 w-4" aria-hidden /> Back</button>
-                  <button type="button" disabled={step >= stages.length - 1} onClick={() => setStep((x) => x + 1)} className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-3 py-1.5 text-sm disabled:opacity-40">Next <ChevronRight className="h-4 w-4" aria-hidden /></button>
-                </div>
+                <div className="mt-4"><PlaybackBar pb={pb} labels={stages.map((x) => x.title)} /></div>
               </div>
             )}
             {v.final && (

@@ -5,6 +5,7 @@ import { InlineMarkdown, Markdown } from "./Markdown";
 import { recordHint, useProgress } from "../lib/progress";
 import type { Question } from "../types";
 import type { NoteMeta } from "../lib/learning";
+import { HelpTooltip } from "../help/HelpTooltip";
 
 /**
  * Replace literals and selected column names with blanks, keeping the clause
@@ -60,9 +61,9 @@ export function HintLadder({ q, notes = [] }: { q: Question; notes?: NoteMeta[] 
   const solvedIndependently = saved?.solvedAt && !saved.assisted && saved.practiced;
 
   return (
-    <div className="rounded-card border border-surface-border bg-surface-raised p-4">
+    <div data-help="hint-ladder" className="rounded-card border border-surface-border bg-surface-raised p-4">
       <p className="flex flex-wrap items-center gap-2 font-semibold text-ink">
-        <Lightbulb className="h-4 w-4 text-warn" aria-hidden /> Help, one level at a time
+        <Lightbulb className="h-4 w-4 text-warn" aria-hidden /> Help, one level at a time <HelpTooltip id="hint-levels" label="How do the five hint levels work?" />
         <span className="text-xs font-normal text-ink-faint">(highest used: {used}/5)</span>
       </p>
       <p className="mt-1 text-xs text-ink-muted">

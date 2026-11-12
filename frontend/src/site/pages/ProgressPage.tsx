@@ -108,7 +108,7 @@ export function ProgressPage() {
       <Seo title="Your SQL Practice Progress" description="Track solved SQL questions, streaks and revision progress. Stored only in your browser." path="/progress" noindex />
       <PageHeader eyebrow="You" title="Your progress" intro={profile ? "Synced to your account and saved in this browser. You can also export it." : "Saved in this browser — sign in to sync it across devices, or export it."} />
 
-      <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div data-help="progress-stats" className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
           <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} />
         ))}
@@ -140,7 +140,7 @@ export function ProgressPage() {
         </section>
       )}
 
-      <section className="mt-12" aria-labelledby="mastery">
+      <section data-help="progress-mastery" className="mt-12" aria-labelledby="mastery">
         <SectionHeader id="mastery" title="Topic mastery"
           description="Independent solves count fully; solves after hints or a revealed solution count half. Mastered needs 85% and a Hard solve."
           action={<Button variant="secondary" onClick={downloadReport} disabled={!mounted}><FileText className="h-4 w-4" aria-hidden /> Download report</Button>} />
@@ -150,7 +150,7 @@ export function ProgressPage() {
         </div>
       </section>
 
-      <section className="mt-12" aria-labelledby="backup">
+      <section data-help="progress-backup" className="mt-12" aria-labelledby="backup">
       <SectionHeader id="backup" title="Back up your progress" />
       <div className="flex flex-wrap gap-3">
         <Button variant="secondary" onClick={download}>

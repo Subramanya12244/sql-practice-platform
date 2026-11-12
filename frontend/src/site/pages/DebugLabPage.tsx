@@ -4,6 +4,7 @@ import { Bug, CheckCircle2, Circle, FlaskConical, Lightbulb, Loader2, Play, Rota
 import { Badge, Button, Card, Container, PageHeader, Skeleton } from "../components/ui";
 import { Markdown } from "../components/Markdown";
 import { Seo } from "../lib/seo";
+import { HelpTooltip } from "../help/HelpTooltip";
 import { completeExercise, useProgress } from "../lib/progress";
 import { runPython } from "../lib/pyRunner";
 import { runPythonTask, type TestCounts } from "../lib/tasks";
@@ -137,7 +138,10 @@ function ScenarioView({ s, solved, onBack }: { s: Scenario; solved: boolean; onB
           <Card pad="none" className="overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-overlay px-4 py-2">
               <span className="text-sm font-semibold text-ink">3. Fix it</span>
+              <span className="inline-flex items-center">
               <Button size="sm" variant="ghost" onClick={() => { if (confirm("Reset the editor to the broken pipeline?")) change(s.pipeline); }}><RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset</Button>
+              <HelpTooltip id="de-reset-vs-clear" label="What does Reset do?" />
+              </span>
             </div>
             <Suspense fallback={<Skeleton className="h-[420px] rounded-none" />}>
               <CodeEditor value={code} onChange={change} onRun={validate} height={420} label="Pipeline editor" language="python" />

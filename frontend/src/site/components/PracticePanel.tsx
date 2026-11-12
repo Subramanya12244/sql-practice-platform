@@ -20,6 +20,7 @@ import { PlanTree, parsePlan, type PlanNode } from "./PlanTree";
 import { FORGE_THEMES, defineForgeThemes } from "../lib/monacoTheme";
 import { track } from "../lib/activity";
 import { Badge, IconButton, Toolbar, ToolbarDivider } from "./ui";
+import { HelpTooltip } from "../help/HelpTooltip";
 
 /** Editor + results for one question. Browser only — loaded lazily. */
 export default function PracticePanel({
@@ -214,6 +215,7 @@ export default function PracticePanel({
 
   return (
     <div
+      data-help="practice-panel"
       className={full
         ? "fixed inset-0 z-50 flex flex-col overflow-hidden bg-surface-raised"
         : `flex flex-col overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel ${fill ? "lg:min-h-full lg:shrink-0" : ""}`}
@@ -227,6 +229,7 @@ export default function PracticePanel({
           <Badge tone="success"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Solved</Badge>
         )}
         <span className="ml-auto flex items-center gap-0.5">
+          {ready !== "error" && <HelpTooltip id="execution-plan" label="What is an execution plan?" />}
           {ready !== "error" && (
             <button type="button" onClick={() => void onExplain()} className={toolBtn(false)} title="Show how PostgreSQL will run this query">
               <GitBranch className="h-4 w-4" aria-hidden /> <span className="hidden md:inline">Explain plan</span><span className="sr-only md:hidden">Explain plan</span>
@@ -260,6 +263,10 @@ export default function PracticePanel({
                 <Plus className="h-3.5 w-3.5" />
               </button>
             )}
+            <span className="ml-auto flex shrink-0 items-center gap-0.5 pl-2">
+              <HelpTooltip id="run-query" label="How does running a query work here?" />
+              <HelpTooltip id="sql-reset-vs-clear" label="What is the difference between Reset and Clear?" />
+            </span>
           </div>
           <PanelGroup direction="vertical" autoSaveId="df-practice-split" className="min-h-0 flex-1">
             <Panel defaultSize={58} minSize={25}>
@@ -283,7 +290,7 @@ export default function PracticePanel({
             <PanelResizeHandle className="group relative h-2 shrink-0 border-y border-surface-border bg-surface-overlay hover:bg-accent/20" aria-label="Resize editor and results">
               <span className="absolute left-1/2 top-1/2 h-1 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink-faint/50 group-hover:bg-accent" aria-hidden />
             </PanelResizeHandle>
-            <Panel defaultSize={42} minSize={15} className="min-h-0 overflow-auto">
+            <Panel defaultSize={42} minSize={15} className="min-h-0 overflow-auto" data-help="query-results">
               <ResultsPanel
                 tabs={tabs}
                 activeTabId={activeTab}
@@ -313,7 +320,7 @@ export default function PracticePanel({
       {plan && (
         <div ref={planRef} className="animate-fade-in max-h-[45vh] shrink-0 scroll-mt-20 overflow-auto border-t border-surface-border px-4 py-3" aria-live="polite">
           <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-ink-faint">
-            Query plan
+            <span className="inline-flex items-center gap-1">Query plan <HelpTooltip id="seq-scan-vs-index-scan" label="What do Seq Scan and Index Scan mean?" /></span>
             <button type="button" onClick={() => setPlan(null)} className="normal-case tracking-normal hover:text-ink">Close</button>
           </div>
           {plan.busy ? <p className="flex items-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Asking PostgreSQL for the plan…</p>

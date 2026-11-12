@@ -39,7 +39,7 @@ export function ScenariosPage() {
         const group = all.filter((s) => s.dataset === d.id);
         if (!group.length) return null;
         return (
-          <section key={d.id} className="mb-8" aria-labelledby={`ds-${d.id}`}>
+          <section key={d.id} data-help="scenarios-dataset" className="mb-8" aria-labelledby={`ds-${d.id}`}>
             <h2 id={`ds-${d.id}`} className="font-display text-xl font-bold text-ink">{d.title}</h2>
             <p className="text-sm text-ink-muted">{d.description} <Link to={`/playground?db=${d.id}`} className="text-accent hover:underline">Explore it →</Link></p>
             <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -110,7 +110,7 @@ export function ScenarioPage() {
       </div>
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <article className="min-w-0 space-y-5">
+        <article data-help="scenario-brief" className="min-w-0 space-y-5">
           {before.map((sec) => (
             <section key={sec.heading}>
               <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
@@ -141,7 +141,7 @@ export function ScenarioPage() {
               </section>
             </div>
           ) : (
-            <details className="rounded-card border border-surface-border bg-surface-raised p-4 text-sm">
+            <details data-help="scenario-solution" className="rounded-card border border-surface-border bg-surface-raised p-4 text-sm">
               <summary className="cursor-pointer font-medium text-ink">Stuck? Show the reference solution</summary>
               <p className="mt-2 text-xs text-ink-muted">The explanation, alternatives and follow-up questions unlock once your query passes.</p>
               <Markdown source={"```sql\n" + s.solution + "\n```"} className="mt-2" />
@@ -152,7 +152,7 @@ export function ScenarioPage() {
           )}
         </article>
 
-        <div className="min-w-0 lg:sticky lg:top-20 lg:self-start">
+        <div data-help="scenario-editor" className="min-w-0 lg:sticky lg:top-20 lg:self-start">
           {ready ? (
             <Suspense fallback={<Skeleton className="h-[580px]" />}>
               <PracticePanel key={s.slug} question={question} lessonKey={key(s.slug)} fresh dataset={s.dataset} datasetLabel={ds?.title ?? s.dataset}

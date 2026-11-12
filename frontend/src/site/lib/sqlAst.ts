@@ -2,7 +2,7 @@
  * Structural analysis of a query from a real PostgreSQL AST (pgsql-ast-parser), with the
  * clause splitter as a fallback. Everything here is *parsed* — nothing is executed.
  */
-import { parseSelect, splitSetOps } from "./sqlClauses";
+import { parseSelect, parseSetOperation, setOpBranches, splitSetOps } from "./sqlClauses";
 
 export interface CteInfo {
   name: string;
@@ -77,15 +77,11 @@ export async function analyze(sql: string): Promise<Structure> {
       }
       body = root.in as Ast;
     }
-    // Set operations nest as {type: "union", left, right}; flatten into ordered branches.
-    const branches: BranchInfo[] = [];
-    const flatten = (n: Ast, op: string) => {
-      if (n.type && /^(union|union all|intersect|intersect all|except|except all)$/.test(n.type)) {
-        flatten(n.left as Ast, op);
-        flatten(n.right as Ast, n.type.toUpperCase());
-      } else branches.push({ op, sql: toSql.statement(n as never) });
-    };
-    flatten(body, "");
+    // Branches come from the set-operation reader (sqlClauses.parseSetOperation), not from the syntax tree: the tree
+    // package only knows UNION, rejects INTERSECT/EXCEPT, and attaches a trailing ORDER BY / LIMIT to the last branch
+    // although PostgreSQL applies it to the whole operation.
+    const setOp = parseSetOperation(text);
+    const branches: BranchInfo[] = setOp.kind === "setop" ? setOpBranches(setOp.query) : [{ op: "", sql: toSql.statement(body as never) }];
     const tables: Structure["tables"] = [];
     const joins: Structure["joins"] = [];
     let subqueries = 0;
@@ -111,19 +107,31 @@ export async function analyze(sql: string): Promise<Structure> {
   } catch (e) {
     // Fallback: the clause splitter still gives a useful outline.
     const p = parseSelect(text);
+    const fb = fallbackBranches(text);
     return {
       source: "clauses",
-      statement: splitSetOps(text).length > 1 ? "set operation" : p.unsupported ? "unsupported" : p.with ? "WITH + SELECT" : "SELECT",
+      statement: fb.length > 1 ? "set operation" : p.unsupported ? "unsupported" : p.with ? "WITH + SELECT" : "SELECT",
       tables: p.joins.map((j) => ({ name: j.source })),
       joins: p.joins.slice(1).map((j) => ({ type: j.kind, table: j.source, on: j.on })),
       ctes: [],
-      branches: splitSetOps(text).length > 1 ? splitSetOps(text) : [],
+      branches: fb,
       subqueries: (text.match(/\(\s*select\b/gi) ?? []).length,
       windows: p.windows.length,
       volatile,
       parseError: (e as Error).message.split("\n")[0],
     };
   }
+}
+
+/** Branches for the clause-splitter fallback: the set-operation reader when it understands the query, else the flat splitter. */
+function fallbackBranches(text: string): BranchInfo[] {
+  const so = parseSetOperation(text);
+  if (so.kind === "setop") {
+    const b = setOpBranches(so.query);
+    // CTEs apply to every branch, so each one carries the WITH prefix and still runs on its own.
+    return so.query.with ? b.map((x) => ({ ...x, sql: `${so.query.with}\n${x.sql}` })) : b;
+  }
+  return splitSetOps(text).length > 1 ? splitSetOps(text) : [];
 }
 
 /** Mermaid flowchart of CTE dependencies feeding the main query. */

@@ -6,6 +6,7 @@ import { branchLabel, studyAnalytics, studySec } from "../../lib/dailyStudy";
 import { sweepDailyStudy } from "../../lib/dailyStudyStore";
 import { formatDuration } from "../../lib/solveSessions";
 import { useToday, type DailyView } from "../../lib/useDaily";
+import { HelpTooltip } from "../../help/HelpTooltip";
 
 const shortDate = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
 
@@ -33,13 +34,13 @@ export function StudyTimePanel({ view }: { view: DailyView }) {
   const maxWeek = Math.max(1, ...a.weeks.map((w) => w.sec));
   const maxPhase = Math.max(1, ...a.byPhase.map((p) => p.sec));
   return (
-    <section aria-labelledby="study-time">
-      <SectionHeader id="study-time" title="Study time" description="Active time on lessons: only while a lesson tab is open and you are there. It never affects completion or your streak." />
+    <section data-help="daily-study-time" aria-labelledby="study-time">
+      <SectionHeader id="study-time" title="Study time" description="Active time on lessons: only while a lesson tab is open and you are there. It never affects completion or your streak." action={<HelpTooltip id="study-timer" label="What counts as study time?" />} />
       {empty ? (
         <Card><p className="text-sm text-ink-muted">Open a lesson and the timer starts by itself. Your time per lesson, week and phase appears here.</p></Card>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div data-help="study-time-stats" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard icon={Timer} label="Today" value={formatDuration(a.todaySec)} hint="Active study time" />
             <StatCard icon={Clock} label="This week" value={formatDuration(a.thisWeekSec)} hint="Last 7 days" />
             <StatCard icon={Hourglass} label="Total" value={formatDuration(a.totalSec)} hint={`${a.daysStudied} lessons · ${a.sessions} sessions`} />
@@ -49,7 +50,7 @@ export function StudyTimePanel({ view }: { view: DailyView }) {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <h3 className="font-display text-base font-bold text-ink">Last 8 weeks</h3>
-              <ul className="mt-3 space-y-1.5" aria-label="Study time by week">
+              <ul data-help="study-time-weeks" className="mt-3 space-y-1.5" aria-label="Study time by week">
                 {a.weeks.map((w) => (
                   <li key={w.start} className="flex items-center gap-2 text-xs">
                     <span className="w-24 shrink-0 text-ink-faint">{shortDate(w.start)}–{shortDate(w.end)}</span>
@@ -61,7 +62,7 @@ export function StudyTimePanel({ view }: { view: DailyView }) {
             </Card>
             <Card>
               <h3 className="font-display text-base font-bold text-ink">By phase</h3>
-              <ul className="mt-3 space-y-1.5" aria-label="Study time by phase">
+              <ul data-help="study-time-phases" className="mt-3 space-y-1.5" aria-label="Study time by phase">
                 {a.byPhase.map((p) => (
                   <li key={p.phase} className="flex items-center gap-2 text-xs">
                     <span className="w-40 shrink-0 truncate text-ink-muted" title={p.title}>{p.title}</span>

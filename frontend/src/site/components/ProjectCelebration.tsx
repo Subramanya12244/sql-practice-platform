@@ -132,7 +132,7 @@ export function ProjectCelebration({
   if (!completed) return null;
 
   return (
-    <div className="relative my-6 overflow-hidden rounded-card border border-success/30 bg-gradient-to-r from-success-dim/50 via-accent-dim/30 to-secondary-dim/30 p-5 shadow-panel">
+    <div data-help="project-celebration" className="relative my-6 overflow-hidden rounded-card border border-success/30 bg-gradient-to-r from-success-dim/50 via-accent-dim/30 to-secondary-dim/30 p-5 shadow-panel">
       {showBurst && (
         <canvas
           ref={canvasRef}

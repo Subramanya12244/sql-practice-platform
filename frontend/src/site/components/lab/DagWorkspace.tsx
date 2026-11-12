@@ -6,6 +6,7 @@ import { CONCEPTS, PRESET_DAG, SCHEDULE_TEXT, executeRun, order, retryFailed, si
 import { deleteDoc, listDocs, loadDoc, saveDoc } from "../../lib/lab/store";
 import { today } from "../../lib/progress";
 import { Button } from "../ui";
+import { HelpTooltip } from "../../help/HelpTooltip";
 
 const INPUT = "w-full rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-sm text-ink";
 const STATE_CLS: Record<string, string> = { success: "border-success", failed: "border-danger", upstream_failed: "border-warn", none: "border-surface-border" };
@@ -71,6 +72,7 @@ export default function DagWorkspace() {
         <Button onClick={go} disabled={problems.length > 0}><Play className="h-4 w-4" aria-hidden /> Run the schedule</Button>
         <Button variant="secondary" onClick={trigger} disabled={problems.length > 0}>Trigger a run now</Button>
         <Button variant="secondary" onClick={retry} disabled={!canRetry}><RotateCcw className="h-4 w-4" aria-hidden /> Retry failed tasks</Button>
+        <HelpTooltip id="retry" label="What happens when failed tasks are tried again?" />
         <Button variant="ghost" onClick={() => { edit(PRESET_DAG); setSel("extract"); setDocId(undefined); }}>Load example</Button>
         <span className="ml-auto flex flex-wrap items-center gap-2">
           <Button variant="secondary" onClick={save}><Save className="h-4 w-4" aria-hidden /> Save</Button>
@@ -89,7 +91,7 @@ export default function DagWorkspace() {
               <select value={dag.schedule} onChange={(e) => edit({ ...dag, schedule: e.target.value as Schedule })} className={`${INPUT} mt-1`}>{(Object.keys(SCHEDULE_TEXT) as Schedule[]).map((s) => <option key={s} value={s}>{s === "manual" ? "manual" : s}: {SCHEDULE_TEXT[s]}</option>)}</select>
             </label>
             <label className="block text-xs text-ink-muted">Start date<input type="date" value={dag.startDate} onChange={(e) => edit({ ...dag, startDate: e.target.value })} className={`${INPUT} mt-1`} /></label>
-            <label className="flex items-center gap-2 text-xs text-ink"><input type="checkbox" checked={dag.catchup} onChange={(e) => edit({ ...dag, catchup: e.target.checked })} /> Catch up on missed intervals (catchup)</label>
+            <label className="flex items-center gap-2 text-xs text-ink"><input type="checkbox" checked={dag.catchup} onChange={(e) => edit({ ...dag, catchup: e.target.checked })} /> Catch up on missed intervals (catchup)<HelpTooltip id="backfill" label="What is catch-up and backfill?" /></label>
           </div>
           <div className="rounded-card border border-surface-border bg-surface-raised p-3">
             <div className="flex items-center justify-between"><h2 className="text-sm font-semibold text-ink">Tasks</h2><button type="button" onClick={addTask} className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline"><Plus className="h-3 w-3" aria-hidden /> Add task</button></div>
@@ -98,7 +100,7 @@ export default function DagWorkspace() {
           {task && (
             <div className="space-y-2 rounded-card border border-surface-border bg-surface-raised p-3" aria-label="Task settings">
               <label className="block text-xs text-ink-muted">Name<input value={task.name} onChange={(e) => patch(task.id, (t) => ({ ...t, name: e.target.value }))} className={`${INPUT} mt-1 font-mono`} maxLength={30} /></label>
-              <fieldset className="text-xs text-ink-muted"><legend>Runs after</legend>
+              <fieldset className="text-xs text-ink-muted"><legend>Runs after <HelpTooltip id="task-dependency" label="What is a task dependency?" /></legend>
                 {dag.tasks.filter((t) => t.id !== task.id).length === 0 ? <p className="mt-1 text-ink-faint">Add another task to set dependencies.</p> : dag.tasks.filter((t) => t.id !== task.id).map((t) => (
                   <label key={t.id} className="mt-1 flex items-center gap-2 text-ink"><input type="checkbox" checked={task.deps.includes(t.id)} onChange={(e) => patch(task.id, (x) => ({ ...x, deps: e.target.checked ? [...x.deps, t.id] : x.deps.filter((d) => d !== t.id) }))} /><span className="font-mono">{t.name}</span></label>
                 ))}

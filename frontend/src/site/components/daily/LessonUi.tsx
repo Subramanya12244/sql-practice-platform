@@ -11,6 +11,7 @@ import { completeExercise, markMistakeSolved, recordMistake, scheduleDayReview, 
 import { classifyPyMistake, classifySqlMistake, dailyMistake } from "../../lib/mistakes";
 import { explainError } from "../../lib/errorHelp";
 import { track } from "../../lib/activity";
+import { LessonVisual } from "../visual/LessonVisual";
 import { runPython, PY_TIMEOUT_MS } from "../../lib/pyRunner";
 import { runQuery, submitQuery } from "../../lib/browserDb";
 
@@ -109,6 +110,7 @@ function BrowserExample({ dayId, ex, done }: { dayId: string; ex: ExampleBlock; 
         <Button size="sm" variant="ghost" onClick={() => setShowExpected((v) => !v)} aria-expanded={showExpected}><Eye className="h-4 w-4" aria-hidden /> {showExpected ? "Hide" : "Show"} expected output</Button>
       </div>
       <OutputPane out={out} busy={busy} lang={lang} />
+      <LessonVisual lang={lang} code={code} stdin={ex.stdin} />
       {match !== null && !busy && (
         <p className={`text-sm font-medium ${match ? "text-success" : "text-ink-muted"}`}>{match ? "Matches the expected output." : code === ex.code ? "The output differs from the expected output shown below. Your environment may differ; check the expected output." : "Output differs from the lesson's version, which is fine when you have changed the code."}</p>
       )}
@@ -265,6 +267,10 @@ function GradedExercise({ dayId, ex, guided, rec, index }: { dayId: string; ex: 
         </ol>
       )}
       <OutputPane out={out} busy={busy} lang={kind} />
+      <LessonVisual lang={kind} code={code} stdin={ex.stdin} label="Explain visually"
+        ctx={{ topic: ex.title, prompt: ex.prompt, hints: ex.hints?.slice(0, hints), expected: ex.expected,
+          run: out ? { ok: out.ok, text: out.text, error: out.ok ? undefined : out.text, columns: out.columns, rowCount: out.rows?.length, rows: out.rows } : undefined,
+          verdict: verdict ?? undefined, solution: canReveal && solution ? ex.solution : undefined }} />
       {verdict && (
         <div role="status" className={`rounded-xl border p-3 text-sm ${verdict.ok ? "border-success/40 bg-success-dim text-success" : "border-warn/40 bg-warn-dim text-ink"}`}>
           <p className="flex items-center gap-1.5 font-semibold">{verdict.ok ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : <AlertCircle className="h-4 w-4 text-warn" aria-hidden />} {verdict.message}</p>

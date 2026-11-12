@@ -6,6 +6,7 @@ import { Badge, ButtonLink, Card, Container, EmptyState, ErrorState, PageHeader,
 import { Seo } from "../lib/seo";
 import { setMistakeUnderstood, useProgress } from "../lib/progress";
 import { readStats, type PyStat } from "../lib/pyPractice";
+import { HelpTooltip } from "../help/HelpTooltip";
 import { buildNotebook, filterNotebook, improvement, recurring, type MistakeKind, type MistakeStatus, type NotebookRow } from "../lib/mistakes";
 
 const STATUS: Record<MistakeStatus, { label: string; tone: "warn" | "success" | "neutral" }> = {
@@ -14,10 +15,11 @@ const STATUS: Record<MistakeStatus, { label: string; tone: "warn" | "success" | 
 
 function Row({ r }: { r: NotebookRow }) {
   return (
-    <li className="rounded-lg border border-surface-border p-3">
+    <li data-help="mistake-row" className="rounded-lg border border-surface-border p-3">
       <div className="flex flex-wrap items-center gap-2">
         <Link to={r.path} className="min-w-0 flex-1 font-medium text-ink hover:text-accent">{r.title}</Link>
         <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].label}</Badge>
+        <HelpTooltip id="solved-vs-unsolved-mistake" label="What do Still open and Solved since mean?" />
       </div>
       <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label="What went wrong">
         {r.categories.map((c) => <li key={c.category} className="rounded-full bg-surface-soft px-2 py-0.5 text-xs text-ink">{c.label} · {c.count}</li>)}
@@ -76,7 +78,7 @@ export function MistakeNotebookPage() {
         </EmptyState>
       ) : (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div data-help="mistakes-stats" className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatCard label="Challenges missed" value={imp.missed} />
             <StatCard label="Fixed since" value={imp.fixed} hint={imp.missed ? `${Math.round((imp.fixed / imp.missed) * 100)}% of missed` : undefined} />
             <StatCard label="Still open" value={all.filter((r) => r.status === "open").length} />
@@ -86,13 +88,13 @@ export function MistakeNotebookPage() {
           {rec.length > 0 && (
             <Card pad="md" as="section" aria-label="Recurring mistakes">
               <SectionHeader title="Recurring mistakes" description="The same kind of mistake on different challenges. Fixing these helps most." />
-              <ul className="mt-2 space-y-1.5 text-sm">
+              <ul data-help="mistakes-recurring" className="mt-2 space-y-1.5 text-sm">
                 {rec.map((x) => <li key={`${x.kind}:${x.category}`} className="flex flex-wrap items-center gap-2"><Badge tone={x.kind === "sql" ? "accent" : "neutral"}>{x.kind === "sql" ? "SQL" : "Python"}</Badge><span className="font-medium text-ink">{x.label}</span><span className="text-ink-muted">{x.count} times on {x.questions} challenges</span></li>)}
               </ul>
             </Card>
           )}
 
-          <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Filters">
+          <div data-help="mistakes-filters" className="flex flex-wrap items-center gap-3" role="group" aria-label="Filters">
             <Tabs label="Language" value={kind} onChange={(v) => { setKind(v); setTopic("all"); }} tabs={[{ id: "all", label: "All" }, { id: "sql", label: "SQL" }, { id: "python", label: "Python" }]} />
             <select aria-label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} className="rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-sm text-ink">
               <option value="all">All topics</option>
@@ -101,16 +103,17 @@ export function MistakeNotebookPage() {
             <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value as MistakeStatus | "all")} className="rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-sm text-ink">
               <option value="all">Any status</option><option value="open">Still open</option><option value="solved">Solved since</option><option value="understood">Understood</option>
             </select>
+            <HelpTooltip id="mistake-category" label="What is a mistake category?" />
           </div>
 
           {!rows.length ? <p className="text-sm text-ink-muted" role="status">Nothing matches these filters.</p> : groups.map(([name, list]) => (
-            <section key={name} aria-label={name}>
+            <section key={name} data-help="mistakes-group" aria-label={name}>
               <h2 className="text-sm font-semibold text-ink">{name} <span className="font-normal text-ink-faint">({list.length})</span></h2>
               <ul className="mt-2 space-y-2">{list.map((r) => <Row key={r.ref} r={r} />)}</ul>
             </section>
           ))}
 
-          <section aria-label="Improvement by topic">
+          <section data-help="mistakes-improvement" aria-label="Improvement by topic">
             <SectionHeader title="Improvement" description="How many missed challenges in each topic are solved now." />
             <ul className="mt-2 grid gap-2 sm:grid-cols-2">
               {imp.topics.map((t) => <li key={`${t.label}`} className="flex justify-between rounded-lg border border-surface-border px-3 py-2 text-sm"><span className="text-ink">{t.label}</span><span className="tabular-nums text-ink-muted">{t.fixed} of {t.missed} fixed</span></li>)}

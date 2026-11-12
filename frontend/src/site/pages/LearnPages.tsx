@@ -66,7 +66,7 @@ export function LearnPage() {
         intro={`Goals, progress and what to do next, plus the ${lessons.length}-lesson SQL course with ${totalEx} graded exercises.`}
       />
       <LearnDashboard />
-      <div className="mt-12">
+      <div data-help="learn-roadmap" className="mt-12">
         <SectionHeader id="roadmap" title="SQL course roadmap" description={<>Hands-on lessons in order. Each ends with exercises graded in your browser. {doneEx > 0 && `You've passed ${doneEx} of ${totalEx}.`}</>} />
         {doneEx > 0 && <ProgressBar value={doneEx} max={totalEx || 1} label="SQL course exercises passed" className="max-w-md" />}
       </div>
@@ -281,7 +281,7 @@ function LearnDashboard() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-card border border-surface-border bg-surface-raised p-6 shadow-panel sm:p-8" aria-labelledby="welcome">
+      <section data-help="learn-hero" className="relative overflow-hidden rounded-card border border-surface-border bg-surface-raised p-6 shadow-panel sm:p-8" aria-labelledby="welcome">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/10 blur-3xl" aria-hidden />
         <div className="pointer-events-none absolute -bottom-24 right-40 h-60 w-60 rounded-full bg-secondary/10 blur-3xl" aria-hidden />
         <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
@@ -313,7 +313,7 @@ function LearnDashboard() {
             <div className="text-sm">
               <p className="font-semibold text-ink">Daily goal</p>
               <p className="text-xs text-ink-muted">Solves, reviews, notes and exercises</p>
-              <label className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
+              <label data-help="learn-goal" className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
                 Target
                 <select value={goal} onChange={(e) => setDailyGoal(Number(e.target.value))} className="rounded-md border border-surface-border bg-surface px-1.5 py-1 text-ink">
                   {[1, 2, 3, 5, 8, 10].map((n) => <option key={n} value={n}>{n} a day</option>)}
@@ -324,7 +324,7 @@ function LearnDashboard() {
         </div>
       </section>
 
-      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div data-help="learn-stats" className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard icon={Flame} label="Streak" value={mounted ? `${days} day${days === 1 ? "" : "s"}` : "—"} hint={mounted ? `Longest ${g.longest} · days with learning` : "Days in a row with activity"} />
         <Link to="/achievements" className="block rounded-card focus-visible:outline-offset-4">
           <Card pad="sm" className="h-full transition duration-fast hover:border-accent/40">
@@ -382,7 +382,7 @@ function LearnDashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div data-help="learn-queue" className="grid gap-4 lg:grid-cols-3">
         <Card as="section">
           <SectionHeader title="Recommended next" />
           {nextNotes.length ? (
@@ -462,7 +462,7 @@ function LearnDashboard() {
         </ul>
       </Card>
 
-      <section aria-labelledby="modules">
+      <section data-help="learn-modules" aria-labelledby="modules">
       <SectionHeader id="modules" title="Study modules" />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {MODULES.map((m) => (

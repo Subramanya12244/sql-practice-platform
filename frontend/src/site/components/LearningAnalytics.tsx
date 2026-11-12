@@ -58,7 +58,7 @@ export function LearningAnalytics() {
   ];
 
   return (
-    <section aria-labelledby="analytics" className="mt-10">
+    <section data-help="learning-analytics" aria-labelledby="analytics" className="mt-10">
       <SectionHeader id="analytics" title="Learning analytics" description="From your own tracked activity. Active time counts focused minutes with keyboard, mouse or touch input in this browser, not how long a tab was open." />
       <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-3">
         {tiles.map(([label, value, hint, trend]) => (
@@ -68,7 +68,7 @@ export function LearningAnalytics() {
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card pad="md" as="section" aria-label="Active time per week" className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Active time, last 8 weeks</p>
-          <ol className="mt-3 flex h-32 items-end gap-2" aria-label="Active minutes per week">
+          <ol data-help="learning-weekly-time" className="mt-3 flex h-32 items-end gap-2" aria-label="Active minutes per week">
             {a.time.weeks.map((w) => (
               <li key={w.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1" title={`Week from ${w.label}: ${formatMinutes(w.minutes)}`}>
                 <span className="w-full rounded-t-[4px] bg-accent/80" style={{ height: `${w.minutes ? Math.max(4, (w.minutes / max) * 100) : 0}%` }} />
@@ -79,7 +79,7 @@ export function LearningAnalytics() {
         </Card>
         <Card pad="md" as="section" aria-label="Completion by difficulty" className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Completion by difficulty</p>
-          <div className="mt-2 grid gap-4 sm:grid-cols-2">
+          <div data-help="learning-completion" className="mt-2 grid gap-4 sm:grid-cols-2">
             {([["SQL", a.sql.byLevel], ["Python", a.python.byLevel]] as const).map(([label, rows]) => (
               <ul key={label} className="space-y-2"><li className="text-xs font-semibold text-ink">{label}</li>
                 {rows.map((r) => <li key={r.level}><div className="flex justify-between text-xs"><span className="text-ink-muted">{r.level}</span><span className="tabular-nums text-ink-muted">{r.done}/{r.total}</span></div><ProgressBar className="mt-1" value={r.done} max={r.total} label={`${label} ${r.level} completed`} /></li>)}

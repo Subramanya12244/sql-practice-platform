@@ -4,6 +4,7 @@ import { Briefcase, CalendarRange, CheckCircle2, Circle, Download, FolderGit2, M
 import { usePage } from "../SiteApp";
 import { Container, EmptyState, PageHeader, ProgressBar } from "../components/ui";
 import { Seo } from "../lib/seo";
+import { HelpTooltip } from "../help/HelpTooltip";
 import { recordAnswer, setPlan, setPortfolioInfo, today, useProgress } from "../lib/progress";
 import {
   COMPANY_TYPES, ROLE_PATHS, answerQueue, hoursNeeded, interviewQA, isDone, keyTerms, nextAnswerState, planItems,
@@ -39,10 +40,10 @@ function completedProjects(data: PageData): Set<string> {
 
 // ── Hub ─────────────────────────────────────────────────────────────────
 const TOOLS = [
-  { to: "/career/planner", icon: CalendarRange, title: "Study planner", text: "Pick a role, a deadline and weekly hours. Get a week-by-week plan that ticks itself off as you learn." },
-  { to: "/career/companies", icon: Briefcase, title: "Prep by company type", text: "What interviews at product companies, startups, services firms, banks and retailers tend to focus on, and what to practise." },
-  { to: "/career/answers", icon: MessageSquareText, title: "Answer practice", text: "Say or type your answer to real interview questions, then compare it with a model answer and rate yourself." },
-  { to: "/portfolio", icon: UserRound, title: "Portfolio", text: "A summary of your verified practice, projects and checks that you can print or export as Markdown." },
+  { to: "/career/planner", help: "career-planner", icon: CalendarRange, title: "Study planner", text: "Pick a role, a deadline and weekly hours. Get a week-by-week plan that ticks itself off as you learn." },
+  { to: "/career/companies", help: "career-companies", icon: Briefcase, title: "Prep by company type", text: "What interviews at product companies, startups, services firms, banks and retailers tend to focus on, and what to practise." },
+  { to: "/career/answers", help: "career-answers", icon: MessageSquareText, title: "Answer practice", text: "Say or type your answer to real interview questions, then compare it with a model answer and rate yourself." },
+  { to: "/portfolio", help: "career-portfolio", icon: UserRound, title: "Portfolio", text: "A summary of your verified practice, projects and checks that you can print or export as Markdown." },
 ];
 
 export function CareerPage() {
@@ -52,7 +53,7 @@ export function CareerPage() {
       <PageHeader eyebrow="Career" title="Get ready for data interviews" intro="Plan your study, prepare for the kind of company you're targeting, practise answers out loud, and show what you've done." />
       <ul className="grid gap-4 sm:grid-cols-2">
         {TOOLS.map((t) => (
-          <li key={t.to} className={card}>
+          <li key={t.to} data-help={t.help} className={card}>
             <Link to={t.to} className="flex items-center gap-2 font-display text-lg font-bold text-ink hover:underline"><t.icon className="h-5 w-5 text-accent" aria-hidden /> {t.title}</Link>
             <p className="mt-1 text-sm text-ink-muted">{t.text}</p>
           </li>
@@ -125,7 +126,7 @@ export function PlannerPage() {
         <div className="flex flex-wrap items-center gap-3 sm:col-span-5">
           <button type="submit" className={btn}>{saved ? "Update plan" : "Save plan"}</button>
           {saved && <button type="button" className={btn2} onClick={() => setPlan(undefined)}>Clear plan</button>}
-          <p className="text-sm text-ink-muted">{role.summary}</p>
+          <p className="text-sm text-ink-muted">{role.summary} <HelpTooltip id="study-planner" label="What is the study planner?" /></p>
         </div>
       </form>
 

@@ -6,6 +6,7 @@ import {
 } from "../../lib/solveSessions";
 import { dayRef } from "../../lib/dailyStudy";
 import { commitDayStudy, sweepDailyStudy } from "../../lib/dailyStudyStore";
+import { HelpTooltip } from "../../help/HelpTooltip";
 
 /**
  * Active study time for one lesson. Same clock as the SQL/Python solve timer (heartbeat grace, auto-pause while the tab is
@@ -73,7 +74,7 @@ export function StudyTimer({ dayId, className = "" }: { dayId: string; className
   if (!ready || !t.active) return null;
   const running = isRunning(t.active);
   return (
-    <div className={`inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-2 py-0.5 text-xs ${className}`} role="group" aria-label="Lesson study timer">
+    <div data-help="study-timer" className={`inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-2 py-0.5 text-xs ${className}`} role="group" aria-label="Lesson study timer">
       <Timer className={`h-3.5 w-3.5 ${running ? "text-accent" : "text-ink-faint"}`} aria-hidden />
       <span role="timer" aria-live="off" aria-label={`Study time ${formatClock(t.seconds)}`} className="font-mono text-sm font-semibold tabular-nums text-ink">{formatClock(t.seconds)}</span>
       <span role="status" className="sr-only">{running ? "Study timer running" : "Study timer paused"}</span>
@@ -81,6 +82,7 @@ export function StudyTimer({ dayId, className = "" }: { dayId: string; className
       <button type="button" onClick={t.toggle} className={btn} aria-label={running ? "Pause study timer" : "Resume study timer"} title={running ? "Pause" : "Resume"}>
         {running ? <Pause className="h-3.5 w-3.5" aria-hidden /> : <Play className="h-3.5 w-3.5" aria-hidden />}
       </button>
+      <HelpTooltip id="study-timer" label="What does the study timer count?" />
     </div>
   );
 }

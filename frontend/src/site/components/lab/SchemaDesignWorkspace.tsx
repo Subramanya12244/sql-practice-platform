@@ -5,6 +5,7 @@ import { TYPES, emptySchema, newColumn, relationships, toDdl, toSchemaTables, va
 import { deleteDoc, listDocs, loadDoc, saveDoc } from "../../lib/lab/store";
 import { registerDataset, runQuery } from "../../lib/browserDb";
 import { Button, Skeleton, Tabs } from "../ui";
+import { HelpTooltip } from "../../help/HelpTooltip";
 
 const SchemaFlow = lazy(() => import("../SchemaFlow"));
 const INPUT = "rounded-lg border border-surface-border bg-surface px-2 py-1 text-sm text-ink";
@@ -67,6 +68,7 @@ function Designer({ schema, setSchema, exId, setExId }: { schema: Schema; setSch
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-xs text-ink-muted">Start from <select value={exId} onChange={(e) => pickExercise(e.target.value)} className={`${INPUT} ml-1`}><option value="free">a blank design</option>{EXERCISES.filter((e) => e.kind === "design").map((e) => <option key={e.id} value={e.id}>Exercise: {e.title}</option>)}</select></label>
           <Button size="sm" variant="secondary" onClick={() => { setSchema(emptySchema()); setExId("free"); setCheck(null); }}>Clear</Button>
+          <HelpTooltip id="de-reset-vs-clear" label="What does Clear do, and how is it different from Reset?" />
           <span className="ml-auto flex flex-wrap items-center gap-2">
             <input aria-label="Schema name" value={name} onChange={(e) => setName(e.target.value)} className={`${INPUT} w-32`} maxLength={60} />
             <Button size="sm" variant="secondary" onClick={() => { const id = saveDoc("schema", { id: docId, name, data: schema }); if (id) { setDocId(id); setSaved(listDocs("schema")); } }}>Save</Button>

@@ -7,6 +7,7 @@ import { Markdown } from "../components/Markdown";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { LearningCalendar, PathPanel, ProgrammeOverview, RevisionPanel, Roadmap, StatusIcon, TodayCard } from "../components/daily/DailyDashboard";
 import { StudyTimePanel } from "../components/daily/StudyTimePanel";
+import { visualFor, visualHref } from "../lib/visual/dailyVisual";
 import { StudyTimer } from "../components/daily/StudyTimer";
 import { CompletePanel, ExampleRunner, ExerciseRunner, KnowledgeCheck } from "../components/daily/LessonUi";
 import { PATHS, PHASE_BY_ID, dayHref, findDay, neighbours, prerequisitesOf, type BranchId, type DayMeta, type PathId } from "../lib/daily";
@@ -197,6 +198,16 @@ function LessonForDay({ day, content, links }: { day: DayMeta; content: NonNulla
       <DayHeader day={day} view={view}><StudyTimer dayId={day.id} className="mt-3" /></DayHeader>
       <div className="space-y-5 pb-16">
         <Prerequisites day={day} view={view} />
+        {(() => {
+          const first = content.examples.find((b) => b.kind === "example");
+          const v = visualFor({ id: day.id, title: day.title, topics: day.topics, lang: first && first.kind === "example" ? (first.lang as "python" | "sql" | "bash") : undefined });
+          return v ? (
+            <Link to={visualHref(v)} className="flex items-center justify-between gap-2 rounded-xl border border-surface-border bg-surface-soft/50 px-3 py-2 text-sm hover:border-accent/50" aria-label={`Visual helper: ${v.title}`}>
+              <span><span className="block text-[11px] uppercase tracking-wide text-ink-faint">Visual helper</span><span className="font-medium text-ink">{v.title}</span> <span className="text-ink-muted">{v.blurb}</span></span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
+            </Link>
+          ) : null;
+        })()}
         <div id="lesson-top" className="scroll-mt-20">
           <div className="flex items-center justify-between gap-3 text-xs text-ink-muted"><span>Step {index + 1} of {STEPS.length}</span><span>{finished} of {STEPS.length - 1} activities done</span></div>
           <ProgressBar className="mt-1.5" value={finished} max={STEPS.length - 1} label="Day activities done" tone="success" />

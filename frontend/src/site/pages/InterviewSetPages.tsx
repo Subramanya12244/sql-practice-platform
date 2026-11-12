@@ -25,11 +25,11 @@ export function InterviewSetsPage() {
       />
       <PageHeader eyebrow="Interview prep" title="SQL interview sets" intro="Hand-picked question lists for the role you're interviewing for, ordered easy to hard." />
       <div className="mb-6 flex flex-wrap gap-2 text-sm">
-        <Link to="/mock-interview" className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white">Take a timed mock interview →</Link>
-        <Link to="/shortcuts/interview-revision" className="rounded-lg border border-surface-border px-3 py-1.5 font-medium text-accent">Interview quick revision →</Link>
-        <Link to="/patterns" className="rounded-lg border border-surface-border px-3 py-1.5 font-medium text-accent">Interview patterns →</Link>
+        <Link to="/mock-interview" data-help="interview-mock-link" className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white">Take a timed mock interview →</Link>
+        <Link to="/shortcuts/interview-revision" data-help="interview-revision-link" className="rounded-lg border border-surface-border px-3 py-1.5 font-medium text-accent">Interview quick revision →</Link>
+        <Link to="/patterns" data-help="interview-patterns-link" className="rounded-lg border border-surface-border px-3 py-1.5 font-medium text-accent">Interview patterns →</Link>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div data-help="interview-sets" className="grid gap-3 sm:grid-cols-2">
         {sets.map((s) => (
           <Link key={s.slug} to={`/interview/${s.slug}`} className="rounded-card border border-surface-border bg-surface-raised p-5 shadow-panel hover:border-accent">
             <p className="font-display text-lg font-bold text-ink">{s.title}</p>
