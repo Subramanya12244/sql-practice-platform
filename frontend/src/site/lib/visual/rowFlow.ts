@@ -60,9 +60,14 @@ export function ctidOrder(a: string, b: string): number {
 
 /* ---------- types ---------- */
 
+/** What a predicate (WHERE or HAVING) evaluated to for one row or group. NULL is not true, so it removes the row too. */
+export interface Verdict { value: "true" | "false" | "NULL"; /** The values the predicate looked at, e.g. "freight = 11.61". */ detail?: string }
+
 export interface TraceRow {
   id: string;
   cells: unknown[];
+  /** What the stage's predicate evaluated to for this row (WHERE, HAVING). */
+  verdict?: Verdict;
   /** Projected values (the SELECT list) for a row whose `cells` are the full source row. */
   after?: unknown[];
   /** Position the row had before a sort (arrival order). */
@@ -89,6 +94,17 @@ export interface BoardCard {
   toneBefore: Tone;
   tone: Tone;
   badge?: string;
+  /** The row as a table row: column names and formatted values, so a card can be drawn as a real relation row. */
+  cols?: string[];
+  cells?: string[];
+  /** What the stage's predicate evaluated to for this row (WHERE, HAVING). */
+  verdict?: Verdict;
+  /** Aggregate result for a group bucket, e.g. "COUNT(*) = 13". */
+  calc?: string;
+  /** Which group the card belongs to (0, 1, 2 ...), so rows of one group share a colour. */
+  group?: number;
+  /** The same row after the move, when its columns change (SELECT narrows a row to the output columns). */
+  after?: { cols: string[]; cells: string[] };
 }
 export interface Board { lanes: Lane[]; cards: BoardCard[]; rows: number }
 
@@ -110,7 +126,7 @@ export interface FlowFacts {
 export const emptyFacts = (): FlowFacts => ({ entered: [], kept: [], removed: [], matched: [], unmatchedLeft: [], unmatchedRight: [], padded: [], duplicates: [], groups: [], moves: [], skipped: [], cut: [] });
 
 export type FrameKind = "scan" | "join" | "filter" | "group" | "aggregate" | "project" | "distinct" | "sort" | "limit" | "setop" | "none";
-export interface FrameVariant { label: string; board: Board; summary: string; limited?: string; facts: FlowFacts }
+export interface FrameVariant { label: string; board: Board; summary: string; limited?: string; facts: FlowFacts; /** The ON condition of a join step. */ on?: string; /** Join kind, e.g. "LEFT JOIN". */ kind?: string; /** Which join of the FROM this is (0 = the first JOIN). */ index?: number }
 export interface FlowFrame {
   stageIndex: number;
   clause: string;
@@ -127,6 +143,8 @@ export interface FlowFrame {
   facts: FlowFacts;
   /** trace = built from row-level derived queries; stage = built from the stage's own sample only. */
   source: "trace" | "stage";
+  /** The predicate (WHERE, HAVING) or key expression this stage applies, as written in the query. */
+  expr?: string;
 }
 
 export interface Ctx { stageIndex: number; clause: string; identity: IdKind; source?: "trace" | "stage" }
@@ -148,7 +166,8 @@ export const limitedText = (shown: number, total: number | undefined, noun = "ro
   total !== undefined && total > shown ? `showing ${shown.toLocaleString()} of ${total.toLocaleString()} ${noun}` : undefined;
 
 const card = (id: string, cells: unknown[], columns: string[], from: Slot, to: Slot, tone: Tone, extra: Partial<BoardCard> = {}): BoardCard => ({
-  id, text: cardText(cells), title: cardTitle(columns, cells), from, to, toneBefore: "normal", tone, ...extra,
+  id, text: cardText(cells), title: cardTitle(columns, cells), from, to, toneBefore: "normal", tone,
+  ...(cells.length ? { cols: cells.map((_, i) => columns[i] ?? `col${i + 1}`), cells: cells.map(fmtCell) } : {}), ...extra,
 });
 const boardOf = (lanes: Lane[], cards: BoardCard[]): Board => ({ lanes, cards, rows: Math.max(1, ...cards.map((c) => Math.max(c.from.row, c.to.row) + 1)) });
 const frame = (ctx: Ctx, kind: FrameKind, f: Partial<FlowFrame> & { summary: string }): FlowFrame =>
@@ -169,7 +188,7 @@ export function scanFrame(ctx: Ctx, p: { rows: TraceRow[]; columns: string[]; to
 
 /* ---------- filter: WHERE and HAVING, rows or groups go to a kept lane or a removed lane ---------- */
 
-export function filterFrame(ctx: Ctx, p: { kept: TraceRow[]; removed: TraceRow[]; columns: string[]; noun?: "rows" | "groups"; totalIn?: number; totalOut?: number; input?: TraceRow[] }): FlowFrame {
+export function filterFrame(ctx: Ctx, p: { kept: TraceRow[]; removed: TraceRow[]; columns: string[]; noun?: "rows" | "groups"; totalIn?: number; totalOut?: number; input?: TraceRow[]; expr?: string }): FlowFrame {
   const noun = p.noun ?? "rows";
   const keptIds = new Set(p.kept.map((r) => r.id));
   const input = p.input ?? [...p.kept, ...p.removed];
@@ -177,7 +196,7 @@ export function filterFrame(ctx: Ctx, p: { kept: TraceRow[]; removed: TraceRow[]
   let k = 0, rm = 0;
   input.forEach((r, i) => {
     const isKept = keptIds.has(r.id);
-    cards.push(card(r.id, r.cells, p.columns, { lane: 0, row: i }, { lane: isKept ? 1 : 2, row: isKept ? k++ : rm++ }, isKept ? "kept" : "removed"));
+    cards.push(card(r.id, r.cells, p.columns, { lane: 0, row: i }, { lane: isKept ? 1 : 2, row: isKept ? k++ : rm++ }, isKept ? "kept" : "removed", r.verdict ? { verdict: r.verdict } : {}));
   });
   const totalRemoved = p.totalIn !== undefined && p.totalOut !== undefined ? p.totalIn - p.totalOut : undefined;
   const lanes: Lane[] = [
@@ -188,7 +207,7 @@ export function filterFrame(ctx: Ctx, p: { kept: TraceRow[]; removed: TraceRow[]
   const facts = { ...emptyFacts(), kept: p.kept.map((r) => r.id), removed: p.removed.map((r) => r.id) };
   const shown = input.length;
   return frame(ctx, "filter", {
-    board: boardOf(lanes, cards), facts,
+    board: boardOf(lanes, cards), facts, expr: p.expr,
     limited: limitedText(shown, p.totalIn, noun),
     summary: `${ctx.clause.toUpperCase()}: of the ${plural(shown, noun === "groups" ? "group" : "row")} drawn, ${k} stay in the kept lane and ${rm} move to the removed lane${
       p.totalIn !== undefined && p.totalOut !== undefined ? `. Overall ${p.totalIn.toLocaleString()} → ${p.totalOut.toLocaleString()} ${noun}` : ""}.`,
@@ -199,6 +218,10 @@ export function filterFrame(ctx: Ctx, p: { kept: TraceRow[]; removed: TraceRow[]
 
 export interface JoinInput {
   kind: string;
+  /** The ON condition, as written. */
+  on?: string;
+  /** Which join of the FROM this is (0 = the first JOIN). */
+  index?: number;
   label: string;
   matched: { left: TraceRow; right: TraceRow }[];
   unmatchedLeft: TraceRow[];
@@ -226,6 +249,11 @@ export function joinVariant(p: JoinInput): FrameVariant {
     lSeen.set(m.left.id, [...(lSeen.get(m.left.id) ?? []), i + 1]);
     rSeen.set(m.right.id, [...(rSeen.get(m.right.id) ?? []), i + 1]);
   });
+  // Rows that match each other share a colour: the left row's index, so a fan-out (one left row, several right rows) reads as one family.
+  const leftIndex = new Map<string, number>();
+  lefts.forEach((r) => { if (lSeen.has(r.id)) leftIndex.set(r.id, leftIndex.size); });
+  const rightOwner = new Map<string, number>();
+  p.matched.forEach((m) => { if (!rightOwner.has(m.right.id)) rightOwner.set(m.right.id, leftIndex.get(m.left.id)!); });
   const nums = (a: number[] | undefined) => (a ? `↔ #${a.slice(0, 3).join(", #")}${a.length > 3 ? ` +${a.length - 3}` : ""}` : undefined);
   const nullsR = `NULL ×${p.rightColumns.length || 1}`, nullsL = `NULL ×${p.leftColumns.length || 1}`;
   const cards: BoardCard[] = [];
@@ -233,18 +261,18 @@ export function joinVariant(p: JoinInput): FrameVariant {
   lefts.forEach((r, i) => {
     const un = unL.has(r.id) && !lSeen.has(r.id);
     cards.push(card(`L:${r.id}`, r.cells, p.leftColumns, { lane: 0, row: i }, { lane: 0, row: i }, un ? (keepL ? "unmatched" : "removed") : "matched",
-      { badge: un ? (keepL ? "no match, kept" : "no match, dropped") : nums(lSeen.get(r.id)) }));
+      { badge: un ? (keepL ? "no match, kept" : "no match, dropped") : nums(lSeen.get(r.id)), group: un ? undefined : leftIndex.get(r.id) }));
   });
   rights.forEach((r, i) => {
     const un = unR.has(r.id) && !rSeen.has(r.id);
     cards.push(card(`R:${r.id}`, r.cells, p.rightColumns, { lane: 1, row: i }, { lane: 1, row: i }, un ? (keepR ? "unmatched" : "removed") : "matched",
-      { badge: un ? (keepR ? "no match, kept" : "no match, dropped") : nums(rSeen.get(r.id)) }));
+      { badge: un ? (keepR ? "no match, kept" : "no match, dropped") : nums(rSeen.get(r.id)), group: un ? undefined : rightOwner.get(r.id) }));
   });
   let m = 0;
   const padded: string[] = [];
   p.matched.forEach((pair, i) => {
     const id = pairIds[i];
-    cards.push({ ...card(id, [...pair.left.cells, ...pair.right.cells], [...p.leftColumns, ...p.rightColumns], { lane: 1.3, row: m }, { lane: 2, row: m }, "matched", { appear: true, badge: `#${i + 1}` }),
+    cards.push({ ...card(id, [...pair.left.cells, ...pair.right.cells], [...p.leftColumns, ...p.rightColumns], { lane: 1.3, row: m }, { lane: 2, row: m }, "matched", { appear: true, badge: `#${i + 1}`, group: leftIndex.get(pair.left.id) }),
       text: `${cardText(pair.left.cells, 2)} ⟷ ${cardText(pair.right.cells, 2)}` });
     m++;
   });
@@ -284,7 +312,7 @@ export function joinVariant(p: JoinInput): FrameVariant {
     if (p.unmatchedRight.length || c.unmatchedRight) bits.push(`${plural(c.unmatchedRight ?? p.unmatchedRight.length, "right row")} found no partner and ${keepR ? "are kept with NULLs for the left columns" : "are dropped"}`);
   }
   const lim = c.resultRows !== undefined && c.resultRows > drawn ? `showing ${drawn.toLocaleString()} of ${c.resultRows.toLocaleString()} rows` : undefined;
-  return { label: p.label, board: boardOf(lanes, cards), facts, limited: lim, summary: `${bits.join("; ")}.` };
+  return { label: p.label, kind: p.kind, on: p.on, index: p.index, board: boardOf(lanes, cards), facts, limited: lim, summary: `${bits.join("; ")}.` };
 }
 
 export function joinFrame(ctx: Ctx, variants: FrameVariant[]): FlowFrame {
@@ -299,12 +327,13 @@ export function groupFrame(ctx: Ctx, p: { rows: TraceRow[]; columns: string[]; k
   for (const r of p.rows) { const k = r.key ?? "[]"; (buckets.get(k) ?? buckets.set(k, []).get(k)!).push(r); }
   const cards: BoardCard[] = [];
   p.rows.forEach((r, i) => cards.push(card(r.id, r.cells, p.columns, { lane: 0, row: i }, { lane: 1, row: 0 }, "normal")));
-  let row = 0;
+  let row = 0, g = 0;
   const facts = emptyFacts();
   for (const [key, members] of buckets) {
     const total = p.totals?.[key];
     const more = total !== undefined && total > members.length ? total - members.length : 0;
-    cards.push({ ...card(`bucket:${key}`, [], [], { lane: 1, row }, { lane: 1, row }, "group", { appear: true, badge: more ? `+${more.toLocaleString()} more rows not drawn` : undefined }),
+    for (const mem of members) { const c = cards.find((x) => x.id === mem.id)!; c.group = g; }
+    cards.push({ ...card(`bucket:${key}`, [], [], { lane: 1, row }, { lane: 1, row }, "group", { appear: true, group: g++, badge: more ? `+${more.toLocaleString()} more rows not drawn` : undefined }),
       text: `${keyLabel(key)} · ×${(total ?? members.length).toLocaleString()}`, title: `${p.keyNames.join(", ") || "all rows"} = ${keyLabel(key)}` });
     row++;
     for (const mem of members) { const c = cards.find((x) => x.id === mem.id)!; c.to = { lane: 1, row }; row++; }
@@ -353,7 +382,8 @@ export function aggregateFrame(ctx: Ctx, p: { outputs: TraceRow[]; counts: Recor
 /* ---------- project (SELECT) and distinct ---------- */
 
 export function projectFrame(ctx: Ctx, p: { rows: TraceRow[]; columns: string[]; outColumns: string[]; total?: number }): FlowFrame {
-  const cards = p.rows.map((r, i) => ({ ...card(r.id, r.cells, p.columns, { lane: 0, row: i }, { lane: 1, row: i }, "new"), textAfter: cardText(r.after ?? r.cells), title: cardTitle(p.outColumns, r.after ?? r.cells) }));
+  const cards = p.rows.map((r, i) => ({ ...card(r.id, r.cells, p.columns, { lane: 0, row: i }, { lane: 1, row: i }, "new"), textAfter: cardText(r.after ?? r.cells), title: cardTitle(p.outColumns, r.after ?? r.cells),
+    after: { cols: p.outColumns, cells: (r.after ?? r.cells).map(fmtCell) } }));
   return frame(ctx, "project", {
     board: boardOf([{ label: `All columns (${p.columns.length})` }, { label: `SELECT output (${p.outColumns.length})` }], cards),
     facts: { ...emptyFacts(), kept: p.rows.map((r) => r.id) }, limited: limitedText(p.rows.length, p.total),
@@ -563,4 +593,27 @@ export function splitTopLevel(text: string): string[] {
   }
   if (cur.trim()) out.push(cur.trim());
   return out;
+}
+
+/** Turn a `::text` result of a predicate into a verdict: NULL (unknown) is its own value, because it removes a row just like false. */
+export const verdictOf = (v: unknown): Verdict["value"] => (v === null || v === undefined ? "NULL" : String(v).toLowerCase() === "true" || v === true ? "true" : "false");
+
+/**
+ * The values a predicate looked at for one row: every column the expression names, as `column = value`, at most three.
+ * Matching is by full name (`o.freight`) and, for single-table rows whose columns carry no alias, by the part after the dot.
+ */
+export function predicateDetail(expr: string, columns: string[], cells: unknown[], max = 3): string | undefined {
+  const names = [...expr.matchAll(/\b[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?/g)].map((m) => m[0]);
+  const seen = new Set<number>();
+  const out: string[] = [];
+  const lower = columns.map((c) => c.toLowerCase());
+  for (const n of names) {
+    const l = n.toLowerCase();
+    let i = lower.indexOf(l);
+    if (i < 0 && l.includes(".")) i = lower.indexOf(l.split(".").pop()!);
+    if (i < 0 && !l.includes(".")) i = lower.findIndex((c) => c.endsWith(`.${l}`));
+    if (i >= 0 && !seen.has(i)) { seen.add(i); out.push(`${columns[i]} = ${fmtCell(cells[i])}`); }
+    if (out.length >= max) break;
+  }
+  return out.length ? out.join(", ") : undefined;
 }

@@ -4,9 +4,10 @@ import { Loader2 } from "lucide-react";
 import { SampleTable } from "./SampleTable";
 import { PlanTree, parsePlan, type PlanNode } from "./PlanTree";
 import { Markdown } from "./Markdown";
-import { PlaybackBar, usePlayback } from "./visual/Playback";
+import { usePlayback } from "./visual/Playback";
 import { SetOpView } from "./visual/SetOpView";
-import { RowFlow } from "./visual/RowFlow";
+import { QueryCinema, useCinemaSteps } from "./visual/QueryCinema";
+import { HighlightedSql } from "./visual/HighlightedSql";
 import { MotionToggle } from "./visual/MotionToggle";
 import { useReducedMotion } from "../lib/visual/motion";
 import { traceRows, type RowTrace } from "../lib/visual/rowTrace";
@@ -15,11 +16,6 @@ import { visualize, type Provenance, type Stage, type Visualization } from "../l
 import { analyze, cteFlow, type Structure } from "../lib/sqlAst";
 import { buildGraphs, type GraphResult } from "../lib/queryGraph";
 const QueryDiagrams = lazy(() => import("./QueryDiagram"));
-
-const CLAUSE_COLOR: Record<string, string> = {
-  from: "bg-sky-500/15", where: "bg-amber-500/20", "group by": "bg-emerald-500/15", having: "bg-rose-500/15",
-  window: "bg-violet-500/15", select: "bg-indigo-500/15", distinct: "bg-indigo-500/15", "order by": "bg-teal-500/15", limit: "bg-slate-500/15",
-};
 
 type Source = Provenance | "plan" | "estimated";
 const BADGE: Record<Source, { label: string; title: string; cls: string }> = {
@@ -39,16 +35,7 @@ function clauseRange(v: Visualization, stage: Stage): [number, number] | undefin
   return v.parsed.ranges[key as keyof typeof v.parsed.ranges];
 }
 
-export function HighlightedSql({ sql, range, clause }: { sql: string; range?: [number, number]; clause?: string }) {
-  if (!range) return <pre className="overflow-x-auto rounded-lg bg-surface-soft p-3 font-mono text-xs text-ink">{sql}</pre>;
-  return (
-    <pre className="overflow-x-auto rounded-lg bg-surface-soft p-3 font-mono text-xs text-ink-muted">
-      {sql.slice(0, range[0])}
-      <mark className={`rounded px-0.5 text-ink ${CLAUSE_COLOR[clause ?? ""] ?? "bg-accent-dim"}`}>{sql.slice(range[0], range[1])}</mark>
-      {sql.slice(range[1])}
-    </pre>
-  );
-}
+export { HighlightedSql };
 
 function StageView({ s }: { s: Stage }) {
   const hasIn = s.rowsIn !== undefined;
@@ -217,12 +204,13 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
   // Row-level data for the stage animations: fetched after the stages, never blocks them, and never runs the learner's query.
   const [trace, setTrace] = useState<{ viz: Visualization; t: RowTrace } | null>(null);
   const tracing = useRef<Promise<unknown>>(Promise.resolve());
-  const pb = usePlayback(v?.stages.length ?? 0);
-  const step = pb.index;
+  const body = sql.trim().replace(/;\s*$/, "");
+  // The cinema's script is built once from the stages and the row trace; stepping only moves an index through it.
+  const steps = useCinemaSteps(v, trace?.viz === v ? trace?.t : undefined, body);
+  const pb = usePlayback(steps.length);
   const setStep = (i: number) => pb.dispatch({ type: "seek", index: i });
   const [tab, setTab] = useState<"logical" | "flow" | "rel" | "structure" | "plan">("logical");
   const run = (q: string) => runQuery(q, dataset);
-  const body = sql.trim().replace(/;\s*$/, "");
   const [graphs, setGraphs] = useState<GraphResult | null>(null);
   useEffect(() => {
     let live = true;
@@ -296,11 +284,12 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
   }
 
   const stages = v?.stages ?? [];
-  const s = stages[step];
+  const cur = steps[Math.min(pb.index, Math.max(0, steps.length - 1))];
+  const s = cur ? stages[cur.stageIndex] : undefined;
   useEffect(() => {
     if (v && s && tab === "logical") onClause?.(clauseRange(v, s) ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, v, tab]);
+  }, [pb.index, v, tab]);
 
   if (busy && !v) return <p className="flex items-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Analysing your query…</p>;
   if (!v || !st) return null;
@@ -340,32 +329,8 @@ export function VizView({ sql, dataset = "northwind", onDone, onClause }: {
           <p className="text-sm text-ink-muted">{v.unsupported} The Structure tab shows how it's built.</p>
         ) : (
           <>
-            <p className="text-xs text-ink-faint">SQL's <em>logical</em> processing order — the order a query's clauses are defined to apply. PostgreSQL may physically execute it differently (see Execution plan); the result is the same.</p>
-            <ol className="flex flex-wrap items-center gap-1" aria-label="Stages">
-              {stages.map((x, i) => (
-                <li key={i} className="flex items-center gap-1">
-                  <button type="button" onClick={() => setStep(i)} aria-current={i === step ? "step" : undefined}
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${i === step ? "bg-accent text-white" : "bg-surface-soft text-ink-muted hover:text-ink"}`}>
-                    {x.clause.toUpperCase()}
-                  </button>
-                  {i < stages.length - 1 && <span className="text-ink-faint" aria-hidden>→</span>}
-                </li>
-              ))}
-            </ol>
-            {s && (
-              <div className="rounded-card border border-surface-border p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="font-display text-base font-bold text-ink">{s.title}</h3>
-                  {s.source && <SourceBadge s={s.source} />}
-                </div>
-                <div className="mt-2"><HighlightedSql sql={body} range={clauseRange(v, s)} clause={s.clause} /></div>
-                <div className="mb-1 flex justify-end"><MotionToggle /></div>
-                <RowFlow stage={s} prev={stages[step - 1]} reduced={reduced} frame={trace?.viz === v ? trace.t.frames[step] : undefined} stageIndex={step} speed={pb.speed} refining={!trace || trace.viz !== v} />
-                {s.setOp && <div className="mt-3"><SetOpView data={s.setOp} /></div>}
-                <div className="mt-3"><StageView s={s} /></div>
-                <div className="mt-4"><PlaybackBar pb={pb} labels={stages.map((x) => x.title)} /></div>
-              </div>
-            )}
+            <QueryCinema viz={v} trace={trace?.viz === v ? trace.t : undefined} sql={body} pb={pb} steps={steps} reduced={reduced} refining={!trace || trace.viz !== v}
+              extra={(stage) => (stage.setOp ? <SetOpView data={stage.setOp} /> : null)} details={(stage) => <StageView s={stage} />} tools={<MotionToggle />} />
             {v.final && (
               <div>
                 <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">Final result ({v.final.rowCount} rows) <SourceBadge s="executed" /></p>
