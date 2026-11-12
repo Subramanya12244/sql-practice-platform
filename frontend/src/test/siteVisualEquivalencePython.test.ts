@@ -77,7 +77,9 @@ try:
     for __eq_k in sorted(list(__eq_g)):
         if __eq_k.startswith("__"): continue
         __eq_v = __eq_g[__eq_k]
-        try: __eq_r = repr(__eq_v)
+        # Set order is unspecified: CPython 3.13 can order the same literal differently when it is compiled a second time in one
+        # process (the tracer reads the source before running it). Compare sets by their sorted elements, not by iteration order.
+        try: __eq_r = (type(__eq_v).__name__ + "{" + ", ".join(sorted(repr(__eq_x) for __eq_x in __eq_v)) + "}") if isinstance(__eq_v, (set, frozenset)) else repr(__eq_v)
         except BaseException as __eq_x: __eq_r = "<repr failed " + type(__eq_x).__name__ + ">"
         __eq_r = __eq_re.sub(r"0x[0-9a-fA-F]+", "0xADDR", __eq_r).replace("<StreamHandler <stdout>", "<StreamHandler")
         __eq_d[__eq_k] = [type(__eq_v).__name__, __eq_r[:3000]]

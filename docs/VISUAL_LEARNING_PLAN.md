@@ -46,3 +46,23 @@ After each: tests, regression check, changed-file list in `VISUAL_LEARNING_REPOR
 ## Constraints kept
 
 No new paid dependency, no server-side execution, no arbitrary requests, learner code is never stored in the explanation layer, existing grading and the 270 lessons are not changed.
+
+## V2: resolving the V1 limitations
+
+Eleven phases, built on the same shared player and honesty labels. Results and the limitation-by-limitation matrix are in `VISUAL_LEARNING_REPORT.md` (section "V2").
+
+| Phase | Plan | Evidence |
+| --- | --- | --- |
+| 1 Trace scalability | Configurable limits, loop sampling, checkpoints, paging, gap rows, exact counts, event/time budget; collection never changes the program | `siteVisualTraceScale`, `siteVisualPyTrace`, browser scale tests |
+| 2 SQL set operations | Parser-backed UNION / INTERSECT / EXCEPT (and ALL) stages on real data | `siteVisualSetOps`, Query Cinema e2e |
+| 3 SQL row animation | Real `ctid` identity where it exists, labelled trace identity otherwise, reduced-motion aware | `siteVisualRowFlow`, reduced-motion e2e |
+| 4 Tree and Graph | Real algorithm traces with queue/stack and playback | `siteVisualTree`, `siteVisualGraph` |
+| 5 Coverage | An aid for all 270 lessons, generated report, no bulk lesson edits | `siteVisualCoverage`, `VISUAL_LEARNING_COVERAGE.md` |
+| 6 Help | One `VisualHelp` mechanism on every visual page, plus the DataForge Guide sections for the visual tools | `siteVisualHelp`, `siteHelp*` |
+| 7 Equivalence | Plain run vs traced run: output, errors, exit, globals, grading | `siteVisualEquivalence*` |
+| 8 Browsers | Chromium, Firefox, WebKit Playwright projects, unverified engines reported | `VISUAL_BROWSER_MATRIX.md` |
+| 9 Supabase | Unit-level sync tests; live tests prepared and gated on a staging project | `siteSupabaseSync*` |
+| 10 Release validation | tsc, ESLint, Vitest, build, prerender, sitemap, Playwright | report, "Release validation" |
+| 11 Documentation | This plan, the report and the matrix | these files |
+
+Rules kept: no new dependency, no network or server execution for learner code, nothing simulated is presented as real, existing grading and the 270 lessons are unchanged.

@@ -6,7 +6,7 @@ import { test, expect } from "./fixtures";
  * Sections marked `pending` (pages on another branch) are skipped. Reads the registry through the dev server.
  */
 type Step = { id: string; target?: string | string[]; route?: string };
-type Tour = { sectionId: string; route?: string; home: string; steps: Step[] };
+type Tour = { sectionId: string; title: string; route?: string; home: string; steps: Step[] };
 
 test.describe.configure({ mode: "serial" });
 
@@ -16,7 +16,7 @@ test("every tour step resolves its target on the real page", async ({ page }, in
   await page.goto("/");
   const tours: Tour[] = await page.evaluate(async () => {
     const r = await import(/* @vite-ignore */ "/src/site/help/registry.ts");
-    return r.SECTIONS.filter((s: { pending?: string; tour?: unknown }) => !s.pending && s.tour).map((s: { id: string; home: string; tour: { route?: string; steps: Step[] } }) => ({ sectionId: s.id, home: s.home, route: s.tour.route, steps: s.tour.steps }));
+    return r.SECTIONS.filter((s: { pending?: string; tour?: unknown }) => !s.pending && s.tour).map((s: { id: string; title: string; home: string; tour: { route?: string; steps: Step[] } }) => ({ sectionId: s.id, title: s.title, home: s.home, route: s.tour.route, steps: s.tour.steps }));
   });
   expect(tours.length).toBeGreaterThanOrEqual(10);
   const unresolved: string[] = [];
@@ -25,6 +25,10 @@ test("every tour step resolves its target on the real page", async ({ page }, in
     await page.goto(t.steps[0].route ?? t.route ?? t.home);
     await page.waitForTimeout(1200);
     await page.locator('[data-help="help-button"]:visible').first().click();
+    // Several sections can share one page (Pandas and NumPy): the panel then shows a tab per section. Start the tour of this one.
+    await expect(page.getByRole("button", { name: /(Start|Restart) tour/ }).first()).toBeVisible({ timeout: 15_000 }); // the registry loads lazily
+    const tab = page.getByRole("tablist", { name: "Sections on this page" }).getByRole("tab", { name: t.title, exact: true });
+    if (await tab.count()) await tab.click();
     await page.getByRole("button", { name: /(Start|Restart) tour/ }).first().click();
     const card = page.locator("[data-guided-tour] [role=dialog]");
     await expect(card).toBeVisible();
@@ -43,7 +47,9 @@ test("every tour step resolves its target on the real page", async ({ page }, in
   }
   // Steps that need data or an action first: an empty notebook has no rows, the visualizer shows stages only after a run,
   // and the completion list exists only on a lesson's last step. They show centred with an explanation instead.
-  const NEEDS_STATE = [/^mistake-notebook\//, /^query-visualizer\/(tabs|stages|badges|plan)$/, /^daily-learning\/complete$/];
+  // Steps that only exist after an action the previous step asks for. The Code Time Machine, pandas and NumPy panels appear once
+  // "Explain visually" has recorded a run; e2e/visual*.spec.ts checks those elements on the live page after a real trace.
+  const NEEDS_STATE = [/^mistake-notebook\//, /^query-visualizer\/(tabs|stages|badges|plan)$/, /^daily-learning\/complete$/, /^python-time-machine\/(source|stack|views|playback)$/, /^pandas\/(tables|diff|playback)$/, /^numpy\/(grid|playback)$/];
   const surprising = unresolved.filter((u) => !NEEDS_STATE.some((r) => r.test(u)));
   console.log("UNRESOLVED (needs state):", JSON.stringify(unresolved.filter((u) => !surprising.includes(u))));
   expect(surprising, "tour steps whose element is not on the page").toEqual([]);

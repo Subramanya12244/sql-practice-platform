@@ -1,14 +1,9 @@
 import type { HelpContentModule, HelpSection } from "../types";
 
 /**
- * Visual Learning Engine help. Written from the unmerged branch `feature/visual-learning-engine` (read-only; see docs/HELP_GUIDE_PLAN.md,
- * "Pending hooks / Visual engine"). Every section is `pending` because its routes are not in this tree yet.
- * Control names are the labels in that branch's source. Tour selectors use aria-labels, roles and button text found there;
- * they could not be tested against a live page. Simulator numbers (API, ETL, charts) were produced by running the branch's own
+ * Visual Learning Engine help. Control names are the labels on the visual pages. Tour selectors use aria-labels, roles and button text. Simulator numbers (API, ETL, charts) were produced by running the branch's own
  * deterministic engines (apiSim.ts, etlSim.ts, chartData.ts).
  */
-const PENDING = "feature/visual-learning-engine";
-
 const PLAYBACK_CONTROLS = [
   { name: "Restart", what: "Jumps back to step 1 and stops playing. It is an icon button (a circular arrow) with the accessible name Restart." },
   { name: "Previous step", what: "Goes back one step and pauses. Disabled on step 1." },
@@ -16,7 +11,6 @@ const PLAYBACK_CONTROLS = [
   { name: "Next step", what: "Goes forward one step and pauses. Disabled on the last step." },
   { name: "Playback speed", what: "A drop-down with 0.5x, 1x, 2x and 4x. At 1x each step stays about 1.4 seconds; 4x is about 0.35 seconds.", tip: "Changing speed does not pause or restart playback." },
   { name: "Timeline", what: "A slider over all steps. Drag it, or use the arrow keys on it, to jump to any step. Jumping pauses playback.", tip: "Screen readers hear the step title, for example the line number and event." },
-  { name: "Step N of M", what: "Live text that says which step you are on and how many there are." },
 ];
 
 const sections: HelpSection[] = [
@@ -24,19 +18,18 @@ const sections: HelpSection[] = [
   {
     id: "visual-hub",
     title: "Visual Learning hub",
-    blurb: "Six tools that let you watch code, data, APIs, pipelines and charts run, step by step.",
+    blurb: "Fourteen tools that let you watch code, data, algorithms, files and workflows run, step by step.",
     icon: "eye",
     routes: ["/visual"],
-    pending: PENDING,
     home: "/visual",
     keywords: ["visual learning", "watch code run", "step through", "visualizer", "executed", "simulated", "conceptual", "provenance", "playback", "time machine", "query cinema"],
     overview: {
-      what: "The hub lists six visual tools: SQL Query Cinema, Python Code Time Machine, Pandas and NumPy Studio, API Request Studio, ETL Pipeline Playback and Data Visualization Explorer. Each one turns something that normally happens out of sight into steps you can play, pause and rewind.",
+      what: "The hub lists fourteen visual tools: SQL Query Cinema, Python Code Time Machine, Pandas and NumPy Studio, API Request Studio, ETL Pipeline Playback, Data Visualization Explorer, Tree Explorer, Graph Explorer, Excel Lab, Linux Terminal Lab, Git Lab, Statistics Lab, Business Analytics Lab and Interview Walkthrough. Each one turns something that normally happens out of sight into steps you can play, pause and rewind.",
       why: "Reading about a loop, a join or a retry is not the same as seeing it happen. Watching each step shows why an answer came out the way it did, and why a bug happens.",
       when: "Use it when output surprises you, when a lesson feels abstract, or when you want to check that you really understand how something runs.",
     },
     canDo: [
-      "Open any of the six visual tools from one page.",
+      "Open any of the fourteen visual tools from one page.",
       "Read a small label on each tool that tells you how real it is: your code actually ran, it was only read, or it is a teaching model or a simulation.",
       "Step through a SQL query, clause by clause, with the playback controls in the Query Visualizer.",
       "Compare two versions of a SQL query side by side in the Query Visualizer (Compare two queries).",
@@ -56,8 +49,16 @@ const sections: HelpSection[] = [
       { name: "API Request Studio", what: "Card that opens /visual/api: a request and its response on a mock server (simulated)." },
       { name: "ETL Pipeline Playback", what: "Card that opens /visual/etl: rows moving from source to target, with failures you inject (simulated)." },
       { name: "Data Visualization Explorer", what: "Card that opens /visual/charts: change dimensions, measures and chart types and see the chart and the numbers behind it." },
+      { name: "Tree Explorer", what: "Card that opens /visual/tree: build a binary tree and watch insert, search, delete and traversals one step at a time." },
+      { name: "Graph Explorer", what: "Card that opens /visual/graph: watch BFS, DFS, shortest paths, cycles, components and topological sort on a small graph." },
+      { name: "Excel Lab", what: "Card that opens /visual/excel: a small spreadsheet that evaluates formulas step by step (a simulated subset of Excel)." },
+      { name: "Linux Terminal Lab", what: "Card that opens /visual/linux: a simulated terminal over a safe virtual file system (not a real shell)." },
+      { name: "Git Lab", what: "Card that opens /visual/git: commits, branches, merges and rebases drawn as a graph (a simulation, not a real Git)." },
+      { name: "Statistics Lab", what: "Card that opens /visual/stats: distributions, sampling, confidence intervals, hypothesis tests and regression, using seeded simulations." },
+      { name: "Business Analytics Lab", what: "Card that opens /visual/business: KPIs, a variance waterfall, cohorts, a funnel, RFM segments and decision simulations on one fixed sample business." },
+      { name: "Interview Walkthrough", what: "Card that opens /visual/interview: an interview question walked through the way a strong candidate would, with hints and an example answer." },
       { name: "Executed / Parsed / Plan · EXPLAIN / Estimated / Conceptual model / Simulated", what: "The six honesty labels shown as small badges. Executed: real data from running your code in this browser. Parsed: read from the query text only, nothing was run for it. Plan · EXPLAIN: PostgreSQL's chosen execution plan. Estimated: an estimate or static analysis, not a measurement. Conceptual model: a simplified teaching picture, not literal memory. Simulated: a fixed, deterministic simulation with no real network or system.", tip: "Hover a badge to read its one-sentence explanation." },
-      { name: "Playback bar (Restart, Previous step, Play, Next step, Playback speed, Timeline)", what: "The shared control strip under every visual. The Query Visualizer now uses it too, in place of the old Back and Next buttons. Keyboard: click or Tab to the bar, then Space plays or pauses, Right and Left arrows step, Home restarts, End jumps to the last step.", tip: "Arrow keys on the Playback speed drop-down change the speed, not the step." },
+      { name: "Playback controls", what: "The shared control strip under every visual (Restart, Previous step, Play, Next step, Playback speed, Timeline), with a live line that reads Step N of M. The Query Visualizer now uses it too, in place of the old Back and Next buttons. Keyboard: click or Tab to the bar, then Space plays or pauses, Right and Left arrows step, Home restarts, End jumps to the last step.", tip: "Arrow keys on the Playback speed drop-down change the speed, not the step." },
       ...PLAYBACK_CONTROLS,
       { name: "Compare two queries", what: "A panel under the Query Visualizer. Type Your query and an Alternative (for example an optimised version), then press Compare. It shows whether the output is the same, the rows after each logical step, and the planner's estimated cost." },
     ],
@@ -87,6 +88,8 @@ const sections: HelpSection[] = [
       { label: "API Request Studio", to: "/visual/api", why: "Requests and responses" },
       { label: "ETL Pipeline Playback", to: "/visual/etl", why: "Pipelines and failures" },
       { label: "Data Visualization Explorer", to: "/visual/charts", why: "Charts and what they hide" },
+      { label: "Tree Explorer", to: "/visual/tree", why: "Trees and traversals" },
+      { label: "Graph Explorer", to: "/visual/graph", why: "Graph algorithms" },
     ],
     recommendations: [
       { label: "Start with the Python Code Time Machine", to: "/visual/python", why: "The simplest tool and a good place to learn the playback bar" },
@@ -97,7 +100,7 @@ const sections: HelpSection[] = [
       title: "Tour of the Visual Learning hub",
       steps: [
         { id: "welcome", title: "Watch your code run", body: "This page lists six visual tools. Each shows something that normally happens out of sight." },
-        { id: "cards", title: "Six tools, one card each", body: "SQL, Python, pandas and NumPy, APIs, ETL pipelines and charts.", how: "Click a card to open that tool.", target: ["ul.grid", "main ul"] },
+        { id: "cards", title: "One card per tool", body: "SQL, Python, pandas and NumPy, APIs, ETL pipelines, charts, trees, graphs, Excel, Linux, Git, statistics, business analytics and interview questions.", how: "Click a card to open that tool.", target: ["ul.grid", "main ul"] },
         { id: "python-card", title: "Start with Python", body: "The Code Time Machine is the easiest place to learn the playback bar.", how: "Click the Python Code Time Machine card.", target: ["a[href=\"/visual/python\"]"] },
         { id: "sql-card", title: "SQL lives on its own page", body: "SQL Query Cinema is the existing Query Visualizer, now with the same playback bar.", how: "Click the card to open it.", target: ["a[href=\"/query-visualizer\"]"] },
         { id: "honesty", title: "Look for the honesty label", body: "Inside each tool a small badge says Executed, Simulated, Conceptual model and so on. It tells you how real the picture is.", how: "Open any tool and find the badge next to the visual." },
@@ -119,7 +122,6 @@ const sections: HelpSection[] = [
     blurb: "Run your Python once and replay every line: variables, call stack and output at each step.",
     icon: "code",
     routes: ["/visual/python"],
-    pending: PENDING,
     home: "/visual/python",
     keywords: ["python", "trace", "step by step", "debugger", "call stack", "variables", "recursion", "generator", "exception", "time machine", "playback", "scrub"],
     overview: {
@@ -216,7 +218,6 @@ const sections: HelpSection[] = [
     blurb: "Watch DataFrames and Series change step by step: filters, sorts, groupby, merges, missing values.",
     icon: "table",
     routes: ["/visual/data"],
-    pending: PENDING,
     home: "/visual/data",
     keywords: ["pandas", "dataframe", "series", "groupby", "merge", "join", "filter", "sort", "missing values", "nan", "dtype", "pivot", "melt", "concat", "drop duplicates"],
     overview: {
@@ -311,7 +312,6 @@ const sections: HelpSection[] = [
     blurb: "See arrays, shapes, masks, slices, broadcasting and axis sums step by step.",
     icon: "layers",
     routes: ["/visual/data"],
-    pending: PENDING,
     home: "/visual/data",
     keywords: ["numpy", "array", "ndarray", "shape", "axis", "broadcasting", "slicing", "mask", "reshape", "vectorization", "dtype"],
     overview: {
@@ -396,7 +396,6 @@ const sections: HelpSection[] = [
     blurb: "Follow a request to a mock server and back: status codes, auth, retries, pagination. All simulated.",
     icon: "globe",
     routes: ["/visual/api"],
-    pending: PENDING,
     home: "/visual/api",
     keywords: ["api", "http", "request", "response", "status code", "get", "post", "headers", "json", "pagination", "cursor", "rate limit", "retry-after", "backoff", "idempotency", "bearer token", "429", "500"],
     overview: {
@@ -494,7 +493,6 @@ const sections: HelpSection[] = [
     blurb: "Change dimensions, measures, aggregation, filters and chart type, and learn when a chart misleads.",
     icon: "chart",
     routes: ["/visual/charts"],
-    pending: PENDING,
     home: "/visual/charts",
     keywords: ["chart", "bar", "line", "pie", "scatter", "histogram", "box plot", "heatmap", "dimension", "measure", "aggregation", "filter", "misleading", "zero baseline"],
     overview: {
@@ -589,7 +587,6 @@ const sections: HelpSection[] = [
     blurb: "Play a pipeline from source to target, break it on purpose, and watch retries, quarantine and checkpoints.",
     icon: "workflow",
     routes: ["/visual/etl"],
-    pending: PENDING,
     home: "/visual/etl",
     keywords: ["etl", "pipeline", "extract", "transform", "load", "watermark", "incremental", "checkpoint", "retry", "dead letter", "quarantine", "idempotent", "data quality", "scd2", "cdc", "dag"],
     overview: {
@@ -686,6 +683,67 @@ const sections: HelpSection[] = [
       { id: "see-retries", kind: "workflow", title: "See retries with backoff", body: "Watch an extract recover.", steps: ["Inject a failure: Extract fails twice.", "Keep Max retries at 2.", "Press Next step: Extract failed, retry 1 of 2, then retry 2 of 2.", "The third attempt succeeds. Run result: success-with-rejects, 2 retries."], keywords: ["retry", "backoff"] },
     ],
   },
+  // 8 ──────────────────────────────────────────────────────────────── visual-labs
+  {
+    id: "visual-labs",
+    title: "Visual labs: trees, graphs, Excel, Linux, Git, statistics, business, interviews",
+    blurb: "Eight more tools that show how a structure, a command or a method works, one step at a time.",
+    icon: "eye",
+    routes: ["/visual/tree", "/visual/graph", "/visual/excel", "/visual/linux", "/visual/git", "/visual/stats", "/visual/business", "/visual/interview"],
+    home: "/visual/tree",
+    keywords: ["tree", "graph", "bst", "bfs", "dfs", "excel", "linux", "git", "statistics", "business", "interview"],
+    overview: {
+      what: "Eight practice tools beside the code tools. Tree Explorer and Graph Explorer run real algorithms on a structure you build. Excel Lab, Linux Terminal Lab and Git Lab are simulations that show what a formula, a command or a Git action does. Statistics Lab and Business Analytics Lab let you change inputs and watch the numbers respond. Interview Walkthrough shows how to approach a question.",
+      why: "A tree, a merge or a p-value is easier to understand when you can see each step and change one thing at a time.",
+      when: "Open one from a Daily Learning lesson (the Visual helper link), or from the Visual Learning hub when a topic feels abstract.",
+    },
+    canDo: [
+      "Build a binary tree and watch insert, search, delete and the four traversals, with the queue or stack shown.",
+      "Run BFS, DFS, shortest paths, cycle detection, components and topological sort on a small graph.",
+      "Try spreadsheet formulas, shell commands and Git actions in a safe simulation. Each page says what it does not cover.",
+      "Open a tool straight onto a matching example from a lesson.",
+      "Use the same playback bar as every other visual tool.",
+    ],
+    howTo: [
+      "Open the Visual Learning hub and click the card for the tool, or follow the Visual helper link in a lesson.",
+      "Pick an example from the presets, or enter your own small input.",
+      "Press Play, or use Next step and Previous step to go one step at a time.",
+      "Read the sentence above the picture and the small label that says how real the view is.",
+      "Open Help on the page for the controls of that tool.",
+    ],
+    controls: [
+      { name: "Tree Explorer", what: "Opens /visual/tree. Build a tree from a level-order list (up to 31 nodes) and run an operation." },
+      { name: "Graph Explorer", what: "Opens /visual/graph. Choose an algorithm and a start node, then play it." },
+      { name: "Excel Lab", what: "Opens /visual/excel. A small spreadsheet that evaluates formulas, with lookups, a pivot simulator, conditional formatting and data cleaning. It lists what it does not support." },
+      { name: "Linux Terminal Lab", what: "Opens /visual/linux. Type real commands and see output over a safe virtual file system, including pipes, redirection, permissions and processes." },
+      { name: "Git Lab", what: "Opens /visual/git. Shows commits, branches, merges and rebases as a graph, with the working tree and staging area, and a merge-conflict walkthrough." },
+      { name: "Statistics Lab", what: "Opens /visual/stats. Move data and settings and watch distributions, sampling, confidence intervals, hypothesis tests and regression respond." },
+      { name: "Business Analytics Lab", what: "Opens /visual/business. Works business questions on one fixed sample business, with every assumption stated on screen." },
+      { name: "Interview Walkthrough", what: "Opens /visual/interview. Restate the problem, try your own answer, reveal hints, read an example answer and prepare for follow-ups." },
+      { name: "Playback controls", what: "The shared Restart, Previous step, Play, Next step, Playback speed and Timeline strip." },
+    ],
+    mistakes: [
+      { mistake: "Treating the Excel, Linux or Git view as the real program.", fix: "They are simulations of a limited part of each tool. Check what the page says it does not support before assuming a command or function behaves the same elsewhere." },
+      { mistake: "Skipping the label that says how real the view is.", fix: "Executed means an algorithm really ran on your input. Conceptual model and Simulated mean a teaching picture. Read the label first." },
+    ],
+    tips: [
+      "Lessons link to these tools with a matching example already loaded.",
+      "If you prefer less motion, turn on the reduce motion switch on a page that has one, or set it in your system settings.",
+    ],
+    related: [
+      { label: "Visual Learning hub", to: "/visual", why: "All fourteen tools in one place" },
+      { label: "Daily Learning", to: "/daily", why: "Lessons that link to these tools" },
+    ],
+    recommendations: [
+      { label: "Try the Graph Explorer", to: "/visual/graph", why: "See BFS and DFS side by side on the same graph" },
+    ],
+    topics: [
+      { id: "trees-explained", kind: "concept", title: "What a binary search tree is", body: "A binary tree where every value in the left subtree is smaller and every value in the right subtree is larger. That ordering makes search fast when the tree is balanced, and slow when it is a chain.", keywords: ["bst", "binary search tree"] },
+      { id: "bfs-vs-dfs", kind: "concept", title: "BFS compared with DFS", body: "BFS visits nodes level by level using a queue. DFS goes as deep as it can first, using a stack. Run both on the same graph in the Graph Explorer to see the difference.", keywords: ["breadth first", "depth first"] },
+      { id: "visual-lab-models", kind: "concept", title: "Models and simulations", body: "Excel Lab, Linux Terminal Lab and Git Lab are small models. They teach how a feature works but do not replace the real tool. Each page lists what it leaves out.", keywords: ["simulation", "limits"] },
+    ],
+  },
+
 ];
 
 const glossary: HelpContentModule["glossary"] = [
