@@ -72,6 +72,38 @@ html.dark {
   --chart-bar-success: #34d399;
 }
 
+/* The Query Cinema is a dark execution workspace in both themes: the same dark tokens, scoped to it. */
+.cinema-dark {
+  color-scheme: dark;
+  color: rgb(var(--color-ink));
+  --color-surface: 7 11 20;
+  --color-surface-raised: 13 19 33;
+  --color-surface-overlay: 18 26 44;
+  --color-surface-soft: 27 38 61;
+  --color-border: rgba(148, 163, 184, 0.13);
+  --color-accent: 45 212 191;
+  --color-accent-muted: 34 211 238;
+  --color-secondary: 167 139 250;
+  --color-on-accent: 4 17 28;
+  --color-success: 52 211 153;
+  --color-warn: 251 191 36;
+  --color-danger: 248 113 113;
+  --color-ink: 226 232 240;
+  --color-ink-muted: 148 163 184;
+  --color-ink-faint: 134 149 172;
+  --color-hover: 226 232 240;
+  --shadow-panel: 0 0 0 1px rgba(148, 163, 184, 0.1), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 0 1px rgba(45, 212, 191, 0.28), 0 8px 28px rgba(45, 212, 191, 0.12);
+  --chart-grid: #1e293b;
+  --chart-tick: #94a3b8;
+  --chart-tooltip-bg: #0d1321;
+  --chart-tooltip-border: #1e293b;
+  --chart-bar-muted: #1e293b;
+  --chart-bar-accent: #2dd4bf;
+  --chart-bar-success: #34d399;
+}
+
 /* Filled accent/status buttons use the theme's on-accent text, not hard-coded white. */
 .bg-accent.text-white,
 .bg-success.text-white,

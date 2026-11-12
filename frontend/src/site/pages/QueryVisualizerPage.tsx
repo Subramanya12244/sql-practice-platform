@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
-import { Play } from "lucide-react";
-import { Container, PageHeader, Skeleton } from "../components/ui";
-import { VizView } from "../components/VizView";
+import { Loader2, Play } from "lucide-react";
+import { Container, Skeleton } from "../components/ui";
+import { VizView, type VizSummary } from "../components/VizView";
 import { VisualHelp } from "../components/visual/VisualHelp";
 import { QueryCompare } from "../components/visual/QueryCompare";
 import { Seo, breadcrumbs } from "../lib/seo";
@@ -13,6 +13,10 @@ const PRESETS: { label: string; sql: string }[] = [
   {
     label: "JOIN + GROUP BY + HAVING",
     sql: "SELECT c.country, COUNT(*) AS orders\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nWHERE o.freight > 10\nGROUP BY c.country\nHAVING COUNT(*) >= 3\nORDER BY orders DESC, c.country\nLIMIT 5;",
+  },
+  {
+    label: "Customers with many large orders",
+    sql: "SELECT c.customer_id, c.company_name, COUNT(o.order_id)\nFROM customers c\nJOIN orders o ON c.customer_id = o.customer_id\nWHERE o.freight > 50\nGROUP BY c.customer_id, c.company_name\nHAVING COUNT(o.order_id) > 2\nORDER BY COUNT(o.order_id) DESC;",
   },
   {
     label: "LEFT JOIN (unmatched rows)",
@@ -33,10 +37,42 @@ const PRESETS: { label: string; sql: string }[] = [
   { label: "Subquery", sql: "SELECT product_name, unit_price\nFROM products\nWHERE unit_price > (SELECT AVG(unit_price) FROM products)\nORDER BY unit_price DESC;" },
 ];
 
+const GHOST = ["FROM", "JOIN", "WHERE", "GROUP BY", "HAVING", "SELECT", "ORDER BY", "LIMIT"];
+
+/** Where the cinema will play, before any query has run: the pipeline it is about to draw, not a line of text. */
+function Stage() {
+  return (
+    <section aria-label="Query Cinema" data-testid="cinema-empty" className="cinema-dark rounded-2xl border border-surface-border bg-surface p-4 text-ink sm:p-6">
+      <ol aria-hidden className="flex items-center gap-1 overflow-x-auto pb-2">
+        {GHOST.map((g, i) => (
+          <li key={g} className="flex shrink-0 items-center">
+            <span className="rounded-lg border border-dashed border-surface-border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink-faint">{g}</span>
+            {i < GHOST.length - 1 && <span className="mx-1 text-ink-faint">━▶</span>}
+          </li>
+        ))}
+      </ol>
+      <div className="mt-4 grid min-h-[220px] place-items-center rounded-xl border border-dashed border-surface-border text-center">
+        <div className="max-w-md space-y-2 px-4 py-8">
+          <p className="font-display text-lg font-bold text-ink">Your query will play here</p>
+          <p className="text-sm text-ink-muted">Pick an example or write a query and press <strong className="text-ink">Visualize</strong>. You will see the real tables, the rows that match, the rows that are filtered out, the groups and the final result, one stage at a time.</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function QueryVisualizerPage() {
   const [sql, setSql] = useState(PRESETS[0].sql);
   const [mounted, setMounted] = useState(false);
   const [ran, setRan] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ kind: "idle" | "running" | "done"; text?: string }>({ kind: "idle" });
+
+  const visualize = (q: string) => {
+    if (q === ran) return; // the same query is already on screen: the player has its own Restart
+    setRan(q);
+    setStatus({ kind: "running" });
+  };
+  const done = (s: VizSummary) => setStatus({ kind: "done", text: `${s.stages.length} stage${s.stages.length === 1 ? "" : "s"} visualized${s.volatile?.length ? ` (row data skipped: ${s.volatile.join(", ")})` : ""}` });
 
   useEffect(() => {
     setMounted(true);
@@ -44,6 +80,7 @@ export function QueryVisualizerPage() {
     if (h?.a) {
       setSql(h.a);
       setRan(h.a);
+      setStatus({ kind: "running" });
     }
   }, []);
 
@@ -51,37 +88,47 @@ export function QueryVisualizerPage() {
     <Container wide>
       <Seo
         title="SQL Query Visualizer — See How a Query Runs Step by Step"
-        description="Step through FROM, JOIN, WHERE, GROUP BY, HAVING, window functions, SELECT, ORDER BY and LIMIT with real intermediate rows, the parsed structure and PostgreSQL's plan."
+        description="Watch FROM, JOIN, WHERE, GROUP BY, HAVING, window functions, SELECT, ORDER BY and LIMIT run on real rows, with the parsed structure and PostgreSQL's plan."
         path="/query-visualizer"
         jsonLd={[breadcrumbs([{ name: "Home", path: "/" }, { name: "Query visualizer", path: "/query-visualizer" }])]}
       />
-      <PageHeader
-        eyebrow="AI & Intelligence"
-        title="Query execution visualizer"
-        intro="Step through SQL's logical processing order with real intermediate rows, see the query's parsed structure (CTEs, joins, set operations) and PostgreSQL's actual plan. Every block says where its information comes from. Every practice question has this built in too."
-      />
-      <VisualHelp id="sql" className="mb-3" />
-      <div className="mb-3 flex flex-wrap gap-2">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1 pb-3 pt-6 sm:pt-8">
+        <div className="min-w-0">
+          <p className="mb-1 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent"><span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-accent to-secondary" aria-hidden />AI & Intelligence</p>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">SQL Query Cinema</h1>
+        </div>
+        <p className="max-w-2xl text-sm text-ink-muted">Press Visualize and watch the query run on real rows: tables are matched, rows are filtered out, groups form, the result is sorted. Runs in your browser on Northwind; every query is rolled back.</p>
+      </header>
+
+      <div role="group" aria-label="Example queries" className="mb-3 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
         {PRESETS.map((p) => (
-          <button key={p.label} type="button" onClick={() => setSql(p.sql)} className="rounded-lg border border-surface-border px-3 py-1.5 text-sm text-ink-muted hover:text-ink">{p.label}</button>
+          <button key={p.label} type="button" onClick={() => { setSql(p.sql); visualize(p.sql); }} className="shrink-0 rounded-lg border border-surface-border px-3 py-1.5 text-sm text-ink-muted hover:text-ink">{p.label}</button>
         ))}
       </div>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <div className="min-w-0 space-y-3">
+
+      <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_230px]">
+        <div className="min-w-0">
           {mounted ? (
-            <Suspense fallback={<Skeleton className="h-[260px]" />}>
-              <CodeEditor value={sql} onChange={setSql} onRun={() => setRan(sql)} height={260} label="Query to visualize" />
+            <Suspense fallback={<Skeleton className="h-[128px]" />}>
+              <CodeEditor value={sql} onChange={setSql} onRun={() => visualize(sql)} height={128} label="Query to visualize" />
             </Suspense>
-          ) : <Skeleton className="h-[260px]" />}
-          <button type="button" onClick={() => setRan(sql)} className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white">
+          ) : <Skeleton className="h-[128px]" />}
+        </div>
+        <div className="flex flex-row items-center gap-3 lg:flex-col lg:items-stretch lg:justify-center">
+          <button type="button" onClick={() => visualize(sql)} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white">
             <Play className="h-4 w-4" aria-hidden /> Visualize
           </button>
-          <p className="text-xs text-ink-faint">Runs in your browser on Northwind; every query is rolled back. Stages show up to 20 sample rows; counts are exact.</p>
-        </div>
-        <div className="min-w-0 rounded-card border border-surface-border bg-surface-raised p-4">
-          {ran ? <VizView key={ran} sql={ran} /> : <p className="text-sm text-ink-muted">Pick an example or write a query, then press Visualize.</p>}
+          <p role="status" aria-live="polite" data-testid="viz-status" className="flex items-center gap-1.5 text-xs text-ink-muted">
+            {status.kind === "running" && <><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Running on Northwind…</>}
+            {status.kind === "done" && <span className="text-success">✓ {status.text}. Counts are exact.</span>}
+            {status.kind === "idle" && "Pick an example or write a query."}
+          </p>
         </div>
       </div>
+
+      {ran ? <VizView key={ran} sql={ran} onDone={done} /> : <Stage />}
+
+      <VisualHelp id="sql" className="mt-4" />
       {mounted && <div className="mt-6"><QueryCompare initialA={PRESETS[0].sql} initialB={PRESETS[0].sql} /></div>}
     </Container>
   );

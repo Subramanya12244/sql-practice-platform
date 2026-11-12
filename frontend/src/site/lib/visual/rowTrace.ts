@@ -14,7 +14,7 @@ import { SAMPLE, type Run, type Visualization } from "../visualize";
 import { buildQuery, type JoinPart, type ParsedQuery } from "../sqlClauses";
 import {
   aggregateFrame, baseFrame, canon, ctidId, ctidOrder, distinctFrame, filterFrame, groupFrame, joinFrame, joinVariant, limitFrame,
-  projectFrame, scanFrame, sortFrame, splitTopLevel, traceIds, hashContent, type Ctx, type FlowFrame, type FrameVariant, type IdKind, type TraceRow,
+  predicateDetail, projectFrame, scanFrame, sortFrame, splitTopLevel, traceIds, hashContent, verdictOf, fmtCell, type Ctx, type FlowFrame, type FrameVariant, type IdKind, type TraceRow,
 } from "./rowFlow";
 
 export interface RowTrace {
@@ -171,7 +171,7 @@ export async function traceRows(sql: string, realRun: Run, viz: Visualization): 
         const lc = lIdx.flatMap((k) => (cols.get(spec.aliases[k]) ?? []).map((n) => (spec.aliases.length > 1 ? `${spec.aliases[k]}.${n}` : n)));
         const rc = (cols.get(spec.aliases[i]) ?? []).map((n) => `${spec.aliases[i]}.${n}`);
         variants.push(joinVariant({
-          kind: j.kind, label: `${j.kind} ${j.source}${j.on ? ` ON ${j.on}` : ""}`, matched, unmatchedLeft: unL, unmatchedRight: unR, leftColumns: lc, rightColumns: rc,
+          kind: j.kind, on: j.on, index: i - 1, label: `${j.kind} ${j.source}${j.on ? ` ON ${j.on}` : ""}`, matched, unmatchedLeft: unL, unmatchedRight: unR, leftColumns: lc, rightColumns: rc,
           counts: { leftRows: step?.leftRows, rightRows: step?.rightRows, matchedPairs: step?.matchedPairs ?? (j.on ? undefined : step?.resultRows), unmatchedLeft: step?.unmatchedLeft, unmatchedRight: step?.unmatchedRight, resultRows: step?.resultRows },
         }));
       }
@@ -190,15 +190,18 @@ export async function traceRows(sql: string, realRun: Run, viz: Visualization): 
   const iWhere = stageOf("where");
   if (iWhere >= 0 && c.where) await guard("WHERE", async () => {
     const st = stages[iWhere];
-    const kept = await attempt(universe([], c.where, 12));
+    // Each row also carries what the predicate evaluated to: true stays, false and NULL (unknown) are removed.
+    const verdict = `(${c.where})::text`;
+    const kept = await attempt(universe([verdict], c.where, 12));
     if (!kept) return;
-    const removed = await run(universe([], `(${c.where}) IS NOT TRUE`, 8)(kept.ctid));
+    const removed = await run(universe([verdict], `(${c.where}) IS NOT TRUE`, 8)(kept.ctid));
     if (!removed.success) return;
-    const kd = decode(kept.res, 0, spec, allIdx.length, kept.ctid), rd = decode(removed, 0, spec, allIdx.length, kept.ctid);
-    const all = rowsFrom([...kd, ...rd], kept.res, 0, spec, kept.ctid, cols, allIdx);
+    const kd = decode(kept.res, 1, spec, allIdx.length, kept.ctid), rd = decode(removed, 1, spec, allIdx.length, kept.ctid);
+    const all = rowsFrom([...kd, ...rd], kept.res, 1, spec, kept.ctid, cols, allIdx);
+    [...kd, ...rd].forEach((d, i) => { all.rows[i].verdict = { value: verdictOf(d.extras[0]), detail: predicateDetail(c.where!, all.columns, all.rows[i].cells) }; });
     const keptRows = all.rows.slice(0, kd.length), removedRows = all.rows.slice(kd.length);
     const input = kept.ctid ? [...all.rows].sort((a, b) => ctidOrder(a.id, b.id)) : undefined;
-    out.frames[iWhere] = filterFrame(ctxFor(iWhere, kept.ctid), { kept: keptRows, removed: removedRows, columns: all.columns, totalIn: st.rowsIn ?? stages[iFrom]?.rowsOut, totalOut: st.rowsOut, input });
+    out.frames[iWhere] = filterFrame(ctxFor(iWhere, kept.ctid), { kept: keptRows, removed: removedRows, columns: all.columns, totalIn: st.rowsIn ?? stages[iFrom]?.rowsOut, totalOut: st.rowsOut, input, expr: c.where });
   });
 
   /* GROUP BY */
@@ -218,6 +221,41 @@ export async function traceRows(sql: string, realRun: Run, viz: Visualization): 
     if (c["group by"] && st.sample && st.sample.columns.length === e + 1) for (const sr of st.sample.rows) totals[canon(sr.slice(0, e))] = Number(sr[e]);
     if (!c["group by"]) totals["[]"] = st.rowsIn ?? 0;
     out.frames[iGroup] = groupFrame(ctxFor(iGroup, r.ctid), { rows: rows.rows, columns: rows.columns, keyNames: gexprs, totals: Object.keys(totals).length ? totals : undefined, totalIn: st.rowsIn, groupCount: st.rowsOut });
+  });
+
+  /* Aggregate values per group, for the GROUP BY and HAVING boards (every group, before HAVING removes any). */
+  const AGG_ITEM = /\b(?:count|sum|avg|min|max|string_agg|array_agg|bool_and|bool_or|every|stddev|variance)\s*\(/i;
+  const aggLabel = (item: string) => /\s+as\s+("[^"]+"|\w+)\s*$/i.exec(item)?.[1].replace(/"/g, "") ?? item.trim();
+  if (grouped && c.select && (!c["group by"] || gUsable)) await guard("group aggregates", async () => {
+    const items = splitTopLevel(c.select!).filter((it) => AGG_ITEM.test(it));
+    if (!items.length) return;
+    const r = await run(buildQuery(p, { select: [...items, ...gexprs.map((e) => `(${e})`)].join(", "), from: c.from, where: c.where, groupBy: c["group by"], limit: "500" }));
+    if (!r.success) return;
+    const calc = new Map<string, string>();
+    for (const row of r.rows) calc.set(canon(row.slice(items.length)), items.map((it, i) => `${aggLabel(it)} = ${fmtCell(row[i])}`).join(", "));
+    const g = iGroup >= 0 ? out.frames[iGroup] : undefined;
+    for (const cardOf of g?.board?.cards ?? []) if (cardOf.id.startsWith("bucket:")) { const v = calc.get(cardOf.id.slice(7)); if (v) cardOf.calc = v; }
+  });
+
+  /* HAVING: every group is shown with the aggregates the condition looks at, and what the condition evaluated to. */
+  const iHaving = stageOf("having");
+  if (iHaving >= 0 && c.having && grouped && (!c["group by"] || gUsable)) await guard("HAVING", async () => {
+    const st = stages[iHaving];
+    const aggs = [...new Set(c.having!.match(/\b(?:count|sum|avg|min|max)\s*\((?:[^()]|\([^()]*\))*\)/gi) ?? [])].slice(0, 3);
+    const keys = gexprs.map((e) => `(${e})`);
+    const sel = [...keys, ...aggs, `(${c.having})::text`].join(", ");
+    const q = (having: string, limit: number) => buildQuery(p, { select: sel, from: c.from, where: c.where, groupBy: c["group by"], having, limit: String(limit) });
+    const kept = await run(q(c.having!, 12));
+    const removed = await run(q(`(${c.having}) IS NOT TRUE`, 8));
+    if (!kept.success || !removed.success) return;
+    const columns = [...gexprs, ...aggs];
+    const mk = (rows: unknown[][]): TraceRow[] => {
+      const cellList = rows.map((row) => row.slice(0, columns.length));
+      const ids = traceIds(cellList);
+      return rows.map((row, i) => ({ id: ids[i], cells: cellList[i], verdict: { value: verdictOf(row[columns.length]), detail: predicateDetail(c.having!, columns, cellList[i]) } }));
+    };
+    const keptRows = mk(kept.rows), removedRows = mk(removed.rows);
+    out.frames[iHaving] = filterFrame(ctxFor(iHaving, false), { kept: keptRows, removed: removedRows, columns, noun: "groups", totalIn: st.rowsIn, totalOut: st.rowsOut, expr: c.having });
   });
 
   /* SELECT (projection, or aggregation when grouped) and DISTINCT */
