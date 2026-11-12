@@ -4,6 +4,7 @@ import { usePage } from "../SiteApp";
 import { Container, PageHeader, Skeleton, Tabs } from "../components/ui";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { erDiagramSource } from "../lib/data";
+import { HelpTooltip } from "../help/HelpTooltip";
 
 // Mermaid is ~1 MB, so the diagram renders only in the browser, on demand.
 const SchemaFlow = lazy(() => import("../components/SchemaFlow"));
@@ -33,9 +34,9 @@ export function SchemaPage() {
         intro="Every practice question runs on these 8 tables. Orders link customers, employees and shippers; order_details links orders to products, which belong to categories and suppliers."
       />
 
-      <section aria-labelledby="er">
+      <section aria-labelledby="er" data-help="schema-er">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 id="er" className="font-display text-lg font-bold text-ink">Entity-relationship diagram</h2>
+          <h2 id="er" className="font-display text-lg font-bold text-ink">Entity-relationship diagram <HelpTooltip id="schema-explorer" label="What is the schema explorer?" /></h2>
           <Tabs label="Diagram view" value={view} onChange={setView} tabs={[{ id: "interactive", label: "Interactive" }, { id: "static", label: "Static" }]} />
         </div>
         {!mounted ? <Skeleton className="h-[560px]" /> : view === "interactive" ? (
@@ -56,7 +57,7 @@ export function SchemaPage() {
         ))}
       </ul>
 
-      <h2 className="mt-12 font-display text-xl font-bold text-ink">Tables</h2>
+      <h2 data-help="schema-tables" className="mt-12 font-display text-xl font-bold text-ink">Tables</h2>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {schema.map((t) => (
           <section key={t.name} id={t.name} className="overflow-hidden rounded-card border border-surface-border bg-surface-raised shadow-panel">

@@ -7,6 +7,7 @@ import { useAuth } from "../lib/auth";
 import { exportProgress, importProgress, resetProgress, setDailyGoal, setTutorSettings, useProgress } from "../lib/progress";
 import { download, loadCustomDatasets, deleteCustomDataset } from "../lib/datasets";
 import { BRAND } from "../../brand";
+import { HelpSettings } from "../help/HelpSettings";
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
@@ -38,6 +39,10 @@ export function SettingsPage() {
       <div className="space-y-4">
         <Section title="Appearance" description="Light, dark or follow your system.">
           <Row><ThemeToggle /></Row>
+        </Section>
+
+        <Section title="Help and tours" description="Replay the welcome tour or start guided tours again.">
+          <Row><HelpSettings /></Row>
         </Section>
 
         <Section title="Learning" description="Pace and how much help the tutor gives.">

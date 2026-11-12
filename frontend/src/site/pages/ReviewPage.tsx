@@ -5,6 +5,7 @@ import { usePage } from "../SiteApp";
 import { InlineMarkdown, Markdown } from "../components/Markdown";
 import { Button, ButtonLink, Container, Difficulty, PageHeader, QuestionCard, Skeleton, StatCard } from "../components/ui";
 import { Seo } from "../lib/seo";
+import { HelpTooltip } from "../help/HelpTooltip";
 import { loadQuestion } from "../lib/data";
 import { reviewQuestion, today, toggleRevisionMark, useProgress } from "../lib/progress";
 import { RULES, improvement, revisionQueue, revisionStats, splitQueue, stage } from "../lib/revision";
@@ -87,6 +88,7 @@ export function ReviewPage() {
       })()}
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
+        <HelpTooltip id="revision-queue" label="What is the revision queue?" />
         {[["Overdue", parts.overdue.length, "text-danger"], ["Due today", parts.today.length, "text-ink"], ["Upcoming", parts.upcoming.length, "text-ink-muted"]].map(([label, n, tone]) => (
           <span key={label as string} className="rounded-lg border border-surface-border bg-surface-raised px-3 py-2"><strong className={tone as string}>{day ? n : "—"}</strong> {label}</span>
         ))}

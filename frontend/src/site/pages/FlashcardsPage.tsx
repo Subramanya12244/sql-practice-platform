@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Markdown } from "../components/Markdown";
+import { HelpTooltip } from "../help/HelpTooltip";
 import { guideFaq } from "../lib/frontmatter";
 import { NOTE_CATEGORIES, loadAllNotes } from "../lib/learning";
 import { TRACKS } from "../lib/tracks";
@@ -224,7 +225,7 @@ function QuestionFlashcards() {
       </div>
 
       <p className="mb-3 text-sm text-ink-muted" aria-live="polite">
-        {remaining.length} of {deck.length} left in this session · {mastered} mastered overall
+        {remaining.length} of {deck.length} left in this session · {mastered} mastered overall <HelpTooltip id="leitner-box" label="What is a Leitner box?" />
       </p>
 
       {card ? (

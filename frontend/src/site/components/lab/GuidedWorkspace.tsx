@@ -6,6 +6,7 @@ import { runPython } from "../../lib/pyRunner";
 import { runPythonTask, runSqlTask, type PythonTask, type SqlTask } from "../../lib/tasks";
 import { profileSql, qualityScore, readProfile, runExerciseQuery, type GuidedExercise, type ProfileResult } from "../../lib/lab/guided";
 import { Badge, Button, Skeleton } from "../ui";
+import { HelpTooltip } from "../../help/HelpTooltip";
 
 const CodeEditor = lazy(() => import("../CodeEditor"));
 type Done = Record<string, { at: string; checks: number }>;
@@ -143,6 +144,7 @@ function ExerciseView({ e, passed, onPass }: { e: GuidedExercise; passed: boolea
           <Button variant="secondary" onClick={() => void run()} disabled={busy !== null}>{busy === "run" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />} Run</Button>
           <Button onClick={() => void check()} disabled={busy !== null}>{busy === "check" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null} Check my answer</Button>
           <button type="button" onClick={() => setCode(e.task.starter)} className="text-xs text-ink-muted hover:text-ink">Reset code</button>
+          <HelpTooltip id="de-reset-vs-clear" label="What does Reset code do?" />
         </div>
         {isSql && <p className="mt-1 text-xs text-ink-faint">Run shows the result of your last statement and rolls everything back, so the data resets each time.</p>}
       </div>

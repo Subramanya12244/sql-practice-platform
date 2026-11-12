@@ -14,6 +14,7 @@ import {
 } from "../../lib/dailyProgress";
 import { setDailyPath } from "../../lib/progress";
 import { useToday, type DailyView } from "../../lib/useDaily";
+import { HelpTooltip } from "../../help/HelpTooltip";
 
 const hours = (min: number) => (min >= 60 ? `${Math.round(min / 6) / 10} h` : `${min} min`);
 
@@ -45,7 +46,7 @@ export function PathPanel({ view, preview, onPreview }: { view: DailyView; previ
         </div>
         {path && <Badge tone="accent">Following: {PATHS.find((p) => p.id === path)?.title}</Badge>}
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div data-help="daily-path" className="mt-4 grid gap-3 sm:grid-cols-2">
         {PATHS.map((p) => {
           const days = BRANCH_DAYS[p.id];
           const done = days.filter((d) => isDone(state, d.id)).length;
@@ -79,7 +80,7 @@ export function ProgrammeOverview({ view }: { view: DailyView }) {
   const authored = seq.filter((d) => isAuthored(d.id)).length;
   void progress;
   return (
-    <section aria-labelledby="overview" className="grid gap-4 lg:grid-cols-[minmax(0,24rem)_1fr]">
+    <section data-help="daily-overview" aria-labelledby="overview" className="grid gap-4 lg:grid-cols-[minmax(0,24rem)_1fr]">
       <Card className="flex items-center gap-5">
         <ProgressRing value={stats.percent} size={112} label="Programme completion">
           <span className="block font-display text-2xl font-bold text-ink"><CountUp value={stats.percent} format={(n) => `${Math.round(n)}%`} /></span>
@@ -95,7 +96,7 @@ export function ProgrammeOverview({ view }: { view: DailyView }) {
       <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard icon={Target} label="Current day" value={stats.current ? `Day ${stats.current.day}` : "Done"} hint={stats.phase?.title ?? "Programme finished"} />
         <StatCard icon={CheckCircle2} label="Completed" value={<CountUp value={stats.completed} />} hint={`${stats.remaining} remaining`} />
-        <StatCard icon={Flame} label="Learning streak" value={<>{streak} {streak === 1 ? "day" : "days"}</>} hint="One day off never breaks it" />
+        <StatCard icon={Flame} label="Learning streak" value={<>{streak} {streak === 1 ? "day" : "days"}</>} hint={<>One day off never breaks it <HelpTooltip id="streak" label="What is the learning streak?" /></>} />
         <StatCard icon={Clock} label="Study time left" value={hours(stats.remainingMinutes)} hint="At the planned pace" />
         <StatCard icon={Layers} label="Phase" value={<span className="text-base">{stats.phase?.title ?? "Finished"}</span>} hint={stats.phase ? `Days ${stats.phase.firstDay}–${stats.phase.lastDay}` : undefined} />
         <StatCard icon={Sparkles} label="Mastered" value={<CountUp value={stats.mastered} />} hint="Completion and mastery are tracked separately" />
@@ -134,7 +135,7 @@ export function TodayCard({ view }: { view: DailyView }) {
   const unmet = prerequisitesOf(day).filter((p) => !isDone(state, p.id));
   const phase = PHASE_BY_ID.get(day.phase);
   return (
-    <section aria-labelledby="today" className="relative overflow-hidden rounded-card border border-accent/40 bg-surface-raised p-6 shadow-glow">
+    <section data-help="daily-today" aria-labelledby="today" className="relative overflow-hidden rounded-card border border-accent/40 bg-surface-raised p-6 shadow-glow">
       <div className="hero-gradient pointer-events-none absolute inset-0 animate-[gradient-pan_14s_ease-in-out_infinite] opacity-60" aria-hidden />
       <div className="relative">
         <p className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
@@ -181,7 +182,7 @@ export function RevisionPanel({ view }: { view: DailyView }) {
   const ids = [...new Set([...due, ...weak])];
   const upcoming = Object.entries(revisions).filter(([k, r]) => k.startsWith("day:") && state.days[k.slice(4)]?.completedAt && r.due > today).sort((a, b) => a[1].due.localeCompare(b[1].due)).slice(0, 3);
   return (
-    <section id="revision" aria-labelledby="rev-h">
+    <section id="revision" data-help="daily-revision" aria-labelledby="rev-h">
       <SectionHeader id="rev-h" title="Revision schedule" description="Completed days come back at growing gaps (1, 3, 7, 14, 30 days). A clean knowledge check moves a day up a step." />
       <Card>
         {ids.length === 0 ? (
@@ -276,7 +277,7 @@ export function Roadmap({ view, previewPath }: { view: DailyView; previewPath?: 
   const phases = phasesFor(shown);
   const cur = currentDay(view.seq, view.state);
   return (
-    <section aria-labelledby="roadmap-h">
+    <section data-help="daily-roadmap" aria-labelledby="roadmap-h">
       <SectionHeader id="roadmap-h" title={previewPath ? `Preview: ${PATHS.find((p) => p.id === previewPath)?.title} roadmap` : "Day-by-day roadmap"}
         description="Open any day at any time. Days whose earlier topics are unfinished say so, and nothing is locked." />
       <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted" aria-label="Status legend">
@@ -315,7 +316,7 @@ export function LearningCalendar({ view }: { view: DailyView }) {
   const lead = new Date(`${cells[0].date}T00:00:00Z`).getUTCDay();
   const offset = (lead + 6) % 7; // weeks start on Monday
   return (
-    <section aria-labelledby="cal-h">
+    <section data-help="daily-calendar" aria-labelledby="cal-h">
       <SectionHeader id="cal-h" title="Learning calendar" description="Your last four weeks and the next two. Missing a day changes nothing: your place and progress are kept, and upcoming lessons simply wait." />
       <Card>
         <div className="mx-auto max-w-md"><div className="grid grid-cols-7 gap-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-ink-faint" aria-hidden>

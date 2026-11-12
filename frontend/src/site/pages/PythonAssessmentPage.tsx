@@ -13,6 +13,7 @@ import { runPythonTask } from "../lib/tasks";
 import { pickAssessment } from "../lib/extras";
 import { recordPyAttempt, splitHints } from "../lib/pyPractice";
 import { track } from "../lib/activity";
+import { HelpTooltip } from "../help/HelpTooltip";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
 const ACTIVE = "sqlp.pyassess.active";
@@ -95,7 +96,7 @@ export function PythonAssessmentPage() {
             <label className="mt-3 flex items-center gap-2 text-sm text-ink-muted">
               <input type="checkbox" checked={includeSolved} onChange={(e) => setIncludeSolved(e.target.checked)} /> Include problems I've already solved
             </label>
-            <Button className="mt-4" onClick={start} disabled={!all.length}><Timer className="h-4 w-4" aria-hidden /> Start assessment</Button>
+            <Button className="mt-4" onClick={start} disabled={!all.length} data-help="py-assess-start"><Timer className="h-4 w-4" aria-hidden /> Start assessment</Button>
             <ul className="mt-4 list-disc space-y-1 pl-5 text-xs text-ink-muted">
               <li>One Easy, one Medium and one Hard problem.</li>
               <li>Hints and solutions stay hidden until you finish.</li>
@@ -183,7 +184,7 @@ function Running({ active, left, onUpdate, onFinish }: { active: Active; left: n
             {active.passed[s] ? <CheckCircle2 className="h-3.5 w-3.5" aria-label="Passed" /> : <Circle className="h-3.5 w-3.5" aria-hidden />} Problem {n + 1}
           </Button>
         ))}
-        <span className="ml-auto" role="timer" aria-label={`${Math.floor(left / 60)} minutes left`}>
+        <span className="ml-auto" data-help="py-assess-timer" role="timer" aria-label={`${Math.floor(left / 60)} minutes left`}>
           <Badge tone={left < 300 ? "warn" : "neutral"} className="px-3 py-1 font-mono text-base font-bold"><Timer className="h-4 w-4" aria-hidden /> {String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}</Badge>
         </span>
         <Button size="sm" variant="danger" onClick={() => { if (confirm("Finish the assessment now?")) onFinish(); }}>Finish</Button>
@@ -201,8 +202,9 @@ function Running({ active, left, onUpdate, onFinish }: { active: Active; left: n
                 <CodeEditor value={code} onChange={(v) => { setCode(v); write(CODE(slug), v); }} onRun={check} height={380} label="Python editor" language="python" />
               </Suspense>
               <div className="flex items-center gap-2 border-t border-surface-border px-4 py-3">
-                <Button onClick={check} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FlaskConical className="h-4 w-4" aria-hidden />} Check</Button>
+                <Button onClick={check} disabled={busy} data-help="py-assess-check">{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FlaskConical className="h-4 w-4" aria-hidden />} Check</Button>
                 <span className="text-xs text-ink-faint">{active.checks[slug] ?? 0} check{(active.checks[slug] ?? 0) === 1 ? "" : "s"} · ⌘/Ctrl+Enter · stops after {LIMITS.seconds} s</span>
+                <HelpTooltip id="visible-vs-hidden-tests" label="What are visible and hidden tests?" />
               </div>
             </Card>
             {msg && (

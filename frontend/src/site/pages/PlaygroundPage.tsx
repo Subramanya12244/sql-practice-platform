@@ -14,6 +14,8 @@ import {
 } from "../lib/datasets";
 import type { ExecuteResult } from "../../types";
 import { receive } from "../lib/handoff";
+import { HelpTooltip } from "../help/HelpTooltip";
+import { useHelpExample } from "../help/exampleBridge";
 import type { Question, SchemaTable } from "../types";
 
 const PracticePanel = lazy(() => import("../components/PracticePanel"));
@@ -131,6 +133,9 @@ export function PlaygroundPage() {
     void refreshSchema();
   }
 
+  // Try Example from Help. The editor's text lives inside PracticePanel, so we cannot tell if it was touched: always ask first.
+  useHelpExample("sql", "the SQL playground editor", { isDirty: () => true, load: (e) => load(e.code), ready: mounted && seed !== null });
+
   const question = { ...PLAYGROUND, starter: seed ?? undefined } as Question;
   const tab = (t: typeof side, label: string, Icon: typeof Table2) => (
     <button type="button" role="tab" aria-selected={side === t} onClick={() => setSide(t)}
@@ -154,7 +159,7 @@ export function PlaygroundPage() {
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm">
+        <label data-help="playground-database" className="flex items-center gap-2 text-sm">
           <Database className="h-4 w-4 text-accent" aria-hidden />
           <span className="sr-only">Database</span>
           <select value={id} onChange={(e) => navigate(`/playground?db=${e.target.value}`)} className="rounded-lg border border-surface-border bg-surface px-2 py-1.5 font-medium text-ink">
@@ -168,12 +173,14 @@ export function PlaygroundPage() {
             )}
           </select>
         </label>
+        <HelpTooltip id="practice-databases" label="What are the practice databases?" />
         <span className="text-sm text-ink-muted">{ds.description}</span>
         <span className="ml-auto flex gap-2">
           <Link to="/data-generator" className="rounded-lg border border-surface-border px-3 py-1.5 text-sm text-ink-muted hover:text-ink">Create a dataset</Link>
-          <button type="button" onClick={reset} className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-3 py-1.5 text-sm text-ink-muted hover:text-ink">
+          <button type="button" data-help="playground-reset" onClick={reset} className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-3 py-1.5 text-sm text-ink-muted hover:text-ink">
             <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset database
           </button>
+          <HelpTooltip id="reset-database" label="What does Reset database do?" />
         </span>
       </div>
       {ds.edgeCases?.length ? (
@@ -194,7 +201,7 @@ export function PlaygroundPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="order-2 min-w-0 space-y-3 lg:order-1">
+        <aside data-help="playground-side" className="order-2 min-w-0 space-y-3 lg:order-1">
           <div role="tablist" className="flex flex-wrap gap-1">
             {tab("schema", "Schema", Table2)}
             {tab("er", "ER diagram", Database)}
@@ -253,7 +260,7 @@ export function PlaygroundPage() {
           )}
         </aside>
 
-        <div className="order-1 min-w-0 space-y-3 lg:order-2">
+        <div data-help="playground-editor" className="order-1 min-w-0 space-y-3 lg:order-2">
           {mounted && seed !== null ? (
             <Suspense fallback={<Skeleton className="h-[580px]" />}>
               <PracticePanel key={`${id}-${version}`} question={question} playground fresh dataset={id} datasetLabel={ds.title} onRan={onRan} />
@@ -261,7 +268,7 @@ export function PlaygroundPage() {
           ) : (
             <Skeleton className="h-[580px]" />
           )}
-          <div className="flex flex-wrap items-center gap-2 text-sm">
+          <div data-help="playground-actions" className="flex flex-wrap items-center gap-2 text-sm">
             <button type="button" disabled={!last} onClick={() => { const name = prompt("Name this query"); if (name !== null && last) setSaved(saveQuery(id, name, last.sql)); }}
               className="inline-flex items-center gap-1 rounded-lg border border-surface-border px-3 py-1.5 text-ink-muted hover:text-ink disabled:opacity-50">
               <Save className="h-3.5 w-3.5" aria-hidden /> Save last query

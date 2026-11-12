@@ -421,3 +421,8 @@ html.theme-transition *::after {
   .df-timeline::before, .df-cell, .df-step, .df-burst > span { animation-duration: 0.01ms !important; animation-delay: 0ms !important; }
 }
 @media print { .df-burst { display: none; } }
+
+/* DataForge Guide: brief highlight on the help item a search result or tooltip jumped to. */
+@keyframes help-flash { from { background-color: rgb(var(--color-accent) / 0.22); } to { background-color: transparent; } }
+.help-flash { animation: help-flash 1.6s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .help-flash { animation: none; outline: 2px solid rgb(var(--color-accent) / 0.5); } }

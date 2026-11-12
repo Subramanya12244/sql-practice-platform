@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, Key, Link2, Table2 } from "lucide-react";
 import type { SchemaTable } from "../types";
+import { HelpTooltip } from "../help/HelpTooltip";
 
 /** Compact table/column reference shown beside the editor. Question tables come first and open. */
 export function SchemaPanel({ schema, highlight = [] }: { schema: SchemaTable[]; highlight?: string[] }) {
@@ -19,10 +20,10 @@ export function SchemaPanel({ schema, highlight = [] }: { schema: SchemaTable[];
     });
 
   return (
-    <div className="rounded-card border border-surface-border bg-surface-raised shadow-panel">
+    <div data-help="schema-panel" className="rounded-card border border-surface-border bg-surface-raised shadow-panel">
       <div className="flex items-center justify-between border-b border-surface-border px-3 py-2">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-faint">
-          <Table2 className="h-3.5 w-3.5" aria-hidden /> Schema
+          <Table2 className="h-3.5 w-3.5" aria-hidden /> Schema <HelpTooltip id="schema-explorer" label="What is the schema explorer?" />
         </p>
         <Link to="/schema" className="text-xs font-medium text-accent hover:underline">ER diagram</Link>
       </div>

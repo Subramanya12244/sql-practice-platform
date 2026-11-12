@@ -7,6 +7,13 @@ import { test as base } from "@playwright/test";
  */
 export const test = base.extend({
   page: async ({ page }, use) => {
+    // The first-visit welcome card would sit over every fresh browser context. Existing tests are not about it, so mark it seen,
+    // unless a test opts in by setting `df.test.keepOnboarding` first (e2e/help.spec.ts does).
+    await page.addInitScript(() => {
+      try {
+        if (!localStorage.getItem("df.test.keepOnboarding") && !localStorage.getItem("df.help.v1")) localStorage.setItem("df.help.v1", JSON.stringify({ version: 1, onboarding: "skipped", tours: {} }));
+      } catch { /* storage unavailable */ }
+    });
     const settle = () => page.waitForSelector("html[data-hydrated]", { timeout: 60_000 });
     const goto = page.goto.bind(page);
     const reload = page.reload.bind(page);

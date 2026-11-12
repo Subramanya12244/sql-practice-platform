@@ -6,6 +6,7 @@ import { Card, Container, Difficulty, EmptyState, PageHeader, ProgressBar, Quest
 import { applyOverride, overrideKey, useContent } from "../lib/contentOverrides";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { useProgress } from "../lib/progress";
+import { HelpTooltip } from "../help/HelpTooltip";
 
 const LEVELS = ["All", "Easy", "Medium", "Hard"] as const;
 
@@ -92,7 +93,7 @@ export function QuestionsPage() {
         })}
       </nav>
 
-      <div className="sticky top-16 z-30 -mx-4 mb-6 flex flex-wrap items-center gap-2 border-b border-surface-border bg-surface/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-card sm:border sm:px-3">
+      <div data-help="questions-filters" className="sticky top-16 z-30 -mx-4 mb-6 flex flex-wrap items-center gap-2 border-b border-surface-border bg-surface/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-card sm:border sm:px-3">
         <label className="relative min-w-[200px] flex-1">
           <span className="sr-only">Search questions</span>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" aria-hidden />
@@ -115,6 +116,7 @@ export function QuestionsPage() {
               {l}
             </button>
           ))}
+          <HelpTooltip id="difficulty-levels" label="What do the difficulty levels mean?" />
         </div>
         <label className="flex items-center gap-2 px-2 text-sm text-ink-muted">
           <input type="checkbox" checked={trapsOnly} onChange={(e) => setTrapsOnly(e.target.checked)} className="accent-[rgb(var(--color-accent))]" />
