@@ -1,3 +1,5 @@
+import { planNodeHelp } from "../lib/visual/planExplain";
+
 /** Renders `EXPLAIN (FORMAT JSON)` output as an indented tree. */
 export interface PlanNode {
   "Node Type": string;
@@ -44,6 +46,7 @@ function detail(n: PlanNode): string | null {
 
 function Node({ n }: { n: PlanNode }) {
   const d = detail(n);
+  const help = planNodeHelp(n["Node Type"], n["Join Type"]);
   return (
     <li className="mt-1">
       <span className="font-medium text-ink">{label(n)}</span>
@@ -51,6 +54,7 @@ function Node({ n }: { n: PlanNode }) {
         cost {n["Total Cost"]?.toFixed(1)} · ~{n["Plan Rows"]} rows
       </span>
       {d && <div className="font-mono text-[11px] text-ink-muted">{d}</div>}
+      {help && <details className="text-[11px] text-ink-muted"><summary className="cursor-pointer text-accent">What is this?</summary><p className="mt-0.5">{help}</p></details>}
       {n.Plans && (
         <ul className="ml-4 border-l border-surface-border pl-3">
           {n.Plans.map((c, i) => <Node key={i} n={c} />)}

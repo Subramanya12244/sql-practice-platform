@@ -31,6 +31,7 @@ import { PatternPage, PatternsIndexPage } from "./pages/PatternsPages";
 import { ShortcutDocPage, ShortcutsPage } from "./pages/ShortcutsPages";
 import { MindMapPage, MindMapsIndexPage } from "./pages/MindMapPages";
 import { QueryVisualizerPage } from "./pages/QueryVisualizerPage";
+import { ApiVisualPage, BusinessVisualPage, ChartsVisualPage, DataVisualPage, EtlVisualPage, ExcelVisualPage, GitVisualPage, GraphVisualPage, InterviewVisualPage, LinuxVisualPage, PythonVisualPage, StatsVisualPage, TreeVisualPage, VisualHubPage } from "./pages/VisualPages";
 import { SolutionComparisonPage } from "./pages/SolutionComparisonPage";
 import { ReadinessPage } from "./pages/ReadinessPage";
 import { TutorPage } from "./pages/TutorPage";
@@ -305,6 +306,20 @@ export const routes: SiteRoute[] = [
     },
     paths: async () => (await loadMapIndex()).map((m) => `/mindmaps/${m.slug}`),
   },
+  { path: "/visual", element: <VisualHubPage />, load: base, paths: one("/visual") },
+  { path: "/visual/python", element: <PythonVisualPage />, load: base, paths: one("/visual/python") },
+  { path: "/visual/data", element: <DataVisualPage />, load: base, paths: one("/visual/data") },
+  { path: "/visual/api", element: <ApiVisualPage />, load: base, paths: one("/visual/api") },
+  { path: "/visual/etl", element: <EtlVisualPage />, load: base, paths: one("/visual/etl") },
+  { path: "/visual/charts", element: <ChartsVisualPage />, load: base, paths: one("/visual/charts") },
+  { path: "/visual/tree", element: <TreeVisualPage />, load: base, paths: one("/visual/tree") },
+  { path: "/visual/graph", element: <GraphVisualPage />, load: base, paths: one("/visual/graph") },
+  { path: "/visual/excel", element: <ExcelVisualPage />, load: base, paths: one("/visual/excel") },
+  { path: "/visual/linux", element: <LinuxVisualPage />, load: base, paths: one("/visual/linux") },
+  { path: "/visual/git", element: <GitVisualPage />, load: base, paths: one("/visual/git") },
+  { path: "/visual/stats", element: <StatsVisualPage />, load: base, paths: one("/visual/stats") },
+  { path: "/visual/business", element: <BusinessVisualPage />, load: base, paths: one("/visual/business") },
+  { path: "/visual/interview", element: <InterviewVisualPage />, load: base, paths: one("/visual/interview") },
   { path: "/query-visualizer", element: <QueryVisualizerPage />, load: base, paths: one("/query-visualizer") },
   { path: "/solution-comparison", element: <SolutionComparisonPage />, load: base, paths: one("/solution-comparison") },
   { path: "/readiness", element: <ReadinessPage />, load: async () => ({ ...(await base()), notes: await loadNoteIndex() }), paths: one("/readiness") },

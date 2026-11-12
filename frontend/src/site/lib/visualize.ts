@@ -1,5 +1,6 @@
 import type { ExecuteResult } from "../../types";
-import { buildQuery, parseSelect, type JoinPart, type ParsedQuery } from "./sqlClauses";
+import { arithmetic, collapsedSql, countSql, distinctCountSql, markedSampleSql, matchedLabel, onlyOneSideSql, opName, removedLabel, rowMark, ruleText, setExpr, stageTitle, typeProbeSql, type ColumnPair, type SetOpData, type SetSample } from "./visual/setOps";
+import { buildQuery, parseSelect, parseSetOperation, type JoinPart, type ParsedQuery, type SetOpNode, type SetOpQuery, type SetTail, type SetTree } from "./sqlClauses";
 
 /** Rows shown per stage; counts are always exact. */
 export const SAMPLE = 20;
@@ -36,7 +37,7 @@ export type Provenance = "executed" | "parsed";
 
 export interface Stage {
   source?: Provenance;
-  clause: "from" | "where" | "group by" | "having" | "window" | "select" | "distinct" | "order by" | "limit";
+  clause: "from" | "where" | "group by" | "having" | "window" | "select" | "distinct" | "order by" | "limit" | "union" | "intersect" | "except";
   title: string;
   explanation: string;
   /** The derived query that produced this stage's data (shown to the user). */
@@ -46,7 +47,11 @@ export interface Stage {
   sample?: Sample;
   removed?: Sample;
   joins?: JoinStep[];
+  /** Set-operation stage (UNION, INTERSECT, EXCEPT): both inputs, compatibility, matches, removals and the result. */
+  setOp?: SetOpData;
   partitions?: Sample;
+  /** Position of this stage's part of the query in the original text (set-operation stages; there can be several of one kind). */
+  range?: [number, number];
   error?: string;
 }
 
@@ -123,6 +128,10 @@ export async function visualize(sql: string, realRun: Run): Promise<Visualizatio
   const run: Run = volatile.length
     ? async () => ({ success: false, columns: [], rows: [], message: "not executed" })
     : realRun;
+  // Set operations (UNION / INTERSECT / EXCEPT) are read by their own parser: parseSelect handles one SELECT only.
+  const so = parseSetOperation(sql);
+  if (so.kind === "unsupported") return { parsed: { ...p, unsupported: so.reason }, stages: [], unsupported: so.reason };
+  if (so.kind === "setop") return visualizeSetOp(sql, so.query, run, realRun, volatile);
   if (p.unsupported) return { parsed: p, stages: [], unsupported: p.unsupported };
   const c = p.clauses;
   const stages: Stage[] = [];
@@ -309,4 +318,263 @@ export async function visualize(sql: string, realRun: Run): Promise<Visualizatio
   const final = f.success ? { columns: f.columns, rows: f.rows.slice(0, SAMPLE), rowCount: f.row_count ?? f.rows.length } : undefined;
   if (!f.success) stages.push({ clause: "select", title: "Your query has an error", explanation: f.message ?? "", error: f.message ?? "error" });
   return { parsed: p, stages, final, volatile: volatile.length ? volatile : undefined };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Set operations
+// ---------------------------------------------------------------------------------------------
+
+const oneLine = (sql: string, max = 70) => {
+  const t = sql.replace(/\s+/g, " ").trim();
+  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+};
+
+/** Executable text of a node used as an input of another operation. */
+const treeText = (t: SetTree) => (t.kind === "leaf" ? t.sql : t.tail.text ? `${t.core}\n${t.tail.text}` : t.core);
+const operand = (t: SetTree) => `(${treeText(t)})`;
+
+/**
+ * One stage per set operation (inner operations first), each computed from real queries on its two inputs, then the
+ * ORDER BY / LIMIT that apply to the whole operation. A stage shows the query's logical meaning, not PostgreSQL's
+ * physical plan (which may hash or sort differently).
+ */
+async function visualizeSetOp(sql: string, q: SetOpQuery, run: Run, realRun: Run, volatile: string[]): Promise<Visualization> {
+  const withPrefix = q.with;
+  const prefixed = (body: string) => (withPrefix ? `${withPrefix}\n${body}` : body);
+  const ranges: ParsedQuery["ranges"] = {};
+  if (q.withRange) ranges.with = q.withRange;
+  if (q.tail.ranges.orderBy) ranges["order by"] = q.tail.ranges.orderBy;
+  if (q.tail.ranges.limit) ranges.limit = q.tail.ranges.limit;
+  if (q.tail.ranges.offset) ranges.offset = q.tail.ranges.offset;
+  const parsed: ParsedQuery = { with: withPrefix, clauses: {}, ranges, distinct: false, joins: [], windows: [] };
+  const stages: Stage[] = [];
+  const executing = !volatile.length;
+  let failed = false;
+  let opNo = 0;
+  let probe = 0;
+  const step = new Map<SetOpNode, number>();
+  const label = (t: SetTree) => (t.kind === "leaf" ? oneLine(t.sql) : `result of step ${step.get(t)} (${t.keyword})`);
+
+  const countOf = async (query: string) => {
+    const r = await run(prefixed(query));
+    return r.success ? Number(r.rows[0]?.[0]) : undefined;
+  };
+  const sampleOf = async (query: string): Promise<Sample & { error?: string }> => {
+    const r = await run(prefixed(query));
+    return r.success ? { columns: r.columns, rows: r.rows.slice(0, SAMPLE) } : { columns: [], rows: [], error: r.message ?? "query failed" };
+  };
+
+  async function opStage(node: SetOpNode): Promise<Stage> {
+    step.set(node, ++opNo);
+    ranges[node.op] = node.range;
+    const L = operand(node.left);
+    const R = operand(node.right);
+    const comb = setExpr(L, node.op, node.all, R);
+    const name = opName(node.op, node.all);
+    const base: Stage = { clause: node.op, title: `${stageTitle(node.op, node.all)}`, explanation: "", range: node.range };
+    const intro = `Inputs: left is ${label(node.left)}; right is ${label(node.right)}.`;
+    if (!executing) {
+      return { ...base, title: `${stageTitle(node.op, node.all)} (not executed)`, explanation: `${intro} ${ruleText(node.op, node.all)} Intermediate rows aren't shown because the query uses ${volatile.join(", ")}, which return different values on each run.` };
+    }
+    // Names (from the left input) and a validity check for each input on its own.
+    const [nl, nr] = await Promise.all([sampleOf(`SELECT * FROM ${L} AS _l LIMIT 0`), sampleOf(`SELECT * FROM ${R} AS _r LIMIT 0`)]);
+    const types = async (query: string): Promise<string[] | undefined> => {
+      const r = await run(prefixed(typeProbeSql(`_df_so_${++probe}`, query)));
+      return r.success ? r.rows.map((x) => String(x[0])) : undefined;
+    };
+    const [tl, tr, tc] = await Promise.all([types(`SELECT * FROM ${L} AS _l`), types(`SELECT * FROM ${R} AS _r`), types(`SELECT * FROM (${comb}) AS _c`)]);
+    const unavailable: SetOpData["unavailable"] = {};
+    if (!tl || !tr) unavailable.types = "PostgreSQL could not describe the result columns of an input (it may be invalid on its own).";
+
+    const names = nl.columns.length ? nl.columns : nr.columns;
+    const width = Math.max(nl.columns.length, nr.columns.length, tl?.length ?? 0, tr?.length ?? 0);
+    const pairs: ColumnPair[] = Array.from({ length: width }, (_, i) => ({
+      position: i + 1,
+      name: nl.columns[i] ?? "(missing on the left)",
+      left: tl?.[i],
+      right: tr?.[i],
+      result: tc?.[i],
+      same: tl?.[i] !== undefined && tl[i] === tr?.[i],
+    }));
+
+    // The operation itself, run for real: PostgreSQL decides whether it is valid.
+    const resultRun = await run(prefixed(`SELECT * FROM (${comb}) AS _r LIMIT ${SAMPLE}`));
+    const lSampleSimple = () => sampleOf(`SELECT * FROM ${L} AS _l LIMIT ${SAMPLE}`);
+    const rSampleSimple = () => sampleOf(`SELECT * FROM ${R} AS _r LIMIT ${SAMPLE}`);
+    if (!resultRun.success) {
+      const message = resultRun.message ?? "The set operation failed.";
+      const [ls, rs, lc, rc] = await Promise.all([lSampleSimple(), rSampleSimple(), countOf(countSql(L)), countOf(countSql(R))]);
+      const notes = [message];
+      if (nl.columns.length && nr.columns.length && nl.columns.length !== nr.columns.length) notes.push(`The left input has ${nl.columns.length} column(s) and the right input has ${nr.columns.length}; ${node.op.toUpperCase()} needs the same number on both sides.`);
+      failed = true;
+      const data: SetOpData = {
+        op: node.op, all: node.all, left: ls, right: rs, leftCount: lc, rightCount: rc, leftLabel: label(node.left), rightLabel: label(node.right),
+        compat: { ok: false, notes }, pairs, error: message, result: { columns: [], rows: [] }, rule: ruleText(node.op, node.all), unavailable,
+      };
+      return { ...base, explanation: `${intro} PostgreSQL rejected this ${name}: ${message}`, sql: prefixed(comb), setOp: data, error: message };
+    }
+
+    const n = nl.columns.length;
+    // Rows both inputs have: distinct values, or per copy (min of the counts) for the ALL variants of EXCEPT.
+    const interAll = node.op === "except" && node.all;
+    const inter = setExpr(L, "intersect", interAll, R);
+    const needInter = node.op !== "intersect";
+    const [lc, rc, resCount, ld, rd, interSample, interCount] = await Promise.all([
+      countOf(countSql(L)), countOf(countSql(R)), countOf(countSql(`(${comb})`)),
+      countOf(distinctCountSql(L, n)), countOf(distinctCountSql(R, n)),
+      needInter ? sampleOf(`SELECT * FROM (${inter}) AS _m LIMIT ${SAMPLE}`) : Promise.resolve(undefined),
+      needInter ? countOf(countSql(`(${inter})`)) : Promise.resolve(undefined),
+    ]);
+    // Per-row fate of the sampled input rows (copy number among identical rows, identical rows on the other side).
+    const markSide = async (self: string, other: string, side: "left" | "right"): Promise<SetSample> => {
+      const r = await run(prefixed(markedSampleSql(self, other, n, SAMPLE)));
+      if (!r.success) {
+        unavailable.marks = `The per-row check could not run: ${r.message ?? "query failed"}`;
+        return sampleOf(`SELECT * FROM ${self} AS _s LIMIT ${SAMPLE}`);
+      }
+      return {
+        columns: side === "left" ? nl.columns : nr.columns,
+        rows: r.rows.map((x) => x.slice(0, n)),
+        marks: r.rows.map((x) => rowMark(node.op, node.all, side, Number(x[n]), Number(x[n + 1]))),
+      };
+    };
+    const [left, right] = await Promise.all([markSide(L, R, "left"), markSide(R, L, "right")]);
+
+    // Matched and removed rows come from real derived queries, never from the sample.
+    const resultSample: SetSample = { columns: resultRun.columns, rows: resultRun.rows.slice(0, SAMPLE) };
+    let matched: SetSample | undefined;
+    let removed: SetSample | undefined;
+    let matchedCount: number | undefined;
+    let removedCount: number | undefined;
+    const fromQuery = async (query: string, extra?: string): Promise<[SetSample | undefined, number | undefined]> => {
+      const [r, c] = await Promise.all([sampleOf(`SELECT * FROM (${query}) AS _x LIMIT ${SAMPLE}`), countOf(countSql(`(${query})`))]);
+      if (r.error) {
+        unavailable.removed = r.error;
+        return [undefined, c];
+      }
+      return [{ columns: extra ? [...nl.columns, extra] : nl.columns, rows: r.rows }, c];
+    };
+    if (node.op === "union") {
+      if (interSample && !interSample.error) matched = { columns: nl.columns, rows: interSample.rows };
+      else if (interSample?.error) unavailable.matched = interSample.error;
+      matchedCount = interCount;
+      if (node.all) {
+        removed = { columns: nl.columns, rows: [] };
+        removedCount = 0;
+      } else {
+        const g = await sampleOf(collapsedSql(L, R, n, SAMPLE));
+        if (g.error) unavailable.removed = g.error;
+        else removed = { columns: [...nl.columns, "copies_removed"], rows: g.rows };
+        removedCount = lc !== undefined && rc !== undefined && resCount !== undefined ? lc + rc - resCount : undefined;
+      }
+    } else if (node.op === "intersect") {
+      matched = resultSample;
+      matchedCount = resCount;
+      [removed, removedCount] = await fromQuery(onlyOneSideSql(L, R, n, node.all), "only_in");
+    } else {
+      // EXCEPT: the rows the right input has are exactly the left rows it removes, so they are shown once, as removed.
+      if (interSample && !interSample.error) removed = { columns: nl.columns, rows: interSample.rows };
+      else if (interSample?.error) unavailable.removed = interSample.error;
+      removedCount = interCount;
+      matchedCount = node.all ? undefined : interCount;
+    }
+
+    const data: SetOpData = {
+      op: node.op, all: node.all, left, right, leftCount: lc, rightCount: rc, leftLabel: label(node.left), rightLabel: label(node.right),
+      compat: { ok: true, notes: [] }, pairs, result: resultSample, resultCount: resCount,
+      leftDistinct: ld, rightDistinct: rd, matched, removed, matchedCount, removedCount,
+      matchedLabel: matchedLabel(node.op, node.all), removedLabel: removedLabel(node.op, node.all),
+      rule: ruleText(node.op, node.all), unavailable,
+    };
+    if (lc === undefined || rc === undefined || resCount === undefined) data.unavailable = { ...unavailable, counts: "A row count could not be obtained." };
+    data.compat.notes = [
+      `${n} column(s) on both sides. Output names come from the left input: ${names.join(", ")}.`,
+      ...pairs.filter((p) => !p.same && p.left && p.right).map((p) => `Column ${p.position} (${p.name}): ${p.left} and ${p.right} are combined as ${p.result ?? "a common type"}.`),
+    ];
+    data.arithmetic = arithmetic(data);
+    const out = resCount;
+    const numbers = lc !== undefined && rc !== undefined ? ` ${lc} left row(s) and ${rc} right row(s)` : "";
+    const outcome =
+      out === undefined ? "" :
+      node.op === "union" && node.all ? ` Every row is kept: ${out} row(s).` :
+      node.op === "union" ? ` ${removedCount ?? "Some"} duplicate row(s) were removed: ${out} row(s) remain.` :
+      node.op === "intersect" ? ` ${out} ${node.all ? "row(s) are shared copies" : "distinct row(s) appear in both inputs"}.` :
+      ` ${out} row(s) remain after the right input removed ${removedCount ?? "some"} ${node.all ? "left row(s)" : "distinct left row(s)"}.`;
+    return { ...base, explanation: `${intro}${numbers ? ` They have${numbers}.` : ""}${outcome} ${ruleText(node.op, node.all)}`, sql: prefixed(comb), rowsIn: lc !== undefined && rc !== undefined ? lc + rc : undefined, rowsOut: out, sample: resultSample, removed: removed && removed.rows.length ? { columns: removed.columns, rows: removed.rows } : undefined, setOp: data };
+  }
+
+  /** ORDER BY / LIMIT that apply to `baseText` as a whole, after the set operation(s) inside it. */
+  async function tailStages(baseText: string, tail: SetTail, scope: string) {
+    if (!tail.text || failed) return;
+    const orderOnly = `${baseText}\nORDER BY ${tail.orderBy}`;
+    if (tail.orderBy) {
+      const st: Stage = {
+        clause: "order by", range: tail.ranges.orderBy,
+        title: "ORDER BY: sort the whole result",
+        explanation: `Rows are sorted by ${tail.orderBy}${scope}. It applies to the combined result, not to one input, and can only name output columns (by name or position) because the set operation has already produced them. Without ORDER BY, SQL guarantees no order, and UNION/INTERSECT/EXCEPT often return rows in the order of an internal hash or sort.`,
+        sql: prefixed(orderOnly),
+      };
+      if (executing) {
+        const s = await sampleOf(`SELECT * FROM (${orderOnly}) AS _o LIMIT ${SAMPLE}`);
+        const c = await countOf(countSql(`(${orderOnly})`));
+        st.sample = s.error ? undefined : s;
+        st.rowsOut = c;
+        st.rowsIn = stages[stages.length - 1]?.rowsOut;
+        st.error = s.error;
+        if (s.error) failed = true;
+      }
+      stages.push(st);
+    }
+    if (tail.limit || tail.offset || tail.fetch) {
+      const full = `${baseText}\n${tail.text}`;
+      const st: Stage = {
+        clause: "limit", range: tail.ranges.limit ?? tail.ranges.offset,
+        title: "LIMIT / OFFSET: keep a slice of the whole result",
+        explanation: `${tail.offset ? `Skip ${tail.offset} row(s), then ` : ""}${tail.limit ? `keep at most ${tail.limit}` : tail.fetch ? `keep ${tail.fetch}` : "keep the rest"}${scope}. This is the last step and applies after the set operation${tail.orderBy ? " and the sort" : ", so without ORDER BY which rows survive is not defined"}.`,
+        sql: prefixed(full),
+      };
+      if (executing) {
+        const before = stages[stages.length - 1]?.rowsOut;
+        const s = await sampleOf(`SELECT * FROM (${full}) AS _o LIMIT ${SAMPLE}`);
+        const c = await countOf(countSql(`(${full})`));
+        st.sample = s.error ? undefined : s;
+        st.rowsIn = before;
+        st.rowsOut = c;
+        st.error = s.error;
+        if (s.error) failed = true;
+      }
+      stages.push(st);
+    }
+  }
+
+  async function emit(node: SetOpNode) {
+    if (node.left.kind === "op") await emit(node.left);
+    if (node.right.kind === "op") await emit(node.right);
+    if (failed) return;
+    stages.push(await opStage(node));
+    if (node.tail.text && !failed) await tailStages(node.core, node.tail, " (inside parentheses)");
+  }
+
+  const root = q.root as SetOpNode;
+  await emit(root);
+  if (!failed) await tailStages(sql.slice(root.range[0], root.range[1]), q.tail, "");
+
+  for (const s of stages) s.source = executing && (s.setOp || s.rowsOut !== undefined || s.sample) ? "executed" : "parsed";
+
+  // The final result always comes from running exactly the user's query, once.
+  const f = await realRun(sql.replace(/;\s*$/, ""));
+  const final = f.success ? { columns: f.columns, rows: f.rows.slice(0, SAMPLE), rowCount: f.row_count ?? f.rows.length } : undefined;
+  if (!f.success) stages.push({ clause: "select", title: "Your query has an error", explanation: f.message ?? "", error: f.message ?? "error", source: "executed" });
+  else if (executing && !failed && stages.length) {
+    // The last stage is the whole query: show the real result there, so the stage and the final result are one and the same.
+    const last = stages[stages.length - 1];
+    last.sample = { columns: final!.columns, rows: final!.rows };
+    last.rowsOut = final!.rowCount;
+    if (last.setOp) {
+      last.setOp.result = { columns: final!.columns, rows: final!.rows };
+      last.setOp.resultCount = final!.rowCount;
+      last.setOp.arithmetic = arithmetic(last.setOp);
+    }
+  }
+  return { parsed, stages, final, volatile: volatile.length ? volatile : undefined };
 }

@@ -2,6 +2,8 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { Play } from "lucide-react";
 import { Container, PageHeader, Skeleton } from "../components/ui";
 import { VizView } from "../components/VizView";
+import { VisualHelp } from "../components/visual/VisualHelp";
+import { QueryCompare } from "../components/visual/QueryCompare";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { receive } from "../lib/handoff";
 
@@ -21,6 +23,14 @@ const PRESETS: { label: string; sql: string }[] = [
     sql: "SELECT category_id, product_name, unit_price,\n       RANK() OVER (PARTITION BY category_id ORDER BY unit_price DESC) AS price_rank\nFROM products\nORDER BY category_id, price_rank;",
   },
   { label: "DISTINCT", sql: "SELECT DISTINCT country\nFROM customers\nORDER BY country;" },
+  { label: "CTE", sql: "WITH big AS (\n  SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY customer_id\n)\nSELECT c.company_name, big.n\nFROM customers c JOIN big ON big.customer_id = c.customer_id\nWHERE big.n > 10\nORDER BY big.n DESC;" },
+  { label: "UNION (set operator)", sql: "SELECT country FROM customers\nUNION\nSELECT country FROM suppliers\nORDER BY country;" },
+  { label: "INTERSECT", sql: "SELECT country FROM customers\nINTERSECT\nSELECT country FROM suppliers\nORDER BY country;" },
+  { label: "EXCEPT", sql: "SELECT country FROM customers\nEXCEPT\nSELECT country FROM suppliers\nORDER BY country;" },
+  { label: "UNION ALL with LIMIT", sql: "SELECT country FROM customers\nUNION ALL\nSELECT country FROM suppliers\nORDER BY country\nLIMIT 10;" },
+  { label: "Nested set operations", sql: "(SELECT country FROM customers UNION SELECT country FROM suppliers)\nEXCEPT\nSELECT 'USA';" },
+  { label: "CASE and NULL", sql: "SELECT customer_id,\n       CASE WHEN region IS NULL THEN 'no region' ELSE region END AS region_label\nFROM customers\nORDER BY customer_id;" },
+  { label: "Subquery", sql: "SELECT product_name, unit_price\nFROM products\nWHERE unit_price > (SELECT AVG(unit_price) FROM products)\nORDER BY unit_price DESC;" },
 ];
 
 export function QueryVisualizerPage() {
@@ -50,6 +60,7 @@ export function QueryVisualizerPage() {
         title="Query execution visualizer"
         intro="Step through SQL's logical processing order with real intermediate rows, see the query's parsed structure (CTEs, joins, set operations) and PostgreSQL's actual plan. Every block says where its information comes from. Every practice question has this built in too."
       />
+      <VisualHelp id="sql" className="mb-3" />
       <div className="mb-3 flex flex-wrap gap-2">
         {PRESETS.map((p) => (
           <button key={p.label} type="button" onClick={() => setSql(p.sql)} className="rounded-lg border border-surface-border px-3 py-1.5 text-sm text-ink-muted hover:text-ink">{p.label}</button>
@@ -71,6 +82,7 @@ export function QueryVisualizerPage() {
           {ran ? <VizView key={ran} sql={ran} /> : <p className="text-sm text-ink-muted">Pick an example or write a query, then press Visualize.</p>}
         </div>
       </div>
+      {mounted && <div className="mt-6"><QueryCompare initialA={PRESETS[0].sql} initialB={PRESETS[0].sql} /></div>}
     </Container>
   );
 }

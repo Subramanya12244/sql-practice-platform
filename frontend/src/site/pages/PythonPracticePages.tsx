@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PyExplainBox } from "../components/visual/PyExplainBox";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, CheckCircle2, Circle, CircleDot, Lightbulb, Search } from "lucide-react";
 import { usePage } from "../SiteApp";
@@ -255,6 +256,7 @@ export function PythonExercisePage() {
   const [hintsShown, setHintsShown] = useState(0);
   const [history, setHistory] = useState<Run[]>([]);
   const [showSolution, setShowSolution] = useState(false);
+  const [lastCode, setLastCode] = useState("");
   const [restoreCode, setRestoreCode] = useState<{ name: string; content: string; ts: number } | null>(null);
 
   const all = data.exercises ?? [];
@@ -407,6 +409,7 @@ export function PythonExercisePage() {
               recordPyAttempt(ex.slug, true);
             }}
             onCheckResult={(res, c) => {
+              setLastCode(c);
               track("python_submitted", key(ex.slug), { passed: res.ok, hidden_failed: /fails a hidden test/.test(res.message) });
               log({ at: new Date().toISOString(), kind: "check", ok: res.ok, message: res.message, code: c.slice(0, 4000) });
               recordPyAttempt(ex.slug, res.ok);
@@ -415,6 +418,7 @@ export function PythonExercisePage() {
               if (res.ok) completeExercise(key(ex.slug));
             }}
             onRunResult={(r, c) => {
+              setLastCode(c);
               track("python_executed", key(ex.slug), { ok: r.ok, ms: r.ms });
               noteExecution(`py:${ex.slug}`);
               if (!r.ok) recordMistake({ ref: `py:${ex.slug}`, kind: "python", topic: ex.category || "other", category: classifyPyMistake(r.error ?? ""), graded: false });
@@ -423,6 +427,10 @@ export function PythonExercisePage() {
             externalCode={restoreCode}
             height={600}
           />
+
+          {mounted && lastCode && (
+            <PyExplainBox code={lastCode} topic={ex.category || ex.title} prompt={ex.title} />
+          )}
 
           {mounted && (
             <details className="rounded-card border border-surface-border bg-surface-raised p-3 text-sm">

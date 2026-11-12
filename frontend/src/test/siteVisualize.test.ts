@@ -47,7 +47,8 @@ ORDER BY orders DESC, c.country LIMIT 5;`, run);
   });
 
   it("reports unsupported input and errors instead of guessing", async () => {
-    expect((await visualize("SELECT 1 UNION SELECT 2", run)).unsupported).toBeTruthy();
+    // Set operations are supported now (see siteVisualSetOps.test.ts); a malformed one is still reported, not guessed.
+    expect((await visualize("SELECT 1 ORDER BY 1 UNION SELECT 2", run)).unsupported).toBeTruthy();
     const bad = await visualize("SELECT nope FROM customers", run);
     expect(bad.stages.some((s) => s.error)).toBe(true);
   });

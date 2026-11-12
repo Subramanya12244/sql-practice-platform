@@ -85,6 +85,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Intelligence",
     items: [
       { to: "/ai-tutor", label: "Query helper", desc: "Hints, explanations and result checks" },
+      { to: "/visual", label: "Visual learning", desc: "Watch code, data, APIs and pipelines run" },
       { to: "/query-visualizer", label: "Query visualizer" },
       { to: "/solution-comparison", label: "Solution comparison" },
       { to: "/readiness", label: "Interview readiness", desc: "Evidence-based estimate" },

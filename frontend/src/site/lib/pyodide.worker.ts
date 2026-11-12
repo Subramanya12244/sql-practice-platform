@@ -21,6 +21,9 @@ interface Pyodide {
 
 let py: Promise<Pyodide> | null = null;
 
+/** Same value as TRACE_MARK in lib/visual/pyTrace.ts (a worker cannot import that module without pulling in UI code). */
+const TRACE_MARK = "\u001eDFTRACE\u001e";
+
 const GUARD = `
 import sys, importlib.abc
 _BLOCKED = {"js", "pyodide_js", "pyodide.http", "pyodide.ffi", "micropip", "pyodide.webloop", "socket", "urllib.request", "http.client", "ssl"}
@@ -108,7 +111,8 @@ async function handleRun(data: { id: number; code: string; tests?: string; stdin
   const { id, code, tests, stdin, files } = data;
   let out = "";
   const write = (s: string) => {
-    if (out.length < 20000) out += s + "\n";
+    // The tracer's result line (one JSON line, often 10-130 KB) must never be cut by the cap that protects against runaway prints.
+    if (out.length < 20000 || s.includes(TRACE_MARK)) out += s + "\n";
   };
 
   // Validate virtual filesystem structure and quotas before running.

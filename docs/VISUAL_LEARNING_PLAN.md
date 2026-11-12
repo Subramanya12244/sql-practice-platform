@@ -1,0 +1,48 @@
+# DataForge Visual Learning Engine: architecture and plan
+
+Branch: `feature/visual-learning-engine` from `origin/main` `60f29ca` (production baseline: Worker `dataforge`, deployed from `main`). Nothing here is pushed or deployed.
+
+## Phase 0 findings (what exists and is reused)
+
+- **SQL Query Visualizer** (`lib/visualize.ts`, `components/VizView.tsx`, `pages/QueryVisualizerPage.tsx`, embedded in `QuestionPage` "Visualize query"): logical stages (FROM/JOIN, WHERE, GROUP BY, HAVING, window, SELECT, DISTINCT, ORDER BY, LIMIT) with real rows from derived queries, join match/unmatched counts, EXPLAIN / EXPLAIN ANALYZE plan tree, structure and flow diagrams, provenance badges (`executed`, `parsed`, `plan`, `estimated`). It only had Previous/Next. It is extended, not duplicated.
+- **Execution**: PGlite via `lib/browserDb.ts` (`runQuery`, `submitQuery`); Pyodide via `lib/pyRunner.ts` + `pyodide.worker.ts` (loads numpy/pandas from imports, blocks network/js bridges, 10 s limit, stdout capture).
+- **Charts**: Recharts 2.15 is already a dependency.
+- **Daily Learning**: `LessonUi.tsx` (`ExampleRunner`, `GradedExercise`), progress in `Progress.daily`, mistakes via `recordMistake`, study time via `StudyTimer`. Left untouched in behaviour.
+
+## Design
+
+Execution data is separated from presentation. Every visualizer produces a list of **frames** and a **provenance**; one shared player shows them.
+
+| Layer | Files | Role |
+| --- | --- | --- |
+| Frames + player | `lib/visual/playback.ts`, `components/visual/Playback.tsx` | Pure playback state (play, pause, next, prev, restart, speed, scrub), keyboard, `VisualShell` layout, provenance badge |
+| Python trace | `lib/visual/pyTrace.ts` | Real `sys.settrace` run inside the existing Pyodide worker: line, locals, call stack, returns, exceptions, stdout. Capped steps and value size. Conceptual memory model derived from it |
+| Data (pandas/numpy) | same tracer, DataFrame/ndarray snapshots | Before/after tables, changed cells, shape, dtypes, NaN counts |
+| API Studio | `lib/visual/apiSim.ts` | Deterministic mock server and client: status scenarios, rate limit, Retry-After, backoff, pagination, idempotency. No network |
+| ETL | `lib/visual/etlSim.ts` | Deterministic pipeline simulator with injectable failures |
+| Charts | `lib/visual/chartData.ts` | Fixture data, aggregation, chart advice (misleading-chart checks) |
+| Explain | `lib/visual/explain.ts` | Progressive explanation (concept, hint, visual, detailed, full) from the learner's code and results |
+| Daily | `lib/visual/dailyVisual.ts` | Maps a lesson (topics, kind) to a visualizer; no lesson file is edited |
+
+## Honesty labels
+
+- **Executed**: real runtime data (SQL rows, Python trace).
+- **Parsed / Plan / Estimated**: existing SQL labels kept.
+- **Conceptual**: the memory model and complexity notes are an educational model, not CPython internals or hardware timing.
+- **Simulated**: API and ETL are deterministic simulations, never real requests.
+
+## Milestones
+
+1. Shared player + SQL Cinema (playback on the existing visualizer).
+2. Python Code Time Machine.
+3. Pandas / NumPy Visual Studio.
+4. API Request Studio.
+5. ETL Pipeline Playback.
+6. Data Visualization Explorer.
+7. Explain visually + Daily Learning integration; hub page and navigation.
+
+After each: tests, regression check, changed-file list in `VISUAL_LEARNING_REPORT.md`.
+
+## Constraints kept
+
+No new paid dependency, no server-side execution, no arbitrary requests, learner code is never stored in the explanation layer, existing grading and the 270 lessons are not changed.

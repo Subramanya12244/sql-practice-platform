@@ -89,6 +89,11 @@ async function startSync(sb: SupabaseClient, userId: string) {
     sb.from("profiles").select("state").eq("id", userId).single(),
     sb.from("mock_sessions").select("created_at, solved, total, used_sec, duration_min").eq("user_id", userId),
   ]);
+  // If any read failed, merging with "nothing" and then pushing would overwrite the account with this device's state and lose
+  // what only the account holds. Stop instead: progress stays local and sync is retried on the next sign-in.
+  // (PGRST116 = the profile row does not exist yet, which is an empty account, not a failure.)
+  const failed = rows.error ?? mocks.error ?? (prof.error && prof.error.code !== "PGRST116" ? prof.error : null);
+  if (failed) throw new Error(`Could not read the account, not syncing: ${failed.message}`);
   const merged = mergeProgress(
     getProgress(),
     (rows.data ?? []) as ProgressRow[],
