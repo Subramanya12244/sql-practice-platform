@@ -230,7 +230,7 @@ export const routes: SiteRoute[] = [
     path: "/learn",
     element: <LearnPage />,
     load: async () => ({
-      ...(await base()), ...(await library()), lessons: await loadLessonSummaries(), exercises: await loadExerciseIndex(),
+      ...(await base()), ...(await library()), lessons: await loadLessonSummaries(), exercises: await loadExerciseIndex(), projects: await loadProjectIndex(),
       projectTasks: (await loadAllProjects()).map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type }) as never) })),
     }),
     paths: one("/learn"),

@@ -127,9 +127,9 @@ export function ButtonLink({ to, variant = "primary", size = "md", className = "
 }
 
 const CARD_PAD = { none: "", sm: "p-4", md: "p-5" };
-export function Card({ children, className = "", as: Tag = "div", interactive = false, pad = "md", "aria-label": label, "aria-labelledby": labelledBy }: { children: ReactNode; className?: string; as?: "div" | "section" | "article" | "li"; interactive?: boolean; pad?: keyof typeof CARD_PAD; "aria-label"?: string; "aria-labelledby"?: string }) {
+export function Card({ children, className = "", as: Tag = "div", interactive = false, pad = "md", "aria-label": label, "aria-labelledby": labelledBy, "data-help": help }: { children: ReactNode; className?: string; as?: "div" | "section" | "article" | "li"; interactive?: boolean; pad?: keyof typeof CARD_PAD; "aria-label"?: string; "aria-labelledby"?: string; "data-help"?: string }) {
   return (
-    <Tag aria-label={label} aria-labelledby={labelledBy} className={`rounded-card border border-surface-border bg-surface-raised ${CARD_PAD[pad]} shadow-panel ${interactive ? "transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.995]" : ""} ${className}`}>
+    <Tag aria-label={label} aria-labelledby={labelledBy} data-help={help} className={`rounded-card border border-surface-border bg-surface-raised ${CARD_PAD[pad]} shadow-panel ${interactive ? "transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.995]" : ""} ${className}`}>
       {children}
     </Tag>
   );

@@ -17,7 +17,10 @@ import { usePage } from "../SiteApp";
 import { Badge, ButtonLink, Card, Container, ProgressBar } from "../components/ui";
 import { Reveal } from "../components/Motion";
 import { HeroPipeline } from "../components/home/HeroPipeline";
-import { DailyResume, FeaturedTools, LearningDomains, LearningJourney, dailyResume } from "../components/home/HomeSections";
+import { DailyResume, FeaturedTools, LearningDomains, LearningJourney } from "../components/home/HomeSections";
+import { dailyResume } from "../lib/dailyResume";
+import { projectActivity } from "../lib/dashboardModel";
+import { getProjectProgress } from "../lib/projects";
 import { CURRICULUM, dayHref, isAuthored } from "../lib/daily";
 import { useDaily } from "../lib/useDaily";
 import { DailyChallenge } from "../components/DailyChallenge";
@@ -61,13 +64,11 @@ export function HomePage() {
   const maxActivity = Math.max(1, ...activityWeek.map((d) => d.count));
   const weekTotal = activityWeek.reduce((sum, d) => sum + d.count, 0);
 
-  const completedProjectsCount = (data.projects ?? []).filter((p) => {
-    const pt = data.projectTasks?.find((x) => x.slug === p.slug);
-    if (!pt) return false;
-    const automated = pt.tasks.filter((t) => t.type !== "checklist");
-    // Project status will be evaluated when user interacts
-    return automated.length > 0 && false;
-  }).length;
+  // Completed guided projects, read from local progress after mount (the prerendered page has none).
+  const [completedProjectsCount, setCompletedProjects] = useState(0);
+  useEffect(() => {
+    setCompletedProjects(projectActivity(data.projects ?? [], data.projectTasks ?? [], getProjectProgress).completed.length);
+  }, [data.projects, data.projectTasks]);
 
   const summary = getOverallProgressSummary(
     progress,

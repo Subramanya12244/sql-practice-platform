@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { today as todayUtc, useProgress, type Progress } from "./progress";
-import { EMPTY_DAILY, type DailyState } from "./dailyProgress";
-import { sequenceFor, type BranchId, type DayMeta } from "./daily";
+import { EMPTY_DAILY, masteryOf, type DailyState } from "./dailyProgress";
+import { loadDay, sequenceFor, type BranchId, type DayExtras, type DayMeta } from "./daily";
 import type { RevItem } from "./revision";
 
 export interface DailyView {
@@ -32,4 +32,30 @@ export function useMounted(): boolean {
   const [m, setM] = useState(false);
   useEffect(() => setM(true), []);
   return m;
+}
+
+const extrasCache = new Map<string, DayExtras | null>();
+
+/**
+ * Ids of completed days that are also mastered (knowledge check 80%+, independent exercises passed, revision done).
+ * Mastery needs each lesson's exercise list, so the lessons of completed days are loaded once and cached. Empty until
+ * they have loaded; never guessed.
+ */
+export function useMasteredIds(state: DailyState): ReadonlySet<string> {
+  const [ids, setIds] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      const out = new Set<string>();
+      for (const [id, rec] of Object.entries(state.days)) {
+        if (!rec.completedAt) continue;
+        if (!extrasCache.has(id)) extrasCache.set(id, await loadDay(id).catch(() => null));
+        const extras = extrasCache.get(id);
+        if (extras && masteryOf(rec, extras).mastered) out.add(id);
+      }
+      if (live) setIds(out);
+    })();
+    return () => { live = false; };
+  }, [state.days]);
+  return ids;
 }
