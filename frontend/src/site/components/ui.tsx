@@ -55,7 +55,7 @@ export function Breadcrumbs({ items, className = "" }: { items: Crumb[]; classNa
           const last = i === items.length - 1;
           return (
             <li key={`${c.label}-${i}`} className="flex items-center gap-1">
-              {c.to && !last ? <Link to={c.to} className="rounded transition-colors duration-fast hover:text-ink">{c.label}</Link> : <span aria-current={last ? "page" : undefined} className={last ? "font-medium text-ink-muted" : undefined}>{c.label}</span>}
+              {c.to ? <Link to={c.to} className="rounded transition-colors duration-fast hover:text-ink">{c.label}</Link> : <span aria-current={last ? "page" : undefined} className={last ? "font-medium text-ink-muted" : undefined}>{c.label}</span>}
               {!last && <ChevronRight className="h-3 w-3 shrink-0" aria-hidden />}
             </li>
           );

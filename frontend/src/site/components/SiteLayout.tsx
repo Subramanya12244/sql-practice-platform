@@ -3,14 +3,14 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Bell, ChevronDown, Github, LogOut, Menu, Moon, Search, Settings, Shield, Sun, UserRound, X } from "lucide-react";
 import { BrandMark } from "../../components/BrandMark";
 import { BRAND } from "../../brand";
-import { NAV_GROUPS, activeGroup } from "../lib/navigation";
+import { NAV_GROUPS, activeGroup, breadcrumbFor } from "../lib/navigation";
 import { AppSidebar } from "./AppSidebar";
 import { prefersReducedMotion } from "./Motion";
 import { SearchDialog } from "./SearchDialog";
 import { useTheme } from "../../contexts/ThemeContext";
 import { SITE_NAME } from "../lib/seo";
 import { useMyReviews } from "../lib/reviews";
-import { Container } from "./ui";
+import { Breadcrumbs, Container } from "./ui";
 import { useAuth } from "../lib/auth";
 import { HelpProvider } from "../help/HelpProvider";
 import { HelpButton } from "../help/HelpButton";
@@ -116,6 +116,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
     setOpen(false);
   }, [location.pathname, location.hash]);
   const current = activeGroup(location.pathname);
+  const crumbs = breadcrumbFor(location.pathname);
   const showSidebar = !AUTH_PATHS.includes(location.pathname);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -183,6 +184,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
             <BrandMark tone="site" size={30} />
             {SITE_NAME}
           </Link>
+          {crumbs.length > 0 && <Breadcrumbs items={crumbs} className="ml-2 hidden border-l border-surface-border pl-4 md:block" />}
           <div className="ml-auto hidden items-center gap-1.5 lg:flex">
             {searchButton}
             <HelpButton />
@@ -255,7 +257,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
       </main>
 
       <footer className="mt-16 border-t border-surface-border bg-surface-raised/40 py-12 text-sm text-ink-muted">
-        <Container className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
+        <Container className="grid gap-8 sm:grid-cols-2 lg:grid-cols-6">
           <div className="lg:col-span-2">
             <p className="flex items-center gap-2 font-display font-bold text-ink"><BrandMark tone="site" size={24} /> {SITE_NAME}</p>
             <p className="mt-3 max-w-sm">
@@ -266,9 +268,10 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
             </a>
           </div>
           {[
-            { title: "Learn", links: [["/learn", "Learn SQL (free course)"], ["/notes", "SQL theory notes"], ["/data-engineering", "Data engineering tracks"], ["/patterns", "SQL patterns"], ["/mindmaps", "SQL mind maps"], ["/shortcuts", "SQL shortcuts"], ["/concepts", "SQL concept guides"], ["/cheatsheet", "SQL cheat sheet"], ["/flashcards", "Flashcards"], ["/study-notes", "Visual study notes"]] },
-            { title: "Practice", links: [["/questions", "All practice questions"], ["/practice/python", "Python for data engineering"], ["/practice/python/assessment", "Timed Python assessment"], ["/scenarios", "Business SQL scenarios"], ["/interview", "SQL interview sets by role"], ["/mock-interview", "SQL mock interview"], ["/review", "Review queue"], ["/history", "History and revision"], ["/playground", "Online SQL playground"], ["/schema", "Northwind schema"]] },
-            { title: "Build & grow", links: [["/projects-lab", "Projects lab"], ["/data-quality", "Data quality lab"], ["/data-generator", "SQL data generator"], ["/query-visualizer", "SQL query visualizer"], ["/solution-comparison", "Compare SQL solutions"], ["/career/planner", "Study planner"], ["/portfolio", "Portfolio"], ["/challenge", "Daily and weekly challenges"], ["/leaderboard", "Leaderboard"], ["/debug", "Debug center"]] },
+            { title: "Learn", links: [["/daily", "Daily Learning"], ["/learn", "Learn SQL (free course)"], ["/notes", "SQL theory notes"], ["/data-engineering", "Data engineering tracks"], ["/patterns", "SQL patterns"], ["/mindmaps", "SQL mind maps"], ["/shortcuts", "SQL shortcuts"], ["/concepts", "SQL concept guides"], ["/cheatsheet", "SQL cheat sheet"], ["/flashcards", "Flashcards"], ["/study-notes", "Visual study notes"], ["/review", "Revision queue"]] },
+            { title: "Practice", links: [["/questions", "All practice questions"], ["/practice/python", "Python for data engineering"], ["/practice/python/assessment", "Timed Python assessment"], ["/scenarios", "Business SQL scenarios"], ["/interview", "SQL interview sets by role"], ["/query-visualizer", "SQL query visualizer"], ["/playground", "Online SQL playground"], ["/solution-comparison", "Compare SQL solutions"], ["/challenge", "Daily and weekly challenges"], ["/leaderboard", "Leaderboard"]] },
+            { title: "Labs and projects", links: [["/etl-builder", "ETL pipeline builder"], ["/dag-simulator", "DAG simulator"], ["/schema-designer", "Schema designer"], ["/dq-exercises", "Data quality exercises"], ["/data-quality", "Data quality lab"], ["/de-scenarios", "Data engineering scenarios"], ["/data-generator", "SQL data generator"], ["/schema", "Northwind schema"], ["/projects-lab", "Guided projects"], ["/debug", "Debug center"]] },
+            { title: "Career", links: [["/career/planner", "Study planner"], ["/career/companies", "Prep by company type"], ["/career/answers", "Answer practice"], ["/mock-interview", "SQL mock interview"], ["/readiness", "Interview readiness"], ["/portfolio", "Portfolio"], ["/history", "History and revision"]] },
           ].map((col) => (
             <div key={col.title}>
               <p className="font-semibold text-ink">{col.title}</p>

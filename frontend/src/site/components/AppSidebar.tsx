@@ -1,17 +1,15 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { NavLink } from "react-router-dom";
-import { BookOpen, Briefcase, CalendarDays, ChevronDown, Code2, FolderKanban, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Sparkles, Users } from "lucide-react";
+import { BookOpen, Briefcase, ChevronDown, Code2, FlaskConical, FolderKanban, Home, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { NAV_GROUPS, activeGroup } from "../lib/navigation";
 
 const GROUP_ICON: Record<string, ComponentType<{ className?: string }>> = {
-  dashboard: LayoutDashboard,
-  daily: CalendarDays,
+  home: Home,
   learn: BookOpen,
   practice: Code2,
+  labs: FlaskConical,
   projects: FolderKanban,
-  ai: Sparkles,
   career: Briefcase,
-  community: Users,
 };
 
 const COLLAPSE_KEY = "df.sidebar.collapsed";
@@ -55,7 +53,7 @@ export function AppSidebar({ pathname }: { pathname: string }) {
       <nav aria-label="Main" className="flex-1 overflow-y-auto overscroll-contain px-2 py-3">
         <ul className="space-y-0.5">
           {NAV_GROUPS.map((g) => {
-            const Icon = GROUP_ICON[g.id] ?? LayoutDashboard;
+            const Icon = GROUP_ICON[g.id] ?? Home;
             const isActive = current === g.id;
             const isOpen = openGroups.has(g.id) && !collapsed;
             const listId = `nav-${g.id}`;
@@ -82,6 +80,7 @@ export function AppSidebar({ pathname }: { pathname: string }) {
                       <NavLink
                         to={n.to}
                         end
+                        title={n.desc}
                         className={({ isActive: here }) =>
                           `relative block rounded-control px-2.5 py-1.5 text-sm transition-all duration-fast ${here ? "bg-accent-dim/60 font-semibold text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink hover:translate-x-0.5"}`
                         }

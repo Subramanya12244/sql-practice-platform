@@ -26,7 +26,7 @@ const mod: HelpContentModule = {
         "Revise with flashcards that come back on a schedule, then turn solved problems into a PDF study guide.",
       ],
       howTo: [
-        "Open Learn from the sidebar. Check the Daily goal ring and the Recommended next list.",
+        "Open Dashboard from the sidebar (under Home). Check the Daily goal ring and the Recommended next list.",
         "Start the first lesson (or the one the Continue button offers) and read it top to bottom.",
         "At each exercise press Try it, write the query, run it and submit. A passed exercise shows a tick.",
         "Use Notes for the full theory of a topic and press Mark as read when you finish one.",

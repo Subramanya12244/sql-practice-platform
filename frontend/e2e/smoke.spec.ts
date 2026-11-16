@@ -73,7 +73,7 @@ test("navigation works and analytics page renders", async ({ page, isMobile }) =
   await page.goto("/");
   if (isMobile) {
     await page.getByRole("button", { name: /menu/i }).first().click();
-    await page.getByRole("button", { name: "Dashboard", exact: true }).first().click();
+    await page.getByRole("button", { name: "Home", exact: true }).first().click();
   }
   await page.goto("/analytics");
   await expect(page.getByRole("heading", { name: "Performance analytics" })).toBeVisible();

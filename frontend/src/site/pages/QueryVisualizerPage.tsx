@@ -94,7 +94,7 @@ export function QueryVisualizerPage() {
       />
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1 pb-3 pt-6 sm:pt-8">
         <div className="min-w-0">
-          <p className="mb-1 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent"><span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-accent to-secondary" aria-hidden />AI & Intelligence</p>
+          <p className="mb-1 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent"><span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-accent to-secondary" aria-hidden />Practice</p>
           <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">SQL Query Cinema</h1>
         </div>
         <p className="max-w-2xl text-sm text-ink-muted">Press Visualize and watch the query run on real rows: tables are matched, rows are filtered out, groups form, the result is sorted. Runs in your browser on Northwind; every query is rolled back.</p>

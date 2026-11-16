@@ -31,8 +31,8 @@ const mod: HelpContentModule = {
         "Come back tomorrow. Your streak, solved list and study time update as you work.",
       ],
       controls: [
-        { name: "Sidebar / Open menu", what: "On desktop the Sidebar, on a phone the Open menu button in the top bar. Both group every section: Dashboard, Daily Learning, Learn, Practice, Projects, Intelligence, Career and Community.", tip: "On a phone, open the menu button in the top bar and tap a group to expand it." },
-        { name: "Search (Ctrl+K or /)", what: "Finds notes, patterns, mind maps, concept guides, shortcuts and questions.", tip: "Press / anywhere outside a text box to open it." },
+        { name: "Sidebar / Open menu", what: "On desktop the Sidebar, on a phone the Open menu button in the top bar. Both group every section into six categories: Home, Learn, Practice, Labs, Projects and Career.", tip: "On a phone, open the menu button in the top bar and tap a group to expand it." },
+        { name: "Search (Ctrl+K or /)", what: "Finds tools and pages, Daily Learning lessons, notes, patterns, mind maps, concept guides, shortcuts, questions and Python exercises.", tip: "Press / anywhere outside a text box to open it." },
         { name: "? Help", what: "Opens help for the page you are on: what it does, how to use it, a worked example, and a guided tour.", tip: "Press ? (Shift + /) outside a text box for the same thing." },
         { name: "Toggle light or dark theme", what: "The sun or moon button. Switches between the light and dark theme. The choice is remembered on this device." },
         { name: "Sign in", what: "Optional. Signing in keeps your progress with your account instead of only in this browser." },
@@ -64,8 +64,8 @@ const mod: HelpContentModule = {
         title: "A quick tour of DataForge",
         steps: [
           { id: "welcome", title: "Welcome to DataForge", body: "This 5-step tour shows how to move around. You can leave at any time.", how: "Press Next, or the right-arrow key." },
-          { id: "sidebar", title: "Every section lives in the sidebar", body: "Dashboard, Daily Learning, Learn, Practice, Projects and more. The group holding the current page opens automatically.", how: "Click a group to expand it, then pick a page. On a phone, tap the menu button in the top bar.", target: ["aside[aria-label=\"Sidebar\"]", "button[aria-label=\"Open menu\"]"] },
-          { id: "search", title: "Search finds content fast", body: "Search notes, patterns, questions and shortcuts by name or idea.", how: "Click Search or press Ctrl+K (Cmd+K on a Mac).", target: ["button[aria-label=\"Search (Ctrl+K)\"]", "button[aria-label=\"Search\"]"] },
+          { id: "sidebar", title: "Every section lives in the sidebar", body: "Six categories: Home, Learn, Practice, Labs, Projects and Career. The group holding the current page opens automatically, and the top bar shows where you are.", how: "Click a group to expand it, then pick a page. On a phone, tap the menu button in the top bar.", target: ["aside[aria-label=\"Sidebar\"]", "button[aria-label=\"Open menu\"]"] },
+          { id: "search", title: "Search finds content fast", body: "Search lessons, notes, tools, questions and exercises by name or idea.", how: "Click Search or press Ctrl+K (Cmd+K on a Mac).", target: ["button[aria-label=\"Search (Ctrl+K)\"]", "button[aria-label=\"Search\"]"] },
           { id: "theme", title: "Light or dark", body: "Pick the theme that is easier on your eyes. It is remembered on this device.", how: "Click the sun or moon icon.", target: ["button[aria-label=\"Toggle light or dark theme\"]"] },
           { id: "help", title: "Help is always one click away", body: "On every major page, Help explains that page and can start a tour of it. Each section has its own.", how: "Click Help, or press ? outside a text box.", target: ["[data-help=\"help-button\"]"] },
         ],
