@@ -2,7 +2,7 @@ import { InlineMarkdown } from "./Markdown";
 import { CountUp } from "./Motion";
 import type { ButtonHTMLAttributes, ComponentType, ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import type { QuestionSummary } from "../types";
 
 const DIFF_STYLE: Record<string, string> = {
@@ -37,9 +37,31 @@ export function PageHeader({ eyebrow, title, intro }: { eyebrow?: string; title:
   return (
     <header className="pb-6 pt-10 sm:pt-14">
       {eyebrow && <p className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent"><span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-accent to-secondary" aria-hidden />{eyebrow}</p>}
-      <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">{title}</h1>
+      <h1 className="font-display text-h1 text-ink">{title}</h1>
       {intro && <div className="mt-3 max-w-3xl text-base leading-relaxed text-ink-muted">{intro}</div>}
     </header>
+  );
+}
+
+export interface Crumb { label: string; to?: string }
+
+/** Where the page sits: Group / Section / Page. The last item is the current page. */
+export function Breadcrumbs({ items, className = "" }: { items: Crumb[]; className?: string }) {
+  if (items.length === 0) return null;
+  return (
+    <nav aria-label="Breadcrumb" data-testid="breadcrumbs" className={`text-xs text-ink-faint ${className}`}>
+      <ol className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+        {items.map((c, i) => {
+          const last = i === items.length - 1;
+          return (
+            <li key={`${c.label}-${i}`} className="flex items-center gap-1">
+              {c.to && !last ? <Link to={c.to} className="rounded transition-colors duration-fast hover:text-ink">{c.label}</Link> : <span aria-current={last ? "page" : undefined} className={last ? "font-medium text-ink-muted" : undefined}>{c.label}</span>}
+              {!last && <ChevronRight className="h-3 w-3 shrink-0" aria-hidden />}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
 
@@ -120,6 +142,7 @@ const BADGE_TONE = {
   success: "bg-success-dim text-success",
   warn: "bg-warn-dim text-warn",
   danger: "bg-danger-dim text-danger",
+  info: "bg-info-dim text-info",
 };
 export function Badge({ tone = "neutral", children, className = "" }: { tone?: keyof typeof BADGE_TONE; children: ReactNode; className?: string }) {
   return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${BADGE_TONE[tone]} ${className}`}>{children}</span>;
@@ -244,7 +267,7 @@ export function SectionHeader({ title, action, id, description }: { title: strin
   return (
     <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
       <div>
-        <h2 id={id} className="font-display text-lg font-bold text-ink sm:text-xl">{title}</h2>
+        <h2 id={id} className="font-display text-h2 text-ink">{title}</h2>
         {description && <p className="mt-0.5 text-sm text-ink-muted">{description}</p>}
       </div>
       {action}
