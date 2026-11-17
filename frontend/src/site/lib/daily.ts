@@ -230,6 +230,16 @@ export function renderResultText(columns: string[], rows: unknown[][]): string {
 export const normaliseOutput = (s: string) => s.replace(/\r\n/g, "\n").split("\n").map((l) => l.replace(/\s+$/, "")).join("\n").replace(/\n+$/, "");
 export const sameOutput = (a: string, b: string) => normaliseOutput(a) === normaliseOutput(b);
 
+/** The first line where two outputs differ, 1-based, after the same normalisation as `sameOutput`. Null when they match. */
+export function firstDifference(expected: string, actual: string): { line: number; expected: string | null; actual: string | null } | null {
+  const e = normaliseOutput(expected).split("\n");
+  const a = normaliseOutput(actual).split("\n");
+  if (e.join("\n") === a.join("\n")) return null;
+  const n = Math.max(e.length, a.length);
+  for (let i = 0; i < n; i++) if (e[i] !== a[i]) return { line: i + 1, expected: e[i] ?? null, actual: a[i] ?? null };
+  return null;
+}
+
 export function parseDay(md: string, extras: DayExtras): DayContent {
   const sections = splitSections(md);
   return { ...extras, sections, examples: parseExamples(sections["Learn by example"] ?? "") };
