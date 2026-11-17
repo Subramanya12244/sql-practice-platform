@@ -1,6 +1,6 @@
 # DataForge UX redesign: final report
 
-Branch `feature/ux-redesign`, 9 local commits on `origin/main` `32b40f5`. **Nothing is pushed, merged or deployed.** Release waits for your approval. The audit that came first is `docs/UX_REDESIGN_AUDIT.md`.
+Branch `feature/ux-redesign`, 10 local commits on `origin/main` `32b40f5`. **Nothing is pushed, merged or deployed.** Release waits for your approval. The audit that came first is `docs/UX_REDESIGN_AUDIT.md`.
 
 ## 1. Initial audit findings
 
@@ -57,7 +57,7 @@ DataForge already had a design system, a UI kit, a motion system and a working s
 
 ## 6. Files changed
 
-50 files, +2,655 / −312 lines against `origin/main`.
+50 files, +2,724 / −312 lines against `origin/main`.
 
 - New (app): `components/home/{HeroPipeline,HomeSections}.tsx`, `components/dashboard/DashboardPanels.tsx`, `components/daily/LessonWorkspace.tsx`, `lib/{skills,dashboardModel,dailyResume,csvProfile}.ts`, `pages/DataProfilerPage.tsx`.
 - Changed (app): `tailwind.config.js`, `site.css`, `components/{ui,SiteLayout,AppSidebar,SearchDialog}.tsx`, `components/daily/{DailyDashboard,LessonUi}.tsx`, `components/lab/*Workspace.tsx` (3), `components/BrandMark.tsx`, `lib/{navigation,searchIndex,daily,useDaily}.ts`, `pages/{HomePage,LearnPages,DailyPages,QueryVisualizerPage}.tsx`, `routes.tsx`, Guide content (4 files).
@@ -107,6 +107,6 @@ Not run: Firefox and WebKit for any of this work; live Supabase sync (no staging
 
 ## 11. Git status
 
-- Branch `feature/ux-redesign`, 9 commits ahead of `origin/main` (`32b40f5`), working tree clean except two untracked files that are not part of this work (`.venv-daily`, `docs/VISUAL_V2_AGENT_BRIEF.md`).
+- Branch `feature/ux-redesign`, 10 commits ahead of `origin/main` (`32b40f5`), working tree clean except two untracked files that are not part of this work (`.venv-daily`, `docs/VISUAL_V2_AGENT_BRIEF.md`).
 - Not pushed, not merged, not deployed. The earlier branches and worktrees are untouched.
 - To release, you would approve a push, a PR and a merge; a merge to `main` deploys automatically.
