@@ -87,7 +87,7 @@ test("dashboard: finishing lesson work changes the skill status (started, then p
 
 test("labs and designers never scroll sideways on a phone", async ({ page, isMobile }) => {
   test.skip(!isMobile, "phone layout");
-  for (const path of ["/schema-designer", "/etl-builder", "/dag-simulator", "/dq-exercises", "/de-scenarios", "/query-visualizer", "/daily/day/3", "/learn", "/"]) {
+  for (const path of ["/schema-designer", "/etl-builder", "/dag-simulator", "/dq-exercises", "/data-profiler", "/de-scenarios", "/query-visualizer", "/daily/day/3", "/learn", "/"]) {
     await page.goto(path);
     expect(await noHScroll(page), path).toBeLessThanOrEqual(1);
   }
@@ -102,4 +102,39 @@ test("query visualizer: Format SQL tidies the query in the editor", async ({ pag
   // the first preset is one clause per line already; the formatter keeps keywords upper-case and the text still runs
   await page.getByRole("button", { name: "Visualize", exact: true }).click();
   await expect(page.getByTestId("cinema")).toBeVisible({ timeout: 120_000 });
+});
+
+test("data profiler: the sample shows its problems, and a real file is profiled in the browser", async ({ page }, info) => {
+  await page.goto("/data-profiler");
+  await expect(page.getByRole("heading", { level: 1, name: "Data profiler" })).toBeVisible();
+  await expect(page.getByText("Nothing profiled yet")).toBeVisible();
+  await page.getByRole("button", { name: "Try the sample" }).click();
+  await expect(page.getByText("This is a built-in sample with problems added on purpose")).toBeVisible();
+  const summary = page.getByTestId("dp-summary");
+  await expect(summary).toContainText("11"); // rows
+  await expect(summary).toContainText("Duplicate rows");
+  const issues = page.getByTestId("dp-issues");
+  await expect(issues).toContainText("1 duplicate row");
+  await expect(issues).toContainText("1 of 11 values missing in amount");
+  await expect(issues).toContainText("order_date looks like date");
+
+  // a file the learner chooses: never uploaded, profiled where it is
+  const file = info.outputPath("people.csv");
+  const fs = await import("node:fs");
+  fs.writeFileSync(file, "id,name,age\n1,Ada,36\n2,Bo,\n3,Cy,41\n4,Di,29\n");
+  await page.getByLabel("Choose a CSV file").setInputFiles(file);
+  await expect(page.getByText("This is a built-in sample")).toHaveCount(0);
+  await expect(summary).toContainText("4");
+  await expect(page.getByTestId("dp-issues")).toContainText("1 of 4 values missing in age");
+  await expect(page.getByTestId("dp-issues")).toContainText("Possible key columns: id, name");
+  // the report downloads
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Report" }).click()]);
+  expect(dl.suggestedFilename()).toBe("people-profile.md");
+});
+
+test("data profiler: says what is wrong with unusable input", async ({ page }) => {
+  await page.goto("/data-profiler");
+  await page.getByLabel("Or paste CSV text").fill("a,a\n1,2");
+  await page.getByRole("button", { name: "Profile this text" }).click();
+  await expect(page.getByRole("alert")).toContainText("same name");
 });

@@ -78,6 +78,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/dq-exercises", label: "Data quality exercises", desc: "Five dimensions, before and after score" },
       { to: "/de-scenarios", label: "Data engineering scenarios", desc: "Upserts, late data, retries, reconciliation" },
       { to: "/data-quality", label: "Data quality lab", desc: "Rules, runs, reports" },
+      { to: "/data-profiler", label: "Data profiler", desc: "Profile your own CSV: types, missing values, duplicates, outliers" },
       { to: "/debug-lab", label: "Pipeline debugging lab", desc: "Fix broken data pipelines" },
       { to: "/visual", label: "Visual learning", desc: "Watch code, data, APIs and pipelines run" },
       { to: "/data-generator", label: "Dataset generator" },

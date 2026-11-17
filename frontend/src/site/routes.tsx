@@ -50,6 +50,7 @@ import { PythonExercisePage, PythonPracticeIndexPage } from "./pages/PythonPract
 import { loadExercise, loadExerciseIndex } from "./lib/pyExercises";
 import { ProjectPage, ProjectsIndexPage } from "./pages/ProjectsPages";
 import { DataQualityPage } from "./pages/DataQualityPage";
+import { DataProfilerPage } from "./pages/DataProfilerPage";
 import { loadAllProjects, loadProject, loadProjectIndex } from "./lib/projects";
 import { ScenarioPage, ScenariosPage } from "./pages/ScenarioPages";
 import { loadScenario, loadScenarioIndex } from "./lib/scenarios";
@@ -355,6 +356,7 @@ export const routes: SiteRoute[] = [
   { path: "/portfolio", element: <PortfolioPage />, load: careerData, paths: one("/portfolio") },
   { path: "/settings", element: <SettingsPage />, load: base, paths: one("/settings") },
   { path: "/data-quality", element: <DataQualityPage />, load: base, paths: one("/data-quality") },
+  { path: "/data-profiler", element: <DataProfilerPage />, load: base, paths: one("/data-profiler") },
   {
     path: "/projects-lab",
     element: <ProjectsIndexPage />,
