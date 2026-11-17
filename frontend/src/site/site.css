@@ -477,3 +477,16 @@ html.theme-transition *::after {
   animation: df-flow-v 1.1s linear infinite;
 }
 @keyframes df-flow-v { to { background-position: 0 12px; } }
+
+/* Lesson workspace. One column below 1280px; centre + rail from 1280px; day list + centre + rail from 1536px. */
+.lesson-grid { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr); grid-template-areas: "rail" "days" "main"; align-items: start; }
+.lesson-main { grid-area: main; min-width: 0; }
+.lesson-rail { grid-area: rail; min-width: 0; }
+.lesson-days { grid-area: days; min-width: 0; }
+@media (min-width: 1280px) {
+  .lesson-grid { grid-template-columns: minmax(0, 1fr) 17.5rem; gap: 1.5rem; grid-template-areas: "main rail" "main days"; }
+}
+@media (min-width: 1536px) {
+  .lesson-grid { grid-template-columns: 15rem minmax(0, 1fr) 17.5rem; grid-template-areas: "days main rail"; }
+  .lesson-rail, .lesson-days { position: sticky; top: 5rem; max-height: calc(100vh - 6rem); overflow-y: auto; }
+}

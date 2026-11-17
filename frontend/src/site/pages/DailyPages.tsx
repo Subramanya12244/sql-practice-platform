@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock, ExternalLink, Layers } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock, ExternalLink, Layers, ListTree } from "lucide-react";
 import { usePage } from "../SiteApp";
-import { Badge, Button, Card, Container, PageHeader, ProgressBar } from "../components/ui";
+import { Badge, Breadcrumbs, Button, Card, Container, PageHeader, ProgressBar } from "../components/ui";
 import { Markdown } from "../components/Markdown";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { LearningCalendar, PathPanel, ProgrammeOverview, RevisionPanel, Roadmap, StatusIcon, TodayCard } from "../components/daily/DailyDashboard";
@@ -10,6 +10,7 @@ import { StudyTimePanel } from "../components/daily/StudyTimePanel";
 import { visualFor, visualHref } from "../lib/visual/dailyVisual";
 import { StudyTimer } from "../components/daily/StudyTimer";
 import { CompletePanel, ExampleRunner, ExerciseRunner, KnowledgeCheck } from "../components/daily/LessonUi";
+import { Collapsible, DayList, LessonRail, ReadingProgress, ResumeBanner, useHeadings, useResume } from "../components/daily/LessonWorkspace";
 import { PATHS, PHASE_BY_ID, dayHref, findDay, neighbours, prerequisitesOf, type BranchId, type DayMeta, type PathId } from "../lib/daily";
 import { STATUS_LABEL, completionOf, dayStatus, isDone, type DayRecord } from "../lib/dailyProgress";
 import { updateDay } from "../lib/progress";
@@ -87,11 +88,9 @@ function DayHeader({ day, view, children }: { day: DayMeta; view: DailyView; chi
   const pathTitle = day.path === "common" ? "Common core" : PATHS.find((p) => p.id === day.path)?.title;
   return (
     <header className="pb-4 pt-8 sm:pt-12">
-      <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1 text-xs text-ink-faint">
-        <Link className="hover:text-accent" to="/daily">Daily Learning</Link><span aria-hidden>/</span><span>{phase?.title}</span>
-      </nav>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent">Day {day.day} of 180 · {pathTitle}</p>
-      <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">{day.title}</h1>
+      <Breadcrumbs className="mb-3" items={[{ label: "Daily Learning", to: "/daily" }, { label: phase?.title ?? "Lesson" }]} />
+      <p className="mb-2 text-label uppercase text-accent">Day {day.day} of 180 · {pathTitle}</p>
+      <h1 className="font-display text-h1 text-ink">{day.title}</h1>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-muted">
         <span className="inline-flex items-center gap-1"><StatusIcon status={status} /> {STATUS_LABEL[status]}</span>
         <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" aria-hidden /> about {Math.round((day.minutes / 60) * 10) / 10} h</span>
@@ -121,11 +120,12 @@ function Prerequisites({ day, view }: { day: DayMeta; view: DailyView }) {
   );
 }
 
-function PrevNext({ day, view }: { day: DayMeta; view: DailyView }) {
+function PrevNext({ day, view, center }: { day: DayMeta; view: DailyView; center?: React.ReactNode }) {
   const { prev, next } = neighbours(day, view.path);
   return (
     <nav aria-label="Previous and next day" className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-border pt-4 text-sm">
       {prev ? <Link to={dayHref(prev)} className="inline-flex items-center gap-1 font-medium text-ink-muted hover:text-accent"><ArrowLeft className="h-4 w-4" aria-hidden /> Day {prev.day}: {prev.title}</Link> : <span />}
+      {center}
       {next ? <Link to={dayHref(next)} className="inline-flex items-center gap-1 font-medium text-ink-muted hover:text-accent">Day {next.day}: {next.title} <ArrowRight className="h-4 w-4" aria-hidden /></Link> : <span />}
     </nav>
   );
@@ -145,6 +145,10 @@ function LessonForDay({ day, content, links }: { day: DayMeta; content: NonNulla
   const mounted = useMounted();
   const rec: DayRecord | undefined = view.state.days[day.id];
   const [step, setStep] = useState<StepId>("understand");
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const stepRef = useRef<HTMLDivElement>(null);
+  const headings = useHeadings(stepRef, step);
+  const resume = useResume(day.id, step, !!rec?.completedAt);
   const { next } = neighbours(day, view.path);
   const seo = (
     <Seo title={`Day ${day.day}: ${day.title}`} description={`Daily Learning day ${day.day} of 180: ${day.topics.join(", ")}.`} path={dayHref(day)} noindex={!content}
@@ -193,11 +197,16 @@ function LessonForDay({ day, content, links }: { day: DayMeta; content: NonNulla
   const t = content.time;
 
   return (
-    <Container>
+    <Container wide>
       {seo}
+      <ReadingProgress targetRef={bodyRef} />
       <DayHeader day={day} view={view}><StudyTimer dayId={day.id} className="mt-3" /></DayHeader>
-      <div className="space-y-5 pb-16">
-        <Prerequisites day={day} view={view} />
+      <div className="lesson-grid pb-16">
+      <div className="lesson-rail"><Collapsible title="Lesson overview" icon={<ListTree className="h-4 w-4 text-accent" aria-hidden />}><LessonRail day={day} view={view} finished={finished} total={STEPS.length - 1} headings={headings} /></Collapsible></div>
+      <div className="lesson-days"><Collapsible title="Days in this phase" icon={<Layers className="h-4 w-4 text-accent" aria-hidden />}><DayList day={day} view={view} /></Collapsible></div>
+      <div ref={bodyRef} className="lesson-main space-y-5">
+        {resume.offer && <ResumeBanner offer={resume.offer} label={STEPS.find((x) => x.id === resume.offer?.step)?.label ?? "this lesson"} onDismiss={resume.dismiss}
+          onResume={() => { const o = resume.offer!; setStep(o.step as StepId); resume.dismiss(); window.setTimeout(() => window.scrollTo({ top: o.y }), 120); }} />}
         {(() => {
           const first = content.examples.find((b) => b.kind === "example");
           const v = visualFor({ id: day.id, title: day.title, topics: day.topics, lang: first && first.kind === "example" ? (first.lang as "python" | "sql" | "bash") : undefined });
@@ -224,7 +233,7 @@ function LessonForDay({ day, content, links }: { day: DayMeta; content: NonNulla
           </ol>
         </div>
 
-        <div key={step} className="df-step space-y-5">
+        <div key={step} ref={stepRef} className="df-step space-y-5">
           {step === "understand" && (
             <>
               <Card>
@@ -288,8 +297,9 @@ function LessonForDay({ day, content, links }: { day: DayMeta; content: NonNulla
           <button type="button" onClick={() => index > 0 && go(STEPS[index - 1].id)} disabled={index === 0} className="inline-flex min-h-[42px] items-center gap-1 rounded-xl px-3 text-sm font-medium text-ink-muted transition-colors duration-fast hover:text-ink disabled:opacity-40"><ArrowLeft className="h-4 w-4" aria-hidden /> Back</button>
           {index < STEPS.length - 1 && <Button variant="secondary" onClick={() => go(STEPS[index + 1].id)}>Next: {STEPS[index + 1].label} <ArrowRight className="h-4 w-4" aria-hidden /></Button>}
         </div>
-        <PrevNext day={day} view={view} />
+        <PrevNext day={day} view={view} center={rec?.completedAt ? <Badge tone="success"><CheckCircle2 className="h-3 w-3" aria-hidden /> Day complete</Badge> : step !== "complete" ? <Button variant="secondary" size="sm" onClick={() => go("complete")}>Finish the day</Button> : undefined} />
         <p className="text-center text-xs text-ink-faint">Progress saves automatically on this device and syncs to your account when you are signed in.</p>
+      </div>
       </div>
     </Container>
   );
