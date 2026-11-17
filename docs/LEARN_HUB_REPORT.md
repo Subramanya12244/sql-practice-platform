@@ -1,6 +1,6 @@
 # Learn hub: report
 
-Branch `feature/learn-hub`, created from `origin/main` `0d5c358` (the merged UX redesign, PR #9). **Nothing is pushed, merged or deployed.** The audit that came first is `docs/LEARN_HUB_AUDIT.md`. Screenshots are in `docs/images/learn-hub/`.
+Branch `feature/learn-hub`, created from `origin/main` `0d5c358` (the merged UX redesign, PR #9). Released from the final commit `e466966` after the release checks described in the last section. The audit that came first is `docs/LEARN_HUB_AUDIT.md`. Screenshots are in `docs/images/learn-hub/`.
 
 ## What was built
 
@@ -35,12 +35,12 @@ Branch `feature/learn-hub`, created from `origin/main` `0d5c358` (the merged UX 
 
 ## Files changed
 
-39 files, +3,192 / −109 lines against `origin/main` (three local commits).
+41 files, +3,511 / −109 lines against `origin/main` (six commits).
 
 - **New, logic:** `lib/learnTopics.ts` (topics, filters, status, topic bundle), `lib/learnPaths.ts` (paths, roadmap, continue, recommendations), `lib/learnLoad.ts` (compact page data), `lib/noteStatus.ts` (the note rule, moved out of the page so both use one copy).
 - **New, UI:** `components/learn/{LearnHero,PathCards,TopicLibrary,CurriculumRoadmap,PracticeResources,shared}.tsx`, `pages/LearnHubPages.tsx`.
 - **Changed:** `routes.tsx`, `types.ts`, `lib/navigation.ts`, `components/SiteLayout.tsx` (footer links), `pages/LearnPages.tsx` (`LearnPage` became `DashboardPage`; lesson breadcrumb and structured data point to the SQL path), `pages/NotesPages.tsx` (imports the shared rule), Guide content (`library-career.ts`, `platform.ts`).
-- **Tests:** `siteLearnTopics.test.ts`, `siteLearnPaths.test.ts`, `siteLearnHub.test.tsx`, `e2e/learn-hub.spec.ts`; updated `siteNav.test.tsx`, `helpValidate.ts`, `e2e/ux-redesign.spec.ts`, `e2e/a11y-basics.spec.ts`.
+- **Tests:** `siteLearnTopics.test.ts`, `siteLearnPaths.test.ts`, `siteLearnHub.test.tsx`, `siteLearnTopicAudit.test.tsx` (every topic and path page), `e2e/learn-hub.spec.ts`, `e2e/learn-hub-release.spec.ts`; updated `siteNav.test.tsx`, `helpValidate.ts`, `e2e/ux-redesign.spec.ts`, `e2e/a11y-basics.spec.ts`.
 - **Docs:** `LEARN_HUB_AUDIT.md`, this report, `images/learn-hub/` (10 screenshots).
 - No change to Daily Learning content, execution engines, grading, auth, Supabase or sync code, `package.json`, the lockfile or workflows. No new dependencies.
 
@@ -54,8 +54,8 @@ The Guide's learn section had a tour of the old dashboard. It now tours the hub 
 | --- | --- |
 | `tsc -b` | Clean |
 | `eslint src` | Clean |
-| New unit tests (`siteLearnTopics` 26, `siteLearnPaths` 34, `siteLearnHub` 22) | 82 passed |
-| Full Vitest (`TZ=UTC`) | 119 files, 6,928 passed, 10 skipped, 0 failed |
+| New unit tests (`siteLearnTopics` 26, `siteLearnPaths` 34, `siteLearnHub` 22, `siteLearnTopicAudit` 14) | 96 passed |
+| Full Vitest (`TZ=UTC`) | 120 files, 6,942 passed, 10 skipped, 0 failed |
 | `npm run build:site` (with the Supabase variables, as CI has them) | 1,138 pages prerendered, exit 0 |
 | `npm run check:prerender` | No failed Suspense boundaries |
 | `e2e/learn-hub.spec.ts`, dev server | Desktop 20 passed, 1 skipped; mobile 19 passed, 2 skipped; 0 failed |
@@ -97,3 +97,14 @@ A topic page is 44 to 87 KB; the SQL path page is 215 KB; `/dashboard` is 257 KB
 - **The error state is defensive.** If the hub data is missing, the page shows an error with a reload button; the site's own page loader normally handles a failed load first.
 - **Not re-run:** the other Playwright suites (guided labs, visual engines, Query Cinema, tours of other sections) were not touched by this work and were not re-run. The profiler still has no Guide content (carried over from the redesign).
 - **Draft files** `.venv-daily` (a symlink) and `docs/VISUAL_V2_AGENT_BRIEF.md` remain untracked and are not part of this work.
+
+## Release checks (final commit `e466966`)
+
+Run fresh on the exact commit that was pushed, against a static server that serves a slashless path the way Cloudflare does.
+
+- `tsc -b` and `eslint src`: clean. Full Vitest: 120 files, 6,942 passed, 10 skipped, 0 failed. `build:site`: 1,138 pages. `check:prerender`: clean. Backend (104 passed) and the Python-block check (0 failures) ran on the previous commit; no backend or Python file changed since.
+- A first full Vitest run under heavy machine load (another app held a CPU core, load average near 18) had 31 timeouts in `siteDaily`, `siteGuidedLabs`, `sitePyErrors` and `siteVisualEquivalencePython`, the tests that execute real Python and PostgreSQL. The same four files passed alone (5,117 passed, 0 failed), and a full run with 4 workers passed. No test was skipped or loosened.
+- Browser: hub, release, redesign and accessibility specs, desktop and mobile, 110 passed, 10 skipped (viewport-specific), 0 failed. Existing regression specs (`ux-redesign`, `a11y-basics`, `lesson-workspace`, `daily`, `smoke`, `help`, `help-mobile`) 154 passed, 11 skipped, 0 failed on the tree that became `e466966`. `help-tours.spec.ts` reads the Guide registry from the Vite dev server, so it was run there and passed.
+- The release spec loads 19 key routes and fails on any console error, hydration warning, failed request or HTTP 4xx/5xx, and checks titles, refresh, back/forward, breadcrumbs, that the dashboard kept every card, and that opening topics changes no progress.
+- **A defect found by these checks and fixed before release:** on a phone, `/learn/topic/row-number` scrolled sideways (its long pattern titles widened an auto-sized grid column). Every grid in the hub now has a one-column base, and the release spec loads all 178 topic pages at 390 px and fails on any overflow.
+- **Coverage the audit measured and did not hide:** of the 178 topics, 94 have no graded practice linked (mostly data engineering notes) and show an explicit empty state; 130 are not taught by any Daily phase; one (`power-bi`) has only its Daily lessons.
