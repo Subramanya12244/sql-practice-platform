@@ -18,16 +18,7 @@ describe("Sanity Audit: Navigation and Routing", () => {
   });
 
   it("header groups and footer links are fully in sync", () => {
-    expect(NAV_GROUPS.map((g) => g.id)).toEqual([
-      "dashboard",
-      "daily",
-      "learn",
-      "practice",
-      "projects",
-      "ai",
-      "career",
-      "community",
-    ]);
+    expect(NAV_GROUPS.map((g) => g.id)).toEqual(["home", "learn", "practice", "labs", "projects", "career"]);
   });
 });
 

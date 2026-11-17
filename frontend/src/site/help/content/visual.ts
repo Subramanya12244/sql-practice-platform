@@ -78,7 +78,7 @@ const sections: HelpSection[] = [
     ],
     tips: [
       "Visual tools also appear inside lessons as Watch it run or Explain visually. They run your code separately, so they never change your grade or progress.",
-      "In the sidebar, the Intelligence group has a Visual learning entry that opens this hub.",
+      "In the sidebar, the Labs group has a Visual learning entry that opens this hub.",
       "Every tool shows its current step in plain words. Read it, then look at the picture.",
     ],
     related: [

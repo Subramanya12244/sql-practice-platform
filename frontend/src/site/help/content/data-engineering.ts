@@ -178,7 +178,7 @@ const mod: HelpContentModule = {
         "Generate practice tables with controlled NULLs, duplicates and orphans (Data generation studio).",
       ],
       howTo: [
-        "Open Data engineering tracks (under Learn in the sidebar) for the roadmap, or pick a lab from the Projects group.",
+        "Open Data engineering tracks (under Learn in the sidebar) for the roadmap, or pick a lab from the Labs group.",
         "Read the brief or the starting setup before changing anything.",
         "Make one change, then run it (Run the schedule, Run, Run all rules or Create in database).",
         "Read the result, log or checker message, and use it to decide the next change.",

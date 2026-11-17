@@ -50,10 +50,14 @@ test("Daily Learning: progress survives a refresh and the path choice is remembe
   await expect(page.getByText(/Following: Data Analyst/)).toBeVisible();
 });
 
-test("navigation: Daily Learning is a top-level group and existing groups remain", async ({ page, isMobile }) => {
+test("navigation: the six categories are there, and Daily Learning is under Learn", async ({ page, isMobile }) => {
   await page.goto("/");
   if (isMobile) await page.getByRole("button", { name: /menu/i }).first().click();
-  for (const label of ["Dashboard", "Daily Learning", "Learn", "Practice", "Projects"]) {
-    await expect(page.getByRole("button", { name: new RegExp(label) }).first()).toBeAttached();
+  for (const label of ["Home", "Learn", "Practice", "Labs", "Projects", "Career"]) {
+    await expect(page.getByRole("button", { name: label, exact: true }).first()).toBeAttached();
+  }
+  if (!isMobile) {
+    await page.getByRole("button", { name: "Learn", exact: true }).first().click();
+    await expect(page.getByRole("link", { name: "Daily Learning", exact: true }).first()).toBeVisible();
   }
 });

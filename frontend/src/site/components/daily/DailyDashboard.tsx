@@ -13,7 +13,7 @@ import {
   type CalendarKind, type DayStatus,
 } from "../../lib/dailyProgress";
 import { setDailyPath } from "../../lib/progress";
-import { useToday, type DailyView } from "../../lib/useDaily";
+import { useMasteredIds, useToday, type DailyView } from "../../lib/useDaily";
 import { HelpTooltip } from "../../help/HelpTooltip";
 
 const hours = (min: number) => (min >= 60 ? `${Math.round(min / 6) / 10} h` : `${min} min`);
@@ -73,7 +73,8 @@ export function PathPanel({ view, preview, onPreview }: { view: DailyView; previ
 // ── Overview ─────────────────────────────────────────────────────────────
 export function ProgrammeOverview({ view }: { view: DailyView }) {
   const { state, seq, progress } = view;
-  const stats = useMemo(() => programmeStats(seq, state), [seq, state]);
+  const masteredIds = useMasteredIds(state);
+  const stats = useMemo(() => programmeStats(seq, state, masteredIds), [seq, state, masteredIds]);
   const today = useToday();
   const streak = today ? learningStreak(activityDates(state), today) : 0;
   const totalMin = seq.reduce((s, d) => s + d.minutes, 0);

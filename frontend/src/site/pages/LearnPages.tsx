@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePage } from "../SiteApp";
@@ -18,6 +18,16 @@ import { useEffect } from "react";
 import type { Lesson, LessonExercise, Question } from "../types";
 import { DailyChallenge } from "../components/DailyChallenge";
 import { activeMinutes, formatMinutes, subscribeActivity, summarizeMinutes, track } from "../lib/activity";
+import { DailyResume } from "../components/home/HomeSections";
+import { NextActionsCard, ProjectActivityCard, RevisionCard, SkillMasteryCard } from "../components/dashboard/DashboardPanels";
+import { dailyResume } from "../lib/dailyResume";
+import { useDaily, useMasteredIds } from "../lib/useDaily";
+import { dueRevisions } from "../lib/dailyProgress";
+import { skillRows } from "../lib/skills";
+import { nextActions, projectActivity, revisionSummary } from "../lib/dashboardModel";
+import { buildNotebook } from "../lib/mistakes";
+import { readStats, type PyStat } from "../lib/pyPractice";
+import { getProjectProgress } from "../lib/projects";
 
 const PracticePanel = lazy(() => import("../components/PracticePanel"));
 
@@ -279,6 +289,26 @@ function LearnDashboard() {
   useEffect(() => { setMinutes(activeMinutes()); return subscribeActivity(() => setMinutes(activeMinutes())); }, []);
   const time = day ? summarizeMinutes(minutes, new Date().toISOString().slice(0, 10)) : null;
 
+  // The dashboard's answers: all derived from progress the app already keeps.
+  const dailyView = useDaily();
+  const masteredIds = useMasteredIds(dailyView.state);
+  const resume = dailyResume(dailyView);
+  const [pyStats, setPyStats] = useState<Record<string, PyStat>>({});
+  useEffect(() => setPyStats(readStats()), []);
+  const notebook = useMemo(() => (mounted && data.index.length ? buildNotebook({ index: data.index, exercises: data.exercises ?? [], progress, pyStats }) : []), [mounted, data.index, data.exercises, progress, pyStats]);
+  const dueLessons = day ? dueRevisions(dailyView.state, dailyView.revisions, day) : [];
+  const projects = useMemo(() => (mounted ? projectActivity(data.projects ?? [], data.projectTasks ?? [], getProjectProgress) : { current: [], completed: [], total: 0 }), [mounted, data.projects, data.projectTasks]);
+  const skills = useMemo(() => skillRows(dailyView.state, masteredIds, {
+    sql: { label: "questions solved", value: sqlSolved, max: data.index.length },
+    python: { label: "exercises passed", value: pyDone, max: pyTotal },
+    engineering: { label: "topics read", value: deRead, max: deNotes.length },
+  }), [dailyView.state, masteredIds, sqlSolved, data.index.length, pyDone, pyTotal, deRead, deNotes.length]);
+  const actions = nextActions({
+    resume, dueQuestions: due, dueCards, dueLessons, notebook,
+    project: projects.current[0] ? { title: projects.current[0].meta.title, slug: projects.current[0].meta.slug, percent: projects.current[0].total ? Math.round((100 * projects.current[0].passed) / projects.current[0].total) : 0 } : null,
+    suggestedProject: projects.next ? { title: projects.next.title, slug: projects.next.slug, level: projects.next.level } : null,
+  });
+
   return (
     <div className="space-y-6">
       <section data-help="learn-hero" className="relative overflow-hidden rounded-card border border-surface-border bg-surface-raised p-6 shadow-panel sm:p-8" aria-labelledby="welcome">
@@ -324,6 +354,11 @@ function LearnDashboard() {
         </div>
       </section>
 
+      <div className="grid items-start gap-4 lg:grid-cols-5">
+        <div className="lg:col-span-3"><DailyResume view={dailyView} /></div>
+        <div className="lg:col-span-2"><NextActionsCard actions={actions} /></div>
+      </div>
+
       <div data-help="learn-stats" className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard icon={Flame} label="Streak" value={mounted ? `${days} day${days === 1 ? "" : "s"}` : "—"} hint={mounted ? `Longest ${g.longest} · days with learning` : "Days in a row with activity"} />
         <Link to="/achievements" className="block rounded-card focus-visible:outline-offset-4">
@@ -365,22 +400,10 @@ function LearnDashboard() {
             </ol>
           )}
         </Card>
-        <Card as="section" className="lg:col-span-2">
-          <SectionHeader title="Skills" description="Share of each area you've completed" />
-          <ul className="space-y-4">
-            {[
-              { label: "SQL", detail: `${sqlSolved}/${data.index.length} questions`, value: sqlSolved, max: data.index.length, tone: "accent" as const, to: "/questions" },
-              { label: "Python", detail: `${pyDone}/${pyTotal} exercises`, value: pyDone, max: pyTotal, tone: "secondary" as const, to: "/practice/python" },
-              { label: "Data engineering", detail: `${deRead}/${deNotes.length} topics read`, value: deRead, max: deNotes.length, tone: "success" as const, to: "/data-engineering" },
-            ].map((s) => (
-              <li key={s.label}>
-                <div className="mb-1.5 flex justify-between text-sm"><Link to={s.to} className="font-medium text-ink hover:text-accent">{s.label}</Link><span className="text-xs tabular-nums text-ink-muted">{mounted ? s.detail : ""}</span></div>
-                <ProgressBar value={mounted ? s.value : 0} max={s.max || 1} label={`${s.label} progress`} tone={s.tone} />
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <RevisionCard summary={revisionSummary({ dueQuestions: due, dueCards, dueLessons, notebook })} />
       </div>
+
+      <SkillMasteryCard rows={skills} />
 
       <div data-help="learn-queue" className="grid gap-4 lg:grid-cols-3">
         <Card as="section">
@@ -398,17 +421,7 @@ function LearnDashboard() {
             </ul>
           ) : <p className="text-sm text-ink-muted">You've read every note. Try a <Link to="/mock-interview" className="text-accent underline">mock interview</Link>.</p>}
         </Card>
-        <Card as="section">
-          <SectionHeader title="Revision queue" action={<Link to="/review" className="text-sm font-medium text-accent hover:underline">Open</Link>} />
-          {mounted && due + dueCards === 0 ? (
-            <p className="text-sm text-ink-muted">Nothing due. Solved questions and flashcards come back here on a spaced schedule.</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <Link to="/review" className="rounded-lg bg-surface-overlay p-3 hover:ring-1 hover:ring-accent/40"><span className="block font-display text-2xl font-bold text-ink">{mounted ? due : "—"}</span><span className="text-xs text-ink-muted">questions</span></Link>
-              <Link to="/flashcards" className="rounded-lg bg-surface-overlay p-3 hover:ring-1 hover:ring-accent/40"><span className="block font-display text-2xl font-bold text-ink">{mounted ? dueCards : "—"}</span><span className="text-xs text-ink-muted">flashcards</span></Link>
-            </div>
-          )}
-        </Card>
+        <ProjectActivityCard activity={projects} />
         <Card as="section">
           <SectionHeader title="Bookmarks" />
           {mounted && bookmarks.length ? (

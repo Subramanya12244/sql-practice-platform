@@ -34,6 +34,10 @@ export default {
           DEFAULT: "rgb(var(--color-warn) / <alpha-value>)",
           dim: "rgb(var(--color-warn) / 0.12)",
         },
+        info: {
+          DEFAULT: "rgb(var(--color-info, 29 78 216) / <alpha-value>)",
+          dim: "rgb(var(--color-info, 29 78 216) / 0.12)",
+        },
         ink: {
           DEFAULT: "rgb(var(--color-ink) / <alpha-value>)",
           muted: "rgb(var(--color-ink-muted) / <alpha-value>)",
@@ -49,6 +53,15 @@ export default {
         sans: ['"Inter"', "system-ui", "-apple-system", "sans-serif"],
         mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
         display: ['"Inter"', "system-ui", "sans-serif"],
+      },
+      // Type scale: one place for size, leading, tracking and weight. Use text-display, text-h1 ... text-label instead of ad-hoc sizes.
+      fontSize: {
+        display: ["clamp(2.25rem, 1.4rem + 3.4vw, 3.75rem)", { lineHeight: "1.04", letterSpacing: "-0.03em", fontWeight: "700" }],
+        h1: ["clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem)", { lineHeight: "1.12", letterSpacing: "-0.02em", fontWeight: "700" }],
+        h2: ["clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem)", { lineHeight: "1.2", letterSpacing: "-0.015em", fontWeight: "700" }],
+        h3: ["1.0625rem", { lineHeight: "1.35", letterSpacing: "-0.005em", fontWeight: "600" }],
+        lead: ["clamp(1rem, 0.95rem + 0.3vw, 1.1875rem)", { lineHeight: "1.65" }],
+        label: ["0.6875rem", { lineHeight: "1.2", letterSpacing: "0.14em", fontWeight: "600" }],
       },
       boxShadow: {
         panel: "var(--shadow-panel)",

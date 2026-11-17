@@ -1,15 +1,16 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { AlertCircle, Check, CheckCircle2, Circle, Eye, Lightbulb, Loader2, Play, RotateCcw, Sparkles } from "lucide-react";
 import { Badge, Button, Card, ProgressBar, Skeleton } from "../ui";
-import { Markdown } from "../Markdown";
+import { Markdown, InlineMarkdown } from "../Markdown";
 import { SampleTable } from "../SampleTable";
 import type { Block, Check as CheckQ, Exercise } from "../../lib/daily";
-import { renderResultText, sameOutput } from "../../lib/daily";
+import { firstDifference, renderResultText, sameOutput } from "../../lib/daily";
 import { MAX_DRAFT_CHARS, checkScore, completionOf, masteryOf, withCheckResult, withId, type DayRecord } from "../../lib/dailyProgress";
 import type { DayExtras } from "../../lib/daily";
 import { completeExercise, markMistakeSolved, recordMistake, scheduleDayReview, updateDay } from "../../lib/progress";
 import { classifyPyMistake, classifySqlMistake, dailyMistake } from "../../lib/mistakes";
 import { explainError } from "../../lib/errorHelp";
+import { friendlyPyError } from "../../lib/pyErrors";
 import { track } from "../../lib/activity";
 import { LessonVisual } from "../visual/LessonVisual";
 import { runPython, PY_TIMEOUT_MS } from "../../lib/pyRunner";
@@ -49,9 +50,37 @@ function Editor({ value, onChange, onRun, lang, height = 200, label }: { value: 
 function OutputPane({ out, busy, lang }: { out: RunOutput | null; busy: boolean; lang: "python" | "sql" }) {
   if (busy) return <p className="flex items-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Running{lang === "python" ? " (the first Python run downloads the interpreter, about 10 MB)" : ""}…</p>;
   if (!out) return null;
-  if (!out.ok) return <pre role="alert" className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-danger/40 bg-danger-dim p-3 text-xs text-danger">{out.text}</pre>;
+  if (!out.ok) {
+    const sql = lang === "sql" ? explainError(out.text) : null;
+    return (
+      <div className="space-y-2">
+        <pre role="alert" className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-danger/40 bg-danger-dim p-3 text-xs text-danger">{lang === "python" ? friendlyPyError(out.text) : out.text}</pre>
+        {sql && <p className="rounded-lg border border-warn/40 bg-warn-dim px-3 py-2 text-sm text-ink" data-testid="error-help"><span className="font-semibold">{sql.title}.</span> <span className="text-ink-muted"><InlineMarkdown source={sql.fix} /></span></p>}
+      </div>
+    );
+  }
   if (out.columns) return out.rows?.length ? <SampleTable columns={out.columns} rows={out.rows} max={30} /> : <p className="text-sm text-ink-muted">The query ran and returned no rows.</p>;
   return <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-surface-border bg-surface-soft p-3 font-mono text-xs text-ink">{out.text || "(no output)"}</pre>;
+}
+
+/** Expected output beside the learner's own, with the first line that differs marked. Shown only after a check that ran but did not match. */
+function OutputDiff({ expected, actual }: { expected: string; actual: string }) {
+  const d = firstDifference(expected, actual);
+  if (!d) return null;
+  const show = (v: string | null) => (v === null ? "(no line)" : v === "" ? "(empty line)" : v);
+  return (
+    <div className="mt-2 space-y-2 text-xs" data-testid="output-diff">
+      <p className="text-ink-muted">First difference on line {d.line}: expected <code className="rounded bg-surface-soft px-1 font-mono text-ink">{show(d.expected)}</code>, got <code className="rounded bg-surface-soft px-1 font-mono text-ink">{show(d.actual)}</code>.</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {([["Expected", expected], ["Yours", actual]] as const).map(([label, text]) => (
+          <div key={label}>
+            <p className="mb-1 font-semibold text-ink">{label}</p>
+            <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border border-surface-border bg-surface-soft p-2 font-mono text-ink">{text || "(no output)"}</pre>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ── Worked example ───────────────────────────────────────────────────────
@@ -275,6 +304,7 @@ function GradedExercise({ dayId, ex, guided, rec, index }: { dayId: string; ex: 
         <div role="status" className={`rounded-xl border p-3 text-sm ${verdict.ok ? "border-success/40 bg-success-dim text-success" : "border-warn/40 bg-warn-dim text-ink"}`}>
           <p className="flex items-center gap-1.5 font-semibold">{verdict.ok ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : <AlertCircle className="h-4 w-4 text-warn" aria-hidden />} {verdict.message}</p>
           {verdict.details.length > 0 && <ul className="mt-1 list-disc pl-5 text-ink-muted">{verdict.details.map((d, i) => <li key={i}>{d}</li>)}</ul>}
+          {!verdict.ok && kind === "python" && out?.ok && ex.expected !== undefined && <OutputDiff expected={ex.expected} actual={out.text} />}
         </div>
       )}
       {kind === "python" && ex.expected !== undefined && guided && (
