@@ -4,7 +4,7 @@ import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { InlineMarkdown } from "../components/Markdown";
-import { Button, ButtonLink, Card, Chip, Container, EmptyState, PageHeader, ProgressBar, ProgressRing, QuestionCard, SectionHeader, SegmentedProgress, Skeleton, StatCard } from "../components/ui";
+import { Button, ButtonLink, Card, Chip, Container, EmptyState, PageHeader, ProgressBar, ProgressRing, QuestionCard, SectionHeader, Skeleton, StatCard } from "../components/ui";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { setDailyGoal, streak, today, useProgress } from "../lib/progress";
 import { weekActivity } from "../lib/dashboard";
@@ -33,86 +33,30 @@ const PracticePanel = lazy(() => import("../components/PracticePanel"));
 
 const exerciseKey = (slug: string, i: number) => `${slug}#${i}`;
 
-function doneCount(lessons: Record<string, string> | undefined, slug: string, total: number) {
-  let n = 0;
-  for (let i = 0; i < total; i++) if (lessons?.[exerciseKey(slug, i)]) n++;
-  return n;
-}
-
-export function LearnPage() {
+/**
+ * The personal dashboard. It used to live at /learn; /learn is now the learning hub (paths, topics, roadmap) and this
+ * component moved here whole, so every dashboard feature and Guide hook is unchanged. The SQL course roadmap that sat
+ * under it is now the "Quick start" section of the SQL Developer path.
+ */
+export function DashboardPage() {
   const { data } = usePage();
   const lessons = data.lessons ?? [];
-  const progress = useProgress();
-  const levels = ["Beginner", "Intermediate", "Advanced"];
   const totalEx = lessons.reduce((s, l) => s + l.exercises, 0);
-  const doneEx = lessons.reduce((s, l) => s + doneCount(progress.lessons, l.slug, l.exercises), 0);
-
-  const jsonLd = [
-    breadcrumbs([{ name: "Home", path: "/" }, { name: "Learn SQL", path: "/learn" }]),
-    {
-      "@context": "https://schema.org",
-      "@type": "Course",
-      name: "Learn SQL from scratch",
-      description: "A free, hands-on SQL course: SELECT to window functions, transactions and indexes, with exercises graded in your browser.",
-      url: canonical("/learn"),
-      provider: { "@type": "Organization", name: "DataForge", sameAs: canonical("/") },
-      isAccessibleForFree: true,
-      hasCourseInstance: { "@type": "CourseInstance", courseMode: "online", courseWorkload: "PT10H" },
-      syllabusSections: lessons.map((l) => ({ "@type": "Syllabus", name: l.title, url: canonical(`/learn/${l.slug}`) })),
-    },
-  ];
 
   return (
     <Container>
       <Seo
-        title="Learn SQL — Free Interactive SQL Course with Exercises"
-        description="Learn SQL step by step: SELECT, joins, GROUP BY, subqueries, CTEs, window functions, DML, indexes and transactions. Exercises run in your browser."
-        path="/learn"
-        jsonLd={jsonLd}
+        title="Your learning dashboard"
+        description="Your daily goal, streak, revision queue, skill mastery and what to do next. Everything comes from your own activity."
+        path="/dashboard"
+        noindex
       />
       <PageHeader
         eyebrow="Dashboard"
         title="Your learning dashboard"
-        intro={`Goals, progress and what to do next, plus the ${lessons.length}-lesson SQL course with ${totalEx} graded exercises.`}
+        intro={<>Goals, progress and what to do next, from your own activity. Looking for paths and topics? Open the <Link to="/learn" className="font-medium text-accent hover:underline">learning hub</Link>.{totalEx > 0 && ` The ${lessons.length}-lesson SQL course (${totalEx} graded exercises) is the quick start of the SQL Developer path.`}</>}
       />
       <LearnDashboard />
-      <div data-help="learn-roadmap" className="mt-12">
-        <SectionHeader id="roadmap" title="SQL course roadmap" description={<>Hands-on lessons in order. Each ends with exercises graded in your browser. {doneEx > 0 && `You've passed ${doneEx} of ${totalEx}.`}</>} />
-        {doneEx > 0 && <ProgressBar value={doneEx} max={totalEx || 1} label="SQL course exercises passed" className="max-w-md" />}
-      </div>
-      {levels.map((level) => {
-        const group = lessons.filter((l) => l.level === level);
-        if (!group.length) return null;
-        return (
-          <section key={level} className="mt-8" aria-labelledby={`lvl-${level}`}>
-            <h3 id={`lvl-${level}`} className="font-display text-lg font-bold text-ink">{level}</h3>
-            <ol className="stagger mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {group.map((l) => {
-                const done = doneCount(progress.lessons, l.slug, l.exercises);
-                return (
-                  <li key={l.slug}>
-                    <Link
-                      to={`/learn/${l.slug}`}
-                      className="flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.99]"
-                    >
-                      <p className="flex items-center justify-between text-xs text-ink-faint">
-                        <span>Lesson {l.order}</span>
-                        <span className={done === l.exercises && done > 0 ? "inline-flex items-center gap-1 text-success" : ""}>
-                          {done === l.exercises && done > 0 && <CheckCircle2 className="h-3.5 w-3.5 animate-pop" aria-hidden />}
-                          {done}/{l.exercises} exercises
-                        </span>
-                      </p>
-                      <p className="mt-1 font-semibold text-ink">{l.title}</p>
-                      <p className="mt-1 flex-1 text-sm text-ink-muted">{l.description}</p>
-                      {l.exercises > 0 && <SegmentedProgress className="mt-3" done={done} total={l.exercises} label={`${l.title}: ${done} of ${l.exercises} exercises passed`} />}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-        );
-      })}
     </Container>
   );
 }
@@ -179,7 +123,7 @@ export function LessonPage() {
   const jsonLd = [
     breadcrumbs([
       { name: "Home", path: "/" },
-      { name: "Learn SQL", path: "/learn" },
+      { name: "Learn SQL", path: "/learn/path/sql-developer" },
       { name: l.title, path },
     ]),
     {
@@ -189,7 +133,7 @@ export function LessonPage() {
       description: l.description,
       url: canonical(path),
       proficiencyLevel: l.level,
-      isPartOf: { "@type": "Course", name: "Learn SQL from scratch", url: canonical("/learn") },
+      isPartOf: { "@type": "Course", name: "Learn SQL from scratch", url: canonical("/learn/path/sql-developer") },
       inLanguage: "en",
     },
   ];
@@ -198,7 +142,7 @@ export function LessonPage() {
     <Container className="pt-6">
       <Seo title={`${l.title} — Lesson ${l.order}`} description={l.description} path={path} type="article" jsonLd={jsonLd} />
       <nav aria-label="Breadcrumb" className="text-sm text-ink-faint">
-        <Link to="/learn" className="hover:text-ink">Learn SQL</Link> · Lesson {l.order} of {all.length}
+        <Link to="/learn/path/sql-developer" className="hover:text-ink">Learn SQL</Link> · Lesson {l.order} of {all.length}
       </nav>
       <article className="mt-3 max-w-3xl">
         <div className="flex flex-wrap items-center gap-2">

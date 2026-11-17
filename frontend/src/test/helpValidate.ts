@@ -2,6 +2,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { GlossaryEntry, HelpLink, HelpSection } from "../site/help/types";
+import { LEARN_PATHS } from "../site/lib/learnPaths";
+import { ANALYTICS_MODULES } from "../site/lib/learnTopics";
 
 const root = join(__dirname, "..", "..");
 const src = join(root, "src", "site");
@@ -53,6 +55,10 @@ export function brokenLink(to: string): string | null {
     const n = Number(day[2]);
     return day[1] ? (n >= 91 && n <= 180 ? null : `day ${n} is not an ${day[1]} day (91-180)`) : n >= 1 && n <= 90 ? null : `day ${n} is not a common day (1-90)`;
   }
+  const lp = /^\/learn\/path\/(.+)$/.exec(path);
+  if (lp) return LEARN_PATHS.some((p) => p.id === lp[1]) ? null : `no learning path "${lp[1]}"`;
+  const lt = /^\/learn\/topic\/(.+)$/.exec(path);
+  if (lt) return CONTENT.notes.has(lt[1]) || ANALYTICS_MODULES.some((m) => m.phase === lt[1]) ? null : `no topic "${lt[1]}"`;
   const dyn = DYNAMIC.find(([prefix]) => path.startsWith(prefix) && path.length > prefix.length);
   if (dyn) return CONTENT[dyn[1]].has(path.slice(dyn[0].length)) ? null : `no ${dyn[1]} item "${path.slice(dyn[0].length)}"`;
   return `no such route (${path})`;

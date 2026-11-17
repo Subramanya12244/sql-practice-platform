@@ -57,7 +57,7 @@ test("search (Ctrl+K) finds a tool, a lesson and a Python exercise", async ({ pa
 });
 
 test("dashboard: next actions, revision, skill mastery and projects, from real (here: empty) progress", async ({ page }) => {
-  await page.goto("/learn");
+  await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "What to do next" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Start Day 1/ }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Revision and mistakes" })).toBeVisible();
@@ -71,7 +71,7 @@ test("dashboard: next actions, revision, skill mastery and projects, from real (
 });
 
 test("dashboard: finishing lesson work changes the skill status (started, then practicing)", async ({ page }) => {
-  await page.goto("/learn");
+  await page.goto("/dashboard");
   // a visit alone is not progress
   await expect(page.getByRole("region", { name: "Skill mastery" }).getByRole("listitem").getByText("Not assessed")).toHaveCount(10);
   await page.evaluate(() => {
@@ -87,7 +87,7 @@ test("dashboard: finishing lesson work changes the skill status (started, then p
 
 test("labs and designers never scroll sideways on a phone", async ({ page, isMobile }) => {
   test.skip(!isMobile, "phone layout");
-  for (const path of ["/schema-designer", "/etl-builder", "/dag-simulator", "/dq-exercises", "/data-profiler", "/de-scenarios", "/query-visualizer", "/daily/day/3", "/learn", "/"]) {
+  for (const path of ["/schema-designer", "/etl-builder", "/dag-simulator", "/dq-exercises", "/data-profiler", "/de-scenarios", "/query-visualizer", "/daily/day/3", "/learn", "/dashboard", "/learn/path/data-engineer", "/learn/topic/left-join", "/"]) {
     await page.goto(path);
     expect(await noHScroll(page), path).toBeLessThanOrEqual(1);
   }

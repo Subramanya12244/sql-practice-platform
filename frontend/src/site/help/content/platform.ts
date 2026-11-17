@@ -56,7 +56,7 @@ const mod: HelpContentModule = {
       ],
       recommendations: [
         { label: "Start Daily Learning at Day 1", to: "/daily/day/1", why: "Python from scratch, no experience needed" },
-        { label: "Learning dashboard", to: "/learn", why: "Goals, streak and what to do next" },
+        { label: "Learning dashboard", to: "/dashboard", why: "Goals, streak and what to do next" },
         { label: "Try the SQL playground", to: "/playground", why: "Run any query on a practice database" },
       ],
       tour: {

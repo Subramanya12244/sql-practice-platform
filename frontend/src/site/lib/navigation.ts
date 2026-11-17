@@ -25,7 +25,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Home",
     items: [
       { to: "/", label: "Home", desc: "What DataForge offers and where to start" },
-      { to: "/learn", label: "Dashboard", desc: "Goals, streak, what to do next, and the SQL course" },
+      { to: "/dashboard", label: "Dashboard", desc: "Goals, streak, revision, skill mastery and what to do next" },
       { to: "/progress", label: "Progress", desc: "Solved questions and activity" },
       { to: "/analytics", label: "Performance analytics", desc: "Solve time, topic strength, activity" },
       { to: "/mistakes", label: "Mistake notebook", desc: "What went wrong, by topic, and if it is fixed" },
@@ -36,6 +36,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "learn",
     label: "Learn",
     items: [
+      { to: "/learn", label: "Learning hub", desc: "Four learning paths, a searchable topic library and the curriculum roadmap" },
       { to: "/daily", label: "Daily Learning", desc: "180-day plan, today's lesson, progress and calendar" },
       { to: "/daily/day/1", label: "Start at Day 1", desc: "Python from scratch", noCrumb: true },
       { to: "/data-engineering", label: "Learning tracks", desc: "Python, ETL, warehousing, Spark, Airflow, dbt, cloud" },

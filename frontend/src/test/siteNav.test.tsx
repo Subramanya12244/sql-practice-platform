@@ -22,7 +22,11 @@ describe("navigation", () => {
   });
   it("maps paths to the right group", () => {
     expect(activeGroup("/")).toBe("home");
-    expect(activeGroup("/learn")).toBe("home");
+    expect(activeGroup("/learn")).toBe("learn");
+    expect(activeGroup("/learn/path/data-analyst")).toBe("learn");
+    expect(activeGroup("/learn/topic/left-join")).toBe("learn");
+    expect(activeGroup("/learn/select-basics")).toBe("learn");
+    expect(activeGroup("/dashboard")).toBe("home");
     expect(activeGroup("/analytics")).toBe("home");
     expect(activeGroup("/career/planner")).toBe("career");
     expect(activeGroup("/portfolio")).toBe("career");
@@ -54,6 +58,10 @@ describe("navigation", () => {
     expect(breadcrumbFor("/notes/left-join")).toEqual([{ label: "Learn" }, { label: "SQL notes", to: "/notes" }]);
     expect(breadcrumbFor("/daily/day/12")).toEqual([{ label: "Learn" }, { label: "Daily Learning", to: "/daily" }]);
     expect(breadcrumbFor("/daily/day/1")).toEqual([{ label: "Learn" }, { label: "Daily Learning", to: "/daily" }]);
+    expect(breadcrumbFor("/learn")).toEqual([{ label: "Learn" }, { label: "Learning hub" }]);
+    expect(breadcrumbFor("/learn/path/sql-developer")).toEqual([{ label: "Learn" }, { label: "Learning hub", to: "/learn" }]);
+    expect(breadcrumbFor("/learn/topic/left-join")).toEqual([{ label: "Learn" }, { label: "Learning hub", to: "/learn" }]);
+    expect(breadcrumbFor("/dashboard")).toEqual([{ label: "Home" }, { label: "Dashboard" }]);
     expect(breadcrumbFor("/nowhere")).toEqual([]);
   });
   it("renders the breadcrumb in the header of a page that is in the navigation", () => {

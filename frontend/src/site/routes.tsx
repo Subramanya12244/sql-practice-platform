@@ -24,7 +24,10 @@ import { MockInterviewPage } from "./pages/MockInterviewPage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { AccountPage, LoginPage, ResetPasswordPage, SignupPage } from "./pages/AuthPages";
 import { AdminPage } from "./pages/AdminPage";
-import { LearnPage, LessonPage } from "./pages/LearnPages";
+import { DashboardPage, LessonPage } from "./pages/LearnPages";
+import { LearnHubPage, LearnPathPage, LearnTopicPage } from "./pages/LearnHubPages";
+import { learnTopicIds, loadLearnHub, loadLearnTopic } from "./lib/learnLoad";
+import { LEARN_PATHS } from "./lib/learnPaths";
 import { ReviewPage } from "./pages/ReviewPage";
 import { NotePage, NotesIndexPage } from "./pages/NotesPages";
 import { PatternPage, PatternsIndexPage } from "./pages/PatternsPages";
@@ -227,14 +230,36 @@ export const routes: SiteRoute[] = [
     load: async () => ({ ...(await base()), schema: await loadSchema() }),
     paths: one("/mock-interview"),
   },
+  // The learning hub: paths, topic library, curriculum roadmap. The personal dashboard that used to be here is /dashboard.
   {
     path: "/learn",
-    element: <LearnPage />,
+    element: <LearnHubPage />,
+    load: async () => ({ ...(await base()), learnHub: await loadLearnHub() }),
+    paths: one("/learn"),
+  },
+  {
+    path: "/dashboard",
+    element: <DashboardPage />,
     load: async () => ({
       ...(await base()), ...(await library()), lessons: await loadLessonSummaries(), exercises: await loadExerciseIndex(), projects: await loadProjectIndex(),
       projectTasks: (await loadAllProjects()).map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type }) as never) })),
     }),
-    paths: one("/learn"),
+    paths: one("/dashboard"),
+  },
+  {
+    path: "/learn/path/:id",
+    element: <LearnPathPage />,
+    load: async ({ id }) => (LEARN_PATHS.some((p) => p.id === id) ? { ...(await base()), learnHub: await loadLearnHub() } : null),
+    paths: async () => LEARN_PATHS.map((p) => `/learn/path/${p.id}`),
+  },
+  {
+    path: "/learn/topic/:slug",
+    element: <LearnTopicPage />,
+    load: async ({ slug }) => {
+      const learnTopic = await loadLearnTopic(slug!);
+      return learnTopic ? { ...(await base()), learnTopic } : null;
+    },
+    paths: async () => (await learnTopicIds()).map((id) => `/learn/topic/${id}`),
   },
   {
     path: "/learn/:slug",

@@ -4,7 +4,7 @@ import { expect, test } from "./fixtures";
  * Structural accessibility checks on the main pages (no axe dependency): every interactive element has a name, every field a label,
  * one h1, no duplicate ids, landmarks present, images have alt text. Colour contrast is covered by the design tokens, not here.
  */
-const PAGES = ["/", "/learn", "/daily", "/daily/day/3", "/questions", "/practice/python", "/etl-builder", "/dag-simulator", "/schema-designer", "/dq-exercises", "/data-profiler", "/query-visualizer", "/projects-lab", "/career/planner", "/mistakes", "/progress"];
+const PAGES = ["/", "/learn", "/dashboard", "/learn/path/sql-developer", "/learn/topic/left-join", "/daily", "/daily/day/3", "/questions", "/practice/python", "/etl-builder", "/dag-simulator", "/schema-designer", "/dq-exercises", "/data-profiler", "/query-visualizer", "/projects-lab", "/career/planner", "/mistakes", "/progress"];
 
 for (const path of PAGES) {
   test(`structure: ${path}`, async ({ page }) => {
