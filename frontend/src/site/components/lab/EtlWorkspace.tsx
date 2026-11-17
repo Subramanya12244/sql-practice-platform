@@ -18,9 +18,9 @@ function EtlNodeBox({ data }: NodeProps) {
   const d = data as { node: EtlNode; status: string; rows?: number; selected: boolean };
   return (
     <div className={`w-[190px] rounded-xl border-2 bg-surface-raised px-3 py-2 text-left shadow-panel ${STATUS_CLS[d.status]} ${d.selected ? "ring-2 ring-accent" : ""}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">{NODE_INFO[d.node.kind].group}</p>
-      <p className="truncate text-sm font-semibold text-ink">{d.node.label || NODE_INFO[d.node.kind].title}</p>
-      <p className="text-[11px] text-ink-muted">{d.status === "idle" ? NODE_INFO[d.node.kind].title : d.status === "ok" ? `${d.rows ?? 0} rows` : d.status === "error" ? "Failed" : "Skipped"}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">{NODE_INFO[d.node.kind].group}</p>
+      <p className="truncate text-base font-semibold text-ink">{d.node.label || NODE_INFO[d.node.kind].title}</p>
+      <p className="text-xs text-ink-muted">{d.status === "idle" ? NODE_INFO[d.node.kind].title : d.status === "ok" ? `${d.rows ?? 0} rows` : d.status === "error" ? "Failed" : "Skipped"}</p>
     </div>
   );
 }
@@ -134,9 +134,9 @@ export default function EtlWorkspace() {
         </nav>
 
         <div className="min-w-0" data-help="etl-canvas">
-          <div className="h-[380px] overflow-hidden rounded-card border border-surface-border bg-surface" role="region" aria-label="Pipeline canvas. Select a step to edit it, drag between steps to connect them, or use the Input fields in the step panel.">
+          <div className="h-[420px] overflow-hidden rounded-card lg:h-[460px] border border-surface-border bg-surface" role="region" aria-label="Pipeline canvas. Select a step to edit it, drag between steps to connect them, or use the Input fields in the step panel.">
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodeClick={(_, n) => setSel(n.id)} onPaneClick={() => setSel(null)} onConnect={connect}
-              onNodeDragStop={(_, n) => setPos((s) => ({ ...s, [n.id]: n.position }))} fitView fitViewOptions={{ padding: 0.2 }} proOptions={{ hideAttribution: true }} nodesConnectable>
+              onNodeDragStop={(_, n) => setPos((s) => ({ ...s, [n.id]: n.position }))} fitView fitViewOptions={{ padding: 0.1, maxZoom: 1.2 }} proOptions={{ hideAttribution: true }} nodesConnectable>
               <Background gap={18} /><Controls showInteractive={false} />
             </ReactFlow>
           </div>

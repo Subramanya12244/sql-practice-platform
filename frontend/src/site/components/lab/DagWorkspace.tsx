@@ -17,8 +17,8 @@ function TaskBox({ data }: NodeProps) {
   const d = data as { task: DagTask; state: TaskState | "none"; tries: number; selected: boolean };
   return (
     <div className={`w-[170px] rounded-xl border-2 bg-surface-raised px-3 py-2 text-left shadow-panel ${STATE_CLS[d.state]} ${d.selected ? "ring-2 ring-accent" : ""}`}>
-      <p className="truncate font-mono text-sm font-semibold text-ink">{d.task.name}</p>
-      <p className="text-[11px] text-ink-muted">{STATE_TEXT[d.state]}{d.tries > 1 ? ` · ${d.tries} attempts` : ""}</p>
+      <p className="truncate font-mono text-base font-semibold text-ink">{d.task.name}</p>
+      <p className="text-xs text-ink-muted">{STATE_TEXT[d.state]}{d.tries > 1 ? ` · ${d.tries} attempts` : ""}</p>
     </div>
   );
 }
@@ -123,8 +123,8 @@ export default function DagWorkspace() {
         </aside>
 
         <div className="min-w-0 space-y-4">
-          <div className="h-[300px] overflow-hidden rounded-card border border-surface-border bg-surface" role="region" aria-label="DAG graph. Colours show the state of the selected run.">
-            <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodeClick={(_, nd) => setSel(nd.id)} nodesConnectable={false} fitView fitViewOptions={{ padding: 0.25 }} proOptions={{ hideAttribution: true }}><Background gap={18} /><Controls showInteractive={false} /></ReactFlow>
+          <div className="h-[340px] overflow-hidden rounded-card border border-surface-border bg-surface" role="region" aria-label="DAG graph. Colours show the state of the selected run.">
+            <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodeClick={(_, nd) => setSel(nd.id)} nodesConnectable={false} fitView fitViewOptions={{ padding: 0.12, maxZoom: 1.2 }} proOptions={{ hideAttribution: true }}><Background gap={18} /><Controls showInteractive={false} /></ReactFlow>
           </div>
 
           <section aria-label="Run history">

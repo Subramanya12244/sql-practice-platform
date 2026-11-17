@@ -490,3 +490,6 @@ html.theme-transition *::after {
   .lesson-grid { grid-template-columns: 15rem minmax(0, 1fr) 17.5rem; grid-template-areas: "days main rail"; }
   .lesson-rail, .lesson-days { position: sticky; top: 5rem; max-height: calc(100vh - 6rem); overflow-y: auto; }
 }
+
+/* A fieldset sizes to its content by default, so a wide form inside one pushes the whole page sideways on a phone. */
+fieldset { min-width: 0; }

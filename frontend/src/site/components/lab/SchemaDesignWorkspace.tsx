@@ -63,7 +63,7 @@ function Designer({ schema, setSchema, exId, setExId }: { schema: Schema; setSch
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-xs text-ink-muted">Start from <select value={exId} onChange={(e) => pickExercise(e.target.value)} className={`${INPUT} ml-1`}><option value="free">a blank design</option>{EXERCISES.filter((e) => e.kind === "design").map((e) => <option key={e.id} value={e.id}>Exercise: {e.title}</option>)}</select></label>
