@@ -228,6 +228,9 @@ test.describe("Keyboard", () => {
   test("Keyboard: Space, arrows, Home and End on the playback bar", async ({ page }) => {
     await page.goto("/visual/api");
     await page.getByRole("tab", { name: "404 Not Found" }).click();
+    // For a moment after the click the status still shows the previous scenario's total ("of 12"). Read the total once two reads
+    // 300 ms apart agree, so the test measures the scenario it selected.
+    await expect.poll(async () => { const a = await total(page); await page.waitForTimeout(300); return (await total(page)) === a ? a : -1; }, { timeout: 8000 }).toBeGreaterThan(0);
     const n = await total(page);
     expect(n).toBeGreaterThan(2);
     await bar(page).focus();
