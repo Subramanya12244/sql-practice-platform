@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, Circle, Clock, Compass, Layers, Play } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, Compass, Layers, Play } from "lucide-react";
 import { usePage } from "../SiteApp";
-import { Badge, ButtonLink, Card, Container, EmptyState, ErrorState, ProgressBar, SectionHeader, SegmentedProgress } from "../components/ui";
+import { Badge, ButtonLink, Card, Container, Disclosure, EmptyState, ErrorState, ProgressBar, SectionHeader, SegmentedProgress } from "../components/ui";
 import { BookmarkButton, LevelBadge, Minutes } from "../components/LearnUi";
 import { LearnHero } from "../components/learn/LearnHero";
 import { PathCards, pathProgressLabel } from "../components/learn/PathCards";
@@ -114,7 +114,7 @@ function CourseLesson({ l, passed }: { l: { slug: string; title: string; order: 
   for (let i = 0; i < l.exercises; i++) if (passed?.[`${l.slug}#${i}`]) done++;
   const complete = l.exercises > 0 && done === l.exercises;
   return (
-    <Link to={`/learn/${l.slug}`} className="flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.99]">
+    <Link to={`/learn/${l.slug}`} className="flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.99]">
       <span className="flex items-center justify-between text-xs text-ink-faint">
         <span>Lesson {l.order}</span>
         <span className={complete ? "inline-flex items-center gap-1 text-success" : ""}>{complete && <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />}{done}/{l.exercises} exercises</span>
@@ -200,25 +200,28 @@ export function LearnPathPage() {
           <ol className="space-y-3">
             {m.stages.map((s, i) => (
               <li key={s.id}>
-                <details className="group rounded-card border border-surface-border bg-surface-raised shadow-panel open:border-accent/30">
-                  <summary className="relative flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 p-4 pr-11 [&::-webkit-details-marker]:hidden">
-                    <ChevronDown className="absolute right-4 top-4 h-4 w-4 text-ink-faint transition-transform duration-fast group-open:rotate-180" aria-hidden />
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-dim text-xs font-semibold text-accent tabular-nums">{i + 1}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-semibold text-ink">{s.title}</span>
-                      <span className="block text-xs text-ink-muted">{s.summary}</span>
+                <Disclosure
+                  headerClassName="flex-wrap"
+                  header={
+                    <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-dim text-xs font-semibold text-accent tabular-nums">{i + 1}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold text-ink">{s.title}</span>
+                        <span className="block text-xs text-ink-muted">{s.summary}</span>
+                      </span>
+                      <span className="flex w-full items-center gap-3 sm:w-56">
+                        <ProgressBar className="flex-1" value={s.done} max={s.days.length} label={`${s.title}: ${s.done} of ${s.days.length} lessons completed`} tone={s.done === s.days.length ? "success" : "accent"} />
+                        <span className="text-xs tabular-nums text-ink-muted">{s.done}/{s.days.length}</span>
+                      </span>
                     </span>
-                    <span className="flex w-full items-center gap-3 sm:w-56">
-                      <ProgressBar className="flex-1" value={s.done} max={s.days.length} label={`${s.title}: ${s.done} of ${s.days.length} lessons completed`} tone={s.done === s.days.length ? "success" : "accent"} />
-                      <span className="text-xs tabular-nums text-ink-muted">{s.done}/{s.days.length}</span>
-                    </span>
-                  </summary>
-                  <ol className="border-t border-surface-border px-4 py-2">
+                  }
+                >
+                  <ol className="px-4 py-2">
                     {s.days.map((d) => {
                       const done = isDone(view.state, d.id);
                       return (
                         <li key={d.id}>
-                          <Link to={dayHref(d)} className="flex items-center gap-3 rounded-lg px-1 py-2 text-sm hover:bg-hover/5">
+                          <Link to={dayHref(d)} className="flex items-center gap-3 rounded-lg px-1 py-2 text-sm transition-colors duration-fast hover:bg-hover/5">
                             {done ? <CheckCircle2 className="h-4 w-4 shrink-0 text-success" aria-label="Completed" /> : <Circle className="h-4 w-4 shrink-0 text-ink-faint" aria-label="Not completed" />}
                             <span className="w-14 shrink-0 text-xs text-ink-faint tabular-nums">Day {d.day}</span>
                             <span className="min-w-0 flex-1 truncate text-ink">{d.title}</span>
@@ -228,7 +231,7 @@ export function LearnPathPage() {
                       );
                     })}
                   </ol>
-                </details>
+                </Disclosure>
               </li>
             ))}
           </ol>

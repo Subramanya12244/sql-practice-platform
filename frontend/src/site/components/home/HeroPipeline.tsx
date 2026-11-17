@@ -19,7 +19,7 @@ export function HeroPipeline() {
     <div className="rounded-card border border-surface-border bg-surface-raised/80 p-4 shadow-soft backdrop-blur sm:p-5" data-testid="hero-pipeline">
       <div className="flex items-center justify-between gap-3">
         <p className="text-label uppercase text-ink-faint">From raw data to a decision</p>
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-faint"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" aria-hidden /> runs in your browser</span>
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-faint"><span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden /> runs in your browser</span>
       </div>
       <ol className="mt-4" aria-label="Data pipeline stages">
         {STAGES.map((s, i) => {

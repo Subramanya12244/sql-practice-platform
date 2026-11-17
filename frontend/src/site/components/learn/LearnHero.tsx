@@ -67,7 +67,7 @@ function Recommendations({ hub, view, mounted }: { hub: LearnHubData; view: Dail
       <ul className="mt-2 space-y-2">
         {recs.map((r) => (
           <li key={r.id}>
-            <Link to={r.to} className="group block rounded-xl border border-surface-border bg-surface-raised px-3.5 py-2.5 transition-all duration-fast ease-out hover:-translate-y-px hover:border-accent/40">
+            <Link to={r.to} className="group block rounded-xl border border-surface-border bg-surface-raised px-3.5 py-2.5 transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast ease-out hover:-translate-y-px hover:border-accent/40">
               <span className="flex items-center justify-between gap-2 text-sm font-semibold text-ink group-hover:text-accent"><span className="min-w-0 truncate">{r.title}</span><ArrowRight className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden /></span>
               <span className="mt-0.5 block text-xs text-ink-muted">{r.reason}</span>
             </Link>
@@ -95,7 +95,7 @@ export function LearnHero({ hub, view, mounted, onSearch }: { hub: LearnHubData;
             <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-ink-faint" aria-hidden />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search topics: joins, pandas, Airflow" className="min-h-[42px] w-full rounded-xl border border-surface-border bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-ink-faint" />
           </label>
-          <button type="submit" className="min-h-[42px] rounded-xl bg-accent px-4 text-sm font-semibold text-on-accent shadow-glow transition-all duration-fast hover:brightness-110 active:scale-[0.98]">Search</button>
+          <button type="submit" className="min-h-[42px] rounded-xl bg-accent px-4 text-sm font-semibold text-on-accent shadow-glow transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast hover:brightness-110 active:scale-[0.98]">Search</button>
         </form>
         <nav aria-label="On this page" className="mt-6 flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
           <span className="mr-1 text-label uppercase text-ink-faint">Jump to</span>

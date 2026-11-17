@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, CloudUpload, Download, FileText, Loader2, RefreshCw, RotateCcw, Save, Trash2 } from "lucide-react";
+import { BookOpen, CloudUpload, Download, FileText, Loader2, RefreshCw, RotateCcw, Save, Trash2, Wrench, Zap } from "lucide-react";
+import { Icon } from "../components/Icon";
 import { usePage } from "../SiteApp";
 import { Badge, Button, Card, Container, Difficulty, EmptyState, PageHeader, Skeleton, Tabs } from "../components/ui";
 import { Seo } from "../lib/seo";
@@ -182,9 +183,9 @@ export function StudyNotesPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Template presets</p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {[
-                  { id: "compact", label: "⚡ Compact Revision Sheet", desc: "Formulas & queries only, zero fluff" },
-                  { id: "detailed", label: "📖 Study Guide", desc: "Detailed step-by-step with diagrams" },
-                  { id: "project_docs", label: "🛠️ Technical Project Docs", desc: "Full schema, architecture & test suite" },
+                  { id: "compact", icon: Zap, label: "Compact Revision Sheet", desc: "Formulas & queries only, zero fluff" },
+                  { id: "detailed", icon: BookOpen, label: "Study Guide", desc: "Detailed step-by-step with diagrams" },
+                  { id: "project_docs", icon: Wrench, label: "Technical Project Docs", desc: "Full schema, architecture & test suite" },
                 ].map((p) => {
                   const active =
                     (p.id === "compact" && opts.mode === "compact") ||
@@ -205,7 +206,7 @@ export function StudyNotesPage() {
                       }`}
                       title={p.desc}
                     >
-                      {p.label}
+                      <span className="inline-flex items-center gap-1.5"><Icon icon={p.icon} size="inline" />{p.label}</span>
                     </button>
                   );
                 })}

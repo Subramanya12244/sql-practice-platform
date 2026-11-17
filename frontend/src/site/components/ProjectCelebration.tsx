@@ -160,13 +160,13 @@ export function ProjectCelebration({
         <div className="flex flex-wrap items-center gap-2">
           <Link
             to="/portfolio"
-            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-3 text-xs font-semibold text-ink transition-all duration-fast hover:border-accent/40 active:scale-[0.98]"
+            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-surface-border bg-surface-raised px-3 text-xs font-semibold text-ink transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast hover:border-accent/40 active:scale-[0.98]"
           >
             View in Portfolio <ArrowRight className="h-3.5 w-3.5" />
           </Link>
           <Link
             to="/projects-lab"
-            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-on-accent shadow-glow transition-all duration-fast hover:brightness-110 active:scale-[0.98]"
+            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-on-accent shadow-glow transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast hover:brightness-110 active:scale-[0.98]"
           >
             Next Project
           </Link>

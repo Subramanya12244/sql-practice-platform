@@ -4,7 +4,8 @@ import { sendTo } from "../lib/handoff";
 import { VizView } from "../components/VizView";
 import { ExplainPanel } from "../components/visual/ExplainPanel";
 import { addSession, getExecs, getSessions, highlightInEditor, type ExecRecord, type VizSession } from "../lib/vizHistory";
-import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, X } from "lucide-react";
+import { Icon } from "../components/Icon";
 import { HintLadder } from "../components/HintLadder";
 import { SolveTimer } from "../components/SolveTimer";
 import { SessionHistory } from "../components/SessionHistory";
@@ -306,7 +307,7 @@ export function QuestionPage() {
                         <li key={i} className="rounded-lg border border-surface-border p-2">
                           <p className="flex flex-wrap items-center gap-2 text-xs">
                             <span className={e.kind === "submit" ? (e.correct ? "font-semibold text-success" : "font-semibold text-danger") : e.ok ? "text-ink-muted" : "text-danger"}>
-                              {e.kind === "submit" ? (e.correct ? "✓ submit" : "✗ submit") : e.ok ? `run · ${e.rows ?? 0} rows` : "run · error"}
+                              {e.kind === "submit" ? <span className="inline-flex items-center gap-1"><Icon icon={e.correct ? Check : X} size="inline" />submit</span> : e.ok ? `run · ${e.rows ?? 0} rows` : "run · error"}
                             </span>
                             <span className="text-ink-faint">attempt {e.attempt} · {new Date(e.at).toLocaleString()}</span>
                             <button type="button" onClick={() => visualizeNow(e.sql)} className="ml-auto text-accent hover:underline">Visualize</button>

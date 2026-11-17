@@ -1,8 +1,8 @@
 import { InlineMarkdown } from "./Markdown";
-import { CountUp } from "./Motion";
-import type { ButtonHTMLAttributes, ComponentType, ReactNode } from "react";
+import { CountUp, useSettled } from "./Motion";
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ComponentType, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, ChevronRight, Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import type { QuestionSummary } from "../types";
 
 const DIFF_STYLE: Record<string, string> = {
@@ -69,7 +69,7 @@ export function QuestionCard({ q, solved }: { q: QuestionSummary; solved?: boole
   return (
     <Link
       to={`/questions/${q.slug}`}
-      className="group flex flex-col gap-2 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.99]"
+      className="group flex flex-col gap-2 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.99]"
     >
       <div className="flex items-center gap-2 text-xs text-ink-faint">
         <span className="font-mono">Q{String(q.number).padStart(2, "0")}</span>
@@ -105,7 +105,7 @@ export function Skeleton({ className = "", shimmer = false }: { className?: stri
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 const BTN_BASE =
-  "inline-flex select-none items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-fast ease-out active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex select-none items-center justify-center gap-2 rounded-xl font-semibold transition-[background-color,border-color,color,box-shadow,transform,filter] duration-fast ease-out active:scale-[0.98] active:duration-instant disabled:pointer-events-none disabled:opacity-50";
 const BTN_VARIANT: Record<Variant, string> = {
   primary: "bg-accent text-on-accent shadow-glow hover:-translate-y-px hover:brightness-110",
   secondary: "border border-surface-border bg-surface-raised text-ink hover:border-accent/40 hover:bg-surface-overlay active:bg-surface-overlay/80",
@@ -129,7 +129,7 @@ export function ButtonLink({ to, variant = "primary", size = "md", className = "
 const CARD_PAD = { none: "", sm: "p-4", md: "p-5" };
 export function Card({ children, className = "", as: Tag = "div", interactive = false, pad = "md", "aria-label": label, "aria-labelledby": labelledBy, "data-help": help }: { children: ReactNode; className?: string; as?: "div" | "section" | "article" | "li"; interactive?: boolean; pad?: keyof typeof CARD_PAD; "aria-label"?: string; "aria-labelledby"?: string; "data-help"?: string }) {
   return (
-    <Tag aria-label={label} aria-labelledby={labelledBy} data-help={help} className={`rounded-card border border-surface-border bg-surface-raised ${CARD_PAD[pad]} shadow-panel ${interactive ? "transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.995]" : ""} ${className}`}>
+    <Tag aria-label={label} aria-labelledby={labelledBy} data-help={help} className={`rounded-card border border-surface-border bg-surface-raised ${CARD_PAD[pad]} shadow-panel ${interactive ? "transition-[transform,border-color,box-shadow] duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:translate-y-0 active:duration-instant" : ""} ${className}`}>
       {children}
     </Tag>
   );
@@ -152,9 +152,11 @@ export function Badge({ tone = "neutral", children, className = "" }: { tone?: k
 export function ProgressBar({ value, max = 100, label, tone = "accent", className = "" }: { value: number; max?: number; label: string; tone?: "accent" | "secondary" | "success"; className?: string }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
   const fill = { accent: "bg-gradient-to-r from-accent to-accent-muted", secondary: "bg-secondary", success: "bg-success" }[tone];
+  // The value that arrives from storage just after the page loads snaps into place; a change after that (a task passes) animates.
+  const settled = useSettled();
   return (
     <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={value} className={`h-2 overflow-hidden rounded-full bg-surface-soft ${className}`}>
-      <div className={`h-full rounded-full ${fill} transition-[width] duration-slow ease-out`} style={{ width: `${pct}%` }} />
+      <div className={`h-full rounded-full ${fill} ${settled ? "transition-[width] duration-slow ease-out" : ""}`} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -163,11 +165,12 @@ export function ProgressRing({ value, max = 100, size = 72, label, children }: {
   const r = (size - 8) / 2;
   const c = 2 * Math.PI * r;
   const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
+  const settled = useSettled();
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }} role="img" aria-label={`${label}: ${Math.round(pct * 100)}%`}>
-      <svg width={size} height={size} className="-rotate-90" aria-hidden>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="6" className="stroke-surface-soft" />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="6" strokeLinecap="round" className="stroke-accent transition-[stroke-dashoffset] duration-700 ease-out"
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="6" strokeLinecap="round" className={`stroke-accent ${settled ? "transition-[stroke-dashoffset] duration-slow ease-out" : ""}`}
           strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
       </svg>
       <span className="absolute text-center">{children}</span>
@@ -200,7 +203,7 @@ export function StatCard({ label, value, hint, icon: Icon, trend }: { label: str
 export function IconButton({ label, children, active = false, className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; active?: boolean }) {
   return (
     <button type="button" aria-label={label} title={label} {...rest}
-      className={`inline-flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-control transition-all duration-fast ease-out active:scale-95 disabled:pointer-events-none disabled:opacity-50 ${active ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink active:bg-hover/10"} ${className}`}>
+      className={`inline-flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-control transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast ease-out active:scale-95 disabled:pointer-events-none disabled:opacity-50 ${active ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink active:bg-hover/10"} ${className}`}>
       {children}
     </button>
   );
@@ -220,11 +223,12 @@ export function ToolbarDivider() {
 
 /** Progress as discrete segments (lesson steps, module parts). Falls back to a bar above 24 steps. */
 export function SegmentedProgress({ done, total, label, className = "" }: { done: number; total: number; label: string; className?: string }) {
+  const settled = useSettled();
   if (total > 24) return <ProgressBar value={done} max={total} label={label} className={className} />;
   return (
     <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={total} aria-valuenow={done} className={`flex gap-1 ${className}`}>
       {Array.from({ length: total }, (_, i) => (
-        <span key={i} className="relative h-2 flex-1 overflow-hidden rounded-full bg-surface-soft"><span className={`absolute inset-0 origin-left rounded-full bg-accent transition-transform duration-slow ease-out ${i < done ? "scale-x-100" : "scale-x-0"}`} style={{ transitionDelay: `${i * 30}ms` }} /></span>
+        <span key={i} className="relative h-2 flex-1 overflow-hidden rounded-full bg-surface-soft"><span className={`absolute inset-0 origin-left rounded-full bg-accent ${settled ? "transition-transform duration-slow ease-out" : ""} ${i < done ? "scale-x-100" : "scale-x-0"}`} style={settled ? { transitionDelay: `${Math.min(i, 6) * 20}ms` } : undefined} /></span>
       ))}
     </div>
   );
@@ -299,21 +303,66 @@ export function ErrorState({ title = "Something went wrong", children, onRetry }
   );
 }
 
-/** Accessible tab list (roving arrow keys). Panels are rendered by the caller. */
+/**
+ * Accessible tab list (roving arrow keys). Panels are rendered by the caller. A highlight slides to the selected tab: it is
+ * positioned with transform and width, and its first placement is instant so the list never animates on load. Until the browser
+ * has measured the tabs (and with no JavaScript) the selected tab carries its own background, so nothing is ever unmarked.
+ */
 export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs: { id: T; label: ReactNode }[]; value: T; onChange: (id: T) => void; label: string }) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const [mark, setMark] = useState<{ x: number; w: number } | null>(null);
+  const [animate, setAnimate] = useState(false);
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const place = () => {
+      const el = list.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+      if (el) setMark((m) => (m && m.x === el.offsetLeft && m.w === el.offsetWidth ? m : { x: el.offsetLeft, w: el.offsetWidth }));
+    };
+    place();
+    const id = window.requestAnimationFrame(() => setAnimate(true)); // from the second placement on, move smoothly
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(place) : null;
+    ro?.observe(list);
+    return () => { window.cancelAnimationFrame(id); ro?.disconnect(); };
+  }, [value, tabs.length]);
   return (
-    <div role="tablist" aria-label={label} className="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-surface-border bg-surface-overlay p-1"
+    <div ref={listRef} role="tablist" aria-label={label} className="relative inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-surface-border bg-surface-overlay p-1"
       onKeyDown={(e) => {
         const i = tabs.findIndex((t) => t.id === value);
         const next = e.key === "ArrowRight" ? tabs[(i + 1) % tabs.length] : e.key === "ArrowLeft" ? tabs[(i - 1 + tabs.length) % tabs.length] : null;
         if (next) { e.preventDefault(); onChange(next.id); }
       }}>
+      {mark && <span aria-hidden className={`pointer-events-none absolute left-0 top-1 bottom-1 rounded-lg bg-surface-raised shadow-panel ${animate ? "transition-[transform,width] duration-base ease-out" : ""}`} style={{ width: mark.w, transform: `translateX(${mark.x}px)` }} />}
       {tabs.map((t) => (
         <button key={t.id} type="button" role="tab" aria-selected={t.id === value} tabIndex={t.id === value ? 0 : -1} onClick={() => onChange(t.id)}
-          className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-fast ease-out active:scale-[0.98] ${t.id === value ? "bg-surface-raised text-ink shadow-panel" : "text-ink-muted hover:text-ink hover:bg-hover/5"}`}>
+          className={`relative whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-[color,background-color,transform] duration-fast ease-out active:scale-[0.98] active:duration-instant ${t.id === value ? `text-ink ${mark ? "" : "bg-surface-raised shadow-panel"}` : "text-ink-muted hover:text-ink hover:bg-hover/5"}`}>
           {t.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Expand and collapse without measuring: the panel's grid row goes from 0fr to 1fr. The header is a real button
+ * (Enter and Space work, `aria-expanded` and `aria-controls` are set) and the chevron turns with the panel. The content stays in
+ * the page when closed, hidden and inert, so it is still in the prerendered HTML.
+ */
+export function Disclosure({ header, children, defaultOpen = false, className = "", headerClassName = "" }: { header: ReactNode; children: ReactNode; defaultOpen?: boolean; className?: string; headerClassName?: string }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const id = useId();
+  return (
+    <div className={`rounded-card border bg-surface-raised shadow-panel transition-colors duration-base ease-out ${open ? "border-accent/30" : "border-surface-border"} ${className}`}>
+      <button type="button" aria-expanded={open} aria-controls={`${id}-panel`} onClick={() => setOpen((v) => !v)}
+        className={`relative flex w-full items-start gap-3 rounded-card p-4 pr-11 text-left transition-colors duration-fast ease-out hover:bg-hover/5 ${headerClassName}`}>
+        <span className="min-w-0 flex-1">{header}</span>
+        <ChevronDown aria-hidden className={`absolute right-4 top-4 h-4 w-4 text-ink-faint transition-transform duration-base ease-out ${open ? "rotate-180" : ""}`} />
+      </button>
+      <div className="collapse-grid" data-open={open ? "true" : "false"}>
+        <div id={`${id}-panel`} {...(open ? {} : { inert: "" })} aria-hidden={!open}>
+          <div className="border-t border-surface-border">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }

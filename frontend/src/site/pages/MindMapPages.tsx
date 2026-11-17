@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Network } from "lucide-react";
+import { Check, Network } from "lucide-react";
+import { Icon } from "../components/Icon";
 import { usePage } from "../SiteApp";
 import { BookmarkButton } from "../components/LearnUi";
 import { Container, PageHeader, Skeleton } from "../components/ui";
@@ -140,7 +141,7 @@ export function MindMapPage() {
                   const q = data.index.find((x) => x.number === n);
                   return q ? (
                     <Link key={n} to={`/questions/${q.slug}`} className="text-accent hover:underline">
-                      {progress.questions[n]?.solvedAt ? "✓ " : ""}Q{n} {q.title} →
+                      {progress.questions[n]?.solvedAt ? <Icon icon={Check} size="inline" label="Solved" className="mr-1 inline" /> : null}Q{n} {q.title} →
                     </Link>
                   ) : null;
                 })}

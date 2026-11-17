@@ -126,7 +126,9 @@ html.dark {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
 }
@@ -337,28 +339,35 @@ html.dark .prose-site .tok-n { color: #fcd34d; }
 /* Staggered children: each direct child fades up 45ms after the previous (capped at 10). */
 /* Defined here, not only in tailwind.config.js: Tailwind drops keyframes whose animate-*
  * utility is unused, and .stagger references this one directly. */
+/* Motion tokens. src/site/lib/motion.ts and tailwind.config.js hold the same numbers (a test keeps them equal). */
+:root {
+  --motion-instant: 100ms;
+  --motion-fast: 140ms;
+  --motion-base: 180ms;
+  --motion-enter: 220ms;
+  --motion-slow: 280ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
 @keyframes df-fade-up {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.stagger > * { animation: df-fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.stagger > *:nth-child(2) { animation-delay: 45ms; }
-.stagger > *:nth-child(3) { animation-delay: 90ms; }
-.stagger > *:nth-child(4) { animation-delay: 135ms; }
-.stagger > *:nth-child(5) { animation-delay: 180ms; }
-.stagger > *:nth-child(6) { animation-delay: 225ms; }
-.stagger > *:nth-child(7) { animation-delay: 270ms; }
-.stagger > *:nth-child(8) { animation-delay: 315ms; }
-.stagger > *:nth-child(9) { animation-delay: 360ms; }
-.stagger > *:nth-child(n + 10) { animation-delay: 405ms; }
+/* A list arrives in one short wave: 30 ms between items, and no item waits more than 150 ms. */
+.stagger > * { animation: df-fade-up var(--motion-enter) var(--ease-out) both; }
+.stagger > *:nth-child(2) { animation-delay: 30ms; }
+.stagger > *:nth-child(3) { animation-delay: 60ms; }
+.stagger > *:nth-child(4) { animation-delay: 90ms; }
+.stagger > *:nth-child(5) { animation-delay: 120ms; }
+.stagger > *:nth-child(n + 6) { animation-delay: 150ms; }
 
 /* Scroll reveal (see Reveal.tsx). Content is visible in the HTML; only sections that start
  * below the fold are hidden after hydration, then revealed when they enter the viewport. */
-.reveal-pending { opacity: 0; transform: translateY(16px); }
+.reveal-pending { opacity: 0; transform: translateY(10px); }
 .reveal-in {
   opacity: 1;
   transform: none;
-  transition: opacity 520ms cubic-bezier(0.22, 1, 0.36, 1), transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity var(--motion-enter) var(--ease-out), transform var(--motion-enter) var(--ease-out);
 }
 
 /* Brief colour cross-fade while switching theme (class added for ~250ms by the toggle). */
@@ -366,15 +375,15 @@ html.theme-transition,
 html.theme-transition *,
 html.theme-transition *::before,
 html.theme-transition *::after {
-  transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, fill 220ms ease !important;
+  transition: background-color var(--motion-base) ease, border-color var(--motion-base) ease, color var(--motion-base) ease, fill var(--motion-base) ease !important;
 }
 
 /* Disclosure that animates height without measuring: grid rows 0fr -> 1fr. */
-.collapse-grid { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+.collapse-grid { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--motion-base) var(--ease-out); }
 .collapse-grid[data-open="true"] { grid-template-rows: 1fr; }
 .collapse-grid > * { min-height: 0; overflow: hidden; }
 
-/* Animated hero gradient: background-position only, no blur filters. */
+/* Static hero gradient. (It used to pan forever, which repainted the whole banner every frame.) */
 .hero-gradient {
   background-image: linear-gradient(120deg, rgb(var(--color-accent) / 0.16), rgb(var(--color-secondary) / 0.12), rgb(var(--color-accent-muted) / 0.14), rgb(var(--color-accent) / 0.16));
   background-size: 300% 300%;
@@ -393,7 +402,7 @@ html.theme-transition *::after {
 
 /* Micro-interaction card elevation */
 .interactive-card {
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
 }
 .interactive-card:hover {
   transform: translateY(-2px);
@@ -420,11 +429,13 @@ html.theme-transition *::after {
 
 /* ── Daily Learning ─────────────────────────────────────────────────────── */
 /* Pulse ring around the current day's marker. */
+/* A ring grows out of today's marker three times, then stops. Transform and opacity only (a box-shadow animation repaints every frame). */
 @keyframes df-pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgb(var(--color-accent) / 0.45); }
-  100% { box-shadow: 0 0 0 10px rgb(var(--color-accent) / 0); }
+  from { transform: scale(1); opacity: 0.8; }
+  to { transform: scale(2.2); opacity: 0; }
 }
-.df-pulse { animation: df-pulse-ring 1.8s ease-out infinite; }
+.df-pulse { position: relative; }
+.df-pulse::after { content: ""; position: absolute; inset: 0; box-sizing: border-box; border: 2px solid rgb(var(--color-accent) / 0.7); border-radius: inherit; pointer-events: none; animation: df-pulse-ring 900ms ease-out 3 both; }
 
 /* Roadmap timeline: a vertical line that draws itself down the list when a phase opens. */
 @keyframes df-line-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
@@ -432,15 +443,15 @@ html.theme-transition *::after {
 .df-timeline::before {
   content: ""; position: absolute; left: 1.05rem; top: 0.5rem; bottom: 0.5rem; width: 2px; border-radius: 2px;
   background: linear-gradient(to bottom, rgb(var(--color-accent) / 0.55), rgb(var(--color-accent) / 0.08));
-  transform-origin: top; animation: df-line-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top; animation: df-line-grow 320ms var(--ease-out) both;
 }
 
 /* Calendar cells pop in a row at a time; the delay is set per cell with --i. */
-.df-cell { animation: df-pop 360ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 14ms); }
+.df-cell { animation: df-pop var(--motion-enter) var(--ease-out) both; animation-delay: calc(min(var(--i, 0), 12) * 8ms); }
 
 /* Lesson step content slides in when the step changes. */
-@keyframes df-step-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
-.df-step { animation: df-step-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes df-step-in { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
+.df-step { animation: df-step-in var(--motion-enter) var(--ease-out) both; }
 
 /* Completion burst: dots fly out from the check mark. Pure CSS, transform and opacity only. */
 @keyframes df-burst { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; } }
@@ -449,17 +460,17 @@ html.theme-transition *::after {
 /* Shimmer sweep across a filled progress bar. */
 @keyframes df-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 .df-sweep { position: relative; overflow: hidden; }
-.df-sweep::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28), transparent); animation: df-sweep 2.4s ease-in-out infinite; }
+.df-sweep::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28), transparent); animation: df-sweep 1.6s ease-in-out 2; }
 
 @media (prefers-reduced-motion: reduce) {
-  .df-pulse, .df-sweep::after { animation: none; }
+  .df-pulse::after, .df-sweep::after { animation: none; }
   .df-timeline::before, .df-cell, .df-step, .df-burst > span { animation-duration: 0.01ms !important; animation-delay: 0ms !important; }
 }
 @media print { .df-burst { display: none; } }
 
 /* DataForge Guide: brief highlight on the help item a search result or tooltip jumped to. */
 @keyframes help-flash { from { background-color: rgb(var(--color-accent) / 0.22); } to { background-color: transparent; } }
-.help-flash { animation: help-flash 1.6s ease-out both; }
+.help-flash { animation: help-flash 900ms ease-out both; }
 @media (prefers-reduced-motion: reduce) { .help-flash { animation: none; outline: 2px solid rgb(var(--color-accent) / 0.5); } }
 
 /* Homepage hero: a quiet grid behind the headline, and the dashed line that carries data between pipeline stages. */
@@ -469,14 +480,16 @@ html.theme-transition *::after {
     linear-gradient(90deg, rgb(var(--color-ink) / 0.045) 1px, transparent 1px);
   background-size: 44px 44px;
 }
-.flow-line-v {
+/* The dashes slide down the line four times, then rest. They sit on a taller layer that moves with transform, so nothing repaints. */
+.flow-line-v { position: relative; overflow: hidden; opacity: 0.75; }
+.flow-line-v::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -12px; bottom: 0;
   background-image: linear-gradient(rgb(var(--color-accent)) 50%, transparent 50%);
   background-size: 2px 12px;
   background-repeat: repeat-y;
-  opacity: 0.75;
-  animation: df-flow-v 1.1s linear infinite;
+  animation: df-flow-v 1.1s linear 4;
 }
-@keyframes df-flow-v { to { background-position: 0 12px; } }
+@keyframes df-flow-v { to { transform: translateY(12px); } }
 
 /* Lesson workspace. One column below 1280px; centre + rail from 1280px; day list + centre + rail from 1536px. */
 .lesson-grid { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr); grid-template-areas: "rail" "days" "main"; align-items: start; }

@@ -130,7 +130,9 @@ export function PlannerPage() {
         </div>
       </form>
 
-      {mounted && <PlannerWeek plan={saved} />}
+      {/* The week block needs today's date, so it appears after mount. Its space is held until then (it is 492 px tall on a desktop,
+          707 px on a phone) so the cards below do not jump down when it arrives. */}
+      {mounted ? <PlannerWeek plan={saved} /> : <div aria-hidden className="mt-6 h-[707px] animate-pulse rounded-card bg-surface-soft md:h-[492px]" />}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className={card}><p className="text-xs uppercase tracking-wider text-ink-faint">Done</p><p className="mt-1 font-display text-2xl font-bold text-ink">{mounted ? `${doneCount}/${items.length}` : "—"}</p></div>

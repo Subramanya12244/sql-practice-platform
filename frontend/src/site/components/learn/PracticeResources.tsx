@@ -15,7 +15,7 @@ const LEVEL_RANK: Record<string, number> = { Beginner: 0, Intermediate: 1, Advan
 
 function Tile({ to, icon: Icon, title, meta, children }: { to: string; icon: LucideIcon; title: string; meta: string; children?: React.ReactNode }) {
   return (
-    <Link to={to} className="group flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.995]">
+    <Link to={to} className="group flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.995]">
       <span className="flex items-center gap-2.5">
         <span className="rounded-lg bg-accent-dim p-2 text-accent"><Icon className="h-4 w-4" aria-hidden /></span>
         <span className="font-semibold text-ink group-hover:text-accent">{title}</span>
@@ -97,7 +97,7 @@ export function ResourceShelf({ hub, progress, mounted }: { hub: LearnHubData; p
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {SHELF.map(({ to, label, icon: Icon, desc, count }) => (
           <li key={to}>
-            <Link to={to} className="group flex h-full gap-3 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40">
+            <Link to={to} className="group flex h-full gap-3 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40">
               <span className="h-fit rounded-lg bg-accent-dim p-2 text-accent"><Icon className="h-4 w-4" aria-hidden /></span>
               <span className="min-w-0">
                 <span className="flex items-baseline gap-2 font-semibold text-ink group-hover:text-accent">{label}{count && <span className="text-xs font-medium tabular-nums text-ink-faint">{count(hub)}</span>}</span>

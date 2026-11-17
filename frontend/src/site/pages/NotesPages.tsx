@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, ChevronLeft, ChevronRight, Circle, Search } from "lucide-react";
+import { Check, CheckCircle2, ChevronLeft, ChevronRight, Circle, Search } from "lucide-react";
+import { Icon } from "../components/Icon";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { BookmarkButton, LevelBadge, Minutes, RelatedPanel } from "../components/LearnUi";
@@ -188,7 +189,7 @@ export function NotePage() {
               {prereqs.map((p, i) => (
                 <span key={p.slug}>
                   <Link to={`/notes/${p.slug}`} className="text-accent underline">{p.title}</Link>
-                  {progress.read?.[p.slug] ? " ✓" : ""}
+                  {progress.read?.[p.slug] ? <Icon icon={Check} size="inline" label="Read" className="ml-1 inline text-success" /> : null}
                   {i < prereqs.length - 1 ? ", " : ""}
                 </span>
               ))}
@@ -203,7 +204,7 @@ export function NotePage() {
               onClick={() => markNoteRead(n.slug, !isRead)}
               className={`rounded-lg px-4 py-2 text-sm font-semibold ${isRead ? "border border-success/40 text-success" : "bg-accent text-white"}`}
             >
-              {isRead ? "✓ Marked as read" : "Mark as read"}
+              {isRead ? <span className="inline-flex items-center gap-1.5"><Icon icon={Check} size="inline" />Marked as read</span> : "Mark as read"}
             </button>
             {questions[0] && (
               <Link to={`/questions/${questions[0].slug}`} className="text-sm font-medium text-accent hover:underline">

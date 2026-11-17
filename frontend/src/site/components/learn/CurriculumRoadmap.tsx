@@ -24,7 +24,7 @@ function PhaseRow({ p, index }: { p: RoadmapPhase; index: number }) {
       <span aria-hidden className={`absolute left-0 top-3 flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-semibold tabular-nums ${p.status === "completed" ? "border-success/40 bg-success-dim text-success" : p.status === "in-progress" ? "border-info/40 bg-info-dim text-info" : "border-surface-border bg-surface-raised text-ink-faint"}`}>
         {p.status === "completed" ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}
       </span>
-      <Link to={p.href} className="group block rounded-xl border border-surface-border bg-surface-raised p-3.5 transition-all duration-fast ease-out hover:-translate-y-px hover:border-accent/40">
+      <Link to={p.href} className="group block rounded-xl border border-surface-border bg-surface-raised p-3.5 transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast ease-out hover:-translate-y-px hover:border-accent/40">
         <span className="flex flex-wrap items-center justify-between gap-2">
           <span className="font-semibold text-ink group-hover:text-accent">{p.title}</span>
           <Badge tone={st.tone}>{st.label}</Badge>

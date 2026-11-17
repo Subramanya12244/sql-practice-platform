@@ -137,7 +137,7 @@ export function AchievementsPage() {
           {g.achievements.map((a) => {
             const on = g.mounted && a.unlocked;
             return (
-              <li key={a.id} className={`flex gap-3 rounded-card border p-4 transition-all duration-base ease-out hover:-translate-y-0.5 ${on ? "border-accent/40 bg-accent-dim shadow-glow" : "border-surface-border bg-surface-raised hover:border-surface-border/80"}`}>
+              <li key={a.id} className={`flex gap-3 rounded-card border p-4 transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-base ease-out hover:-translate-y-0.5 ${on ? "border-accent/40 bg-accent-dim shadow-glow" : "border-surface-border bg-surface-raised hover:border-surface-border/80"}`}>
                 <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-fast ease-out ${on ? "bg-gradient-to-br from-accent to-secondary text-white animate-pop" : "bg-surface-soft text-ink-faint"}`}>
                   {on ? <Icon name={a.icon} className="h-5 w-5" /> : <Lock className="h-4 w-4" aria-hidden />}
                 </span>

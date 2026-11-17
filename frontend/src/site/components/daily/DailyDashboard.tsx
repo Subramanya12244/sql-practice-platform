@@ -52,7 +52,7 @@ export function PathPanel({ view, preview, onPreview }: { view: DailyView; previ
           const done = days.filter((d) => isDone(state, d.id)).length;
           const chosen = path === p.id;
           return (
-            <div key={p.id} className={`rounded-xl border p-4 transition-all duration-base ease-out ${chosen ? "border-accent bg-accent-dim" : preview === p.id ? "border-accent/50 bg-surface-soft" : "border-surface-border bg-surface-soft/50 hover:border-accent/40"}`}>
+            <div key={p.id} className={`rounded-xl border p-4 transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-base ease-out ${chosen ? "border-accent bg-accent-dim" : preview === p.id ? "border-accent/50 bg-surface-soft" : "border-surface-border bg-surface-soft/50 hover:border-accent/40"}`}>
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-semibold text-ink">{p.title} path</h3>
                 <span className="text-xs text-ink-faint">Days 91–180 · {done}/90 done</span>
@@ -137,7 +137,7 @@ export function TodayCard({ view }: { view: DailyView }) {
   const phase = PHASE_BY_ID.get(day.phase);
   return (
     <section data-help="daily-today" aria-labelledby="today" className="relative overflow-hidden rounded-card border border-accent/40 bg-surface-raised p-6 shadow-glow">
-      <div className="hero-gradient pointer-events-none absolute inset-0 animate-[gradient-pan_14s_ease-in-out_infinite] opacity-60" aria-hidden />
+      <div className="hero-gradient pointer-events-none absolute inset-0 opacity-60" aria-hidden />
       <div className="relative">
         <p className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
           <span className="df-pulse h-2 w-2 rounded-full bg-accent" aria-hidden /> Today's learning
@@ -219,7 +219,7 @@ function DayRow({ day, view, today, isCurrent }: { day: DayMeta; view: DailyView
   return (
     <li className="relative">
       <Link to={dayHref(day)} aria-current={isCurrent ? "step" : undefined}
-        className={`group flex items-center gap-3 rounded-xl px-2 py-2 transition-all duration-fast ease-out hover:bg-hover/5 hover:translate-x-0.5 ${isCurrent ? "bg-accent-dim" : ""}`}>
+        className={`group flex items-center gap-3 rounded-xl px-2 py-2 transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast ease-out hover:bg-hover/5 hover:translate-x-0.5 ${isCurrent ? "bg-accent-dim" : ""}`}>
         <span className={`relative z-10 rounded-full bg-surface-raised ${isCurrent ? "df-pulse" : ""}`}><StatusIcon status={status} current={isCurrent} /></span>
         <span className="w-14 shrink-0 text-xs font-semibold text-ink-faint">Day {day.day}</span>
         <span className="min-w-0 flex-1">

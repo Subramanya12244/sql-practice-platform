@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Eye, FolderGit2, Lightbulb, Network, PenLine, Puzzle, Search, X, type LucideIcon } from "lucide-react";
 import { Button, Card, EmptyState, SectionHeader } from "../ui";
@@ -10,6 +10,7 @@ import {
 import type { DailyState } from "../../lib/dailyProgress";
 import type { Progress } from "../../lib/progress";
 import { SUBJECT_STYLE, StatusPill, TopicDuration } from "./shared";
+import { useUrlFilter } from "../../lib/useUrlFilter";
 
 const PAGE = 12;
 const SUBJECT_IDS = SUBJECTS.map((s) => s.id) as string[];
@@ -41,26 +42,9 @@ export function filterToSearch(f: TopicFilter): string {
   return s ? `?${s}` : "";
 }
 
-/**
- * Library filter state. The first render is always unfiltered (so prerendered and hydrated HTML match); the URL is applied after
- * mount and kept in step afterwards. The URL is parsed once and held in a ref, so a second run of the mount effect (React
- * StrictMode in development) cannot read an address this hook has already rewritten.
- */
+/** Library filter state, kept in the address (see useUrlFilter). */
 export function useTopicFilter(): [TopicFilter, (f: TopicFilter) => void] {
-  const [filter, setFilter] = useState<TopicFilter>(NO_FILTER);
-  const [applied, setApplied] = useState(false);
-  const initial = useRef<TopicFilter | null>(null);
-  useEffect(() => {
-    initial.current ??= filterFromSearch(window.location.search);
-    setFilter(initial.current);
-    setApplied(true);
-  }, []);
-  useEffect(() => {
-    if (!applied) return;
-    const next = `${window.location.pathname}${filterToSearch(filter)}${window.location.hash}`;
-    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history.replaceState(window.history.state, "", next);
-  }, [filter, applied]);
-  return [filter, setFilter];
+  return useUrlFilter(NO_FILTER, filterFromSearch, filterToSearch);
 }
 
 const RESOURCE_ICON: { type: ResourceType; icon: LucideIcon; one: string; many: string }[] = [
@@ -78,7 +62,7 @@ export function TopicCard({ t, progress, daily }: { t: TopicLite; progress: Pick
   const style = SUBJECT_STYLE[t.subject];
   return (
     <li>
-      <Link to={`/learn/topic/${t.id}`} data-topic={t.id} className="group flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.995]">
+      <Link to={`/learn/topic/${t.id}`} data-topic={t.id} className="group flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow active:scale-[0.995]">
         <span className="flex items-start justify-between gap-2">
           <span className={`min-w-0 text-label uppercase ${style.text}`}>{topicEyebrow(t.subject, t.categoryLabel)}</span>
           <StatusPill status={st.status} label={st.label} />

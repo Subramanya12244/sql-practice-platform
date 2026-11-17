@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { PyExplainBox } from "../components/visual/PyExplainBox";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, CheckCircle2, Circle, CircleDot, Lightbulb, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, Check, CheckCircle2, Circle, CircleDot, Lightbulb, Search, X } from "lucide-react";
+import { Icon } from "../components/Icon";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { Badge, Button, ButtonLink, Card, Container, Difficulty, EmptyState, PageHeader, ProgressBar, SectionHeader } from "../components/ui";
@@ -384,7 +385,7 @@ export function PythonExercisePage() {
                       </button>
                     )}
                     <span className={h.ok ? "text-success" : "text-danger"}>
-                      {h.kind === "check" ? (h.ok ? "✓ passed" : "✗ failed") : h.ok ? "ran" : "error"}
+                      {h.kind === "check" ? (h.ok ? <span className="inline-flex items-center gap-1"><Icon icon={Check} size="inline" />passed</span> : <span className="inline-flex items-center gap-1"><Icon icon={X} size="inline" />failed</span>) : h.ok ? "ran" : "error"}
                     </span>{" "}
                     · {new Date(h.at).toLocaleTimeString()} · {h.message.slice(0, 80)}
                   </li>

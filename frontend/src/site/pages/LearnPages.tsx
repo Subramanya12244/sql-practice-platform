@@ -1,6 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Icon } from "../components/Icon";
 import { usePage } from "../SiteApp";
 import { Markdown } from "../components/Markdown";
 import { InlineMarkdown } from "../components/Markdown";
@@ -256,8 +257,9 @@ function LearnDashboard() {
   return (
     <div className="space-y-6">
       <section data-help="learn-hero" className="relative overflow-hidden rounded-card border border-surface-border bg-surface-raised p-6 shadow-panel sm:p-8" aria-labelledby="welcome">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/10 blur-3xl" aria-hidden />
-        <div className="pointer-events-none absolute -bottom-24 right-40 h-60 w-60 rounded-full bg-secondary/10 blur-3xl" aria-hidden />
+        {/* Soft colour behind the banner: radial gradients, not a blur filter (a 72-unit blur is repainted whenever the banner changes). */}
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,rgb(var(--color-accent)/0.16),transparent)]" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-24 right-40 h-60 w-60 rounded-full bg-[radial-gradient(closest-side,rgb(var(--color-secondary)/0.14),transparent)]" aria-hidden />
         <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <p className="text-sm font-medium text-accent">{mounted && days > 0 ? `${days}-day streak · keep it going` : "Your learning hub"}</p>
@@ -390,7 +392,7 @@ function LearnDashboard() {
           <ul className="space-y-3">
             {g.missions.filter((m) => m.period === "day").slice(0, 4).map((m) => (
               <li key={m.id}>
-                <div className="mb-1 flex justify-between text-sm"><span className={m.done ? "text-success" : "text-ink"}>{m.done ? "✓ " : ""}{m.label}</span><span className="text-xs tabular-nums text-ink-muted">{mounted ? m.value : 0}/{m.target} · +{m.xp}</span></div>
+                <div className="mb-1 flex justify-between text-sm"><span className={m.done ? "text-success" : "text-ink"}>{m.done ? <Icon icon={Check} size="inline" label="Done" className="mr-1 inline" /> : null}{m.label}</span><span className="text-xs tabular-nums text-ink-muted">{mounted ? m.value : 0}/{m.target} · +{m.xp}</span></div>
                 <ProgressBar value={mounted ? m.value : 0} max={m.target} label={m.label} tone={m.done ? "success" : "accent"} />
               </li>
             ))}

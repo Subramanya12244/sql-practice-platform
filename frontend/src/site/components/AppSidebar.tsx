@@ -1,9 +1,10 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { BookOpen, Briefcase, ChevronDown, Code2, FlaskConical, FolderKanban, Home, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { BookOpen, Briefcase, ChevronDown, Code2, FlaskConical, FolderKanban, Home, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { NAV_GROUPS, activeGroup } from "../lib/navigation";
+import { Icon } from "./Icon";
 
-const GROUP_ICON: Record<string, ComponentType<{ className?: string }>> = {
+const GROUP_ICON: Record<string, LucideIcon> = {
   home: Home,
   learn: BookOpen,
   practice: Code2,
@@ -53,7 +54,7 @@ export function AppSidebar({ pathname }: { pathname: string }) {
       <nav aria-label="Main" className="flex-1 overflow-y-auto overscroll-contain px-2 py-3">
         <ul className="space-y-0.5">
           {NAV_GROUPS.map((g) => {
-            const Icon = GROUP_ICON[g.id] ?? Home;
+            const Glyph = GROUP_ICON[g.id] ?? Home;
             const isActive = current === g.id;
             const isOpen = openGroups.has(g.id) && !collapsed;
             const listId = `nav-${g.id}`;
@@ -67,11 +68,11 @@ export function AppSidebar({ pathname }: { pathname: string }) {
                   aria-controls={listId}
                   title={collapsed ? g.label : undefined}
                   onClick={() => (collapsed ? (toggleCollapsed(), setOpenGroups((s) => new Set(s).add(g.id))) : toggleGroup(g.id))}
-                  className={`group flex min-h-[40px] w-full items-center gap-2.5 rounded-control px-2.5 text-sm font-medium transition-all duration-fast active:scale-[0.98] ${isActive ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"} ${collapsed ? "justify-center" : ""}`}
+                  className={`group flex min-h-[40px] w-full items-center gap-2.5 rounded-control px-2.5 text-sm font-medium transition-[background-color,color,transform] duration-fast active:scale-[0.98] active:duration-instant ${isActive ? "bg-accent-dim text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink"} ${collapsed ? "justify-center" : ""}`}
                 >
-                  <Icon className="h-4 w-4 shrink-0 transition-transform duration-fast ease-out group-hover:scale-110" />
+                  <Icon icon={Glyph} size="nav" className="transition-transform duration-fast ease-out group-hover:scale-105" />
                   <span className={collapsed ? "sr-only" : "flex-1 truncate text-left"}>{g.label}</span>
-                  {!collapsed && <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-fast ease-out ${isOpen ? "rotate-180" : ""}`} aria-hidden />}
+                  {!collapsed && <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-base ease-out ${isOpen ? "rotate-180" : ""}`} aria-hidden />}
                 </button>
                 <div className="collapse-grid" data-open={isOpen ? "true" : "false"}>
                 <ul id={listId} hidden={!isOpen && collapsed} {...(isOpen ? {} : { inert: "" })} aria-hidden={!isOpen} className="mb-1 ml-[1.15rem] mt-0.5 space-y-0.5 border-l border-surface-border pl-2">
@@ -82,12 +83,12 @@ export function AppSidebar({ pathname }: { pathname: string }) {
                         end
                         title={n.desc}
                         className={({ isActive: here }) =>
-                          `relative block rounded-control px-2.5 py-1.5 text-sm transition-all duration-fast ${here ? "bg-accent-dim/60 font-semibold text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink hover:translate-x-0.5"}`
+                          `relative block rounded-control px-2.5 py-1.5 text-sm transition-[background-color,color,transform] duration-fast ${here ? "bg-accent-dim/60 font-semibold text-accent" : "text-ink-muted hover:bg-hover/5 hover:text-ink hover:translate-x-0.5"}`
                         }
                       >
                         {({ isActive: here }) => (
                           <>
-                            {here && <span className="absolute -left-[9px] top-1.5 bottom-1.5 w-[2px] rounded-full bg-accent" aria-hidden />}
+                            {here && <span className="absolute -left-[9px] top-1.5 bottom-1.5 w-[2px] animate-fade-in rounded-full bg-accent" aria-hidden />}
                             <span className="truncate">{n.label}</span>
                           </>
                         )}
@@ -109,7 +110,7 @@ export function AppSidebar({ pathname }: { pathname: string }) {
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className={`flex min-h-[40px] w-full items-center gap-2.5 rounded-control px-2.5 text-sm text-ink-faint transition-colors duration-fast hover:bg-hover/5 hover:text-ink ${collapsed ? "justify-center" : ""}`}
         >
-          {collapsed ? <PanelLeftOpen className="h-4 w-4" aria-hidden /> : <PanelLeftClose className="h-4 w-4" aria-hidden />}
+          <Icon icon={collapsed ? PanelLeftOpen : PanelLeftClose} size="nav" />
           {!collapsed && <span>Collapse</span>}
         </button>
       </div>

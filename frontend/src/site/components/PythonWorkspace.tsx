@@ -26,6 +26,7 @@ import {
   Square,
 } from "lucide-react";
 import { runPython, stopPython, resetPython, isPythonWarmed, PY_TIMEOUT_MS } from "../lib/pyRunner";
+import { Icon } from "./Icon";
 import { runPythonTask, type TaskResult, type TestCounts } from "../lib/tasks";
 import type { PythonTask } from "../lib/tasks";
 import { validateVirtualPath, VFS_LIMITS } from "../lib/virtualFs";
@@ -479,7 +480,7 @@ export function PythonWorkspace({
             disabled={!!busy}
             title="Execute active file in script mode"
             data-help="py-run"
-            className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-surface-border bg-surface-raised px-3 text-xs font-semibold text-ink transition-all duration-fast hover:bg-surface-overlay active:scale-[0.98] disabled:opacity-50"
+            className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-surface-border bg-surface-raised px-3 text-xs font-semibold text-ink transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast hover:bg-surface-overlay active:scale-[0.98] disabled:opacity-50"
           >
             {busy === "run" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5 text-accent" />}
             <span>Run Script</span>
@@ -493,7 +494,7 @@ export function PythonWorkspace({
               disabled={!!busy}
               title="Grade solution.py with test harness"
               data-help="py-check"
-              className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3 text-xs font-semibold text-on-accent shadow-glow transition-all duration-fast hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+              className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3 text-xs font-semibold text-on-accent shadow-glow transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
             >
               {busy === "check" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5" />}
               <span>Check Tests</span>
@@ -510,7 +511,7 @@ export function PythonWorkspace({
                 setTerminalOutput((prev) => `${prev}\nExecution stopped by user.`);
               }}
               title="Stop the running code"
-              className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-danger px-2.5 text-xs font-semibold text-on-accent transition-all duration-fast active:scale-[0.98]"
+              className="inline-flex min-h-[32px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-danger px-2.5 text-xs font-semibold text-on-accent transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast active:scale-[0.98]"
             >
               <Square className="h-3 w-3 fill-current" aria-hidden />
               Stop
@@ -632,7 +633,7 @@ export function PythonWorkspace({
                 <div
                   key={name}
                   onClick={() => setActiveFile(name)}
-                  className={`flex cursor-pointer select-none items-center gap-1.5 rounded-t-lg border-b-2 px-3 py-1.5 text-xs transition-all duration-fast ${
+                  className={`flex cursor-pointer select-none items-center gap-1.5 rounded-t-lg border-b-2 px-3 py-1.5 text-xs transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast ${
                     isActive
                       ? "border-accent bg-surface-raised font-semibold text-ink shadow-panel"
                       : "border-transparent text-ink-muted hover:bg-hover/5 hover:text-ink"
@@ -701,7 +702,7 @@ export function PythonWorkspace({
                     <FlaskConical className="h-3.5 w-3.5" /> Tests
                     {testResult && (
                       <span className={`ml-1 text-[10px] ${testResult.ok ? "text-success" : "text-danger"}`}>
-                        {testResult.ok ? "✓" : "✗"}
+                        {testResult.ok ? <Icon icon={Check} size="inline" label="Tests passed" /> : <Icon icon={X} size="inline" label="Tests failed" />}
                       </span>
                     )}
                   </button>

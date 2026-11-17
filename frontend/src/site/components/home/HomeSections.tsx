@@ -121,7 +121,7 @@ export function FeaturedTools() {
         <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {TOOLS.map(({ icon: Icon, title, body, to }) => (
             <li key={to}>
-              <Link to={to} className="group flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40">
+              <Link to={to} className="group flex h-full flex-col rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-dim text-accent"><Icon className="h-5 w-5" aria-hidden /></span>
                 <span className="mt-3 flex items-center gap-1 font-display text-h3 text-ink group-hover:text-accent">{title} <ArrowRight className="h-3.5 w-3.5 -translate-x-1 opacity-0 transition duration-base ease-out group-hover:translate-x-0 group-hover:opacity-100" aria-hidden /></span>
                 <span className="mt-1 text-sm leading-relaxed text-ink-muted">{body}</span>

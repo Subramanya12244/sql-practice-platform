@@ -68,10 +68,13 @@ for (const [id, title, next] of [
 
 test("path: a module opens to show its lessons, and a lesson link opens the lesson", async ({ page }) => {
   await page.goto("/learn/path/python-for-data");
-  const first = page.locator("details").first();
-  await first.locator("summary").click();
-  await expect(first.getByRole("link", { name: /\bDay 1\b/ })).toBeVisible();
-  await first.getByRole("link", { name: /\bDay 1\b/ }).click();
+  const module = page.getByRole("button", { name: /Python fundamentals/ }).first();
+  await expect(module).toHaveAttribute("aria-expanded", "false");
+  await module.click();
+  await expect(module).toHaveAttribute("aria-expanded", "true");
+  const first = page.getByRole("link", { name: /\bDay 1\b/ }).first();
+  await expect(first).toBeVisible();
+  await first.click();
   await expect(page).toHaveURL(/\/daily\/day\/1$/);
 });
 

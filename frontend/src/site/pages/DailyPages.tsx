@@ -69,7 +69,7 @@ function Resources({ links }: { links: ResolvedLink[] }) {
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
         {links.map((l) => (
           <li key={l.path}>
-            <Link to={l.path} className="group flex items-center justify-between gap-2 rounded-xl border border-surface-border bg-surface-soft/50 px-3 py-2 text-sm transition-all duration-fast ease-out hover:-translate-y-px hover:border-accent/40">
+            <Link to={l.path} className="group flex items-center justify-between gap-2 rounded-xl border border-surface-border bg-surface-soft/50 px-3 py-2 text-sm transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast ease-out hover:-translate-y-px hover:border-accent/40">
               <span className="min-w-0"><span className="block text-[11px] uppercase tracking-wide text-ink-faint">{l.kind}</span><span className="block truncate font-medium text-ink group-hover:text-accent">{l.title}</span></span>
               <ExternalLink className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
             </Link>
@@ -224,7 +224,7 @@ function LessonForDay({ day, content, links }: { day: DayMeta; content: NonNulla
             {STEPS.map((st, i) => (
               <li key={st.id}>
                 <button type="button" onClick={() => go(st.id)} aria-current={st.id === step ? "step" : undefined}
-                  className={`flex items-center gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-fast ease-out active:scale-[0.98] ${st.id === step ? "border-accent bg-accent-dim text-accent" : "border-surface-border text-ink-muted hover:border-accent/40 hover:text-ink"}`}>
+                  className={`flex items-center gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform,filter,opacity] duration-fast ease-out active:scale-[0.98] ${st.id === step ? "border-accent bg-accent-dim text-accent" : "border-surface-border text-ink-muted hover:border-accent/40 hover:text-ink"}`}>
                   <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold transition-colors duration-base ${done[st.id] ? "bg-success text-on-accent" : st.id === step ? "bg-accent text-on-accent" : "bg-surface-soft text-ink-faint"}`}>{done[st.id] ? "✓" : i + 1}</span>
                   <span className="hidden sm:inline">{st.label}</span><span className="sm:hidden">{st.short}</span>
                 </button>

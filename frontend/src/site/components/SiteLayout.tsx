@@ -12,6 +12,7 @@ import { SITE_NAME } from "../lib/seo";
 import { useMyReviews } from "../lib/reviews";
 import { Breadcrumbs, Container } from "./ui";
 import { useAuth } from "../lib/auth";
+import { EASE, MOTION } from "../lib/motion";
 import { HelpProvider } from "../help/HelpProvider";
 import { HelpButton } from "../help/HelpButton";
 
@@ -60,7 +61,7 @@ function ThemeButton() {
     const root = document.documentElement;
     if (!prefersReducedMotion()) {
       root.classList.add("theme-transition");
-      window.setTimeout(() => root.classList.remove("theme-transition"), 260);
+      window.setTimeout(() => root.classList.remove("theme-transition"), 200);
     }
     setPreference(resolved === "dark" ? "light" : "dark");
   };
@@ -140,8 +141,8 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
     const el = mainRef.current;
     if (!el || prefersReducedMotion() || typeof el.animate !== "function") return;
     const anim = el.animate(
-      [{ opacity: 0.5, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }],
-      { duration: 220, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "both" }
+      [{ opacity: 0.6, transform: "translateY(3px)" }, { opacity: 1, transform: "none" }],
+      { duration: MOTION.base, easing: EASE.out, fill: "both" }
     );
     return () => anim.cancel();
   }, [location.pathname]);
