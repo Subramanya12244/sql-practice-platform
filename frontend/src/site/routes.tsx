@@ -388,7 +388,7 @@ export const routes: SiteRoute[] = [
     load: async () => ({
       ...(await base()),
       projects: await loadProjectIndex(),
-      projectTasks: (await loadAllProjects()).map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type }) as never) })),
+      projectTasks: (await loadAllProjects()).map((p) => ({ slug: p.slug, tasks: p.tasks.map((t) => ({ id: t.id, type: t.type, title: t.title }) as never) })),
     }),
     paths: one("/projects-lab"),
   },
