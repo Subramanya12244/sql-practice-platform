@@ -7,15 +7,12 @@ import { BookmarkButton, LevelBadge, Minutes, RelatedPanel } from "../components
 import { Container, PageHeader } from "../components/ui";
 import { Seo, breadcrumbs, canonical, faqPage } from "../lib/seo";
 import { guideFaq } from "../lib/frontmatter";
-import { NOTE_CATEGORIES, headings, type NoteMeta } from "../lib/learning";
-import { markNoteRead, recordVisit, useProgress, type Progress } from "../lib/progress";
+import { NOTE_CATEGORIES, headings } from "../lib/learning";
+import { markNoteRead, recordVisit, useProgress } from "../lib/progress";
+import { noteStatus } from "../lib/noteStatus";
 
-/** A note counts as learned when it is read and at least half its linked questions are solved. */
-export function noteStatus(n: NoteMeta, p: Progress): "new" | "read" | "learned" {
-  if (!p.read?.[n.slug]) return "new";
-  const solved = n.questions.filter((q) => p.questions[q]?.solvedAt).length;
-  return !n.questions.length || solved * 2 >= n.questions.length ? "learned" : "read";
-}
+// The rule lives in lib/noteStatus.ts so the Learn hub shows the same status; re-exported for existing imports.
+export { noteStatus };
 
 function StatusIcon({ s }: { s: ReturnType<typeof noteStatus> }) {
   if (s === "learned") return <CheckCircle2 className="h-4 w-4 shrink-0 text-success" aria-label="Learned" />;

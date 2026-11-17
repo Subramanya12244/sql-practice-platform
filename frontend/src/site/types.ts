@@ -143,4 +143,8 @@ export interface PageData {
   /** Daily Learning: the authored lesson for this day (null when not written yet) and its resolved resource links. */
   dailyContent?: import("./lib/daily").DayContent | null;
   dailyLinks?: import("./lib/dailyLinks").ResolvedLink[];
+  /** Learn hub: compact topic library, the SQL course, projects and counts (hub and path pages). */
+  learnHub?: import("./lib/learnLoad").LearnHubData;
+  /** Learn hub: one topic with its resolved notes, practice, projects and Daily phases. */
+  learnTopic?: import("./lib/learnTopics").TopicBundle;
 }
