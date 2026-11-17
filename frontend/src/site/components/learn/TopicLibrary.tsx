@@ -135,7 +135,7 @@ export function TopicLibrary({ topics, filter, setFilter, progress, daily }: { t
             </button>
           ))}
         </div>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <label className="block text-xs font-medium text-ink-muted">Difficulty
             <select className={`${selectCls} mt-1`} value={filter.level} onChange={(e) => set({ level: e.target.value })}>
               <option value="all">All levels</option>
@@ -172,7 +172,7 @@ export function TopicLibrary({ topics, filter, setFilter, progress, daily }: { t
         </div>
       ) : (
         <>
-          <ul className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Topics">
+          <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Topics">
             {visible.map((t) => <TopicCard key={t.id} t={t} progress={progress} daily={daily} />)}
           </ul>
           {results.length > shown && (

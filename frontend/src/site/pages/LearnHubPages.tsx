@@ -97,7 +97,7 @@ function CourseSection({ m, passed }: { m: PathModel; passed: Record<string, str
         return (
           <div key={level} className="mt-4">
             <h3 className="font-display text-h3 text-ink">{level}</h3>
-            <ol className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ol className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {group.map((l) => (
                 <li key={l.slug}><CourseLesson l={l} passed={passed} /></li>
               ))}
@@ -153,7 +153,7 @@ export function LearnPathPage() {
       <Seo title={seoTitle} description={`${def.tagline} ${m.lessons} lessons, about ${hoursLabel(m.minutes)} planned, notes, practice and a final project.`} path={path} jsonLd={jsonLd} />
       <Link to="/learn" className="inline-flex items-center gap-1 text-sm font-medium text-ink-muted hover:text-accent"><ArrowLeft className="h-4 w-4" aria-hidden /> All learning paths</Link>
 
-      <header className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start">
+      <header className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start">
         <div>
           <div className="flex items-center gap-3"><SubjectIcon subject={def.subject} /><p className={`text-label uppercase ${subject.text}`}>Learning path{m.levelLabel ? ` · ${m.levelLabel}` : ""}</p></div>
           <h1 className="mt-3 font-display text-h1 text-ink">{def.title}</h1>
@@ -173,7 +173,7 @@ export function LearnPathPage() {
       </header>
 
       <div className="mt-12 space-y-12">
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card as="section" aria-labelledby="objectives-heading" data-help="path-objectives">
             <h2 id="objectives-heading" className="font-display text-h2 text-ink">What you will learn</h2>
             <ul className="mt-3 space-y-2">
@@ -236,7 +236,7 @@ export function LearnPathPage() {
 
         <CourseSection m={m} passed={view.progress.lessons} />
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card as="section" aria-labelledby="notes-heading" data-help="path-notes">
             <h2 id="notes-heading" className="font-display text-h2 text-ink">Notes for this path</h2>
             <p className="mt-0.5 text-sm text-ink-muted">Theory you can read alongside the lessons. Marked as read by you.</p>
@@ -309,7 +309,7 @@ function ResourceGroup({ title, items }: { title: string; items: { key: string; 
   return (
     <div>
       <p className="mb-1.5 text-label uppercase text-ink-faint">{title} <span className="tabular-nums">({items.length})</span></p>
-      <ul className="grid gap-1.5 sm:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         {items.map((i) => (
           <li key={i.key}>
             <Link to={i.to} className="group flex h-full items-center justify-between gap-2 rounded-lg border border-surface-border px-3 py-1.5 text-sm transition-colors duration-fast hover:border-accent/40">
@@ -365,7 +365,7 @@ export function LearnTopicPage() {
         </div>
       </header>
 
-      <div className="mt-10 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:items-start">
+      <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:items-start">
         <div className="space-y-4">
           {hasLearn && (
             <Section id="learn-heading" title="Learn" help="topic-learn">

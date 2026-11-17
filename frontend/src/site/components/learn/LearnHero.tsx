@@ -82,7 +82,7 @@ export function LearnHero({ hub, view, mounted, onSearch }: { hub: LearnHubData;
   const [q, setQ] = useState("");
   const submit = (e: FormEvent) => { e.preventDefault(); onSearch(q.trim()); };
   return (
-    <section aria-labelledby="learn-title" className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
+    <section aria-labelledby="learn-title" className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
       <div>
         <p className="text-label uppercase text-accent">Learn</p>
         <h1 id="learn-title" className="mt-2 font-display text-h1 text-ink">Learn data skills, in the right order</h1>

@@ -37,6 +37,22 @@ test("release: every key route loads with no console errors, hydration errors or
   }
 });
 
+test("release: no topic page scrolls sideways on a phone", async ({ page, isMobile, baseURL }) => {
+  test.skip(!isMobile, "phone layout");
+  test.setTimeout(480_000);
+  // every topic in the sitemap when there is one (a built or deployed site); otherwise the samples above
+  const xml = await (await page.request.get(new URL("/sitemap.xml", baseURL!).href)).text();
+  const fromSitemap = [...xml.matchAll(/<loc>[^<]*(\/learn\/topic\/[a-z0-9-]+)<\/loc>/g)].map((m) => m[1]);
+  const paths = fromSitemap.length > 100 ? fromSitemap : ROUTES.filter((r) => r.startsWith("/learn/topic/"));
+  const wide: string[] = [];
+  for (const path of paths) {
+    await page.goto(path);
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    if (over > 1) wide.push(`${path} (+${over}px)`);
+  }
+  expect(wide).toEqual([]);
+});
+
 test("release: page titles are specific", async ({ page }) => {
   const titles: Record<string, RegExp> = {
     "/learn": /Learn SQL, Python, Data Analytics and Data Engineering/,

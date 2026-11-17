@@ -46,8 +46,8 @@ export function PracticeProjects({ hub, progress, index, mounted, projectProgres
     <section id="practice" aria-labelledby="practice-heading" data-help="hub-practice" className="scroll-mt-20">
       <SectionHeader id="practice-heading" title="Hands-on practice and projects" description="Everything here runs in your browser and is checked automatically."
         action={<Link to="/projects-lab" className="inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline">All {hub.counts.projects} projects <ArrowRight className="h-4 w-4" aria-hidden /></Link>} />
-      <div className="grid gap-4 lg:grid-cols-5">
-        <ul className="grid gap-3 sm:grid-cols-2 lg:col-span-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-3">
           <li><Tile to="/questions" icon={Database} title="SQL practice" meta={`${index.length} graded questions on a real PostgreSQL database`}>
             <span className="mt-3 block"><ProgressBar value={mounted ? sqlSolved : 0} max={index.length || 1} label={`SQL questions solved: ${sqlSolved} of ${index.length}`} /><span className="mt-1 block text-xs text-ink-muted">{mounted ? `${sqlSolved} of ${index.length} solved` : "Your solved count appears here"}</span></span>
           </Tile></li>
@@ -94,7 +94,7 @@ export function ResourceShelf({ hub, progress, mounted }: { hub: LearnHubData; p
     <section id="resources" aria-labelledby="resources-heading" data-help="hub-resources" className="scroll-mt-20">
       <SectionHeader id="resources-heading" title="Learning resources" description="Reference material to read, revise and look things up."
         action={mounted && (read > 0 || saved > 0) ? <p className="flex items-center gap-1.5 text-sm text-ink-muted"><Bookmark className="h-4 w-4" aria-hidden /> {read} notes read · {saved} saved</p> : undefined} />
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {SHELF.map(({ to, label, icon: Icon, desc, count }) => (
           <li key={to}>
             <Link to={to} className="group flex h-full gap-3 rounded-card border border-surface-border bg-surface-raised p-4 shadow-panel transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-accent/40">

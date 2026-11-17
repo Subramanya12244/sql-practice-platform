@@ -45,7 +45,7 @@ export function PathCards({ ctx }: { ctx: PathContext }) {
   return (
     <section id="paths" aria-labelledby="paths-heading" data-help="hub-paths" className="scroll-mt-20">
       <SectionHeader id="paths-heading" title="Learning paths" description="Each path is a fixed order of real lessons with its own notes, practice and a final project." />
-      <ul className="stagger grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ul className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {models.map((m) => <li key={m.def.id} data-path={m.def.id}><PathCard m={m} /></li>)}
       </ul>
     </section>

@@ -59,7 +59,7 @@ export function CurriculumRoadmap({ daily }: { daily: DailyState }) {
       <div role="tabpanel" aria-label={`${current.label} phases`} className="mt-4">
         <p className="text-sm text-ink-muted">{current.blurb}</p>
         <p className="mt-1 text-xs text-ink-faint tabular-nums">{done} of {total} lessons completed · {hoursLabel(minutes)} planned in {phases.length} phases</p>
-        <ol className="relative mt-4 grid gap-2.5 before:absolute before:bottom-3 before:left-3 before:top-3 before:w-px before:bg-surface-border lg:grid-cols-2 lg:gap-x-5 lg:before:hidden">
+        <ol className="relative mt-4 grid grid-cols-1 gap-2.5 before:absolute before:bottom-3 before:left-3 before:top-3 before:w-px before:bg-surface-border lg:grid-cols-2 lg:gap-x-5 lg:before:hidden">
           {phases.map((p, i) => <PhaseRow key={p.id} p={p} index={i} />)}
         </ol>
       </div>
