@@ -116,4 +116,15 @@ Constraints kept: no routes or content IDs renamed, no new dependencies, no paid
 
 ## 10. Phase log
 
-(Updated as each phase completes.)
+Local commits on `feature/ux-redesign` (never pushed). Each phase: focused tests, `tsc -b`, ESLint, then a browser check at desktop and mobile widths.
+
+| Phase | Commit | Result |
+| --- | --- | --- |
+| 0 Audit | `e5a1b6d` | This report |
+| 1 Design system | `e5a1b6d` | `info` state colour; type scale (`text-display`, `text-h1`, `text-h2`, `text-h3`, `text-lead`, `text-label`); shared `Breadcrumbs`; `info` Badge tone; `PageHeader` and `SectionHeader` use the scale. Existing tokens, motion and focus rules kept |
+| 2 Homepage | `e5a1b6d` | New hero ("Become a Data Professional.", Start Learning, Explore Curriculum) with a data-pipeline visual whose rows link to real practice pages; four learning domains; the Learn-Practise-Build-Prove-Grow journey; six featured tools; Daily Learning resume card from real progress. Removed the marketing-only sections (feature highlights, Python stage grid, popular questions); every one of those destinations is still reachable. Fixed: completed projects was hard-coded to 0 |
+| 3 Navigation | `a62ab40` | Six categories (Home, Learn, Practice, Labs, Projects, Career); no path in two groups; header breadcrumb trail; item descriptions as tooltips; Ctrl/Cmd+K now also finds tools and pages, Daily lessons and Python exercises, and ranks a whole-phrase title match first. Footer and Guide text follow |
+| 4 Dashboard | `7ebd1f5` | "What to do next", "Revision and mistakes", "Skill mastery" (ten skills, five evidence-based statuses), "Projects", and the Daily resume card. Pure models in `lib/skills.ts`, `lib/dashboardModel.ts`. Fixed: the Daily dashboard's Mastered count was always 0 |
+| 5 Daily Learning | `29f4711`, `7784b28` | Lesson workspace: phase day list, lesson, rail (time, progress, key concepts, prerequisites, section headings); reading progress; remembered step and scroll with an explicit Resume; footer with previous, finish, next. Exercises: plain-language error explanations, expected-versus-yours with the first differing line. Fixed: page jump on laptop widths |
+| 6 Tools | `f2dadfb` | Query visualizer Format SQL; larger ETL and DAG nodes and canvases; schema designer no longer scrolls sideways on phones (a site-wide `fieldset` fix) |
+

@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 /**
  * DataForge mark: a database cylinder whose layers feed a pipeline arrow.
  * Pure SVG so it renders the same in the app, favicon and social images.
@@ -7,7 +9,8 @@ const TONES = { default: ["#4f46e5", "#2563eb"], site: ["#14b8a6", "#7c3aed"] } 
 
 export function BrandMark({ size = 28, className = "", tone = "default" }: { size?: number; className?: string; tone?: keyof typeof TONES }) {
   const [a, b] = TONES[tone];
-  const id = `df-g-${tone}`;
+  // One gradient per instance: the mark is drawn in the header, the sidebar and the footer, and ids must be unique in a page.
+  const id = `df-g-${tone}-${useId().replace(/:/g, "")}`;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" className={className} aria-hidden="true" focusable="false">
       <defs>
