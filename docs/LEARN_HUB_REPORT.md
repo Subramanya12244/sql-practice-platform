@@ -35,7 +35,7 @@ Branch `feature/learn-hub`, created from `origin/main` `0d5c358` (the merged UX 
 
 ## Files changed
 
-41 files, +3,511 / −109 lines against `origin/main` (six commits).
+As of the last code commit `e466966`: 41 files, +3,511 / −109 lines against `origin/main` in six commits. Two docs-only commits (this report) follow it.
 
 - **New, logic:** `lib/learnTopics.ts` (topics, filters, status, topic bundle), `lib/learnPaths.ts` (paths, roadmap, continue, recommendations), `lib/learnLoad.ts` (compact page data), `lib/noteStatus.ts` (the note rule, moved out of the page so both use one copy).
 - **New, UI:** `components/learn/{LearnHero,PathCards,TopicLibrary,CurriculumRoadmap,PracticeResources,shared}.tsx`, `pages/LearnHubPages.tsx`.
