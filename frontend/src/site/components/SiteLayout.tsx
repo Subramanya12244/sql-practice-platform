@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Bell, ChevronDown, Github, LogOut, Menu, Moon, Search, Settings, Shield, Sun, UserRound, X } from "lucide-react";
-import { BrandMark } from "../../components/BrandMark";
+import { BrandLogo } from "../../components/BrandMark";
 import { BRAND } from "../../brand";
 import { NAV_GROUPS, activeGroup, breadcrumbFor } from "../lib/navigation";
 import { AppSidebar } from "./AppSidebar";
@@ -181,9 +181,8 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
       </a>
       <header className="sticky top-0 z-40 border-b border-surface-border bg-surface/80 backdrop-blur-md">
         <Container wide className="flex h-16 items-center gap-3">
-          <Link to="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap font-display text-base font-bold tracking-tight text-ink">
-            <BrandMark tone="site" size={30} />
-            {SITE_NAME}
+          <Link to="/" className="flex shrink-0 items-center rounded-lg" aria-label={`${SITE_NAME} home`}>
+            <BrandLogo height={34} compact />
           </Link>
           {crumbs.length > 0 && <Breadcrumbs items={crumbs} className="ml-2 hidden border-l border-surface-border pl-4 md:block" />}
           <div className="ml-auto hidden items-center gap-1.5 lg:flex">
@@ -260,7 +259,7 @@ export function SiteLayout({ children, loading, error }: { children: ReactNode; 
       <footer className="mt-16 border-t border-surface-border bg-surface-raised/40 py-12 text-sm text-ink-muted">
         <Container className="grid gap-8 sm:grid-cols-2 lg:grid-cols-6">
           <div className="lg:col-span-2">
-            <p className="flex items-center gap-2 font-display font-bold text-ink"><BrandMark tone="site" size={24} /> {SITE_NAME}</p>
+            <p><BrandLogo height={30} label="DataForge" /></p>
             <p className="mt-3 max-w-sm">
               {BRAND.tagline} SQL, Python and data engineering practice with real PostgreSQL and Python in your browser. Sign-up is optional.
             </p>
