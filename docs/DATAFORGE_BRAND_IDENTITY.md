@@ -114,7 +114,7 @@ The unit tests require at least 3:1 for the mark on every surface it sits on and
 
 ## 5. Where it is used
 
-An audit of the site found the old identity in the header, the footer, the sign-in and sign-up pages, the favicon, the manifest, the Open Graph images and the head metadata. Those were changed. The logo is **not** added to the dashboard, Learn Hub, Daily Learning or Projects Lab bodies: those pages already sit under the header logo, and repeating a logo in the content would add noise.
+An audit of the site found the old identity in the header, the footer, the sign-in and sign-up pages, the favicon, the manifest, the Open Graph images, the head metadata and (found later, in the QA review) the card the Share button draws. Those were changed. The logo is **not** added to the dashboard, Learn Hub, Daily Learning or Projects Lab bodies: those pages already sit under the header logo, and repeating a logo in the content would add noise.
 
 | Place | What shows |
 |---|---|
@@ -125,6 +125,7 @@ An audit of the site found the old identity in the header, the footer, the sign-
 | Browser tab | `favicon.svg`, with 32 and 16 px PNG and `.ico` fallbacks |
 | Install and home screen | `manifest.webmanifest` with 192, 512, maskable 512 and the SVG; `apple-touch-icon.png` |
 | Link previews | `og-image.png`; the 150 per-question cards use the brand blue and the mark |
+| Share button (Progress and Question pages) | A 1200 x 630 card drawn in the browser: flat ink, blue rule, the lockup (`ShareButton.tsx`, from the same geometry) |
 
 Screenshots of the built site (light and dark): `images/brand/nav-desktop-*.png`, `nav-mobile-*.png`, `learn-hub-*.png`, `dashboard-*.png`, `projects-lab-*.png`.
 
@@ -162,10 +163,14 @@ The script uses `@resvg/resvg-js`, which the project already depends on.
 ## 7. Accessibility and motion
 
 - The logo never animates. Nothing needs `prefers-reduced-motion`.
+- In forced-colours mode (Windows High Contrast) the mark takes the system text colour, like the wordmark, so it always contrasts with the forced canvas (`forced-colors:fill-current`).
 - Decorative instances are `aria-hidden`; a named one is a single image with a label.
 - The wordmark is at least 7:1 on every surface it sits on; the mark is at least 3:1.
 
 ## 8. Checks that ran
+
+The table below is the first implementation pass. The independent review that followed, with its results, defects and the Firefox and WebKit runs, is in [DATAFORGE_BRAND_QA_REPORT.md](DATAFORGE_BRAND_QA_REPORT.md).
+
 
 | Check | Result |
 |---|---|
