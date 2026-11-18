@@ -56,6 +56,22 @@ for (const theme of ["light", "dark"] as const) {
   });
 }
 
+for (const scheme of ["light", "dark"] as const) {
+  test(`forced colours on a ${scheme} canvas (Windows High Contrast): the mark takes the system text colour like the wordmark and contrasts with the canvas`, async ({ page }) => {
+    await page.emulateMedia({ forcedColors: "active", colorScheme: scheme });
+    await page.goto("/learn");
+    const [mark, word] = await Promise.all([
+      page.locator("header a[aria-label='DataForge home'] svg:visible path.fill-brand").first().evaluate((el) => getComputedStyle(el).fill),
+      page.locator("header a[aria-label='DataForge home'] svg:visible g.fill-current path").first().evaluate((el) => getComputedStyle(el).fill),
+    ]);
+    const canvas = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(mark).toBe(word);
+    const lum = (c: string) => { const m = c.match(/\d+(\.\d+)?/g)!.slice(0, 3).map(Number).map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; };
+    const [a, b] = [lum(mark), lum(canvas)].sort((x, y) => y - x);
+    expect((a + 0.05) / (b + 0.05)).toBeGreaterThanOrEqual(7);
+  });
+}
+
 test("the logo does not shift the page as it loads, and the header is the same height on every page", async ({ page }) => {
   await page.addInitScript(() => { (window as unknown as { __cls: number }).__cls = 0; new PerformanceObserver((l) => { for (const e of l.getEntries() as unknown as { hadRecentInput: boolean; value: number; sources?: { node?: Node }[] }[]) if (!e.hadRecentInput && e.sources?.some((s) => (s.node as Element | undefined)?.closest?.("header"))) (window as unknown as { __cls: number }).__cls += e.value; }).observe({ type: "layout-shift", buffered: true }); });
   const heights = new Set<number>();
@@ -100,4 +116,32 @@ test("the logo is reachable and visible in the footer too, and nothing else on t
   await page.locator("footer").scrollIntoViewIfNeeded();
   await expect(page.locator("footer svg[aria-label='DataForge']")).toBeVisible();
   expect(await page.locator("svg:visible path.fill-brand").count()).toBe(2); // header and footer only
+});
+
+test("the share card you can post from the Progress page is on brand: flat ink, a blue rule, the lockup, and no old indigo gradient", async ({ page }) => {
+  // Capture the PNG the Share button builds instead of opening a share sheet.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __card?: Blob };
+    (navigator as unknown as { canShare: () => boolean }).canShare = () => true;
+    (navigator as unknown as { share: (d: { files: File[] }) => Promise<void> }).share = async (d) => { w.__card = d.files[0]; };
+  });
+  await page.goto("/progress");
+  await page.getByRole("button", { name: "Share" }).click();
+  await page.waitForFunction(() => !!(window as unknown as { __card?: Blob }).__card);
+  const px = await page.evaluate(async () => {
+    const bmp = await createImageBitmap((window as unknown as { __card: Blob }).__card);
+    const c = document.createElement("canvas"); c.width = bmp.width; c.height = bmp.height;
+    const g = c.getContext("2d")!; g.drawImage(bmp, 0, 0);
+    const at = (x: number, y: number) => Array.from(g.getImageData(x, y, 1, 1).data.slice(0, 3));
+    // does the lockup area hold the light-blue mark colour somewhere?
+    const d = g.getImageData(80, 58, 140, 80).data; let mark = 0;
+    for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - 124) < 6 && Math.abs(d[i + 1] - 155) < 6 && Math.abs(d[i + 2] - 255) < 6) mark++;
+    return { size: [bmp.width, bmp.height], rule: at(600, 4), topLeft: at(2, 300), middle: at(1100, 200), bottomRight: at(1190, 625), mark };
+  });
+  expect(px.size).toEqual([1200, 630]);
+  expect(px.rule).toEqual([45, 91, 255]);
+  expect(px.topLeft).toEqual([7, 11, 20]);
+  expect(px.middle).toEqual([7, 11, 20]); // flat: a gradient would differ across the card
+  expect(px.bottomRight).toEqual([7, 11, 20]);
+  expect(px.mark).toBeGreaterThan(300);
 });

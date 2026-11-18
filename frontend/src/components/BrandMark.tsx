@@ -13,16 +13,20 @@ import { MARK_BOX, MARK_PATH, MARK_ROWS, MARK_VIEWBOX, WORDMARK, lockupMetrics }
  */
 export type BrandMarkVariant = "color" | "mono" | "heated";
 
+/** In forced-colours mode (Windows High Contrast) the page takes the system canvas, so the mark takes the system text colour like the wordmark; a theme blue could land on the wrong canvas. */
+const FILL = "fill-brand forced-colors:fill-current";
+const FILL_EMBER = "fill-brand-ember forced-colors:fill-current";
+
 export function BrandMark({ size = 28, className = "", variant = "color", tight = false, label }: { size?: number; className?: string; variant?: BrandMarkVariant; tight?: boolean; label?: string }) {
-  const fill = variant === "mono" ? "fill-current" : "fill-brand";
+  const fill = variant === "mono" ? "fill-current" : FILL;
   const viewBox = tight ? `${MARK_BOX.x} ${MARK_BOX.y} ${MARK_BOX.width} ${MARK_BOX.height}` : MARK_VIEWBOX;
   const height = tight ? (size * MARK_BOX.height) / MARK_BOX.width : size;
   return (
     <svg width={size} height={height} viewBox={viewBox} className={`shrink-0 ${className}`} focusable="false" {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}>
       {variant === "heated" ? (
         <>
-          <path className="fill-brand-ember" d={MARK_ROWS[0]} />
-          <path className="fill-brand" d={`${MARK_ROWS[1]}${MARK_ROWS[2]}`} />
+          <path className={FILL_EMBER} d={MARK_ROWS[0]} />
+          <path className={FILL} d={`${MARK_ROWS[1]}${MARK_ROWS[2]}`} />
         </>
       ) : (
         <path className={fill} d={MARK_PATH} />
@@ -47,7 +51,7 @@ export function BrandLogo({ height = 32, className = "", compact = false, label 
   return (
     <span className={`inline-flex items-center text-ink ${className}`}>
       <svg width={width} height={height} viewBox={`0 0 ${L.width} ${L.height}`} focusable="false" className={compact ? "max-[359px]:hidden" : undefined} {...a11y}>
-        <g transform={`scale(${L.scale})`}><path className="fill-brand" d={MARK_PATH} /></g>
+        <g transform={`scale(${L.scale})`}><path className={FILL} d={MARK_PATH} /></g>
         <g className="fill-current" transform={`translate(${L.textX} ${L.baseline})`}>
           <path d={WORDMARK.data} />
           <path d={WORDMARK.forge} />
@@ -55,7 +59,7 @@ export function BrandLogo({ height = 32, className = "", compact = false, label 
       </svg>
       {compact && (
         <svg width={(MARK_BOX.width * L.scale * height) / L.height} height={(MARK_BOX.height * L.scale * height) / L.height} viewBox={`${MARK_BOX.x} ${MARK_BOX.y} ${MARK_BOX.width} ${MARK_BOX.height}`} focusable="false" className="hidden max-[359px]:block" {...a11y}>
-          <path className="fill-brand" d={MARK_PATH} />
+          <path className={FILL} d={MARK_PATH} />
         </svg>
       )}
     </span>

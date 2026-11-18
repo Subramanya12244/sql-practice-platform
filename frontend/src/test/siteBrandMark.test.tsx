@@ -20,7 +20,7 @@ describe("BrandMark", () => {
     expect(container.querySelector("path")!.getAttribute("class")).toContain("fill-current");
     rerender(<BrandMark variant="heated" />);
     const classes = [...container.querySelectorAll("path")].map((x) => x.getAttribute("class"));
-    expect(classes).toEqual(["fill-brand-ember", "fill-brand"]);
+    expect(classes).toEqual(["fill-brand-ember forced-colors:fill-current", "fill-brand forced-colors:fill-current"]);
   });
 
   it("keeps its proportions: square on the grid, or cropped to the ink box with the matching height", () => {
@@ -47,7 +47,7 @@ describe("BrandLogo", () => {
     const paths = [...container.querySelectorAll("path")];
     expect(paths).toHaveLength(3);
     expect(paths[0].getAttribute("d")).toBe(MARK_PATH);
-    expect(paths[0].getAttribute("class")).toBe("fill-brand");
+    expect(paths[0].getAttribute("class")).toBe("fill-brand forced-colors:fill-current"); // forced-colours mode: the mark follows the system text colour, like the wordmark
     expect(paths[1].getAttribute("d")).toBe(WORDMARK.data);
     expect(paths[2].getAttribute("d")).toBe(WORDMARK.forge);
     expect(paths[1].parentElement!.getAttribute("class")).toBe("fill-current");
