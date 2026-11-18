@@ -12,6 +12,11 @@ export default {
           soft: "rgb(var(--color-surface-soft) / <alpha-value>)",
           border: "var(--color-border)",
         },
+        brand: {
+          DEFAULT: "rgb(var(--color-brand) / <alpha-value>)",
+          fg: "rgb(var(--color-brand-fg) / <alpha-value>)",
+          ember: "rgb(var(--color-brand-ember) / <alpha-value>)",
+        },
         accent: {
           DEFAULT: "rgb(var(--color-accent) / <alpha-value>)",
           muted: "rgb(var(--color-accent-muted) / <alpha-value>)",

@@ -1,12 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
-  <rect width="64" height="64" rx="14" fill="url(#g)"/>
-  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="25" cy="17" rx="12" ry="4.5"/>
-    <path d="M13 17v24c0 2.5 5.4 4.5 12 4.5"/>
-    <path d="M37 17v9"/>
-    <path d="M13 29c0 2.5 5.4 4.5 12 4.5"/>
-    <path d="M31 39h18"/>
-    <path d="M43 32l7 7-7 7"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><title>DataForge</title><style>path{fill:#2D5BFF}@media (prefers-color-scheme:dark){path{fill:#7C9BFF}}</style><path d="M2 10H62V23H23C14 23 7 18 2 10ZM23 26H47V36H23ZM13 39H57V53H13Z"/></svg>

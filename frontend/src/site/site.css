@@ -16,6 +16,10 @@ html.light {
   --color-accent: 12 104 97;
   --color-accent-muted: 17 99 124;
   --color-secondary: 109 40 217;
+  /* Brand: the product blue marks the product (the mark, icons, social cards); the interactive accent stays teal. See docs/DATAFORGE_BRAND_IDENTITY.md */
+  --color-brand: 45 91 255;
+  --color-brand-fg: 255 255 255;
+  --color-brand-ember: 255 122 47;
   --color-on-accent: 255 255 255;
   --color-success: 4 120 87;
   --color-warn: 146 64 14;
@@ -50,6 +54,10 @@ html.dark {
   --color-accent: 45 212 191;
   --color-accent-muted: 34 211 238;
   --color-secondary: 167 139 250;
+  /* Brand: the product blue marks the product (the mark, icons, social cards); the interactive accent stays teal. See docs/DATAFORGE_BRAND_IDENTITY.md */
+  --color-brand: 124 155 255;
+  --color-brand-fg: 255 255 255;
+  --color-brand-ember: 255 122 47;
   --color-on-accent: 4 17 28;
   --color-success: 52 211 153;
   --color-warn: 251 191 36;
@@ -86,6 +94,10 @@ html.dark {
   --color-accent: 45 212 191;
   --color-accent-muted: 34 211 238;
   --color-secondary: 167 139 250;
+  /* Brand: the product blue marks the product (the mark, icons, social cards); the interactive accent stays teal. See docs/DATAFORGE_BRAND_IDENTITY.md */
+  --color-brand: 124 155 255;
+  --color-brand-fg: 255 255 255;
+  --color-brand-ember: 255 122 47;
   --color-on-accent: 4 17 28;
   --color-success: 52 211 153;
   --color-warn: 251 191 36;

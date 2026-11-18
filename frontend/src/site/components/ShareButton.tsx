@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Share2 } from "lucide-react";
 import { SITE_NAME, SITE_URL } from "../lib/seo";
+import { BRAND_COLORS, MARK_PATH, WORDMARK, lockupMetrics } from "../../brandGeometry.js";
 
 type Props =
   | { kind: "question"; title: string; number: number }
@@ -12,14 +13,25 @@ function drawCard(p: Props): HTMLCanvasElement {
   c.width = 1200;
   c.height = 630;
   const g = c.getContext("2d")!;
-  const grad = g.createLinearGradient(0, 0, 1200, 630);
-  grad.addColorStop(0, "#1e1b4b");
-  grad.addColorStop(1, "#4338ca");
-  g.fillStyle = grad;
+  // The same flat ink card as the default social image: a blue rule, the lockup, no gradient.
+  g.fillStyle = BRAND_COLORS.ink;
   g.fillRect(0, 0, 1200, 630);
-  g.fillStyle = "#c7d2fe";
-  g.font = "600 34px Inter, system-ui, sans-serif";
-  g.fillText(SITE_NAME, 80, 110);
+  g.fillStyle = BRAND_COLORS.blue;
+  g.fillRect(0, 0, 1200, 10);
+  const L = lockupMetrics();
+  g.save();
+  g.translate(80, 58);
+  g.scale(1.5, 1.5);
+  g.save();
+  g.scale(L.scale, L.scale);
+  g.fillStyle = BRAND_COLORS.blueOnDark;
+  g.fill(new Path2D(MARK_PATH));
+  g.restore();
+  g.translate(L.textX, L.baseline);
+  g.fillStyle = "#F1F5F9";
+  g.fill(new Path2D(WORDMARK.data));
+  g.fill(new Path2D(WORDMARK.forge));
+  g.restore();
   g.fillStyle = "#ffffff";
   if (p.kind === "question") {
     g.font = "700 64px Inter, system-ui, sans-serif";
@@ -32,7 +44,7 @@ function drawCard(p: Props): HTMLCanvasElement {
     g.font = "600 46px Inter, system-ui, sans-serif";
     g.fillText(`🔥 ${p.streak}-day streak`, 80, 380);
   }
-  g.fillStyle = "#c7d2fe";
+  g.fillStyle = "#94A3B8";
   g.font = "500 30px Inter, system-ui, sans-serif";
   g.fillText(SITE_URL.replace(/^https?:\/\//, ""), 80, 560);
   return c;
