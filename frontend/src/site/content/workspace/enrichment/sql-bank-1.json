@@ -1,0 +1,1166 @@
+{
+  "version": 1,
+  "items": {
+    "sql:q05-top-5-customers-by-number-of-orders": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'Most frequent' is about how many orders each customer placed, not how much they spent. The unit being counted is the order, and each order must be counted once."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`COUNT(DISTINCT order_id)` counts each order once even if a join repeats it. `ORDER BY ... DESC` followed by `LIMIT 5` keeps the five highest counts."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Group orders by customer, count distinct orders per group, sort by that count from largest to smallest, and keep five rows. You do not need order lines at all."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT cu.customer_id, cu.company_name,\n       COUNT(DISTINCT ___) AS order_count\nFROM customers cu\nJOIN orders o ON ___\nGROUP BY cu.customer_id, cu.company_name\nORDER BY ___ DESC\nLIMIT 5;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "aggregation",
+          "symptom": "Counts are far larger than the number of orders (for example 100+ for a customer with 10 orders).",
+          "cause": "`order_details` was joined and `COUNT(order_id)` counts one row per order line.",
+          "fix": "Drop the unneeded join, or count distinct order ids."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`LIMIT 5` returns an arbitrary five customers.",
+          "cause": "There is no ORDER BY, so row order is unspecified.",
+          "fix": "Sort by the count in descending order before LIMIT."
+        },
+        {
+          "category": "grouping",
+          "symptom": "A customer with a hundred orders appears several times.",
+          "cause": "The GROUP BY lists a column that varies per order, such as `o.order_id`.",
+          "fix": "Group only by the customer columns you select."
+        }
+      ],
+      "constraints": [
+        "Exactly five rows.",
+        "Customers with no orders are not relevant for a top-N by count.",
+        "Sorted by order count, highest first."
+      ],
+      "realWorld": "Order frequency identifies habitual buyers, who are treated differently from rare big spenders in loyalty and retention programmes.",
+      "commonMistakes": [
+        "Mixing up frequency and revenue.",
+        "Ties at fifth place: decide whether to add a tie-breaker column."
+      ]
+    },
+    "sql:q25-customers-and-order-count": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "The report must keep every customer, including ones with no orders. That is the signature of an outer join, plus a count that treats 'no order' as zero."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`LEFT JOIN` keeps all rows from the left table and fills the right side with NULLs when there is no match. `COUNT(column)` ignores NULLs, while `COUNT(*)` counts the row anyway."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Start from customers, left join orders, group by the customer, and count a column that only exists when an order matched."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT cu.customer_id, cu.company_name,\n       COUNT(___) AS order_count     -- a column from the orders side\nFROM customers cu\nLEFT JOIN orders o ON ___\nGROUP BY cu.customer_id, cu.company_name\nORDER BY order_count DESC;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "join",
+          "symptom": "Customers who never ordered are missing from the result.",
+          "cause": "An INNER JOIN removes customers that have no matching order.",
+          "fix": "Use LEFT JOIN from customers to orders."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Customers with no orders show `order_count = 1`.",
+          "cause": "`COUNT(*)` counts the single NULL-extended row produced by the outer join.",
+          "fix": "Count a column from the orders table, which is NULL (and ignored) when unmatched."
+        },
+        {
+          "category": "filter",
+          "symptom": "After adding `WHERE o.order_date >= ...` the zero-order customers disappear again.",
+          "cause": "A WHERE condition on the right-hand table rejects the NULL rows and turns the outer join back into an inner join.",
+          "fix": "Move that condition into the ON clause."
+        }
+      ],
+      "constraints": [
+        "All customers appear exactly once.",
+        "A customer with no orders has order_count 0.",
+        "Sorted by order count, highest first."
+      ],
+      "realWorld": "Customer-success teams need the full roster with order counts so that accounts with zero orders become outreach targets instead of invisible.",
+      "commonMistakes": [
+        "INNER JOIN where the business rule says 'including customers with none'.",
+        "COUNT(*) over an outer join."
+      ],
+      "alternatives": [
+        {
+          "title": "Scalar subquery per customer",
+          "code": "SELECT\n    cu.customer_id,\n    cu.company_name,\n    (SELECT COUNT(*) FROM orders o WHERE o.customer_id = cu.customer_id) AS order_count\nFROM customers cu\nORDER BY order_count DESC;\n",
+          "note": "No join and no GROUP BY, and the zero case is automatic because COUNT over no rows is 0. The cost: the subquery runs per customer (a good optimiser turns it into a join, but it is harder to extend with more aggregates than a single LEFT JOIN with GROUP BY)."
+        }
+      ]
+    },
+    "sql:q26-customers-and-latest-order-date": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Recency is the maximum order date per customer, and customers who never ordered must still be listed with an empty date."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`MAX(o.order_date)` over a LEFT JOIN gives NULL for customers without orders. `ORDER BY ... DESC NULLS LAST` controls where those NULLs land."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Left join orders to customers, group by customer, take the maximum date, and sort newest first with the NULLs at the bottom."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT cu.customer_id, cu.company_name,\n       ___(o.order_date) AS latest_order_date\nFROM customers cu\nLEFT JOIN orders o ON ___\nGROUP BY cu.customer_id, cu.company_name\nORDER BY latest_order_date DESC ___;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "null",
+          "symptom": "Customers with no orders are at the top of a 'most recent first' list.",
+          "cause": "In PostgreSQL NULLs sort as larger than any value, so DESC puts them first.",
+          "fix": "Add NULLS LAST to the ORDER BY."
+        },
+        {
+          "category": "join",
+          "symptom": "Customers with no orders are not in the result at all.",
+          "cause": "INNER JOIN drops them.",
+          "fix": "LEFT JOIN from customers."
+        },
+        {
+          "category": "null",
+          "symptom": "A `COALESCE(MAX(order_date), '1900-01-01')` shows a fake date.",
+          "cause": "Replacing NULL with a sentinel date invents a value that never happened.",
+          "fix": "Leave it NULL; MAX of an all-NULL group is already NULL and sorts correctly with NULLS LAST."
+        }
+      ],
+      "constraints": [
+        "One row per customer.",
+        "Customers with no orders show a NULL date and are listed last."
+      ],
+      "realWorld": "Recency of last purchase is the R in RFM analysis, and the never-bought group is its own segment.",
+      "commonMistakes": [
+        "Sorting without thinking about where NULLs go."
+      ],
+      "alternatives": [
+        {
+          "title": "Correlated scalar subquery",
+          "code": "SELECT\n    cu.customer_id,\n    cu.company_name,\n    (SELECT MAX(o.order_date) FROM orders o WHERE o.customer_id = cu.customer_id) AS latest_order_date\nFROM customers cu\nORDER BY latest_order_date DESC NULLS LAST;\n",
+          "note": "Equivalent result without GROUP BY. It reads clearly for one extra column, but each additional aggregate over orders needs another subquery, whereas one LEFT JOIN + GROUP BY computes them all in one pass."
+        }
+      ]
+    },
+    "sql:q28-customers-with-no-orders": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'Never ordered' is the absence of a matching row. There are several ways to ask for absence; each one is an anti-join."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "After a LEFT JOIN, unmatched left rows have NULL in every right-hand column, so `IS NULL` on a right-hand key finds them. `NOT EXISTS` expresses the same idea without a join."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Left join orders to customers on the customer id and keep only rows where the order key is NULL."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT cu.customer_id, cu.company_name\nFROM customers cu\nLEFT JOIN orders o ON ___\nWHERE ___ IS NULL;   -- a column that is never NULL in a real order row\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "null",
+          "symptom": "`WHERE o.customer_id = NULL` returns no rows.",
+          "cause": "`= NULL` is never true; comparison with NULL needs IS NULL.",
+          "fix": "Write `IS NULL`."
+        },
+        {
+          "category": "join",
+          "symptom": "The result is empty although some customers never ordered.",
+          "cause": "The filter is in the ON clause, or the join is INNER, so the unmatched rows never exist.",
+          "fix": "Use LEFT JOIN and put the IS NULL test in WHERE."
+        },
+        {
+          "category": "null",
+          "symptom": "A `NOT IN (SELECT customer_id FROM orders)` version suddenly returns zero rows after a data load.",
+          "cause": "If the subquery returns even one NULL, NOT IN becomes unknown for every row.",
+          "fix": "Use NOT EXISTS, or LEFT JOIN ... IS NULL, which are NULL-safe."
+        }
+      ],
+      "constraints": [
+        "Return only customer id and company name.",
+        "No order may exist for the customer."
+      ],
+      "realWorld": "Marketing lists of accounts that signed up but never bought drive first-purchase campaigns; this anti-join is the building block.",
+      "commonMistakes": [
+        "Testing a nullable right-hand column that can legitimately be NULL even for a matched row.",
+        "NOT IN against a nullable column."
+      ],
+      "interviewRelevance": "Anti-join with three equivalent forms (LEFT JOIN IS NULL, NOT EXISTS, NOT IN) and the NULL trap of NOT IN is a very frequent SQL interview question.",
+      "alternatives": [
+        {
+          "title": "NOT EXISTS",
+          "code": "SELECT cu.customer_id, cu.company_name\nFROM customers cu\nWHERE NOT EXISTS (\n    SELECT 1 FROM orders o WHERE o.customer_id = cu.customer_id\n);\n",
+          "note": "Says what you mean ('no such order') and is NULL-safe, and PostgreSQL plans it as an anti-join just like the LEFT JOIN form. Prefer it when you do not need any column from the other table."
+        }
+      ]
+    },
+    "sql:q29-products-never-ordered": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A product that never sold has no row in the order lines. Finding things that have no counterpart is an anti-join."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`LEFT JOIN ... WHERE right_key IS NULL` or `NOT EXISTS (SELECT 1 ...)` both express 'no matching row'."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Start from products, look for matching order lines, and keep products where no line was found."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT p.product_id, p.product_name\nFROM products p\nWHERE NOT EXISTS (\n    SELECT 1 FROM order_details od WHERE ___\n);\n```\nor the LEFT JOIN form with an `IS NULL` test on an order-line column."
+        }
+      ],
+      "debugging": [
+        {
+          "category": "join",
+          "symptom": "Every product appears, with many duplicates.",
+          "cause": "The LEFT JOIN was written without the `IS NULL` filter, so matched products stay (one row per order line).",
+          "fix": "Filter on the right-hand key being NULL."
+        },
+        {
+          "category": "null",
+          "symptom": "`NOT IN (SELECT product_id FROM order_details)` returns nothing.",
+          "cause": "A NULL in the subquery makes NOT IN evaluate to unknown for every row.",
+          "fix": "Use NOT EXISTS or LEFT JOIN ... IS NULL."
+        },
+        {
+          "category": "filter",
+          "symptom": "Products that are out of stock are listed.",
+          "cause": "'Never ordered' was confused with 'no stock'; they are different facts and this table has no stock history.",
+          "fix": "Base the test only on the absence of order lines."
+        }
+      ],
+      "constraints": [
+        "A product qualifies only if it has zero order lines.",
+        "Columns: product id and name."
+      ],
+      "realWorld": "Purchasing uses never-sold products as the first list when pruning a catalogue.",
+      "commonMistakes": [
+        "Joining orders instead of order_details (the link is on order lines).",
+        "Using DISTINCT to hide an unfiltered outer join."
+      ],
+      "alternatives": [
+        {
+          "title": "NOT EXISTS",
+          "code": "SELECT p.product_id, p.product_name\nFROM products p\nWHERE NOT EXISTS (\n    SELECT 1 FROM order_details od WHERE od.product_id = p.product_id\n);\n",
+          "note": "Stops looking at the first matching line per product and cannot be fooled by NULLs. The LEFT JOIN form is equally fast in PostgreSQL; choose NOT EXISTS when you only need columns from products."
+        }
+      ]
+    },
+    "sql:q41-customers-and-orders": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "The side you must preserve completely is the orders table: every order appears even if its customer is missing."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`RIGHT JOIN` preserves the right-hand table. Any RIGHT JOIN can be written as a LEFT JOIN by swapping the table order."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Join customers and orders on the customer id and make orders the preserved side. Select the order id and the customer's contact name."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT o.order_id, c.contact_name\nFROM customers c\nRIGHT JOIN orders o ON ___;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "join",
+          "symptom": "Orders without a customer disappear.",
+          "cause": "An inner join (or a LEFT JOIN from customers) keeps only matched rows or all customers instead of all orders.",
+          "fix": "Preserve the orders table: RIGHT JOIN with orders on the right."
+        },
+        {
+          "category": "join",
+          "symptom": "All customers are listed, with NULL order ids.",
+          "cause": "The join direction is reversed, so the preserved table is customers.",
+          "fix": "Switch to RIGHT JOIN or swap the table order with LEFT JOIN."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: column reference \"customer_id\" is ambiguous`.",
+          "cause": "Both tables have a `customer_id` column and the name is not qualified.",
+          "fix": "Prefix with the table alias."
+        }
+      ],
+      "constraints": [
+        "Every order appears exactly once.",
+        "Unmatched orders show a NULL contact name."
+      ],
+      "realWorld": "Orphaned orders (a customer record deleted or not yet synced) must show up in reconciliation reports rather than silently vanish.",
+      "commonMistakes": [
+        "Mixing up which side RIGHT preserves."
+      ],
+      "alternatives": [
+        {
+          "title": "LEFT JOIN with the tables swapped",
+          "code": "SELECT o.order_id, c.contact_name\nFROM orders o\nLEFT JOIN customers c ON c.customer_id = o.customer_id;\n",
+          "note": "Identical rows. Most teams standardise on LEFT JOIN only because reading 'from the table I care about, optionally attach the rest' is easier than tracking which side RIGHT preserves; PostgreSQL itself rewrites one into the other."
+        }
+      ]
+    },
+    "sql:q51-customers-and-orders-full-outer-join": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Three groups must all appear: customers with orders, customers without, and orders without a customer. Keep unmatched rows from both sides."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`FULL OUTER JOIN` preserves both sides and fills the missing side with NULLs."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Join customers to orders on the customer id with a full outer join and select the contact name and order id."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT c.contact_name, o.order_id\nFROM customers c\nFULL OUTER JOIN orders o ON ___;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "join",
+          "symptom": "Customers without orders are missing.",
+          "cause": "A RIGHT or INNER join drops them.",
+          "fix": "Use FULL OUTER JOIN."
+        },
+        {
+          "category": "join",
+          "symptom": "Orphan orders are missing.",
+          "cause": "A LEFT join from customers drops orders with no customer.",
+          "fix": "Use FULL OUTER JOIN."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Row count is much larger than the customer count.",
+          "cause": "A full outer join does not de-duplicate: a customer with 10 orders yields 10 rows.",
+          "fix": "That is expected; aggregate afterwards if you need one row per customer."
+        }
+      ],
+      "constraints": [
+        "Rows from both tables are preserved.",
+        "Matched pairs appear once per order."
+      ],
+      "realWorld": "Reconciliation between two systems (CRM and orders) is a full outer join: matches, left-only and right-only rows are all findings.",
+      "commonMistakes": [
+        "Confusing FULL OUTER JOIN with CROSS JOIN."
+      ],
+      "alternatives": [
+        {
+          "title": "LEFT JOIN plus an anti-join, combined with UNION ALL",
+          "code": "SELECT c.contact_name, o.order_id\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\nUNION ALL\nSELECT c.contact_name, o.order_id\nFROM orders o\nLEFT JOIN customers c ON c.customer_id = o.customer_id\nWHERE c.customer_id IS NULL;\n",
+          "note": "How a full outer join was written before every database supported it (MySQL still lacks it). The first branch keeps all customers, the second adds only the orders with no customer. It scans both tables twice, so use FULL OUTER JOIN where it exists."
+        }
+      ]
+    },
+    "sql:q61-employees-without-a-manager": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "An employee table that points at itself (`reports_to`) is joined to itself. 'Has no manager' means the join finds no manager row."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Give the same table two aliases, one for the employee and one for the manager. `LEFT JOIN ... WHERE m.employee_id IS NULL` finds employees without a match."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Left join employees e to employees m on `e.reports_to = m.employee_id`, keep rows where the manager side is NULL, and build the full name with CONCAT."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT CONCAT(e.first_name, ' ', e.last_name) AS employee_name\nFROM employees e\nLEFT JOIN employees m ON ___\nWHERE ___ IS NULL;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "join",
+          "symptom": "The result is empty.",
+          "cause": "An INNER JOIN keeps only employees who do have a manager.",
+          "fix": "Use LEFT JOIN."
+        },
+        {
+          "category": "null",
+          "symptom": "A dangling `reports_to` (manager id with no employee row) is not reported.",
+          "cause": "The filter is `e.reports_to IS NULL`, which only finds NULL ids, not ids that point nowhere.",
+          "fix": "Test the manager side: `m.employee_id IS NULL`."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: table name \"employees\" specified more than once`.",
+          "cause": "The same table is used twice without distinct aliases.",
+          "fix": "Alias one as `e` and the other as `m`."
+        }
+      ],
+      "constraints": [
+        "Output is one name column.",
+        "An employee qualifies when no manager row exists for its `reports_to`."
+      ],
+      "realWorld": "Org-chart checks find the top of the hierarchy and also broken references where a manager was deleted.",
+      "commonMistakes": [
+        "Swapping the alias roles in the ON clause."
+      ],
+      "alternatives": [
+        {
+          "title": "NOT EXISTS",
+          "code": "SELECT CONCAT(e.first_name, ' ', e.last_name) AS employee_name\nFROM employees e\nWHERE NOT EXISTS (\n    SELECT 1 FROM employees m WHERE m.employee_id = e.reports_to\n);\n",
+          "note": "Same result including dangling references (NULL reports_to matches no row, so NOT EXISTS is true). It avoids the second alias in the main query and reads as the rule itself."
+        }
+      ]
+    },
+    "sql:q63-employees-reporting-to-the-same-manager": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Pairs of employees who share a manager come from joining the employee table to itself on the manager column, then removing mirror pairs."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Three aliases of one table: two employees and one manager. A condition `e1.employee_id < e2.employee_id` keeps each pair once and removes self-pairs."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Join e1 to e2 where their `reports_to` is equal, join the manager row for that shared id, and keep only pairs where the first id is smaller."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT CONCAT(e1.first_name,' ',e1.last_name) AS employee_name1,\n       CONCAT(e2.first_name,' ',e2.last_name) AS employee_name2,\n       CONCAT(m.first_name,' ',m.last_name)   AS manager_name\nFROM employees e1\nJOIN employees e2 ON e1.reports_to = e2.reports_to\nJOIN employees m  ON ___\nWHERE ___;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "join",
+          "symptom": "Each person is paired with themselves.",
+          "cause": "Nothing excludes `e1 = e2` once they share a manager.",
+          "fix": "Add an inequality on the ids."
+        },
+        {
+          "category": "join",
+          "symptom": "Every pair appears twice, as (A,B) and (B,A).",
+          "cause": "The condition used `<>` instead of `<`.",
+          "fix": "Use `<` so only one ordering survives."
+        },
+        {
+          "category": "join",
+          "symptom": "The manager's name is the employee's own name.",
+          "cause": "The manager alias was joined on the employee's key (`m.employee_id = e1.employee_id`).",
+          "fix": "Join the manager on `e1.reports_to`."
+        }
+      ],
+      "constraints": [
+        "Each unordered pair appears once.",
+        "Three columns: both employee names and the shared manager's name."
+      ],
+      "realWorld": "Finding peers (same manager, same team, same postal code) is the self-join pattern behind duplicate detection and team-matching features.",
+      "commonMistakes": [
+        "Forgetting that NULL does not equal NULL, so top-level employees with no manager never pair up here."
+      ]
+    },
+    "sql:q71-employee-category-combinations": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Every employee with every category: no relationship between the tables, just all combinations."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`CROSS JOIN` takes no ON clause and returns the Cartesian product, rows(A) times rows(B)."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Use only the two tables, cross join them and build the employee name with CONCAT."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT CONCAT(e.first_name, ' ', e.last_name) AS employee_name,\n       c.category_name\nFROM employees e\nCROSS JOIN ___;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: syntax error at or near \"ON\"`.",
+          "cause": "CROSS JOIN does not accept an ON clause.",
+          "fix": "Remove the ON clause."
+        },
+        {
+          "category": "join",
+          "symptom": "Far fewer rows than employees times categories.",
+          "cause": "A join condition (or joins through orders and products) filtered the combinations.",
+          "fix": "Use only employees and categories with no condition."
+        },
+        {
+          "category": "join",
+          "symptom": "The result has thousands of rows.",
+          "cause": "Extra tables were joined, multiplying the product again.",
+          "fix": "Join just the two needed tables."
+        }
+      ],
+      "constraints": [
+        "Row count equals employees times categories.",
+        "No join condition."
+      ],
+      "realWorld": "Cross joins build skeletons: every store with every week, every employee with every training course, then LEFT JOIN the facts onto it.",
+      "commonMistakes": [
+        "Adding a condition and calling it a cross join."
+      ],
+      "alternatives": [
+        {
+          "title": "Comma-separated tables",
+          "code": "SELECT CONCAT(e.first_name, ' ', e.last_name) AS employee_name,\n       c.category_name\nFROM employees e, categories c;\n",
+          "note": "The pre-ANSI spelling of the same Cartesian product. It works, but a missing WHERE in a larger comma-join silently multiplies rows; the explicit CROSS JOIN keyword shows that the product is intended."
+        }
+      ]
+    },
+    "sql:q06-customers-above-average-revenue": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "You need two levels of aggregation: revenue per customer, then the average of those revenues, then a comparison between the two."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A CTE (`WITH ... AS`) names the per-customer result. A scalar subquery `(SELECT AVG(...) FROM cte)` can sit in WHERE. A window `AVG(...) OVER ()` also gives the overall average beside each row."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Compute revenue per customer once, compute the average across customers, then keep the customers above it, sorted by revenue."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH customer_revenue AS (\n    SELECT cu.customer_id, cu.company_name,\n           SUM(___) AS total_revenue\n    FROM customers cu\n    JOIN orders o ON ___\n    JOIN order_details od ON ___\n    GROUP BY cu.customer_id, cu.company_name\n)\nSELECT * FROM customer_revenue\nWHERE total_revenue > (SELECT ___ FROM customer_revenue)\nORDER BY total_revenue DESC;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "aggregation",
+          "symptom": "`HAVING SUM(...) > AVG(...)` returns nothing or everything.",
+          "cause": "Inside one group AVG and SUM refer to the same group's rows, so they do not give the company-wide average of customer totals.",
+          "fix": "Compute per-customer totals first, then average those totals in a second step."
+        },
+        {
+          "category": "grouping",
+          "symptom": "Writing `HAVING SUM(...) > AVG(SUM(...))` fails with a nested-aggregate error.",
+          "cause": "A plain aggregate cannot contain another aggregate; `AVG(SUM(...))` was written at a single level.",
+          "fix": "Put the inner SUM in a CTE or subquery, or use it with a window as `AVG(SUM(...)) OVER ()`."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "The average is computed over orders, not customers.",
+          "cause": "The comparison value was `AVG(order_total)`, a different quantity.",
+          "fix": "Average the per-customer totals."
+        }
+      ],
+      "constraints": [
+        "Customers with no orders are not part of the average (inner joins).",
+        "Sorted by revenue, highest first."
+      ],
+      "realWorld": "Finance flags above-average accounts for upsell; the same two-level pattern gives 'above the department average' or 'above the regional median' reports.",
+      "commonMistakes": [
+        "Letting the revenue formula drift between two copies of it."
+      ],
+      "alternatives": [
+        {
+          "title": "Window average over the grouped rows",
+          "code": "SELECT customer_id, company_name, total_revenue\nFROM (\n    SELECT cu.customer_id, cu.company_name,\n           SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_revenue,\n           AVG(SUM(od.unit_price * od.quantity * (1 - od.discount))) OVER () AS avg_revenue\n    FROM customers cu\n    JOIN orders o ON o.customer_id = cu.customer_id\n    JOIN order_details od ON od.order_id = o.order_id\n    GROUP BY cu.customer_id, cu.company_name\n) t\nWHERE total_revenue > avg_revenue\nORDER BY total_revenue DESC;\n",
+          "note": "One scan and the revenue formula appears once, so it cannot drift. Windows run after GROUP BY, which is why AVG(SUM(...)) OVER () works. The CTE version is easier to read and to reuse for other comparisons; the window version is more compact."
+        }
+      ]
+    },
+    "sql:q08-customers-above-average-order-count": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Compare each customer's order count to the average of all customers' order counts. That is an aggregate of an aggregate."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A CTE for the per-customer counts, then a scalar subquery for their average. The other option is HAVING with a subquery that builds the counts as a derived table."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Count orders per customer, take the mean of those counts, keep customers whose count is strictly higher, sort by count."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH customer_orders AS (\n    SELECT cu.customer_id, cu.company_name, COUNT(o.order_id) AS order_count\n    FROM customers cu JOIN orders o ON ___\n    GROUP BY cu.customer_id, cu.company_name\n)\nSELECT * FROM customer_orders\nWHERE order_count > (SELECT ___ FROM customer_orders)\nORDER BY order_count DESC;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "aggregation",
+          "symptom": "The average comes out as exactly 1 and the result is huge.",
+          "cause": "AVG was applied to individual order rows, not to per-customer counts.",
+          "fix": "Average the per-customer counts."
+        },
+        {
+          "category": "filter",
+          "symptom": "Customers with exactly the average count are included.",
+          "cause": "The comparison is `>=` but the rule is 'more than'.",
+          "fix": "Use strict `>`."
+        },
+        {
+          "category": "grouping",
+          "symptom": "`ERROR: aggregate function calls cannot be nested` for `AVG(COUNT(...))`.",
+          "cause": "Nested aggregates need a separate query level.",
+          "fix": "Use a CTE or a derived table for the counts."
+        }
+      ],
+      "constraints": [
+        "Only customers with at least one order are counted (inner join).",
+        "Strictly above average."
+      ],
+      "realWorld": "Engagement analysis separates frequent from occasional buyers independent of revenue.",
+      "commonMistakes": [
+        "Forgetting that excluding zero-order customers raises the average."
+      ],
+      "alternatives": [
+        {
+          "title": "HAVING with a derived-table subquery",
+          "code": "SELECT cu.customer_id, cu.company_name, COUNT(o.order_id) AS order_count\nFROM customers cu\nJOIN orders o ON o.customer_id = cu.customer_id\nGROUP BY cu.customer_id, cu.company_name\nHAVING COUNT(o.order_id) > (\n    SELECT AVG(n) FROM (SELECT COUNT(*) AS n FROM orders GROUP BY customer_id) s\n)\nORDER BY order_count DESC;\n",
+          "note": "No CTE: the group filter lives in HAVING and the average comes from a derived table. Equivalent results; the CTE reads top-to-bottom, the HAVING form keeps everything in one SELECT but nests the logic inside the condition."
+        }
+      ]
+    },
+    "sql:q15-customers-above-average-orders-correlated-subquery": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Same business question as the CTE version, solved by filtering groups after aggregation with a subquery inside HAVING."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "HAVING filters groups. A subquery in HAVING can return a single value: here the average of per-customer order counts. The inner counts need their own GROUP BY in a derived table."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Group orders by customer, count, and in HAVING compare the count to a one-value subquery that averages counts computed per customer."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT cu.customer_id, cu.company_name, COUNT(o.order_id) AS order_count\nFROM customers cu JOIN orders o ON ___\nGROUP BY cu.customer_id, cu.company_name\nHAVING COUNT(o.order_id) > (\n    SELECT AVG(___) FROM (SELECT COUNT(order_id) AS order_count FROM orders GROUP BY customer_id) sub\n)\nORDER BY order_count DESC;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "filter",
+          "symptom": "`ERROR: aggregate functions are not allowed in WHERE`.",
+          "cause": "The count was compared in WHERE, which runs before grouping.",
+          "fix": "Use HAVING for conditions on aggregates."
+        },
+        {
+          "category": "grouping",
+          "symptom": "`ERROR: aggregate function calls cannot be nested`.",
+          "cause": "`AVG(COUNT(order_id))` was written directly.",
+          "fix": "Build the counts in a derived table, then average that column."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "No row is returned.",
+          "cause": "The subquery returns the average of a different quantity (for example order lines).",
+          "fix": "Make the inner query count orders per customer."
+        }
+      ],
+      "constraints": [
+        "Strictly above the average order count.",
+        "Despite the exercise title, the subquery is not correlated: it does not reference the outer row."
+      ],
+      "realWorld": "Group filters against a global statistic are everyday reporting logic: above-average stores, above-median basket sizes.",
+      "commonMistakes": [
+        "Confusing a non-correlated scalar subquery with a correlated one."
+      ],
+      "alternatives": [
+        {
+          "title": "CTE",
+          "code": "WITH customer_orders AS (\n    SELECT cu.customer_id, cu.company_name, COUNT(o.order_id) AS order_count\n    FROM customers cu\n    JOIN orders o ON o.customer_id = cu.customer_id\n    GROUP BY cu.customer_id, cu.company_name\n)\nSELECT customer_id, company_name, order_count\nFROM customer_orders\nWHERE order_count > (SELECT AVG(order_count) FROM customer_orders)\nORDER BY order_count DESC;\n",
+          "note": "A CTE names the intermediate result and reads top to bottom, so the average can reference it directly. In PostgreSQL 12+ a CTE used twice is materialised once; the nested-subquery form lets the planner treat it as part of one query. Results are identical."
+        }
+      ]
+    },
+    "sql:q192-categories-with-a-wide-price-spread": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A category qualifies by a property of its whole set of products (cheapest and most expensive), not of any single row."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`MIN` and `MAX` per group and `HAVING` to filter groups on them. `WHERE` filters rows before grouping, which would remove the very products you need to compare."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Group products by category, compute min and max price, keep categories whose min is below the budget limit and whose max is above the premium limit, and sort by the size of the spread."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT c.category_name, COUNT(*) AS product_count,\n       MIN(p.unit_price) AS min_price, MAX(p.unit_price) AS max_price,\n       ROUND(AVG(p.unit_price), 2) AS avg_price\nFROM products p JOIN categories c ON ___\nGROUP BY c.category_name\nHAVING MIN(p.unit_price) < ___ AND MAX(p.unit_price) > ___\nORDER BY ___ DESC, c.category_name;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "filter",
+          "symptom": "The query returns no rows.",
+          "cause": "The price conditions are in WHERE, so each group only contains products that already satisfy one condition and can never have both extremes.",
+          "fix": "Test the extremes with HAVING on MIN and MAX."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: column \"max_price\" does not exist` in ORDER BY `max_price - min_price`.",
+          "cause": "An alias can stand alone in ORDER BY but cannot be used inside an expression.",
+          "fix": "Repeat the aggregate expressions: `MAX(...) - MIN(...)`."
+        },
+        {
+          "category": "filter",
+          "symptom": "Too many categories are returned.",
+          "cause": "`OR` between the two conditions accepts a category with only cheap or only expensive products.",
+          "fix": "Use AND."
+        }
+      ],
+      "constraints": [
+        "Both a cheap (<10) and an expensive (>40) product must exist.",
+        "Sort by price spread descending, then name."
+      ],
+      "realWorld": "Price-spread analysis tells merchandising where one promotional strategy will not fit all products in a category.",
+      "commonMistakes": [
+        "Filtering rows when the condition is about groups."
+      ]
+    },
+    "sql:q193-countries-with-repeat-customers": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Two levels again: first how many orders each customer has, then per country how many of those customers have two or more."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`COUNT(*) FILTER (WHERE condition)` counts only the rows that satisfy a condition, and `100.0 * a / b` forces decimal division."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Build customer-level order counts in a CTE, then group that by country and count customers overall and customers with at least two orders. Express the second as a percentage of the first."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH customer_orders AS (\n    SELECT c.customer_id, c.country, COUNT(o.order_id) AS order_count\n    FROM customers c JOIN orders o ON ___\n    GROUP BY c.customer_id, c.country\n)\nSELECT country, COUNT(*) AS ordering_customers,\n       COUNT(*) FILTER (WHERE ___) AS repeat_customers,\n       ROUND(100.0 * ___ / COUNT(*), 1) AS repeat_pct\nFROM customer_orders\nGROUP BY country\nHAVING ___ >= 1\nORDER BY repeat_pct DESC, country;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "aggregation",
+          "symptom": "`repeat_pct` is 0 or 100 for every country.",
+          "cause": "Integer division truncates: `COUNT(...) / COUNT(*) * 100` is computed on integers.",
+          "fix": "Multiply by `100.0` first so the division is decimal."
+        },
+        {
+          "category": "grouping",
+          "symptom": "The numbers measure orders per country, not customers.",
+          "cause": "The query grouped orders directly by country and skipped the per-customer step.",
+          "fix": "Aggregate per customer first, then per country."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: column \"repeat_customers\" does not exist` in HAVING.",
+          "cause": "Output aliases are not visible in HAVING in PostgreSQL.",
+          "fix": "Repeat the FILTER expression in HAVING."
+        }
+      ],
+      "constraints": [
+        "Only countries with at least one repeat customer are returned.",
+        "Percentage is rounded to 1 decimal."
+      ],
+      "realWorld": "Repeat-purchase rate by market is a core retention metric that shows where loyalty programmes are working.",
+      "commonMistakes": [
+        "Measuring volume instead of repeat behaviour."
+      ]
+    },
+    "sql:q20-top-5-customers-by-revenue-using-cte": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A CTE is a named intermediate result. Here it holds revenue per customer; the outer query only has to sort and cut."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`WITH name AS (SELECT ...)` defines the CTE. `ORDER BY ... DESC LIMIT 5` takes the top five."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Define customer revenue in a CTE, then select from it ordered by revenue descending with a limit of five."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH customer_revenue AS (\n    SELECT cu.customer_id, cu.company_name,\n           SUM(___) AS total_revenue\n    FROM customers cu\n    JOIN orders o ON ___\n    JOIN order_details od ON ___\n    GROUP BY cu.customer_id, cu.company_name\n)\nSELECT * FROM customer_revenue\nORDER BY ___ DESC\nLIMIT 5;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: syntax error at or near \"SELECT\"`.",
+          "cause": "The WITH block was closed incorrectly (missing parenthesis) or two CTEs lack a comma.",
+          "fix": "Check parentheses around the CTE body and put commas between CTEs."
+        },
+        {
+          "category": "performance",
+          "symptom": "The CTE was assumed to be faster than the plain query.",
+          "cause": "In PostgreSQL 12 and later a single-use CTE is inlined, so the plan is the same as the inline query.",
+          "fix": "Choose a CTE for readability; measure with EXPLAIN before claiming a speed-up."
+        },
+        {
+          "category": "filter",
+          "symptom": "The five rows are not the biggest customers.",
+          "cause": "`LIMIT 5` was used without an ORDER BY.",
+          "fix": "Sort by revenue descending before the limit."
+        }
+      ],
+      "constraints": [
+        "Exactly five rows.",
+        "Revenue is net of discount."
+      ],
+      "realWorld": "Top-N reports are usually built on a named step so that the same revenue definition is reused by other queries.",
+      "commonMistakes": [
+        "Believing a CTE is a materialised temporary table in modern PostgreSQL."
+      ],
+      "alternatives": [
+        {
+          "title": "Inline aggregation, no CTE",
+          "code": "SELECT cu.customer_id, cu.company_name,\n       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_revenue\nFROM customers cu\nJOIN orders o ON o.customer_id = cu.customer_id\nJOIN order_details od ON od.order_id = o.order_id\nGROUP BY cu.customer_id, cu.company_name\nORDER BY total_revenue DESC\nLIMIT 5;\n",
+          "note": "Same result and, since PostgreSQL inlines a single-use CTE, the same plan. A CTE only earns its keep when the intermediate result is referenced more than once or when it clarifies a longer query."
+        }
+      ]
+    },
+    "sql:q22-top-employee-by-revenue-using-3-ctes": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'The top employee, with ties handled' means: find the maximum revenue, then return everyone who has exactly that revenue."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`MAX(revenue)` gives the top value; joining back on equality (or `RANK() = 1`) returns all tied rows. `LIMIT 1` would silently drop a tied employee."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Step one: revenue per employee. Step two: the maximum of those. Step three: employees whose revenue equals the maximum. Round the displayed revenue."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH employee_revenue AS (\n    SELECT e.employee_id, e.first_name, e.last_name, SUM(___) AS total_revenue\n    FROM employees e JOIN orders o ON ___ JOIN order_details od ON ___\n    GROUP BY e.employee_id, e.first_name, e.last_name\n),\nmax_revenue AS (SELECT MAX(total_revenue) AS max_rev FROM employee_revenue)\nSELECT er.employee_id, er.first_name, er.last_name, ROUND(er.total_revenue::numeric, 2) AS total_revenue\nFROM employee_revenue er JOIN max_revenue mr ON ___;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "filter",
+          "symptom": "Only one employee is returned although two are tied.",
+          "cause": "`ORDER BY total_revenue DESC LIMIT 1` cuts the tie.",
+          "fix": "Compare to the maximum value or use RANK."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "`ERROR: aggregate functions are not allowed in WHERE` for `WHERE revenue = MAX(revenue)`.",
+          "cause": "An aggregate cannot be compared directly in WHERE.",
+          "fix": "Compute the maximum in a separate step or subquery."
+        },
+        {
+          "category": "window",
+          "symptom": "`ROW_NUMBER() = 1` returns one row for a tie.",
+          "cause": "ROW_NUMBER gives tied rows different numbers.",
+          "fix": "Use RANK (or DENSE_RANK) when ties must all be kept."
+        }
+      ],
+      "constraints": [
+        "All employees tied for the top revenue are returned.",
+        "Revenue rounded to 2 decimals."
+      ],
+      "realWorld": "Leaderboards need explicit tie rules; 'one winner' by accident of sort order is a classic source of disputes.",
+      "commonMistakes": [
+        "Comparing rounded values and creating or hiding ties."
+      ],
+      "alternatives": [
+        {
+          "title": "RANK() window",
+          "code": "SELECT employee_id, first_name, last_name, ROUND(total_revenue::numeric, 2) AS total_revenue\nFROM (\n    SELECT e.employee_id, e.first_name, e.last_name,\n           SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_revenue,\n           RANK() OVER (ORDER BY SUM(od.unit_price * od.quantity * (1 - od.discount)) DESC) AS rk\n    FROM employees e\n    JOIN orders o ON o.employee_id = e.employee_id\n    JOIN order_details od ON od.order_id = o.order_id\n    GROUP BY e.employee_id, e.first_name, e.last_name\n) ranked\nWHERE rk = 1;\n",
+          "note": "RANK assigns 1 to every tied leader, so ties are kept without a separate MAX step, and it extends to 'top 3 ranks' by changing one number. The MAX-join version is simpler when you only ever want the single top group."
+        }
+      ]
+    },
+    "sql:q194-customers-whose-every-order-shipped-on-time": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'Every order was on time' is the same as 'there is no order that was late or unshipped'. Express the universal rule as the absence of a counter-example."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`NOT EXISTS (SELECT 1 ...)` tests for the absence of a bad row. A late order is `shipped_date > required_date`, and an unshipped one has `shipped_date IS NULL`, which a plain comparison never detects."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Join customers to their orders to count shipped orders, and add a NOT EXISTS condition that looks for any order of the same customer that is late or still unshipped."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT c.customer_id, c.company_name, COUNT(*) AS shipped_orders\nFROM customers c JOIN orders o ON ___\nWHERE NOT EXISTS (\n    SELECT 1 FROM orders o2\n    WHERE o2.customer_id = c.customer_id\n      AND (___ OR ___)\n)\nGROUP BY c.customer_id, c.company_name\nORDER BY shipped_orders DESC, c.customer_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "filter",
+          "symptom": "Customers with a late order are still listed.",
+          "cause": "`WHERE shipped_date <= required_date` in the outer query only removes the late rows, not the customer.",
+          "fix": "Exclude the customer when any bad order exists (NOT EXISTS)."
+        },
+        {
+          "category": "null",
+          "symptom": "Customers with unshipped orders are listed as perfect.",
+          "cause": "`shipped_date > required_date` is NULL (not true) for unshipped orders, so they pass the check.",
+          "fix": "Add `shipped_date IS NULL` as a second bad condition."
+        },
+        {
+          "category": "null",
+          "symptom": "`NOT IN (SELECT customer_id ...)` returns zero rows.",
+          "cause": "The subquery returns NULLs, which poison NOT IN.",
+          "fix": "Use NOT EXISTS."
+        }
+      ],
+      "constraints": [
+        "The customer must have at least one order.",
+        "Late means shipped after the required date; unshipped also counts as not on time."
+      ],
+      "realWorld": "Logistics builds a 'gold standard' reference group of customers who have never had a service failure.",
+      "commonMistakes": [
+        "Row-level filtering when the rule is about all of a customer's rows."
+      ],
+      "alternatives": [
+        {
+          "title": "GROUP BY with HAVING on a conditional count",
+          "code": "SELECT c.customer_id, c.company_name, COUNT(*) AS shipped_orders\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.customer_id, c.company_name\nHAVING COUNT(*) FILTER (WHERE o.shipped_date IS NULL OR o.shipped_date > o.required_date) = 0\nORDER BY shipped_orders DESC, c.customer_id;\n",
+          "note": "One pass over orders and no correlated subquery: count the bad orders per customer and require zero. NOT EXISTS reads closer to the English rule and can stop at the first bad order; the HAVING form is easier to extend with several conditions."
+        }
+      ]
+    },
+    "sql:q202-second-highest-price-per-category-without-window-functions": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "The second highest price in a category is the highest price among those below the highest. Without windows you must count or compare against the same table."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A correlated subquery references the outer row. `COUNT(DISTINCT price)` of strictly higher prices equals 1 exactly for the second-highest price, and counting distinct prices handles ties."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "For each product, count how many different prices in the same category are higher than its own. Keep products where that count is exactly one."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT c.category_name, p.product_name, p.unit_price\nFROM products p JOIN categories c ON ___\nWHERE 1 = (\n    SELECT COUNT(DISTINCT p2.unit_price)\n    FROM products p2\n    WHERE p2.category_id = p.category_id AND p2.unit_price ___ p.unit_price\n)\nORDER BY c.category_name, p.product_name;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "aggregation",
+          "symptom": "Products tied at the top price distort the answer.",
+          "cause": "`COUNT(*)` counts every higher product, so two products at the top price make the count 2 for the next price.",
+          "fix": "Count distinct prices."
+        },
+        {
+          "category": "filter",
+          "symptom": "The product with the highest price is returned.",
+          "cause": "The comparison is `>=`, which counts the product's own price.",
+          "fix": "Use strict `>`."
+        },
+        {
+          "category": "grouping",
+          "symptom": "The query returns a single row for the whole table instead of one per category.",
+          "cause": "`LIMIT 1 OFFSET 1` finds the second price overall, not per category.",
+          "fix": "Correlate the subquery on the category."
+        }
+      ],
+      "constraints": [
+        "No window functions.",
+        "Ties on price keep all tied products.",
+        "Second distinct price per category."
+      ],
+      "realWorld": "Before window functions were common, 'nth per group' was always written with a correlated subquery; you still meet it in older code bases and in interviews.",
+      "commonMistakes": [
+        "Forgetting to correlate on the category."
+      ],
+      "interviewRelevance": "Second highest per group without window functions is a standard interview twist; the follow-up asks for the window version.",
+      "alternatives": [
+        {
+          "title": "Nested MAX of the prices below the top",
+          "code": "SELECT c.category_name, p.product_name, p.unit_price\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nWHERE p.unit_price = (\n    SELECT MAX(p2.unit_price)\n    FROM products p2\n    WHERE p2.category_id = p.category_id\n      AND p2.unit_price < (SELECT MAX(p3.unit_price) FROM products p3 WHERE p3.category_id = p.category_id)\n)\nORDER BY c.category_name, p.product_name;\n",
+          "note": "States the definition literally (the biggest price below the biggest price) and also handles ties. It does not generalise to 'third highest' without another nesting level, whereas the distinct-count version only changes one constant."
+        }
+      ]
+    },
+    "sql:q207-suppliers-with-no-orders-since-june-1998-not-exists-vs-not-in": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Suppliers do not order anything directly; the link goes supplier to products to order lines to orders. 'No recent orders' is the absence of a path to an order on or after the cut-off date."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`NOT EXISTS` with a join inside the subquery follows the chain. A direct date comparison on `order_date` can use an index; wrapping the column in EXTRACT cannot."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "For each supplier test that no product of theirs appears on an order dated on or after 1 June 1998, following products, order lines and orders."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT s.supplier_id, s.company_name\nFROM suppliers s\nWHERE NOT EXISTS (\n    SELECT 1 FROM products p\n    JOIN order_details d ON ___\n    JOIN orders o ON ___\n    WHERE p.supplier_id = s.supplier_id AND o.order_date >= DATE '1998-06-01'\n)\nORDER BY s.supplier_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "null",
+          "symptom": "`NOT IN (SELECT supplier_id ...)` returns no suppliers.",
+          "cause": "If the subquery column can be NULL, NOT IN is never true.",
+          "fix": "Use NOT EXISTS or filter NULLs inside the subquery."
+        },
+        {
+          "category": "performance",
+          "symptom": "The query is slow on a large orders table.",
+          "cause": "`EXTRACT(YEAR FROM order_date) = 1998 AND EXTRACT(MONTH ...) >= 6` hides the column from an index.",
+          "fix": "Compare the raw column to a date literal (a sargable range)."
+        },
+        {
+          "category": "join",
+          "symptom": "A LEFT JOIN version lists every supplier.",
+          "cause": "The date condition was placed in WHERE after the join, which turns the outer join into an inner join.",
+          "fix": "Keep the date test inside the ON clause or a subquery."
+        }
+      ],
+      "constraints": [
+        "Cut-off is 1 June 1998 inclusive.",
+        "Suppliers with no products at all also qualify."
+      ],
+      "realWorld": "Procurement reviews dormant suppliers; the cut-off date makes the report reproducible instead of depending on today's date.",
+      "commonMistakes": [
+        "Using functions on the filtered column."
+      ],
+      "alternatives": [
+        {
+          "title": "LEFT JOIN to a derived list of recently ordered suppliers",
+          "code": "SELECT s.supplier_id, s.company_name\nFROM suppliers s\nLEFT JOIN (\n    SELECT DISTINCT p.supplier_id\n    FROM products p\n    JOIN order_details d ON d.product_id = p.product_id\n    JOIN orders o ON o.order_id = d.order_id\n    WHERE o.order_date >= DATE '1998-06-01'\n) recent ON recent.supplier_id = s.supplier_id\nWHERE recent.supplier_id IS NULL\nORDER BY s.supplier_id;\n",
+          "note": "Builds the set of recently active suppliers once and anti-joins to it. The date filter stays inside the derived table so the outer join keeps its meaning. NOT EXISTS is shorter; this form is handy when you also want the recent list for another purpose."
+        }
+      ]
+    }
+  }
+}

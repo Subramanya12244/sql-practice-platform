@@ -1,0 +1,1080 @@
+{
+  "version": 1,
+  "items": {
+    "py:price-lookup-default": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "This is a lookup join: each line is matched to a price by product id, and a line with no match keeps going with a price of None instead of failing."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`dict.get(key)` returns None for a missing key. `{**line, 'price': value}` builds a new dictionary with one extra field and leaves the source line alone."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "For every line, read the product id safely, look it up in the catalogue without raising, and return a new dict that carries all the original keys plus the price."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef enrich_prices(lines, catalog):\n    return [\n        {**l, 'price': ...}  # catalogue price for this line's product_id, or None\n        for l in lines\n    ]\n```\nThe lookup must survive a line that has no `product_id` at all."
+        }
+      ],
+      "debugging": [
+        {
+          "category": "runtime",
+          "symptom": "`KeyError: 'x'` for a product that is not in the catalogue.",
+          "cause": "`catalog[l['product_id']]` raises for an unknown product.",
+          "fix": "Use `catalog.get(...)`, which returns None."
+        },
+        {
+          "category": "variables",
+          "symptom": "The caller's input dicts now contain a `price` key.",
+          "cause": "The code assigned `l['price'] = ...` on the original dict instead of on a copy.",
+          "fix": "Build a new dict for each output line."
+        },
+        {
+          "category": "runtime",
+          "symptom": "`enrich_prices([{}], {'a': 1})` raises `KeyError: 'product_id'`.",
+          "cause": "The line itself has no product id.",
+          "fix": "Read the id with `l.get('product_id')` as well."
+        }
+      ],
+      "constraints": [
+        "Input lines are not modified.",
+        "A missing product (or missing product_id) gives price None.",
+        "All original keys are kept."
+      ],
+      "realWorld": "Enriching order lines with a price list is a left join in application code. Unmatched lines must survive so that someone can see and fix the missing catalogue entry.",
+      "commonMistakes": [
+        "Dropping unmatched lines (an inner join) instead of keeping them with None.",
+        "Mutating shared input that other code still reads."
+      ]
+    },
+    "py:running-totals": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Each output element is the sum of everything up to and including that position, so each output value builds on the previous one rather than starting over."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A variable that lives outside the loop remembers the running sum. `list.append` records it after every step."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Start the total at 0 before the loop, add the current number inside the loop, and append the updated total. Do not recompute the whole prefix each time."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef running_totals(nums):\n    out, total = [], 0\n    for x in nums:\n        total = ...\n        out.append(...)\n    return out\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "variables",
+          "symptom": "Every element equals the number itself: `[3, 1, 4]` for input `[3, 1, 4]`.",
+          "cause": "`total = 0` is inside the loop, so it resets on every iteration.",
+          "fix": "Initialise the total once, before the loop."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "The output is shifted by one: `[0, 3, 4]`.",
+          "cause": "The total is appended before the current number is added.",
+          "fix": "Update the total first, then append."
+        },
+        {
+          "category": "types",
+          "symptom": "The function returns a single number, so `assert running_totals([]) == []` fails.",
+          "cause": "Only the final total is returned, and the list is never built.",
+          "fix": "Collect each intermediate total in a list and return the list."
+        }
+      ],
+      "constraints": [
+        "The output has the same length as the input.",
+        "Works for floats and negative numbers.",
+        "An empty list returns an empty list."
+      ],
+      "realWorld": "Cumulative revenue, running balances and year-to-date metrics all use this pattern; in SQL it is `SUM() OVER (ORDER BY ...)`.",
+      "commonMistakes": [
+        "Using `sum(nums[:i+1])` on every step, which is quadratic.",
+        "Mutating the input list in place."
+      ],
+      "alternatives": [
+        {
+          "title": "itertools.accumulate",
+          "code": "from itertools import accumulate\n\ndef running_totals(nums):\n    return list(accumulate(nums))\n",
+          "note": "The standard library already expresses this. accumulate is lazy (drop the list() to stream it) and adds in the same order as the loop, so floats give identical results. Writing the loop once is still worth it to understand the state it carries."
+        }
+      ],
+      "complexity": {
+        "time": "O(n)",
+        "space": "O(n)"
+      }
+    },
+    "py:safe-cast": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A tolerant conversion function never lets a bad value crash the pipeline. It returns a chosen default whenever the value is missing or cannot be converted."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Types are callables: `to_type(value)` converts. `str.strip()` removes padding. `try` with `except (ValueError, TypeError)` handles the two ways conversion fails."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Handle None first, strip strings, then try the conversion and fall back to the default. The column function simply applies the same rule to every element and must pass the default along."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef safe_cast(value, to_type, default=None):\n    if value is None:\n        return default\n    if isinstance(value, str):\n        value = ...\n    try:\n        return ...\n    except (...):\n        return default\n\ndef cast_column(values, to_type, default=None):\n    return [... for v in values]\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`safe_cast('3.5', int)` returns 3 or 4 instead of None.",
+          "cause": "The code converted with `int(float(value))`, which accepts text that `int` itself rejects.",
+          "fix": "Call `to_type(value)` directly; `int('3.5')` raises ValueError, which becomes the default."
+        },
+        {
+          "category": "functions",
+          "symptom": "`cast_column(['1.5', '', None], float, 0.0)` returns `None` where 0.0 is expected.",
+          "cause": "`cast_column` calls `safe_cast(v, to_type)` without forwarding `default`.",
+          "fix": "Pass the default argument through."
+        },
+        {
+          "category": "runtime",
+          "symptom": "`safe_cast([1], int, 0)` raises `TypeError: int() argument must be...`.",
+          "cause": "Only ValueError was caught; passing a list is a TypeError.",
+          "fix": "Catch both exception types."
+        }
+      ],
+      "constraints": [
+        "Strings are stripped before conversion.",
+        "None always returns the default, never raises.",
+        "Only ValueError and TypeError are handled."
+      ],
+      "realWorld": "Messy CSV columns need typed values. A safe cast keeps one bad cell from stopping a million-row load and lets you count the defaults afterwards.",
+      "commonMistakes": [
+        "A bare `except:` that also catches KeyboardInterrupt and real bugs.",
+        "Stripping non-strings (for example calling `.strip()` on an int)."
+      ]
+    },
+    "py:safe-divide": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Some inputs make division impossible: zero as the divisor, or something that is not a number. The function turns both of those into None and leaves every other error alone."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`try` / `except` lets you name exception classes. Dividing by zero raises `ZeroDivisionError`; dividing a string raises `TypeError`."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Attempt the division inside `try`. Catch exactly the two exception classes and return None from the handler. Let the normal path return the quotient."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef safe_divide(a, b):\n    try:\n        return ...\n    except (..., ...):\n        return None\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "runtime",
+          "symptom": "`ZeroDivisionError: division by zero` escapes for `safe_divide(1, 0)`.",
+          "cause": "The except clause lists only TypeError, so the zero case is never handled.",
+          "fix": "Add `ZeroDivisionError` to the exception classes you catch."
+        },
+        {
+          "category": "types",
+          "symptom": "`safe_divide('a', 2)` raises `TypeError: unsupported operand type(s)` instead of returning None.",
+          "cause": "A manual `if b == 0` guard handles zero but not the wrong type.",
+          "fix": "Add `TypeError` to the except clause."
+        },
+        {
+          "category": "syntax",
+          "symptom": "A typo inside the try block (a misspelt variable) makes every call return None instead of showing an error.",
+          "cause": "A bare `except:` swallows every exception, including the NameError caused by the typo.",
+          "fix": "List only the exception classes the exercise names."
+        }
+      ],
+      "constraints": [
+        "Return None for a zero divisor or a non-numeric operand.",
+        "Do not catch every exception.",
+        "Zero as the dividend is fine: `safe_divide(0, 5)` is 0.0."
+      ],
+      "realWorld": "Ratio metrics such as conversion rate or margin divide by counts that can be zero. Returning None (a null) rather than 0 keeps 'no data' distinct from 'zero percent'.",
+      "commonMistakes": [
+        "Returning 0 on failure, which silently turns missing data into a real number.",
+        "Using a bare except."
+      ]
+    },
+    "py:seconds-to-hms": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A duration breaks into hours, minutes and seconds by repeatedly taking whole units out of a larger remainder. Hours are not capped at 24."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`divmod(a, b)` returns the quotient and the remainder together. The format spec `:02d` pads an integer to two digits with zeros."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Take the hours out of the seconds with 3600, take the minutes out of what is left with 60, and what remains is the seconds. Then format all three."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef hms(seconds):\n    h, rest = divmod(seconds, ...)\n    m, s = divmod(rest, ...)\n    return f'{...:02d}:{...:02d}:{...:02d}'\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "control-flow",
+          "symptom": "`hms(97200)` gives `03:00:00` instead of `27:00:00`.",
+          "cause": "The hours were reduced with `% 24`, as a clock would.",
+          "fix": "Do not wrap the hours; let them grow."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`hms(3725)` prints `1:2:5`.",
+          "cause": "The values are inserted without a format spec.",
+          "fix": "Pad each field with `:02d`."
+        },
+        {
+          "category": "types",
+          "symptom": "`ValueError: Unknown format code 'd' for object of type 'float'`.",
+          "cause": "Using `/` instead of `//` makes the quotient a float, which `:02d` rejects.",
+          "fix": "Use integer division (or `divmod`) for every step."
+        }
+      ],
+      "constraints": [
+        "Zero padding to at least two digits per field.",
+        "Hours may exceed 24 and may have three digits."
+      ],
+      "realWorld": "Job runtimes, video lengths and SLA timers are stored as seconds and displayed as HH:MM:SS. The same divmod chain appears in log formatters.",
+      "commonMistakes": [
+        "Using `datetime.timedelta` string output, which switches format after 24 hours (it prints '1 day, 3:00:00').",
+        "Rounding instead of truncating when the input is a float."
+      ],
+      "alternatives": [
+        {
+          "title": "Floor division and modulo",
+          "code": "def hms(seconds):\n    return f'{seconds // 3600:02d}:{seconds % 3600 // 60:02d}:{seconds % 60:02d}'\n",
+          "note": "Same arithmetic written with // and %. It recomputes `seconds % 3600` and is a little harder to scan than the two divmod calls, but it has no temporary variables and fits in one expression."
+        }
+      ]
+    },
+    "py:sort-products-price-name": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Sorting by several criteria means giving the sort a key that is a tuple. Items that lack a price must be pushed to the end without ever being compared to a number."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`sorted(..., key=...)` returns a new list. Tuples compare element by element. `str.lower()` makes the name comparison case-insensitive. A boolean such as `p['price'] is None` sorts False before True."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Build a key tuple with three parts: whether the price is missing, the price (a harmless placeholder when missing), and the lower-cased name. Use `sorted` so the input list is not reordered."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef sort_products(products):\n    return sorted(products, key=lambda p: (\n        ...,  # True for a missing price, so those go last\n        ...,  # the price, or 0 as a placeholder when missing\n        ...,  # name, case-insensitive\n    ))\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "Sorting a list that holds a product with price None raises a `TypeError` about '<' between NoneType and a number.",
+          "cause": "A None price is compared directly with a number inside the key.",
+          "fix": "Put an `is None` flag first and substitute a number when the price is missing."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "`['apple', 'Banana']` comes out as `['Banana', 'apple']`.",
+          "cause": "Plain string comparison puts every uppercase letter before every lowercase one.",
+          "fix": "Compare `p['name'].lower()`."
+        },
+        {
+          "category": "variables",
+          "symptom": "The caller's list is reordered after the call.",
+          "cause": "`products.sort(...)` sorts in place and returns None.",
+          "fix": "Use `sorted(...)`, which returns a new list."
+        }
+      ],
+      "constraints": [
+        "Ascending price, then ascending name ignoring case.",
+        "Products with price None come last.",
+        "The input list is not modified."
+      ],
+      "realWorld": "Catalogue pages sort by price and break ties alphabetically, with unpriced items listed after the priced ones.",
+      "commonMistakes": [
+        "Sorting by name first and then price with an unstable approach.",
+        "Using `reverse=True` to push None last, which also reverses the price order."
+      ],
+      "alternatives": [
+        {
+          "title": "Partition then sort",
+          "code": "def sort_products(products):\n    priced = sorted((p for p in products if p['price'] is not None),\n                    key=lambda p: (p['price'], p['name'].lower()))\n    unpriced = sorted((p for p in products if p['price'] is None),\n                      key=lambda p: p['name'].lower())\n    return priced + unpriced\n",
+          "note": "No placeholder value for missing prices and no mixed-type comparisons, which makes the intent obvious. It walks the list twice and needs two sorts, so the single tuple key is cheaper for large inputs."
+        }
+      ]
+    },
+    "py:split-employee-names": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Real names arrive with stray spaces, tabs and gaps. Cleaning whitespace first makes the first-name versus last-name rule trivial."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`str.split()` with no argument splits on any run of whitespace and drops empty pieces. `' '.join(list)` glues words back with single spaces. `x or ''` guards None."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Split the cleaned text into words. No words: return two empty strings. Otherwise the first word is the first name and the remaining words, joined by one space, are the last name."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef split_name(full_name):\n    parts = (full_name or '')....  # split on any whitespace\n    if not parts:\n        return ('', '')\n    return (..., ' '.join(...))\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`AttributeError: 'NoneType' object has no attribute 'split'`.",
+          "cause": "None was not replaced with an empty string before splitting.",
+          "fix": "Use `(full_name or '')`."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "`split_name('Ana  Maria')` returns `('Ana', ' Maria')` or has an empty piece.",
+          "cause": "`split(' ')` (with a space) turns every extra space into an empty word.",
+          "fix": "Call `split()` with no argument."
+        },
+        {
+          "category": "indexing",
+          "symptom": "`IndexError: list index out of range` for a blank string.",
+          "cause": "`parts[0]` is read even though there are no words.",
+          "fix": "Return `('', '')` before indexing when the list is empty."
+        }
+      ],
+      "constraints": [
+        "Tabs and repeated spaces are treated as one separator.",
+        "Everything after the first word is the last name, joined with single spaces.",
+        "Single word: last name is an empty string."
+      ],
+      "realWorld": "HR and CRM exports contain free-text names. A tolerant splitter lets you fill first_name and last_name columns without a manual clean-up pass.",
+      "commonMistakes": [
+        "Assuming names have exactly two words.",
+        "Using `strip()` but not collapsing the inner spaces."
+      ]
+    },
+    "py:sum-valid-payment-amounts": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Some payment strings are not numbers. Instead of crashing, the function keeps two tallies: a running total of what parsed, and a count of what did not."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`float(v)` raises `ValueError` for unparseable text and `TypeError` for None. A `try` / `except` around one conversion decides which tally to bump."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Loop over the raw values with a total and a rejected counter. Add successful conversions to the total, count each failure, then return the rounded total and the counter as a tuple."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef sum_payments(raw):\n    total, rejected = 0.0, 0\n    for v in raw:\n        try:\n            total += ...\n        except (...):\n            rejected += 1\n    return (..., rejected)\n```\nRound the total once, when you return it."
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`sum_payments([None])` crashes with `TypeError: float() argument must be a string or a real number, not 'NoneType'`.",
+          "cause": "Only ValueError is caught.",
+          "fix": "Catch TypeError as well."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "A bad value is added to the total as 0 and the rejected count stays 0.",
+          "cause": "The handler returns or passes without incrementing the counter.",
+          "fix": "Increment `rejected` inside the except block."
+        },
+        {
+          "category": "types",
+          "symptom": "`sum_payments(['0.1', '0.2'])` returns `(0.30000000000000004, 0)` and fails an equality test against `(0.3, 0)`.",
+          "cause": "The float total is returned without rounding.",
+          "fix": "Round the total to 2 decimals when building the result."
+        }
+      ],
+      "constraints": [
+        "Whitespace around a number is accepted (`' 2.25 '` parses).",
+        "Return `(total, rejected)` with the total rounded to 2 decimals."
+      ],
+      "realWorld": "Payment reconciliation sums the amounts it can read and reports how many rows were unreadable so that finance can chase them.",
+      "commonMistakes": [
+        "Forgetting that `float('nan')` and `float('inf')` parse successfully and would poison the total in real data.",
+        "Returning the rejected values instead of their count."
+      ]
+    },
+    "py:filter-valid-records": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A filter and a reshape in one step: keep rows that satisfy a condition and, for each kept row, produce a small tuple."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A list comprehension has the shape `[output for item in items if condition]`. `dict.get('amount')` returns None for a missing key, and `is not None` is the safe presence test."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Decide the condition (present, not None, above zero) and the output (the id and the amount as a tuple), and write them into one comprehension. Order is preserved automatically."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef valid_amounts(rows):\n    return [\n        (r['id'], r['amount'])\n        for r in rows\n        if ...  # amount present, not None, and above zero\n    ]\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "runtime",
+          "symptom": "`KeyError: 'amount'` on the row that has no amount.",
+          "cause": "The condition reads `r['amount']` directly.",
+          "fix": "Read it with `r.get('amount')` in the condition."
+        },
+        {
+          "category": "types",
+          "symptom": "`TypeError: '>' not supported between instances of 'NoneType' and 'int'`.",
+          "cause": "The comparison with 0 runs before the None check.",
+          "fix": "Test `is not None` first and join the tests with `and`."
+        },
+        {
+          "category": "filtering",
+          "symptom": "A row with `amount: -5` is kept.",
+          "cause": "The condition is `if r.get('amount')`, which is true for any non-zero number, negatives included.",
+          "fix": "Compare with zero explicitly."
+        }
+      ],
+      "constraints": [
+        "Missing, None, zero and negative amounts are all excluded.",
+        "Output order equals input order.",
+        "Use a list comprehension."
+      ],
+      "realWorld": "Cleaning step before aggregation: drop incomplete or nonsensical rows early so that totals and averages downstream are not skewed.",
+      "commonMistakes": [
+        "Using truthiness for presence, which hides the difference between 0 and None.",
+        "Building the list with a loop and forgetting `append` after the condition."
+      ]
+    },
+    "py:group-and-aggregate": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Grouping is a dictionary from group label to running statistics. A row contributes to its group's count always, and to its total only when it has a value."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`dict.setdefault(key, default)` returns the existing entry or inserts the default first. Missing keys are tested with `key in row`; missing values with `row.get(value)`."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Skip rows without the grouping key. For the others, get or create the group's `{count, total}`, add one to the count, and add the value to the total only if it is not None."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef aggregate(rows, key, value):\n    out = {}\n    for r in rows:\n        if ...:  # row has no grouping key\n            continue\n        g = out.setdefault(r[key], {'count': 0, 'total': 0})\n        g['count'] += 1\n        v = r.get(value)\n        if ...:\n            g['total'] += v\n    return out\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "runtime",
+          "symptom": "`KeyError` when a row has no `c`.",
+          "cause": "`r[key]` is read for rows that were meant to be skipped.",
+          "fix": "Check `key in r` and `continue` before reading it."
+        },
+        {
+          "category": "types",
+          "symptom": "`TypeError: unsupported operand type(s) for +=: 'int' and 'NoneType'`.",
+          "cause": "The value is added to the total even though it is None.",
+          "fix": "Add it only when it is not None, but still count the row."
+        },
+        {
+          "category": "variables",
+          "symptom": "Every group shares the same totals.",
+          "cause": "One dict object was created outside the loop and reused as the default, so all groups point at it.",
+          "fix": "Create a new `{'count': 0, 'total': 0}` for each group."
+        }
+      ],
+      "constraints": [
+        "Rows missing the grouping key do not appear at all.",
+        "A None value counts toward `count` but adds nothing to `total`."
+      ],
+      "realWorld": "This is `GROUP BY key` with `COUNT(*)` and `SUM(value)` done by hand; SQL's SUM also ignores NULLs, which is why a group of nulls totals 0 here.",
+      "commonMistakes": [
+        "Counting only rows that have a value, which makes count differ from SQL's COUNT(*).",
+        "Sharing one mutable default between groups."
+      ],
+      "alternatives": [
+        {
+          "title": "defaultdict with a factory",
+          "code": "from collections import defaultdict\n\ndef aggregate(rows, key, value):\n    out = defaultdict(lambda: {'count': 0, 'total': 0})\n    for r in rows:\n        if key not in r:\n            continue\n        g = out[r[key]]\n        g['count'] += 1\n        v = r.get(value)\n        if v is not None:\n            g['total'] += v\n    return dict(out)\n",
+          "note": "defaultdict creates the group record on first access, removing the setdefault call. Convert back with dict() before returning: a defaultdict silently creates entries when you read a missing key, which surprises callers."
+        }
+      ]
+    },
+    "py:count-calls-decorator": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A decorator replaces a function with a wrapper. The wrapper does extra work (counting) and then delegates to the original with the same arguments."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`*args, **kwargs` forwards any call signature. `functools.wraps(func)` copies the name and docstring. Functions are objects, so `wrapper.calls = 0` stores an attribute on them."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Define the wrapper inside the decorator, increase `wrapper.calls` before delegating, return the original's result, then set the initial count and return the wrapper."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nimport functools\n\ndef count_calls(func):\n    @functools.wraps(func)\n    def wrapper(*args, **kwargs):\n        ...  # count this call\n        return ...  # call the original with the same arguments\n    wrapper.calls = 0\n    return wrapper\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "variables",
+          "symptom": "`clean.calls` is always 1 (or 0).",
+          "cause": "The counter is a local variable inside `wrapper`, so it restarts on every call and the attribute is never updated.",
+          "fix": "Increment the attribute `wrapper.calls`."
+        },
+        {
+          "category": "functions",
+          "symptom": "`TypeError: wrapper() got an unexpected keyword argument 'b'`.",
+          "cause": "The wrapper only accepts positional arguments.",
+          "fix": "Accept and forward `**kwargs`."
+        },
+        {
+          "category": "functions",
+          "symptom": "`clean.__name__` is `'wrapper'`.",
+          "cause": "`functools.wraps` was not applied to the wrapper.",
+          "fix": "Decorate the inner function with `@functools.wraps(func)`."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "A function that raises is not counted.",
+          "cause": "The counter is updated after calling the original, which never completes.",
+          "fix": "Increment before delegating."
+        }
+      ],
+      "constraints": [
+        "Count every call, including ones that raise.",
+        "The wrapped function keeps its `__name__`.",
+        "Arguments and return value pass through unchanged."
+      ],
+      "realWorld": "Instrumentation decorators count calls, time them and log them without changing the functions they wrap; metrics libraries work this way.",
+      "commonMistakes": [
+        "Forgetting `return` so the decorated function returns None.",
+        "Counting in a global variable that is shared between all decorated functions."
+      ],
+      "interviewRelevance": "Writing a decorator with arguments forwarding and `functools.wraps` is a staple Python interview question.",
+      "alternatives": [
+        {
+          "title": "Class-based decorator",
+          "code": "import functools\n\nclass count_calls:\n    def __init__(self, func):\n        functools.update_wrapper(self, func)\n        self.func = func\n        self.calls = 0\n\n    def __call__(self, *args, **kwargs):\n        self.calls += 1\n        return self.func(*args, **kwargs)\n",
+          "note": "State lives on the instance, which is tidy when the decorator needs several attributes. The catch: an instance is not a function, so it does not bind as a method when you decorate a method inside a class (self is not passed). The closure version works for both."
+        }
+      ]
+    },
+    "py:memoize-decorator": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Memoising trades memory for time: remember the answer for each distinct argument tuple, and only run the real function when the arguments are new."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A dictionary keyed by the `args` tuple is the cache. `args not in cache` decides whether to run the function. `functools.wraps` keeps the name; `wrapper.calls` is a plain attribute."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Create the cache in the decorator, outside the wrapper, so it survives between calls. In the wrapper, on a cache miss increase `calls` and store the result; then always return the cached value."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nimport functools\n\ndef memoize(fn):\n    cache = {}\n    @functools.wraps(fn)\n    def wrapper(*args):\n        if ...:  # arguments not seen before\n            wrapper.calls += 1\n            cache[args] = ...\n        return ...\n    wrapper.calls = 0\n    return wrapper\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "variables",
+          "symptom": "`sq.calls` is 2 after `sq(3)` twice.",
+          "cause": "The cache dict is created inside the wrapper, so every call starts with an empty cache.",
+          "fix": "Create the cache once in the decorator body."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "`sq.calls` counts every call, hits included.",
+          "cause": "The counter is incremented before the cache check.",
+          "fix": "Increment only on a cache miss."
+        },
+        {
+          "category": "functions",
+          "symptom": "`add(1, 2)` and `add(1, 3)` return the same value.",
+          "cause": "The cache is keyed on the first argument only.",
+          "fix": "Key on the whole `args` tuple."
+        },
+        {
+          "category": "types",
+          "symptom": "`TypeError: unhashable type: 'list'` when the function is called with a list.",
+          "cause": "The cache key is the tuple of arguments, and a tuple containing a list cannot be a dictionary key.",
+          "fix": "Keep to hashable arguments (use a tuple), as the exercise's tests do."
+        }
+      ],
+      "constraints": [
+        "The key is the full tuple of positional arguments.",
+        "`calls` counts executions of the original function only.",
+        "A cached None result must still count as cached."
+      ],
+      "realWorld": "Expensive pure computations (lookups, parsing, recursive definitions such as Fibonacci) are cached the same way; `functools.lru_cache` is the production version.",
+      "commonMistakes": [
+        "Testing `if cache.get(args)`, which re-runs the function whenever the cached value is falsy (0, None, empty).",
+        "Memoising a function with side effects."
+      ],
+      "interviewRelevance": "Memoisation turns exponential recursion (Fibonacci) into linear time; interviewers ask for the decorator and for the cache-key reasoning."
+    },
+    "py:chunk-generator": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A generator produces one chunk at a time and never builds the whole input in memory, so it can walk an endless stream."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`yield` turns a function into a generator. `iter(x)` makes an iterator that remembers its position, and `itertools.islice(it, n)` takes the next n items from it."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Validate the size, turn the input into an iterator, then repeatedly take the next `size` items; stop when a take comes back empty and yield each non-empty batch."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nfrom itertools import islice\n\ndef chunked(iterable, size):\n    if ...:  # size below 1\n        raise ValueError('size must be >= 1')\n    it = iter(iterable)\n    while True:\n        batch = ...  # next `size` items as a list\n        if ...:\n            return\n        yield batch\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`isinstance(chunked([1], 1), types.GeneratorType)` fails: the function returns a list.",
+          "cause": "The function builds and returns a list of chunks with `return` instead of using `yield`.",
+          "fix": "Yield each chunk."
+        },
+        {
+          "category": "runtime",
+          "symptom": "The program hangs on `chunked(itertools.count(), 3)`.",
+          "cause": "The code calls `list(iterable)` or `len(iterable)`, which tries to consume an endless iterator.",
+          "fix": "Pull items one batch at a time from an iterator."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "The last, shorter chunk is missing.",
+          "cause": "A chunk is yielded only when it reaches `size`, and leftovers are discarded.",
+          "fix": "Yield the remaining non-empty batch at the end."
+        },
+        {
+          "category": "indexing",
+          "symptom": "`TypeError: 'generator' object is not subscriptable` for `iterable[i:i+size]`.",
+          "cause": "Slicing works on lists but not on generators or other iterators.",
+          "fix": "Use islice or an explicit buffer."
+        }
+      ],
+      "constraints": [
+        "Yield lists, not tuples.",
+        "Works for any iterable, including infinite ones, without materialising it.",
+        "`size < 1` raises ValueError."
+      ],
+      "realWorld": "Batch inserts and bulk API calls are limited in size. Chunking a stream of rows into batches of 500 is the first step of most loaders.",
+      "commonMistakes": [
+        "Slicing, which only works for sequences.",
+        "Looping forever when `islice` keeps returning empty lists."
+      ],
+      "alternatives": [
+        {
+          "title": "Manual buffer",
+          "code": "def chunked(iterable, size):\n    if size < 1:\n        raise ValueError('size must be >= 1')\n    batch = []\n    for x in iterable:\n        batch.append(x)\n        if len(batch) == size:\n            yield batch\n            batch = []\n    if batch:\n        yield batch\n",
+          "note": "No imports and every step is visible: fill a buffer, flush it when full, flush the remainder at the end. The islice version pulls batches in C and is shorter; both are lazy and handle endless streams, and in both the ValueError appears on the first next() because the function is a generator."
+        }
+      ]
+    },
+    "py:dedupe-preserve-order": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Removing duplicates while keeping the first occurrence needs memory of what has been seen, and sets answer 'seen before?' in constant time."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`x in some_set` is a fast membership test and `set.add(x)` records a value. A sorted or plain `set(items)` would lose the original order, so it cannot be the final result."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Walk the list once. If the value is not in the seen set, add it to the set and append it to the output; otherwise skip it."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef dedupe(items):\n    seen = set()\n    out = []\n    for x in items:\n        if ...:  # first time this value appears\n            seen.add(x)\n            out.append(x)\n    return out\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "control-flow",
+          "symptom": "`dedupe([3, 1, 3, 2, 1])` returns `[1, 2, 3]`.",
+          "cause": "The code returned `sorted(set(items))` or a `list(set(items))`, which loses the original order.",
+          "fix": "Build the output in encounter order and use the set only for membership."
+        },
+        {
+          "category": "filtering",
+          "symptom": "`dedupe([None, None, 0])` returns `[]`.",
+          "cause": "The loop tests `if x` (truthiness), so None and 0 are discarded.",
+          "fix": "Test membership in `seen`, not the value's truthiness."
+        },
+        {
+          "category": "runtime",
+          "symptom": "Large inputs are extremely slow.",
+          "cause": "`if x not in out` searches a list each time, which is linear per element.",
+          "fix": "Keep a set for the membership check."
+        }
+      ],
+      "constraints": [
+        "Keep the first occurrence and the original order.",
+        "None is an ordinary value; `'a'` and `'A'` are different.",
+        "Items are hashable."
+      ],
+      "realWorld": "De-duplicating ids, emails or events before a load, when the first record seen is the one to keep.",
+      "commonMistakes": [
+        "Using `set()` and expecting order.",
+        "Treating falsy values as missing."
+      ],
+      "interviewRelevance": "A classic warm-up; the follow-ups are order preservation, unhashable items and keep-last-instead-of-first.",
+      "alternatives": [
+        {
+          "title": "dict.fromkeys",
+          "code": "def dedupe(items):\n    return list(dict.fromkeys(items))\n",
+          "note": "A dict keeps keys in insertion order (guaranteed since Python 3.7) and ignores a repeated key, so the first occurrence wins. It is one line and runs in C, but it hides the idea and, like the set version, requires hashable items."
+        }
+      ],
+      "complexity": {
+        "time": "O(n)",
+        "space": "O(n)"
+      }
+    },
+    "py:common-elements": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'In both lists, each once' is exactly a set intersection. The one extra requirement is a stable order, because sets have none."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`set(a) & set(b)` (or `.intersection`) is the intersection, and `sorted(...)` turns any iterable into a sorted list."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Convert both lists to sets, intersect them, and return the result as a sorted list."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef common(a, b):\n    return sorted(... & ...)\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`TypeError: unsupported operand type(s) for &: 'list' and 'list'`.",
+          "cause": "The `&` operator works on sets, not on lists.",
+          "fix": "Wrap each list in `set(...)` first."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "The test fails intermittently or with a different order, for example `[3, 2]`.",
+          "cause": "The set was converted with `list(...)` without sorting; set order is arbitrary.",
+          "fix": "Sort the result."
+        },
+        {
+          "category": "filtering",
+          "symptom": "Duplicates appear: `[2, 2, 3]`.",
+          "cause": "A list comprehension over `a` keeps every occurrence that is also in `b`.",
+          "fix": "Work on sets so each value appears once."
+        }
+      ],
+      "constraints": [
+        "Ascending order; each value once.",
+        "Disjoint inputs return an empty list."
+      ],
+      "realWorld": "Finding customers present in two systems, or ids that exist in both a source and a target table, is an intersection.",
+      "commonMistakes": [
+        "Relying on set order.",
+        "Mixing incomparable types, which makes `sorted` fail."
+      ]
+    },
+    "py:first-repeated-order-id": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'First repeat' means the first position at which you meet something you have already seen. One pass with a memory of seen ids is enough."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A `set` gives constant-time `in` checks. Returning from inside the loop stops the search as soon as the answer is known."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Go through the ids in order. If the current id is already in the seen set, return it. Otherwise add it. If the loop ends, nothing repeated, so return None."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef first_repeat(order_ids):\n    seen = set()\n    for oid in order_ids:\n        if ...:  # already met\n            return oid\n        ...  # remember it\n    return None\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "control-flow",
+          "symptom": "`first_repeat(['A1', 'B2', 'C3', 'B2', 'A1'])` returns 'A1' instead of 'B2'.",
+          "cause": "The code returned the first element that has a duplicate anywhere, but the rule is the earliest second occurrence.",
+          "fix": "Scan once and return at the first id that was already seen."
+        },
+        {
+          "category": "runtime",
+          "symptom": "The 100000-element hidden test times out.",
+          "cause": "`oid in seen_list` or `list.count` makes each step linear, so the total is quadratic.",
+          "fix": "Store seen ids in a set."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "The function returns False or '' when there is no repeat.",
+          "cause": "A different sentinel was used.",
+          "fix": "Return None after the loop."
+        }
+      ],
+      "constraints": [
+        "Return the id whose second occurrence appears earliest.",
+        "None for all-unique input.",
+        "Must handle 100000+ ids quickly."
+      ],
+      "realWorld": "Detecting the first duplicate order id in a stream is how idempotency checks and duplicate-delivery alarms work.",
+      "commonMistakes": [
+        "Counting all ids first (two passes) and picking the wrong one.",
+        "Using `list.index` inside a loop."
+      ],
+      "interviewRelevance": "First repeated element with a hash set is a very common screening question; the follow-up is the O(1)-space variant.",
+      "complexity": {
+        "time": "O(n)",
+        "space": "O(n)"
+      }
+    },
+    "py:suppress-context-manager": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A context manager decides at the end of the `with` block what happens to an exception. Returning a true value from `__exit__` means 'handled, carry on'."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`__enter__` runs at the start and its return value is bound by `as`. `__exit__(exc_type, exc, tb)` runs at the end. `issubclass(exc_type, types)` accepts a tuple of classes."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Store the tuple of types and an `error` attribute (None) in `__init__`. Return self from `__enter__`. In `__exit__`, if an exception occurred and its class matches, record it and return True; otherwise return False."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nclass Suppress:\n    def __init__(self, *types):\n        self.types = types\n        self.error = None\n\n    def __enter__(self):\n        return ...\n\n    def __exit__(self, exc_type, exc, tb):\n        if exc_type is not None and ...:\n            self.error = exc\n            return ...\n        return False\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "functions",
+          "symptom": "`AttributeError: 'NoneType' object has no attribute 'error'` after the block.",
+          "cause": "`__enter__` returns nothing, so `as s` binds None.",
+          "fix": "Return `self` from `__enter__`."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "A ZeroDivisionError disappears although only KeyError was requested.",
+          "cause": "`__exit__` always returns True.",
+          "fix": "Return True only when the exception matches the given types."
+        },
+        {
+          "category": "types",
+          "symptom": "A subclass such as `MyErr(LookupError)` is not suppressed.",
+          "cause": "The class is compared with `==` or `in`, which only matches exact classes.",
+          "fix": "Use `issubclass`."
+        },
+        {
+          "category": "variables",
+          "symptom": "`s.error` still holds the old exception when a later block succeeds.",
+          "cause": "The attribute is never reset when a new context is created.",
+          "fix": "Initialise `error` to None in `__init__`; create a new manager per `with`."
+        }
+      ],
+      "constraints": [
+        "Other exceptions propagate.",
+        "Subclasses of the given types are suppressed too.",
+        "`s.error` is None when nothing was raised."
+      ],
+      "realWorld": "contextlib.suppress and database transaction managers use this protocol: cleanup and error policy live in one place instead of try/except at every call site.",
+      "commonMistakes": [
+        "Returning the exception object instead of True (it is truthy, but it hides the intent).",
+        "Swallowing every exception."
+      ],
+      "alternatives": [
+        {
+          "title": "@contextmanager generator",
+          "code": "from contextlib import contextmanager\nfrom types import SimpleNamespace\n\n@contextmanager\ndef Suppress(*types):\n    box = SimpleNamespace(error=None)\n    try:\n        yield box\n    except types as e:\n        box.error = e\n",
+          "note": "contextlib turns a generator into a context manager: the code before yield is __enter__, the except clause is the error policy, and unmatched exceptions are re-raised automatically. It is shorter, but Suppress becomes a function rather than a class, so you cannot subclass it or use isinstance checks on it."
+        }
+      ]
+    },
+    "py:moving-average-generator": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A moving average looks at only the latest n values. As a generator it must keep just that window, never the whole input, so it can run on endless streams."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`collections.deque` appends on the right and pops from the left in constant time. A generator `yield`s one result at a time. Slicing like `values[-n:]` does not work on iterators."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Maintain a window and a running total. For each value add it to both; if the window is longer than n remove the oldest from both; once the window is exactly n long, yield the rounded average."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nfrom collections import deque\n\ndef moving_average(values, n):\n    window, total = deque(), 0\n    for v in values:\n        window.append(v)\n        total += v\n        if ...:  # window grew past n\n            total -= ...\n        if ...:  # window is full\n            yield round(total / n, 2)\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "control-flow",
+          "symptom": "Averages appear before n values have been seen.",
+          "cause": "A result is yielded for every item, including the first n-1.",
+          "fix": "Yield only when the window length equals n."
+        },
+        {
+          "category": "indexing",
+          "symptom": "`TypeError: 'itertools.count' object is not subscriptable`.",
+          "cause": "The code slices the input (`values[i:i+n]`), which needs a sequence.",
+          "fix": "Keep your own window with a deque."
+        },
+        {
+          "category": "variables",
+          "symptom": "Averages drift upward or the window keeps growing.",
+          "cause": "Old values are never removed from the window or the total.",
+          "fix": "Pop the oldest value and subtract it when the window exceeds n."
+        }
+      ],
+      "constraints": [
+        "Works on any iterable, including infinite ones.",
+        "Rounded to 2 decimals.",
+        "No output until n values are available."
+      ],
+      "realWorld": "Smoothing sensor readings or daily sales with a 7-day average is a moving average; streaming systems keep exactly this small window in memory.",
+      "commonMistakes": [
+        "Re-summing the whole window each step when n is large.",
+        "Yielding a list instead of a number."
+      ],
+      "alternatives": [
+        {
+          "title": "deque(maxlen) and sum",
+          "code": "from collections import deque\n\ndef moving_average(values, n):\n    window = deque(maxlen=n)\n    for v in values:\n        window.append(v)\n        if len(window) == n:\n            yield round(sum(window) / n, 2)\n",
+          "note": "maxlen drops the oldest item automatically, so there is no manual bookkeeping. It re-sums n values per step (O(n) instead of O(1)) but avoids the slow floating-point drift that add-and-subtract running totals can accumulate over millions of values."
+        }
+      ],
+      "complexity": {
+        "time": "O(1) per value with a running total",
+        "space": "O(n)"
+      }
+    }
+  }
+}

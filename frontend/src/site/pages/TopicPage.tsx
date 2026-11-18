@@ -3,6 +3,7 @@ import { usePage } from "../SiteApp";
 import { Container, PageHeader, QuestionCard } from "../components/ui";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { useProgress } from "../lib/progress";
+import { NextQuestionLink } from "../components/learn/WorkspacePractice";
 
 export function TopicPage() {
   const { data, params } = usePage();
@@ -32,6 +33,7 @@ export function TopicPage() {
         title={`${topic.label} practice questions`}
         intro={`${questions.length} questions. Concepts covered: ${concepts.join(", ")}.`}
       />
+      <NextQuestionLink questions={questions} className="-mt-4 mb-4" />
       <div data-help="topic-questions" className="grid gap-3 sm:grid-cols-2">
         {questions.map((q) => <QuestionCard key={q.slug} q={q} solved={!!progress.questions[q.number]?.solvedAt} />)}
       </div>

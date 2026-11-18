@@ -1,5 +1,5 @@
 import type { ExecuteResult, SubmitResult, TableSchema } from "../../types";
-import { HIDDEN_ROWS, execute, submit, type SqlDb } from "./sqlRunner";
+import { HIDDEN_ROWS, execute, submit, type RunOptions, type SqlDb } from "./sqlRunner";
 import type { OrderKey } from "./resultCompare";
 
 export const QUERY_TIMEOUT_MS = 8000;
@@ -72,9 +72,10 @@ async function withTimeout<T>(work: (db: SqlDb) => Promise<T>, onTimeout: () => 
 
 const TIMEOUT_MSG = `Query took longer than ${QUERY_TIMEOUT_MS / 1000}s and was stopped.`;
 
-export function runQuery(sql: string, dataset = NORTHWIND.id): Promise<ExecuteResult> {
+/** `opts.policy` (additive): the capability policy of the exercise. Without it the query runs as before (Playground, lessons). */
+export function runQuery(sql: string, dataset = NORTHWIND.id, opts: Pick<RunOptions, "policy"> = {}): Promise<ExecuteResult> {
   return withTimeout<ExecuteResult>(
-    (db) => execute(db, sql),
+    (db) => execute(db, sql, opts),
     () => ({ success: false, columns: [], rows: [], error_type: "TIMEOUT", message: TIMEOUT_MSG }),
     dataset,
   );
@@ -131,9 +132,10 @@ export function submitQuery(
   sortRequired: boolean,
   orderBy: OrderKey[] | null,
   dataset = NORTHWIND.id,
+  opts: Pick<RunOptions, "policy"> = {},
 ): Promise<SubmitResult> {
   return withTimeout<SubmitResult>(
-    (db) => submit(db, sql, reference, sortRequired, orderBy, dataset === NORTHWIND.id ? HIDDEN_ROWS : null),
+    (db) => submit(db, sql, reference, sortRequired, orderBy, dataset === NORTHWIND.id ? HIDDEN_ROWS : null, opts),
     () => ({ correct: false, message: TIMEOUT_MSG, feedback: [], level_changed: false }),
     dataset,
   );

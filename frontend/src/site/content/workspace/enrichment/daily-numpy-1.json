@@ -1,0 +1,399 @@
+{
+  "version": 1,
+  "items": {
+    "daily:d063#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A flat array and a table hold the same numbers; only the way you count positions differs. Reshaping changes the shape, never the values or their order."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`arr.reshape(rows, cols)` returns the array in the new shape, and the product of the new dimensions must equal the number of elements. `arr.shape` reports the current shape and `tolist()` gives plain nested lists."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Build the twelve numbers so that they run from 1 to 12 (remember that `arange` excludes its stop value), reshape them to four rows and three columns, then print the nested list and the shape."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nimport numpy as np\n\nnums = np.arange(..., ...)   # 1 through 12 inclusive\ntable = nums.reshape(..., ...)\nprint(table.tolist())\nprint(table.shape)\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "shape",
+          "symptom": "`ValueError: cannot reshape array of size 12 into shape (4,4)`.",
+          "cause": "The requested rows times columns (16) does not equal the 12 elements.",
+          "fix": "Choose dimensions whose product is 12, here 4 rows and 3 columns."
+        },
+        {
+          "category": "indexing",
+          "symptom": "The first row prints `[0, 1, 2]` instead of `[1, 2, 3]`.",
+          "cause": "The array was built with `np.arange(12)`, which starts at 0 and stops at 11.",
+          "fix": "Start at 1 and stop at 13, because the stop value is excluded."
+        },
+        {
+          "category": "types",
+          "symptom": "The table prints `(3, 4)`, with the dimensions swapped.",
+          "cause": "`reshape(3, 4)` takes rows first, so the arguments are in the opposite order to the request.",
+          "fix": "Put the number of rows first and columns second."
+        }
+      ],
+      "constraints": [
+        "Numbers 1 to 12 in row order.",
+        "Line 1 is a nested list, line 2 is the shape tuple."
+      ],
+      "realWorld": "Sensor and image data arrive as one long stream; reshaping it into rows and columns (days by hours, height by width) is the first step of almost every analysis.",
+      "commonMistakes": [
+        "Forgetting that the stop of arange is exclusive.",
+        "Printing the array instead of `tolist()`, which uses a different format."
+      ],
+      "alternatives": [
+        {
+          "title": "Let NumPy infer one dimension",
+          "code": "import numpy as np\n\nnums = np.arange(1, 13)\ntable = nums.reshape(4, -1)\nprint(table.tolist())\nprint(table.shape)\n",
+          "note": "`-1` means 'work this dimension out'. It avoids hand-multiplying sizes when the data length changes, but it hides mistakes: if the length is not divisible you get an error only at run time, and a wrong row count silently produces a different valid table."
+        }
+      ]
+    },
+    "daily:d064#g2": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Comparing an array with a number does not give one answer, it gives an answer for every element. That array of yes/no values is a mask."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`arr[mask]` keeps the elements where the mask is True. A boolean array can be summed, because True counts as 1."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Build a mask for 'at least 100' and use it to select values; count the values below 100 with a second mask and a sum."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nimport numpy as np\n\nsales = np.array([120, 85, 240, 60, 310, 95])\nprint(sales[...].tolist())   # mask: at least 100\nprint((...).sum())           # how many are below 100\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`ValueError: The truth value of an array with more than one element is ambiguous`.",
+          "cause": "`if sales >= 100:` or `sales >= 100 and ...` uses Python logic on a whole array.",
+          "fix": "Use the mask as an index, or combine masks with `&` and `|` in parentheses."
+        },
+        {
+          "category": "filtering",
+          "symptom": "Line 1 prints `[True, False, True, False, True, False]`.",
+          "cause": "The mask itself was printed instead of using it to index the array.",
+          "fix": "Put the mask inside the square brackets of the array."
+        },
+        {
+          "category": "indexing",
+          "symptom": "Line 2 prints the list of values instead of a count.",
+          "cause": "The mask was applied as an index (`sales[sales < 100]`), which returns elements, not their number.",
+          "fix": "Sum the boolean mask, or count its True values."
+        }
+      ],
+      "constraints": [
+        "Line 1 is a list of the values that are 100 or more, in original order.",
+        "Line 2 is a single number."
+      ],
+      "realWorld": "Every analysis starts by selecting the rows that match a rule: orders over a limit, sensors above a threshold, scores below a pass mark.",
+      "commonMistakes": [
+        "Using `>` where the rule says 'at least'."
+      ],
+      "alternatives": [
+        {
+          "title": "Index array from nonzero",
+          "code": "import numpy as np\n\nsales = np.array([120, 85, 240, 60, 310, 95])\nidx = np.nonzero(sales >= 100)[0]\nprint(sales[idx].tolist())\nprint(np.count_nonzero(sales < 100))\n",
+          "note": "A mask has one boolean per element; an index array lists the positions. Index arrays are useful when you need the positions themselves (to update other arrays or report where) but they cost an extra array. For a plain filter the boolean mask is shorter."
+        }
+      ]
+    },
+    "daily:d064#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "NumPy can show you the same memory through a window or hand you a private copy. Which one you get depends on how you selected the elements."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Basic slicing (`a[:3]`) returns a view. Boolean masks and index lists (`a[a > 3]`) return a copy. `np.shares_memory(x, y)` tells you which case you are in."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Edit through the slice and print the original, then edit through the masked result and print the original again, then ask `shares_memory` for each. Predict each line before running."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nimport numpy as np\n\na = np.array([1, 2, 3, 4, 5, 6])\nv = a[...]      # slice\nv[0] = 100\nprint(a.tolist())\nc = a[...]      # mask selection\nc[0] = 0\nprint(a.tolist())\nprint(np.shares_memory(a, v))\nprint(np.shares_memory(a, c))\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "variables",
+          "symptom": "`a` is unchanged after `v[0] = 100`.",
+          "cause": "`v` was created with `.copy()` or from a mask, so it owns its own data.",
+          "fix": "Take a plain slice, which is a view onto `a`."
+        },
+        {
+          "category": "indexing",
+          "symptom": "The second print shows `0` inside `a`.",
+          "cause": "A mask result was expected to be a view, but fancy indexing always copies.",
+          "fix": "Remember: slice means view, mask or index list means copy."
+        },
+        {
+          "category": "types",
+          "symptom": "`shares_memory` prints the same value twice.",
+          "cause": "Both variables were created the same way (both slices or both masks).",
+          "fix": "Create `v` by slicing and `c` by masking."
+        }
+      ],
+      "constraints": [
+        "Four output lines: two lists and two booleans.",
+        "The array must be changed only by the first edit."
+      ],
+      "realWorld": "Accidentally modifying a view corrupts the original dataset; accidentally copying large arrays wastes memory. Knowing which operation does which is a daily debugging skill.",
+      "commonMistakes": [
+        "Assuming every selection behaves like a Python list slice (which copies)."
+      ]
+    },
+    "daily:d065#g1": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Vectorising means writing the arithmetic once and letting NumPy apply it to every element, instead of looping in Python."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Arithmetic operators (`*`, `/`, `+`) work element by element on arrays. A comparison creates a mask that can index the new array."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Compute the Fahrenheit array in one expression and keep it in a variable, then print it, and print the part of it selected by a mask on the same array."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nimport numpy as np\n\ncelsius = np.array([0, 25, 100, -40])\nf = ...                  # conversion formula on the whole array\nprint(f.tolist())\nprint(f[...].tolist())   # mask: above 70\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`TypeError: unsupported operand type(s) for *: 'list' and 'float'`.",
+          "cause": "The formula is applied to a plain Python list instead of the array.",
+          "fix": "Operate on `celsius`, which is an array."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "The Fahrenheit list is printed but the masked line is empty or wrong.",
+          "cause": "The mask was built from `celsius > 70` rather than from the converted values.",
+          "fix": "Mask the Fahrenheit array."
+        },
+        {
+          "category": "syntax",
+          "symptom": "Output shows integers such as `32` instead of `32.0`.",
+          "cause": "Integer division (`//`) or a conversion to int removed the decimals.",
+          "fix": "Use true division `/`, which returns floats."
+        }
+      ],
+      "constraints": [
+        "Two output lines, both lists.",
+        "Use array arithmetic, not a loop."
+      ],
+      "realWorld": "Unit conversion across a whole column of readings is the standard case for vectorised arithmetic, and it is much faster than a Python loop on large data.",
+      "commonMistakes": [
+        "Rebuilding the list with a for loop.",
+        "Masking with the wrong array."
+      ],
+      "alternatives": [
+        {
+          "title": "List comprehension then array",
+          "code": "import numpy as np\n\ncelsius = np.array([0, 25, 100, -40])\nf = np.array([c * 9 / 5 + 32 for c in celsius])\nprint(f.tolist())\nprint(f[f > 70].tolist())\n",
+          "note": "Gives the same values, but the arithmetic runs in the Python interpreter one element at a time. For four values it does not matter; for millions it is typically one to two orders of magnitude slower than the vectorised expression, which is why NumPy code avoids it."
+        }
+      ]
+    },
+    "daily:d065#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Broadcasting stretches a smaller array across a larger one, but only along axes whose sizes match or equal 1. A row of 3 fits the columns of a 2-by-3 table; a list of 2 needs to become a column first."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Shapes are compared from the right. `(2, 3) + (3,)` works. `(2, 3) + (2,)` does not, but `(2, 3) + (2, 1)` does. `arr[:, None]` or `arr.reshape(-1, 1)` turns a 1-D array into a column."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Add the three-element array directly for the first line. For the second, turn the two-element array into a column of shape (2, 1) before adding it."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nimport numpy as np\n\nt = np.arange(6).reshape(2, 3)\nprint((t + np.array([10, 20, 30])).tolist())\nprint((t + np.array([100, 200])...).tolist())   # make it a column\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "broadcasting",
+          "symptom": "`ValueError: operands could not be broadcast together with shapes (2,3) (2,)`.",
+          "cause": "A 1-D array of length 2 is aligned with the last axis (length 3), which does not match.",
+          "fix": "Give it shape (2, 1) so it lines up with the rows."
+        },
+        {
+          "category": "shape",
+          "symptom": "`ValueError: cannot reshape array of size 2 into shape (3,2)`.",
+          "cause": "The two row offsets were reshaped to the shape of the table (or its transpose) instead of to a column that has one entry per row.",
+          "fix": "Reshape to two rows and one column (`-1, 1` lets NumPy infer the rows) and let broadcasting stretch it."
+        },
+        {
+          "category": "axis",
+          "symptom": "`[:, None]` was applied to the 2-D table instead of the helper array.",
+          "cause": "The new axis was added to the wrong array, which changes the table's shape.",
+          "fix": "Insert the axis into the 1-D array of per-row offsets."
+        }
+      ],
+      "constraints": [
+        "Both lines are nested lists.",
+        "No loops."
+      ],
+      "realWorld": "Adding a per-column baseline or a per-row offset to a table is broadcasting; it replaces loops over rows in nearly every numeric workflow.",
+      "commonMistakes": [
+        "Thinking NumPy guesses which axis you meant."
+      ],
+      "alternatives": [
+        {
+          "title": "Explicit tile and repeat",
+          "code": "import numpy as np\n\nt = np.arange(6).reshape(2, 3)\nprint((t + np.tile(np.array([10, 20, 30]), (2, 1))).tolist())\nprint((t + np.repeat(np.array([100, 200]), 3).reshape(2, 3)).tolist())\n",
+          "note": "tile and repeat materialise the full 2-by-3 arrays before adding, which makes the shapes visible and is a good way to check your understanding. Broadcasting does the same result without allocating those copies, which matters when the table is large."
+        }
+      ]
+    },
+    "daily:d066#g2": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A table has two directions. Collapsing one direction removes it from the result: sum over the rows and you are left with one value per column."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`arr.sum(axis=0)` adds down the rows (one total per column); `axis=1` adds across the columns (one total per row). The axis you name is the one that disappears."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Products are columns, so the total per product collapses the day (row) axis. The total per day collapses the product axis."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nimport numpy as np\n\nt = np.array([[3, 5, 7], [2, 4, 6]])\nprint(t.sum(axis=...).tolist())   # one total per product\nprint(t.sum(axis=...).tolist())   # one total per day\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "axis",
+          "symptom": "The two lines are swapped: `[15, 12]` first.",
+          "cause": "`axis=1` was used for the per-product total, but it sums across columns.",
+          "fix": "Use `axis=0` for column totals."
+        },
+        {
+          "category": "shape",
+          "symptom": "Output is a single number `27`.",
+          "cause": "`t.sum()` without axis adds all elements.",
+          "fix": "Name the axis to keep the other dimension."
+        },
+        {
+          "category": "types",
+          "symptom": "`AxisError: axis 2 is out of bounds for array of dimension 2`.",
+          "cause": "A 2-D array only has axes 0 and 1.",
+          "fix": "Use 0 or 1."
+        }
+      ],
+      "constraints": [
+        "Both lines are lists.",
+        "Line 1 has one entry per product, line 2 one per day."
+      ],
+      "realWorld": "Totals per product and per day from the same grid are the two margins of every report table.",
+      "commonMistakes": [
+        "Memorising 'axis 0 is rows' instead of 'the named axis disappears'."
+      ]
+    },
+    "daily:d066#i1": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Standardising puts every column on the same scale: subtract the column's mean and divide by its standard deviation. The statistics belong to columns, but the subtraction happens on every row."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`x.mean(axis=0)` and `x.std(axis=0)` give one value per column (population standard deviation by default). They have shape (2,), which broadcasts against the rows of a (3, 2) table."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Compute the column mean and standard deviation, standardise with one expression, and print the three results, rounding standard deviations and z-scores to 3 decimals."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nimport numpy as np\n\nx = np.array([[100.0, 2.0], [160.0, 5.0], [220.0, 11.0]])\nmean = x.mean(axis=...)\nstd = x.std(axis=...)\nz = (x - ...) / ...\nprint(mean.tolist())\nprint(np.round(std, 3).tolist())\nprint(np.round(z, 3).tolist())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "axis",
+          "symptom": "Means are `[160.0, 6.0]` expected, but the output has three values.",
+          "cause": "The statistics were taken with `axis=1`, which gives one per row.",
+          "fix": "Take them down the rows with `axis=0`."
+        },
+        {
+          "category": "broadcasting",
+          "symptom": "`ValueError: operands could not be broadcast together with shapes (3,2) (3,)`.",
+          "cause": "Per-row statistics (shape (3,)) cannot be subtracted from a (3, 2) table.",
+          "fix": "Use per-column statistics of shape (2,)."
+        },
+        {
+          "category": "transformation",
+          "symptom": "The z-scores differ from the expected ones: the first row is `[-1.0, -0.873]` instead of `[-1.225, -1.069]`.",
+          "cause": "The sample standard deviation (`ddof=1`) was used while the exercise asks for the population one.",
+          "fix": "Keep the default `ddof=0`."
+        }
+      ],
+      "constraints": [
+        "Population standard deviation.",
+        "Rounded to 3 decimals only when printing."
+      ],
+      "realWorld": "Standardised features are the input of nearly every distance-based model (clustering, k-NN) so that spend in dollars does not drown visit counts.",
+      "commonMistakes": [
+        "Rounding before dividing."
+      ]
+    }
+  }
+}

@@ -34,6 +34,7 @@ import { PatternPage, PatternsIndexPage } from "./pages/PatternsPages";
 import { ShortcutDocPage, ShortcutsPage } from "./pages/ShortcutsPages";
 import { MindMapPage, MindMapsIndexPage } from "./pages/MindMapPages";
 import { QueryVisualizerPage } from "./pages/QueryVisualizerPage";
+import { WorkspacePage } from "./pages/WorkspacePage";
 import { ApiVisualPage, BusinessVisualPage, ChartsVisualPage, DataVisualPage, EtlVisualPage, ExcelVisualPage, GitVisualPage, GraphVisualPage, InterviewVisualPage, LinuxVisualPage, PythonVisualPage, StatsVisualPage, TreeVisualPage, VisualHubPage } from "./pages/VisualPages";
 import { SolutionComparisonPage } from "./pages/SolutionComparisonPage";
 import { ReadinessPage } from "./pages/ReadinessPage";
@@ -346,6 +347,7 @@ export const routes: SiteRoute[] = [
   { path: "/visual/stats", element: <StatsVisualPage />, load: base, paths: one("/visual/stats") },
   { path: "/visual/business", element: <BusinessVisualPage />, load: base, paths: one("/visual/business") },
   { path: "/visual/interview", element: <InterviewVisualPage />, load: base, paths: one("/visual/interview") },
+  { path: "/workspace", element: <WorkspacePage />, load: base, paths: one("/workspace") },
   { path: "/query-visualizer", element: <QueryVisualizerPage />, load: base, paths: one("/query-visualizer") },
   { path: "/solution-comparison", element: <SolutionComparisonPage />, load: base, paths: one("/solution-comparison") },
   { path: "/readiness", element: <ReadinessPage />, load: async () => ({ ...(await base()), notes: await loadNoteIndex() }), paths: one("/readiness") },

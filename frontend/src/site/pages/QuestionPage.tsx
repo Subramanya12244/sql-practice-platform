@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { sendTo } from "../lib/handoff";
 import { VizView } from "../components/VizView";
 import { ExplainPanel } from "../components/visual/ExplainPanel";
+import { WorkspaceLink } from "../components/WorkspaceLink";
 import { addSession, getExecs, getSessions, highlightInEditor, type ExecRecord, type VizSession } from "../lib/vizHistory";
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, X } from "lucide-react";
 import { Icon } from "../components/Icon";
@@ -171,6 +172,7 @@ export function QuestionPage() {
           {q.title}
         </h1>
         <Difficulty level={q.difficulty} />
+        <WorkspaceLink id={`sql:${q.slug}`} />
         {solved && (
           <span className="inline-flex items-center gap-1 text-sm font-medium text-success">
             <CheckCircle2 className="h-4 w-4" aria-hidden /> Solved

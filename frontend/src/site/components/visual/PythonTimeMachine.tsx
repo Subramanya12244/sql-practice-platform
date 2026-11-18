@@ -4,6 +4,9 @@ import { PlaybackBar, ProvenanceBadge, VisualShell, usePlayback } from "./Playba
 import { changeBase, changedVars, costNotes, describeStep, lineCounts, memoryAt, traceRun, type PyVal, type Trace, type TraceGap, type TraceRun } from "../../lib/visual/pyTrace";
 import { PAGE_SIZE, gapAfter, gapBefore, gapLabel, gapSummary, jumpTargets, num, pageCount, pageOf, pageRows, stepPosition } from "../../lib/visual/traceStore";
 import { describeDataChange, diffGrids, gridOf } from "../../lib/visual/dataDiff";
+import { analyzeSource } from "../../lib/visual/pyBranches";
+import { diagnoseAll } from "../../lib/visual/pyDiagnose";
+import { BranchPanel, DiagnosisCard, StepControls, TraceLimitations, useStepNote } from "./PyTracePanels";
 
 const cellCls = "border border-surface-border px-1.5 py-0.5 text-xs tabular-nums";
 
@@ -267,6 +270,10 @@ export function TraceViewer({ code, trace, mode = "variables" }: { code: string;
   const printed = step ? trace.stdout.slice(0, step.out) : "";
   const labels = useMemo(() => trace.steps.map((s) => `Line ${s.line} (${s.ev})`), [trace]);
   const go = (index: number) => pb.dispatch({ type: "seek", index });
+  const { note, say } = useStepNote();
+  // The same engines the workspace's Python visualizer uses (pyStepper, pyBranches, pyDiagnose): no second implementation here.
+  const srcMap = useMemo(() => analyzeSource(code), [code]);
+  const diagnoses = useMemo(() => (trace.error ? diagnoseAll({ source: code, trace }) : []), [code, trace]);
   if (!step) return <p className="text-sm text-ink-muted">The program recorded no steps (nothing to run).</p>;
   const last = trace.steps.length - 1;
   const exact = trace.counts ? trace.counts.exact : !trace.truncated;
@@ -298,6 +305,8 @@ export function TraceViewer({ code, trace, mode = "variables" }: { code: string;
       <div className="space-y-1.5">
         <p className="text-xs tabular-nums text-ink-muted" data-testid="step-position">{stepPosition(trace, i)}</p>
         <JumpBar t={trace} i={i} go={go} />
+        <StepControls trace={trace} i={i} go={(to, text) => { go(to); say(to, text); }} />
+        <p aria-live="polite" className="text-xs text-ink-muted" data-testid="step-note">{note && note.at === i ? note.text : ""}</p>
       </div>
       {gapNow && <div data-testid="gap-before" className="rounded-lg border border-dashed border-warn/60 bg-warn-dim p-2 text-xs text-ink"><p className="font-semibold">Steps skipped before this one</p><GapDetail t={trace} gap={gapNow} /></div>}
       <div role="status" aria-live="polite" className={`rounded-lg border p-2 text-sm ${step.ev === "exception" ? "border-danger/50 bg-danger-dim text-ink" : "border-surface-border bg-surface-soft text-ink"}`}>
@@ -351,9 +360,14 @@ export function TraceViewer({ code, trace, mode = "variables" }: { code: string;
           })}
         </div>
       )}
+      <details className="rounded-lg border border-surface-border p-2 text-xs" data-testid="branch-details">
+        <summary className="cursor-pointer font-semibold text-ink">Conditions, branches and loops</summary>
+        <div className="mt-2"><BranchPanel trace={trace} code={code} source={srcMap} i={i} /></div>
+      </details>
       {trace.error && (i === last || i === trace.exceptionStep) && (
         <p role="alert" className="rounded-lg border border-danger/40 bg-danger-dim p-2 text-xs text-ink">Stopped by <strong>{trace.error.type}</strong>: {trace.error.msg}{trace.error.line ? ` (line ${trace.error.line})` : ""}. The values above are what the program held just before it failed.</p>
       )}
+      {trace.error && diagnoses.map((d, n) => <DiagnosisCard key={`${d.cls}${n}`} d={d} open={n === 0 && (i === last || i === trace.exceptionStep)} />)}
     </>
   );
 
@@ -365,6 +379,7 @@ export function TraceViewer({ code, trace, mode = "variables" }: { code: string;
         <div className="space-y-2">
           <PlaybackBar pb={pb} labels={labels} />
           <StepList t={trace} i={i} go={go} />
+          <TraceLimitations />
           <details className="rounded-lg border border-surface-border p-2 text-xs">
             <summary className="cursor-pointer font-semibold text-ink">Cost of this run</summary>
             <ul className="mt-1 list-disc space-y-0.5 pl-5 text-ink-muted">{notes.measured.map((n) => <li key={n}>{n}</li>)}</ul>

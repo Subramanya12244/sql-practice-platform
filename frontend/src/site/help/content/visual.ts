@@ -226,12 +226,12 @@ const sections: HelpSection[] = [
       when: "Use it when a pandas result has the wrong rows or columns, when a merge gives more or fewer rows than expected, or when you want to see how a method such as groupby really reshapes a table.",
     },
     canDo: [
-      "Trace your own pandas code, or one of six pandas examples.",
+      "Trace your own pandas code, or start from one of the pandas examples.",
       "See each DataFrame or Series as a table with column dtypes under the column names.",
       "Compare Before this step with After (changed cells highlighted).",
       "See shape, dtype and missing values per column below each table.",
       "Read a sentence that summarises what changed: new object, shape change, dtype change, changed cells, added or dropped columns.",
-      "Switch to the Variables tab to see the same values as plain text.",
+      "Switch to the Final variables tab to see the values left at the end of the run as plain text.",
     ],
     howTo: [
       "Pick a pandas example button, for example Filter and sort.",
@@ -338,7 +338,8 @@ const sections: HelpSection[] = [
       { name: "Masks, slicing, aggregation", what: "Example: x > 4 as a mask, x[mask] to select, x[0, :] for a row, x.sum(axis=0) for column sums, and reshape(6)." },
       { name: "Explain visually", what: "Records the run. Reads Trace again after a trace." },
       { name: "Tables and arrays", what: "The default tab on this page: one grid per array held by the current scope.", tip: "The grid is built for 1-D and 2-D arrays and shows at most the first 8 rows and 8 columns." },
-      { name: "Variables", what: "The tab that lists names with short text values, as a check against the grid." },
+      { name: "Final variables", what: "The tab that lists the names and short text values left at the end of the run, as a check against the grid." },
+      { name: "Run", what: "Runs your code once and shows its printed output, the result table and, if it failed, why. It does not record steps; use Explain visually for that. Ctrl or Cmd with Enter in the editor runs Explain visually." },
       { name: "Playback controls (Restart, Previous step, Play, Next step, Playback speed, Timeline)", what: "The shared bar under the visual." },
     ],
     example: {

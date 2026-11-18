@@ -1,0 +1,588 @@
+{
+  "version": 1,
+  "items": {
+    "daily:d080#g2": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "You need each row's group total next to the row, without shrinking the table. A normal group sum collapses rows; a group-aware column keeps them."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`groupby(...)[col].transform('sum')` returns a Series with one value per original row (the sum of that row's group), aligned to the original index. `Series.round(2)` rounds."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Compute the per-rep total with transform, divide the amount column by it, round to two places and store the result as a new column `share`."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nsales['share'] = (sales['amount'] / sales.groupby('rep')['amount'].transform(...)).round(...)\nprint(sales.to_string())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "grouping",
+          "symptom": "The `share` column is all `NaN`.",
+          "cause": "`.sum()` returns one value per rep indexed by rep name, and dividing by it aligns row labels 0 to 3 against 'Ana' and 'Ben', which never match.",
+          "fix": "Use `transform('sum')`, which keeps the original row index."
+        },
+        {
+          "category": "shape",
+          "symptom": "The table has two rows instead of four.",
+          "cause": "The result of `groupby(...).sum()` replaced the table.",
+          "fix": "Add a new column to `sales` instead of overwriting it."
+        },
+        {
+          "category": "transformation",
+          "symptom": "Shares sum to more than 1 inside a rep.",
+          "cause": "The overall total was used as the denominator instead of the rep's total.",
+          "fix": "Group by `rep` before the sum."
+        }
+      ],
+      "constraints": [
+        "All four rows stay in place.",
+        "Share rounded to 2 places."
+      ],
+      "realWorld": "Each order as a share of its customer's total, each product as a share of its category: the pattern for mix reports and Pareto charts.",
+      "commonMistakes": [
+        "Using `agg` when you need a value per original row."
+      ],
+      "alternatives": [
+        {
+          "title": "Merge the group totals back",
+          "code": "import pandas as pd\nsales = pd.DataFrame({\"rep\": [\"Ana\", \"Ben\", \"Ana\", \"Ben\"], \"amount\": [10, 30, 30, 10]})\ntotals = sales.groupby(\"rep\", as_index=False)[\"amount\"].sum().rename(columns={\"amount\": \"total\"})\nsales = sales.merge(totals, on=\"rep\")\nsales[\"share\"] = (sales[\"amount\"] / sales[\"total\"]).round(2)\nsales = sales.drop(columns=\"total\")\nprint(sales.to_string())\n",
+          "note": "Computes the totals as a small table and joins them back by key. It is more steps than transform, but it keeps the totals table around for reuse and works when the denominator comes from a different source. transform is the idiomatic one-liner for 'group statistic per row'."
+        }
+      ]
+    },
+    "daily:d080#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'Best per group' is a ranking inside each group. Keep the rows whose rank is 1."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`groupby(...)[col].rank(ascending=False, method='first')` ranks within each group, largest first, and breaks ties by order of appearance. The default method averages tied ranks (giving 1.5), which hides tied leaders."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Rank the amounts within each rep with the right direction and tie method, keep the rows ranked 1, sort by rep and print without the index."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nrank = sales.groupby('rep')['amount'].rank(ascending=..., method=...)\nbest = sales[rank == 1].sort_values('rep')\nprint(best.to_string(index=False))\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "grouping",
+          "symptom": "Ana is missing from the output.",
+          "cause": "The default tie method `'average'` gives both 15s the rank 1.5, so `rank == 1` matches neither row.",
+          "fix": "Use `method='first'` so exactly one row per group gets rank 1."
+        },
+        {
+          "category": "filtering",
+          "symptom": "Ben shows 40 instead of 90.",
+          "cause": "`ascending=True` (the default) ranks the smallest amount first.",
+          "fix": "Rank with `ascending=False`."
+        },
+        {
+          "category": "transformation",
+          "symptom": "Only one row is printed, the best of all reps.",
+          "cause": "The rank was computed over the whole column, without a groupby.",
+          "fix": "Group by rep first."
+        }
+      ],
+      "constraints": [
+        "One row per rep.",
+        "Ties are broken by order of appearance."
+      ],
+      "realWorld": "Top sale per rep, latest order per customer and best product per region all follow this rank-and-filter pattern.",
+      "commonMistakes": [
+        "Ignoring how ties are ranked."
+      ],
+      "alternatives": [
+        {
+          "title": "idxmax per group",
+          "code": "import pandas as pd\nsales = pd.DataFrame({\"rep\": [\"Ben\", \"Ana\", \"Ben\", \"Ana\", \"Cal\"], \"amount\": [40, 15, 90, 15, 5]})\nbest = sales.loc[sales.groupby(\"rep\")[\"amount\"].idxmax()].sort_values(\"rep\")\nprint(best.to_string(index=False))\n",
+          "note": "idxmax returns the index label of the first maximum in each group, so ties go to the first appearance as well. It is shorter, but gives only the single top row; the rank approach extends to 'top 2 per group' by changing the filter."
+        }
+      ]
+    },
+    "daily:d081#g1": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A merge matches rows by a key. Whether unmatched rows survive depends on the join type, and the default throws them away."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`left.merge(right, on='key', how='left')` keeps every row of the left table. The side you call `merge` on is the left table, and it decides the column order."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Call merge on `orders` (the table whose rows must all survive), join `customers` on the id, and choose the left join explicitly."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nm = orders.merge(customers, on=..., how=...)\nprint(m.to_string(index=False))\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "join",
+          "symptom": "Order 12 is missing: the table has 2 rows.",
+          "cause": "The default `how='inner'` keeps only matching keys.",
+          "fix": "Pass `how='left'` from the orders table."
+        },
+        {
+          "category": "shape",
+          "symptom": "The columns come out as `customer_id, name, order_id, amount`.",
+          "cause": "The merge was called on `customers`, so the customers' columns come first (and customers without orders would appear).",
+          "fix": "Call it on `orders` to keep the requested column order."
+        },
+        {
+          "category": "missing-data",
+          "symptom": "The name for order 12 prints `NaN`.",
+          "cause": "No customer 3 exists, so there is no name to attach.",
+          "fix": "That is correct: a left join marks missing partners with NaN."
+        }
+      ],
+      "constraints": [
+        "Every order appears exactly once.",
+        "Column order: order_id, customer_id, amount, name."
+      ],
+      "realWorld": "Attaching customer names to orders without losing orders is the daily bread of reporting. The NaN rows are your data-quality findings.",
+      "commonMistakes": [
+        "Relying on the default inner join and losing rows silently."
+      ],
+      "alternatives": [
+        {
+          "title": "Map a lookup Series",
+          "code": "import pandas as pd\ncustomers = pd.DataFrame({\"customer_id\": [1, 2], \"name\": [\"Ada\", \"Bo\"]})\norders = pd.DataFrame({\"order_id\": [10, 11, 12], \"customer_id\": [1, 2, 3], \"amount\": [5, 6, 7]})\nm = orders.assign(name=orders[\"customer_id\"].map(customers.set_index(\"customer_id\")[\"name\"]))\nprint(m.to_string(index=False))\n",
+          "note": "map looks up one column through a Series keyed by customer_id and can never change the number of rows. merge can multiply rows if the key repeats in the other table; map would raise on a non-unique index instead. Use merge when you need several columns or other join types."
+        }
+      ]
+    },
+    "daily:d081#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Customers who never ordered are the ones that find no partner when you look for their orders. A left merge keeps them, and a marker tells you which rows found a partner."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`merge(..., how='left', indicator=True)` adds a `_merge` column with values `both`, `left_only` or `right_only`. Filtering on `left_only` gives the unmatched left rows."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Merge customers with orders using a left join and the indicator, keep the rows marked `left_only`, take the name column and print it as a list."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nm = customers.merge(orders, on='customer_id', how='left', indicator=True)\nnames = m[m['_merge'] == ...]['name'].tolist()\nprint(names)\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "join",
+          "symptom": "The list is `['Bo', 'Di']`, the customers who did order.",
+          "cause": "The default inner join kept only matching rows.",
+          "fix": "Use `how='left'` and filter for `left_only`."
+        },
+        {
+          "category": "missing-data",
+          "symptom": "The list is empty.",
+          "cause": "Customers were filtered with `m['customer_id'].isna()`, but that column comes from the customers table and is never missing.",
+          "fix": "Test the `_merge` indicator (or a column from the orders side)."
+        },
+        {
+          "category": "filtering",
+          "symptom": "The indicator comparison finds nothing.",
+          "cause": "The value was spelled `'left'` instead of `'left_only'`.",
+          "fix": "Compare with `'left_only'`."
+        }
+      ],
+      "constraints": [
+        "Names in the order of the customers table.",
+        "Use a left merge with indicator."
+      ],
+      "realWorld": "Finding rows with no counterpart (customers with no orders, products never sold) is the pandas version of an anti-join and a staple data-quality check.",
+      "commonMistakes": [
+        "Testing a key column that is never missing."
+      ],
+      "alternatives": [
+        {
+          "title": "isin on the keys",
+          "code": "import pandas as pd\ncustomers = pd.DataFrame({\"customer_id\": [1, 2, 3, 4], \"name\": [\"Ada\", \"Bo\", \"Cy\", \"Di\"]})\norders = pd.DataFrame({\"order_id\": [1, 2], \"customer_id\": [2, 4]})\nnames = customers[~customers[\"customer_id\"].isin(orders[\"customer_id\"])][\"name\"].tolist()\nprint(names)\n",
+          "note": "No merge needed: keep customers whose id is not among the order ids. It never multiplies rows and is quicker for a pure existence check. The indicator merge is the better tool when you also want the matched rows or a count of left-only, both and right-only. Missing (NaN) keys behave differently, so check them first."
+        }
+      ]
+    },
+    "daily:d082#g2": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A pivot turns the values of one column into column headings and aggregates a measure into the cells. Combinations that never occur become empty cells."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`pivot_table(index=, columns=, values=, aggfunc=, fill_value=)` aggregates duplicates and fills empty cells. Its default aggregation is the mean, not the sum."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Name regions as rows, products as columns, amount as values, ask for the sum explicitly, and fill empty cells with zero."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ngrid = s.pivot_table(index=..., columns=..., values=..., aggfunc=..., fill_value=...)\nprint(grid.to_string())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "transformation",
+          "symptom": "The S/pen cell shows 3 instead of 6.",
+          "cause": "`pivot_table` averages duplicates by default (2 and 4 give 3).",
+          "fix": "Set `aggfunc='sum'`."
+        },
+        {
+          "category": "missing-data",
+          "symptom": "The table shows `NaN` and decimals such as `3.0`.",
+          "cause": "Empty combinations are NaN, which also turns the integers into floats.",
+          "fix": "Pass `fill_value=0`."
+        },
+        {
+          "category": "shape",
+          "symptom": "`ValueError: Index contains duplicate entries, cannot reshape`.",
+          "cause": "`pivot` (without `_table`) cannot aggregate and region S has two pen rows.",
+          "fix": "Use `pivot_table` with an aggregation."
+        }
+      ],
+      "constraints": [
+        "Sums, not means.",
+        "Empty cells are 0."
+      ],
+      "realWorld": "Region by product matrices are the standard management report, and the aggregation choice (sum, mean, count) changes the story.",
+      "commonMistakes": [
+        "Trusting the default aggregation."
+      ],
+      "alternatives": [
+        {
+          "title": "groupby then unstack",
+          "code": "import pandas as pd\ns = pd.DataFrame({\"region\": [\"N\", \"S\", \"N\", \"S\"], \"product\": [\"pen\", \"pen\", \"ink\", \"pen\"], \"amount\": [1, 2, 3, 4]})\ngrid = s.groupby([\"region\", \"product\"])[\"amount\"].sum().unstack(fill_value=0)\nprint(grid.to_string())\n",
+          "note": "The same pivot as two explicit steps: aggregate per pair, then move the product level into columns. It exposes the intermediate sums and makes the aggregation obvious, while pivot_table does both in a single call and also offers margins and several aggregations."
+        }
+      ]
+    },
+    "daily:d082#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Wide data has one column per month; long data has one row per store and month. Melting turns the column headings into values of a new column."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`pd.melt(df, id_vars=..., var_name=..., value_name=...)` keeps the id columns and stacks the others into a variable column and a value column."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Keep `store` as the identifier, name the stacked heading column `month` and the stacked numbers `sales`, then print without the index."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nlong = pd.melt(wide, id_vars=..., var_name=..., value_name=...)\nprint(long.to_string(index=False))\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "shape",
+          "symptom": "The result has 6 rows and the columns `variable` and `value`.",
+          "cause": "No `id_vars` were given, so the store column was melted too and the default names were used.",
+          "fix": "Pass `id_vars='store'` and the two name arguments."
+        },
+        {
+          "category": "syntax",
+          "symptom": "The headings are `variable` and `value`, not `month` and `sales`.",
+          "cause": "`var_name` and `value_name` were not set.",
+          "fix": "Set them explicitly."
+        },
+        {
+          "category": "transformation",
+          "symptom": "Rows are ordered by store (A jan, A feb) instead of by month.",
+          "cause": "`stack` was used instead of `melt`; melt lists every row of the first month, then the next.",
+          "fix": "Use `melt` for the expected order."
+        }
+      ],
+      "constraints": [
+        "Columns `store`, `month`, `sales`.",
+        "Rows grouped by month, in the original store order."
+      ],
+      "realWorld": "Charts and groupby both want long data; spreadsheets give you wide data. Melt is the standard bridge.",
+      "commonMistakes": [
+        "Forgetting id_vars."
+      ]
+    },
+    "daily:d083#g1": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A rolling statistic looks at a sliding window of the latest rows. Until the window is full there is nothing to average, so the first entries are missing."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`series.rolling(window).mean()` returns a Series. `rolling` alone returns a window object you still have to aggregate. `min_periods` changes how many values are needed."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Create a 3-row rolling window over the series and take its mean, then round the result and print it as a list."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nr = s.rolling(...).mean()\nprint(r.round(2).tolist())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "runtime",
+          "symptom": "`AttributeError: 'Rolling' object has no attribute 'round'`.",
+          "cause": "The aggregation (`.mean()`) is missing, so `r` is a window object.",
+          "fix": "Call `.mean()` on the rolling object."
+        },
+        {
+          "category": "missing-data",
+          "symptom": "The first entries are `2.0` and `3.0` instead of `nan`.",
+          "cause": "`min_periods=1` lets partial windows produce a value.",
+          "fix": "Leave `min_periods` at its default (the window size)."
+        },
+        {
+          "category": "indexing",
+          "symptom": "The averages are shifted down by one row.",
+          "cause": "`.shift(1)` was added, which moves each average to the next row.",
+          "fix": "Remove the shift unless you want the average of the previous rows."
+        }
+      ],
+      "constraints": [
+        "Window of 3 rows.",
+        "First two entries are NaN."
+      ],
+      "realWorld": "Smoothing daily sales or sensor values with a moving average is the quickest way to see a trend through noise.",
+      "commonMistakes": [
+        "Forgetting that the window is trailing, not centred."
+      ],
+      "alternatives": [
+        {
+          "title": "Average of shifted copies",
+          "code": "import pandas as pd\ns = pd.Series([2, 4, 6, 8, 5])\nr = (s + s.shift(1) + s.shift(2)) / 3\nprint(r.round(2).tolist())\n",
+          "note": "Builds the same window by hand from lagged copies, which shows exactly what 'the last three rows' means. It does not scale: every extra window row needs another term, and rolling also handles missing values, `min_periods` and time-based windows."
+        }
+      ]
+    },
+    "daily:d083#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "The previous value must come from the same customer. The first row of each customer has no previous value, so it stays missing."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`groupby('key')['col'].shift(1)` shifts values down by one position inside each group. Without the groupby the shift crosses group boundaries."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Group by customer, take the amount column, shift it by one and assign the result to a new column `prev`."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\no['prev'] = o.groupby(...)[...].shift(...)\nprint(o.to_string())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "grouping",
+          "symptom": "Customer B's first row shows `prev = 7.0`, which is A's last amount.",
+          "cause": "`o['amount'].shift(1)` shifted the whole column and ignored the customer boundary.",
+          "fix": "Shift inside a groupby on the customer."
+        },
+        {
+          "category": "indexing",
+          "symptom": "Each `prev` is the next row's value.",
+          "cause": "`shift(-1)` looks forward.",
+          "fix": "Use a positive shift for the previous row."
+        },
+        {
+          "category": "missing-data",
+          "symptom": "The `prev` column is float with NaN.",
+          "cause": "NaN cannot live in an integer column, so the values become floats.",
+          "fix": "This is expected; the first row of each customer has no previous value."
+        }
+      ],
+      "constraints": [
+        "The first row of each customer has NaN.",
+        "Table order unchanged."
+      ],
+      "realWorld": "Previous-order amount, days since last purchase and month-on-month deltas all start with a grouped shift (SQL LAG with PARTITION BY).",
+      "commonMistakes": [
+        "Forgetting to sort by date before shifting."
+      ],
+      "alternatives": [
+        {
+          "title": "Shift then blank out other customers",
+          "code": "import pandas as pd\no = pd.DataFrame({\"customer\": [\"A\", \"A\", \"B\", \"B\", \"B\"], \"amount\": [5, 7, 20, 22, 19]})\no[\"prev\"] = o[\"amount\"].shift(1).where(o[\"customer\"] == o[\"customer\"].shift(1))\nprint(o.to_string())\n",
+          "note": "Shifts the whole column and then keeps a value only where the previous row belongs to the same customer. It works only when each customer's rows are adjacent and in order, whereas groupby().shift() does not rely on the layout. Prefer the groupby form."
+        }
+      ]
+    },
+    "daily:d084#g1": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Smaller integer types use less memory, but a type that is too small silently breaks the numbers. The right size depends on the actual values."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`pd.to_numeric(series, downcast='integer')` picks the smallest integer type that holds all values. `series.dtype` shows the type, and comparing the series with `==` and `.all()` checks nothing changed."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Downcast the ages, print the dtype name, and compare the result with the original to prove the values are unchanged."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nsmall = pd.to_numeric(ages, downcast=...)\nprint(small.dtype)\nprint((small == ages).all())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "The dtype prints `int64`.",
+          "cause": "`downcast` was not passed (or the result was not the printed variable).",
+          "fix": "Pass `downcast='integer'` and print the converted series."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`ValueError: invalid downcasting method provided`.",
+          "cause": "`downcast='int'` is not a recognised option.",
+          "fix": "Use `'integer'` (or `'signed'`)."
+        },
+        {
+          "category": "runtime",
+          "symptom": "Values come out wrong after a manual `.astype('int8')` on larger data.",
+          "cause": "`astype('int8')` wraps around silently: 300 becomes 44.",
+          "fix": "Use `downcast`, which chooses a type that fits, and verify with an equality check."
+        }
+      ],
+      "constraints": [
+        "Two lines: dtype name and True/False.",
+        "Values must be unchanged."
+      ],
+      "realWorld": "Downcasting integer columns can cut a table's memory by several times before a large load or a join, which matters in constrained environments.",
+      "commonMistakes": [
+        "Hard-coding a type without checking the value range."
+      ],
+      "alternatives": [
+        {
+          "title": "Explicit astype",
+          "code": "import pandas as pd\nages = pd.Series([18, 45, 90, 33, 61])\nsmall = ages.astype(\"int8\")\nprint(small.dtype)\nprint((small == ages).all())\n",
+          "note": "Picks the type yourself. It is fine when you know the range (ages 0 to 120), but astype never checks: a value of 300 would wrap to 44 without an error. downcast inspects the values and chooses a type that fits."
+        }
+      ]
+    },
+    "daily:d085#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Prices stored as text must lose their currency symbols and thousands separators before they can be numbers, and values that cannot be read must become missing instead of stopping the job."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`Series.str.replace(pattern, '', regex=True)` removes characters matching a pattern; a character class such as `[$,]` matches either character. `pd.to_numeric(..., errors='coerce')` turns unparseable text into NaN."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Remove the dollar sign and commas with one regular-expression replace, convert with coercion, print the numbers and count the missing ones."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nnum = pd.to_numeric(price.str.replace(..., '', regex=...), errors=...)\nprint(num.tolist())\nprint(num.isna().sum())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`ValueError: Unable to parse string \"free\" at position 2`.",
+          "cause": "`to_numeric` raises on bad text by default.",
+          "fix": "Pass `errors='coerce'`."
+        },
+        {
+          "category": "missing-data",
+          "symptom": "Three values are NaN (including `$7` and `$1,050.5`).",
+          "cause": "The pattern `[$,]` was used with `regex=False`, so it looked for that literal text and removed nothing.",
+          "fix": "Set `regex=True` for a character class."
+        },
+        {
+          "category": "syntax",
+          "symptom": "The sign is removed but `1,050.5` still fails.",
+          "cause": "Only the dollar sign was removed; the comma is also part of the text.",
+          "fix": "Remove both characters."
+        }
+      ],
+      "constraints": [
+        "Failures become NaN.",
+        "The last line is the count of failed conversions."
+      ],
+      "realWorld": "Financial exports contain currency symbols, thousands separators and placeholders such as 'free' or 'n/a'; coercing plus counting failures lets you quarantine the bad rows.",
+      "commonMistakes": [
+        "Silently turning bad text into NaN without counting it."
+      ],
+      "alternatives": [
+        {
+          "title": "Two literal replaces",
+          "code": "import pandas as pd\nprice = pd.Series([\"$1,050.5\", \"20\", \"free\", \"$7\"])\ncleaned = price.str.replace(\"$\", \"\", regex=False).str.replace(\",\", \"\", regex=False)\nnum = pd.to_numeric(cleaned, errors=\"coerce\")\nprint(num.tolist())\nprint(num.isna().sum())\n",
+          "note": "Two plain-text replaces with no regular expression to get wrong (the `$` is an anchor in a regex, so the literal form is safer when you only need characters). The regex character class does it in one pass and extends to more symbols."
+        }
+      ]
+    }
+  }
+}

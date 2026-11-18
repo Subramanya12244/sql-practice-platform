@@ -10,7 +10,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import northwind from "../../public/data/northwind.sql?raw";
 import indexJson from "../../public/data/index.json";
@@ -171,7 +171,7 @@ async function inSandbox<T>(fn: (dir: string) => Promise<T>): Promise<T> {
 const runPy = (code: string, stdin = "") => inSandbox((cwd) => run(PYTHON, ["-I", "-c", code], { input: stdin, cwd }));
 const runBash = (code: string) => inSandbox((cwd) => run("bash", ["-e", "-c", code], {
   cwd, env: {
-    PATH: `${join(repoRoot, ".venv-daily/bin")}:/usr/bin:/bin:/opt/homebrew/bin:/usr/local/bin`, HOME: cwd, TZ: "UTC", LC_ALL: "C",
+    PATH: `${PYTHON.includes("/") ? `${dirname(PYTHON)}:` : ""}${join(repoRoot, ".venv-daily/bin")}:/usr/bin:/bin:/opt/homebrew/bin:/usr/local/bin`, HOME: cwd, TZ: "UTC", LC_ALL: "C",
     GIT_CONFIG_GLOBAL: join(cwd, ".gitconfig-none"), GIT_CONFIG_NOSYSTEM: "1", GIT_AUTHOR_NAME: "Ada", GIT_AUTHOR_EMAIL: "ada@example.com",
     GIT_COMMITTER_NAME: "Ada", GIT_COMMITTER_EMAIL: "ada@example.com", GIT_AUTHOR_DATE: "2026-01-01T00:00:00Z", GIT_COMMITTER_DATE: "2026-01-01T00:00:00Z",
   },

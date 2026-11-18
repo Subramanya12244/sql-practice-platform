@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PyExplainBox } from "../components/visual/PyExplainBox";
+import { WorkspaceLink } from "../components/WorkspaceLink";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, Check, CheckCircle2, Circle, CircleDot, Lightbulb, Search, X } from "lucide-react";
 import { Icon } from "../components/Icon";
@@ -309,6 +310,7 @@ export function PythonExercisePage() {
         <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">{ex.title}</h1>
         {pyOverride?.disabled && <p role="status" className="w-full rounded-lg border border-warn/40 bg-warn-dim px-3 py-2 text-sm text-ink">This problem is temporarily unavailable while it is being reviewed; checks are turned off.</p>}
         <Difficulty level={ex.difficulty} />
+        <WorkspaceLink id={`py:${ex.slug}`} />
         {done && <span className="inline-flex items-center gap-1 text-sm text-success"><CheckCircle2 className="h-4 w-4 animate-pop" aria-hidden /> Completed</span>}
         {mounted && !pyOverride?.disabled && <SolveTimer meta={{ kind: "python", ref: `py:${ex.slug}`, difficulty: ex.difficulty, topic: ex.category || "other" }} />}
         <span className="ml-auto flex items-center gap-1">

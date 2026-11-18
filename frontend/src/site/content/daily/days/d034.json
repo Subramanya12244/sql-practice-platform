@@ -63,7 +63,7 @@
       "hints": [
         "The starter returns 100 rows, one per order, with many repeated countries.",
         "There is a keyword that removes duplicate rows. It goes directly after SELECT.",
-        "SELECT DISTINCT ship_country FROM orders ORDER BY ship_country;"
+        "The prompt says the result has 21 rows. Run it and compare the row count: more rows means duplicates remain, fewer means a filter crept in."
       ]
     }
   ],

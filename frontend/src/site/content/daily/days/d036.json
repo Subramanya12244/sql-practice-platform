@@ -34,7 +34,7 @@
       "hints": [
         "The starter counts every order. Add a WHERE clause for the country, and a second column for the customers.",
         "A count of different values is COUNT(DISTINCT column). Repeat customers must be counted once.",
-        "SELECT COUNT(*) AS orders, COUNT(DISTINCT customer_id) AS customers FROM orders WHERE ship_country = 'Germany'"
+        "Run it and check for one row with two numbers under the headings `orders` and `customers`. The second must be smaller than the first, because a repeat customer is counted once."
       ]
     },
     {
@@ -76,7 +76,7 @@
       "hints": [
         "Run the starter: it returns 0, because COUNT(column) skips NULLs and every selected row has a NULL shipped_date.",
         "Count rows with COUNT(*) instead. Then add MIN on the date column and SUM on freight.",
-        "SELECT COUNT(*) AS unshipped, MIN(order_date) AS oldest, SUM(freight) AS total_freight FROM orders WHERE shipped_date IS NULL"
+        "Run it and check that `unshipped` is no longer 0 and that the three headings match the prompt, in that order."
       ]
     }
   ],

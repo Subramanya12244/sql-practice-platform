@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "items": {
+    "py:cart-line-total": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A cart is a list of line records, and a line only adds money when it really shipped. The job is an accumulation with a gate in front of it."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "You need a `for` loop over the list, an `if` that tests the dictionary value `it['qty']`, and the built-in `round(number, digits)`."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Start a float total at zero, walk the items, skip any line whose quantity is not above zero, add price times quantity for the rest, and round one time after the loop finishes."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef cart_total(items):\n    total = 0.0\n    for it in items:\n        if ...:  # only lines with a positive quantity\n            total += ...  # money for this line\n    return round(..., 2)\n```\nFill the three dots. The rounding belongs outside the loop."
+        }
+      ],
+      "debugging": [
+        {
+          "category": "control-flow",
+          "symptom": "A cart such as `[{'price': 5, 'qty': -2}, {'price': 1, 'qty': 3}]` returns -7.0 instead of 3.0.",
+          "cause": "The loop has no guard, or it tests `if it['qty']`, which is true for -2 as well as for 3. Only 0 is falsy.",
+          "fix": "Compare explicitly: the line counts only when its quantity is greater than zero."
+        },
+        {
+          "category": "types",
+          "symptom": "A hidden test fails: `cart_total([{'price': 0.1, 'qty': 3}])` returns 0.30000000000000004, not 0.3.",
+          "cause": "Binary floats cannot store 0.1 exactly, so the product carries a tiny error. The tests compare with `==`.",
+          "fix": "Round the final total to 2 decimals once, after the loop."
+        },
+        {
+          "category": "runtime",
+          "symptom": "`AttributeError: 'dict' object has no attribute 'qty'`.",
+          "cause": "Each item is a dict, so its fields are read with brackets (`it['qty']`), not with attribute dots.",
+          "fix": "Replace `it.qty` and `it.price` with key lookups."
+        }
+      ],
+      "constraints": [
+        "Quantity 0 or below is skipped, whatever the price.",
+        "The result is rounded to 2 decimals exactly once.",
+        "An empty cart returns 0.0."
+      ],
+      "realWorld": "Checkout services total a basket from line items while ignoring removed or refunded lines. Rounding only the final sum keeps a basket total equal to the figure the payment provider charges.",
+      "commonMistakes": [
+        "Rounding every line before adding them: the pennies can disagree with the invoice total.",
+        "Treating a negative quantity as a discount instead of skipping it."
+      ],
+      "alternatives": [
+        {
+          "title": "One expression with a generator",
+          "code": "def cart_total(items):\n    return round(sum(it['price'] * it['qty'] for it in items if it['qty'] > 0), 2)\n",
+          "note": "Shorter and still one pass. The trade-off: sum() starts from the integer 0, so an empty cart returns the int 0 rather than the float 0.0 (equal under ==, different under type checks), and there is no spot to add a log line per skipped item."
+        }
+      ],
+      "complexity": {
+        "time": "O(n)",
+        "space": "O(1)",
+        "note": "One pass over the items and one running total."
+      }
+    }
+  }
+}

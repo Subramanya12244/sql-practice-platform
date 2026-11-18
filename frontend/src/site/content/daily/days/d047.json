@@ -38,7 +38,7 @@
       "hints": [
         "The starter only reads one table, and it repeats countries. A set operator combines two queries.",
         "UNION returns the rows of both queries and removes duplicates. ORDER BY goes at the very end.",
-        "SELECT country FROM employees UNION SELECT country FROM suppliers ORDER BY country"
+        "Run it and check that the row count is smaller than the two tables' rows added together (UNION removes duplicates) and that the countries are in alphabetical order."
       ]
     },
     {
@@ -66,7 +66,7 @@
       "hints": [
         "The starter lists customer countries with repeats. You need the countries that are also in the suppliers table.",
         "INTERSECT returns the distinct rows that appear in both queries.",
-        "SELECT country FROM customers INTERSECT SELECT country FROM suppliers ORDER BY country"
+        "Run it and check that every country returned exists in both tables. The `ORDER BY` belongs to the whole combined query, so it goes after the last SELECT."
       ]
     },
     {
@@ -80,7 +80,7 @@
       "hints": [
         "The starter returns all products. Subtract the ordered ones.",
         "EXCEPT returns the rows of the first query that are not in the second. The order of the two queries matters.",
-        "SELECT product_id FROM products EXCEPT SELECT product_id FROM order_details ORDER BY product_id"
+        "Run it and check that the result is not empty and holds only products that never occur in `order_details`. If you get every product, check which query comes first."
       ]
     }
   ],

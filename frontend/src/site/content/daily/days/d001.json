@@ -29,7 +29,7 @@
       "hints": [
         "Use the `print()` function and put the text you want to show inside the parentheses.",
         "Text must be wrapped in quotes so that Python treats it as a string: `print(\"...\")`.",
-        "The complete line is `print(\"Hello, DataForge!\")`. Check that every character inside the quotes matches the task."
+        "Run it and compare the output with the task one character at a time. The capital letters, the comma, the space and the exclamation mark must all match."
       ],
       "kind": "python",
       "expected": "Hello, DataForge!"
@@ -43,7 +43,7 @@
       "hints": [
         "Text inside quotes is never calculated. The sum has to be outside the quotes.",
         "Give `print()` two arguments separated by a comma: the text `\"Total:\"` and the expression.",
-        "`print(\"Total:\", 12 * 3 + 4)` prints the label, one space, then 40. You do not need to type the space yourself."
+        "If the output shows the sum as text or a wrong number, check that the expression is outside the quotes. `print` already puts one space between its two arguments."
       ],
       "kind": "python",
       "expected": "Total: 40"

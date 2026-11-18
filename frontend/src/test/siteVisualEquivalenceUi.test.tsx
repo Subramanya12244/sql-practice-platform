@@ -1,6 +1,7 @@
 // Execution equivalence in the UI: grading a Daily Learning exercise must give the same verdict, the same stored progress, the same
-// Mistake Notebook entries and the same study time whether the "Explain visually" block was never opened (A) or was opened and a
-// real trace was run before and between the checks (B). The Python runner is replaced by a stand-in that grades from `py.result`
+// Mistake Notebook entries and the same study time whether the visualization was never used (A) or was used and a
+// real trace was run before and between the checks (B). The lesson shows the exercise as the embedded workspace, so "the visualization"
+// is the workspace's Visualize button (it was the "Explain visually" block of the in-page runner before the workspace was embedded). The Python runner is replaced by a stand-in that grades from `py.result`
 // and, for the tracer program only, runs it in REAL CPython, so B shows the real trace panel.
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -30,6 +31,7 @@ vi.mock("../site/lib/pyRunner", async (importOriginal) => {
   return {
     ...real,
     PY_TIMEOUT_MS: 1000,
+    stopPython: () => undefined,
     runPython: async (code: string, tests?: string) => {
       const traced = code.includes("DFTRACE");
       py.calls.push({ traced, code, tests });
@@ -44,7 +46,7 @@ vi.mock("../site/lib/pyRunner", async (importOriginal) => {
 vi.mock("../site/components/CodeEditor", () => ({ default: ({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) => <textarea aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} /> }));
 import { DailyLessonPage } from "../site/pages/DailyPages";
 
-window.matchMedia ??= ((q: string) => ({ matches: false, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false })) as never;
+window.matchMedia = ((q: string) => ({ matches: !/prefers-reduced-motion/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false })) as never;
 (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver ??= class { observe() {} disconnect() {} unobserve() {} };
 (globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} };
 
@@ -72,31 +74,37 @@ async function session(visual: boolean) {
   const steps = await screen.findByRole("list", { name: "Lesson steps" });
   fireEvent.click(within(steps).getByRole("button", { name: /Guided/ }));
   const card = screen.getByLabelText(/^Exercise 1:/);
-  const check = within(card).getByRole("button", { name: "Check answer" });
+  fireEvent.click(within(card).getByRole("button", { name: "Open the exercise" }));
+  const check = await within(card).findByRole("button", { name: /^Submit/ });
   const verdicts: string[] = [];
   const readVerdict = () => within(card).queryAllByRole("status").map((n) => n.textContent ?? "").filter((t) => /pass|not|match|expected|output|wrong|correct/i.test(t)).pop() ?? "";
+  // The workspace reuses the last run of unchanged code, and this stand-in changes its answer between checks, so each try edits the code
+  // (the same edit in A and B). The visual variant also builds the step view for that code before each check.
+  const tryCode = async (n: number) => fireEvent.change(await within(card).findByRole("textbox"), { target: { value: `print("try ${n}")` } });
 
   let traced = false;
-  const openAndTrace = async () => {
-    const summary = within(card).getByText("Explain visually", { selector: "summary" });
-    const details = summary.closest("details")!;
-    details.open = true;
-    fireEvent(details, new Event("toggle"));
-    const machine = await within(card).findByRole("region", { name: "Python code time machine" });
-    fireEvent.click(within(machine).getByRole("button", { name: "Explain visually" }));
-    await within(card).findByRole("list", { name: "Source code" }, { timeout: 30_000 });
+  const visualize = async (expectedTraces: number) => {
+    fireEvent.click(within(card).getByRole("button", { name: "Visualize" }));
+    await waitFor(() => expect(py.calls.filter((c) => c.traced).length).toBe(expectedTraces), { timeout: 30_000 });
+    await within(card).findByTestId("workspace-visual");
+    await waitFor(() => expect(within(card).getByRole("button", { name: "Visualize" })).not.toBeDisabled(), { timeout: 30_000 });
     traced = true;
   };
 
-  if (visual) await openAndTrace();
-  py.result = wrong; fireEvent.click(check);
+  py.result = wrong;
+  await tryCode(1);
+  if (visual) await visualize(1);
+  fireEvent.click(check);
   await waitFor(() => expect(getProgress().mistakes?.["daily:d001#g1"]?.count).toBe(1));
   verdicts.push(readVerdict());
-  if (visual) { fireEvent.click(await within(card).findByRole("button", { name: "Trace again" })); await waitFor(() => expect(py.calls.filter((c) => c.traced).length).toBe(2), { timeout: 30_000 }); }
+  await tryCode(2);
+  if (visual) await visualize(2);
   fireEvent.click(check);
   await waitFor(() => expect(getProgress().mistakes?.["daily:d001#g1"]?.count).toBe(2));
   verdicts.push(readVerdict());
-  py.result = right; fireEvent.click(check);
+  py.result = right;
+  await tryCode(3);
+  fireEvent.click(check);
   await waitFor(() => expect(getProgress().mistakes!["daily:d001#g1"].solved).toBeTruthy());
   verdicts.push(readVerdict());
 
@@ -141,17 +149,17 @@ describe.skipIf(!hasPython)("equivalence (UI): grading a Daily Learning exercise
     expect(stored).not.toContain("frames");
   }, 120_000);
 
-  it("opening the visual block alone (no trace run) changes nothing", async () => {
+  it("opening the visualization pane alone (no trace run) changes nothing", async () => {
     const day = await loadDay("d001");
     page.value = { data: { index: [], topics: [], dailyContent: day, dailyLinks: [] }, params: { n: "1" } };
     render(<MemoryRouter><DailyLessonPage /></MemoryRouter>);
     const steps = await screen.findByRole("list", { name: "Lesson steps" });
     fireEvent.click(within(steps).getByRole("button", { name: /Guided/ }));
     const card = screen.getByLabelText(/^Exercise 1:/);
-    const details = within(card).getByText("Explain visually", { selector: "summary" }).closest("details")!;
-    details.open = true;
-    fireEvent(details, new Event("toggle"));
-    await within(card).findByRole("region", { name: "Python code time machine" });
+    fireEvent.click(within(card).getByRole("button", { name: "Open the exercise" }));
+    await within(card).findByRole("button", { name: /^Submit/ });
+    fireEvent.click(within(card).getByRole("button", { name: "Expand Visualization" }));
+    await within(card).findByTestId("workspace-visual");
     expect(py.calls).toEqual([]);
     expect(getProgress().mistakes ?? {}).toEqual({});
     expect(JSON.stringify(getProgress().daily?.days.d001?.passed ?? [])).toBe("[]");

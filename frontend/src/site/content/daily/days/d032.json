@@ -21,7 +21,7 @@
       "hints": [
         "SELECT * returns all ten columns under their original names. Replace the star with a list of the three columns you want.",
         "Rename a column by writing AS followed by the new name directly after the column: company_name AS company.",
-        "SELECT customer_id, company_name AS company, country FROM customers ORDER BY customer_id LIMIT 5;"
+        "Run it and read the column headings: they must be `customer_id`, `company` and `country` in that order, with exactly five rows."
       ]
     },
     {
@@ -35,7 +35,7 @@
       "hints": [
         "You need one text column built from two columns, so use the concatenation operator || between them.",
         "The pieces are last_name, the literal text ', ' (comma and space in single quotes) and first_name. Give the whole expression the alias full_name.",
-        "SELECT employee_id, last_name || ', ' || first_name AS full_name, hire_date FROM employees ORDER BY employee_id;"
+        "Check one row by eye: it should read like `Davolio, Nancy`, with the comma followed by one space, and the column heading must be `full_name`."
       ]
     },
     {

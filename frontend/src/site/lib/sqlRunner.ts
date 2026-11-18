@@ -1,6 +1,7 @@
 import type { ExecuteResult, SubmitResult } from "../../types";
 import { compareResults, diagnose, rowDiff, type OrderKey } from "./resultCompare";
 import { classifyError } from "./diagnostics";
+import type { PolicyOption } from "../workspace/adapters/sql/policy";
 
 /** The subset of PGlite / PGliteWorker this module uses. */
 export interface SqlDb {
@@ -12,6 +13,25 @@ export interface SqlDb {
 
 export const MAX_DISPLAY_ROWS = 1000;
 
+/**
+ * Optional capability policy (additive: callers that pass nothing behave exactly as before, e.g. the Playground).
+ * With a policy the SQL is checked by `checkSqlPolicy` (workspace/adapters/sql/policy.ts) BEFORE anything is sent to the database,
+ * and a "read-only" policy also opens the transaction READ ONLY, so PostgreSQL itself refuses writes.
+ */
+export interface RunOptions {
+  policy?: PolicyOption;
+  /** Trusted setup SQL (the hidden test rows). Not checked; it runs before the transaction is narrowed to READ ONLY. */
+  setup?: string;
+}
+
+/** The statement was refused by the policy; nothing was sent to the database. */
+export class PolicyRefusal extends Error {
+  constructor(public reasons: string[], public readOnly: boolean) {
+    super(reasons.join(" "));
+    this.name = "PolicyRefusal";
+  }
+}
+
 interface RawResult {
   columns: string[];
   rows: unknown[][];
@@ -21,7 +41,15 @@ interface RawResult {
  * Run SQL inside a transaction that is always rolled back, so a stray
  * DELETE or DROP never damages the visitor's in-browser copy of Northwind.
  */
-export async function runRaw(db: SqlDb, sql: string): Promise<RawResult> {
+export async function runRaw(db: SqlDb, sql: string, opts: RunOptions = {}): Promise<RawResult> {
+  // The capability policy comes before the first statement of any kind reaches the database.
+  let readOnly = false;
+  if (opts.policy) {
+    const { checkSqlPolicy, levelOf } = await import("../workspace/adapters/sql/policy");
+    const verdict = await checkSqlPolicy(sql, opts.policy);
+    readOnly = levelOf(opts.policy) === "read-only";
+    if (!verdict.allowed) throw new PolicyRefusal(verdict.reasons, readOnly);
+  }
   // Savepoints are fine inside the wrapper; a statement that would end it is not.
   // Only statement starts count, so ON COMMIT DROP or a column named "end" is fine.
   if (/(^|;)\s*(commit|begin|start\s+transaction|abort|end|rollback(?!\s+(transaction\s+|work\s+)?to\b))\b/i.test(stripComments(sql))) {
@@ -31,6 +59,9 @@ export async function runRaw(db: SqlDb, sql: string): Promise<RawResult> {
   const [seqs] = await db.exec("SELECT schemaname, sequencename, last_value FROM pg_sequences", { rowMode: "array" });
   await db.exec("BEGIN");
   try {
+    // Read-only exercises: PostgreSQL is the second layer. The trusted setup (hidden rows) runs first, then the transaction is narrowed.
+    if (opts.setup) await db.exec(opts.setup);
+    if (readOnly) await db.exec("SET TRANSACTION READ ONLY");
     const results = await db.exec(sql, { rowMode: "array" });
     const last = [...results].reverse().find((r) => r.fields.length > 0) ?? results[results.length - 1];
     return {
@@ -71,13 +102,13 @@ export function errorPositionFromMessage(sql: string, message: string): number |
   return hits.length === 1 ? hits[0].index! + 1 : null;
 }
 
-export async function execute(db: SqlDb, sql: string): Promise<ExecuteResult> {
+export async function execute(db: SqlDb, sql: string, opts: RunOptions = {}): Promise<ExecuteResult> {
   if (!sql.trim()) {
     return { success: false, columns: [], rows: [], error_type: "EMPTY", message: "Write a query first." };
   }
   const started = performance.now();
   try {
-    const { columns, rows } = await runRaw(db, sql);
+    const { columns, rows } = await runRaw(db, sql, opts);
     return {
       success: true,
       columns,
@@ -87,6 +118,9 @@ export async function execute(db: SqlDb, sql: string): Promise<ExecuteResult> {
       execution_time_ms: Math.round(performance.now() - started),
     };
   } catch (err) {
+    if (err instanceof PolicyRefusal) {
+      return { success: false, columns: [], rows: [], error_type: err.readOnly ? "READ_ONLY" : "SQL_POLICY", message: err.message, execution_time_ms: Math.round(performance.now() - started) };
+    }
     classifyError(err, "SQL_ENGINE_ERROR", "sql_practice");
     return {
       success: false,
@@ -128,6 +162,7 @@ export async function submit(
   sortRequired: boolean,
   orderBy: OrderKey[] | null = null,
   hiddenRows: string | null = null,
+  opts: Pick<RunOptions, "policy"> = {},
 ): Promise<SubmitResult> {
   const fail = (message: string, feedback: string[] = []): SubmitResult => ({
     correct: false,
@@ -141,9 +176,10 @@ export async function submit(
   let userMs: number | undefined;
   try {
     const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
-    user = await runRaw(db, userSql);
+    user = await runRaw(db, userSql, opts);
     userMs = Math.round(((typeof performance !== "undefined" ? performance.now() : Date.now()) - t0) * 10) / 10;
   } catch (err) {
+    if (err instanceof PolicyRefusal) return fail("This statement is not allowed in this exercise.", err.reasons);
     return fail("Your query has an error.", [err instanceof Error ? err.message : String(err)]);
   }
   const expected = await runRaw(db, referenceSql);
@@ -151,7 +187,8 @@ export async function submit(
   // Hidden test: the same comparison on data the learner hasn't seen. Only after the visible check passes.
   if (cmp.match && hiddenRows) {
     try {
-      const [hu, he] = [await runRaw(db, `${hiddenRows};\n${userSql}`), await runRaw(db, `${hiddenRows};\n${referenceSql}`)];
+      // The learner's run keeps the policy (hidden rows are trusted setup, then the transaction is narrowed); the reference is trusted.
+      const [hu, he] = [await runRaw(db, userSql, { ...opts, setup: hiddenRows }), await runRaw(db, `${hiddenRows};\n${referenceSql}`)];
       const h = compareResults(hu.columns, hu.rows, he.columns, he.rows, sortRequired, orderBy);
       if (!h.match) {
         return {

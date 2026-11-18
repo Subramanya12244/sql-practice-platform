@@ -112,16 +112,49 @@ describe("presets exist in the aid", () => {
   }
 });
 
+/**
+ * Phase 2 (workspace content quality) replaced the third hint of 17 guided exercises, because that hint was the complete answer.
+ * Those are the only lesson edits allowed, and only their `hints[2]` may differ from the committed file. Everything else under
+ * src/site/content is unchanged, except new files in content/workspace (the enrichment data).
+ */
+const ALLOWED_HINT_EDITS: Record<string, string[]> = {
+  d001: ["g1", "g2"], d031: ["g1", "g2", "g4"], d032: ["g1", "g2"], d034: ["g4"], d036: ["g1", "g4"], d047: ["g1", "g3", "g4"], d054: ["g1"], d058: ["g1", "g3", "g4"],
+};
+
 describe("lesson files are untouched", () => {
-  it("git reports no change under src/site/content", () => {
+  it("git reports no change under src/site/content except the 17 replaced answer-hints and the workspace enrichment data", () => {
     let top = "";
     try { top = execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: here, encoding: "utf8" }).trim(); } catch { /* not a git checkout */ }
     if (!top) { console.info("SKIPPED: not a git checkout, cannot compare the lesson files"); return; }
-    const rel = path.relative(top, path.join(frontend, "src/site/content"));
-    const changed = execFileSync("git", ["diff", "--name-only", "--", rel], { cwd: top, encoding: "utf8" }).trim();
-    const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard", "--", rel], { cwd: top, encoding: "utf8" }).trim();
-    expect(changed, "tracked content files changed").toBe("");
-    expect(untracked, "untracked content files added").toBe("");
+    const rel = path.relative(top, path.join(frontend, "src/site/content")).split(path.sep).join("/");
+    const lines = (a: string[]) => execFileSync("git", a, { cwd: top, encoding: "utf8" }).split("\n").map((l) => l.trim()).filter(Boolean);
+    const changed = lines(["diff", "--name-only", "--", rel]);
+    const untracked = lines(["ls-files", "--others", "--exclude-standard", "--", rel]);
+    expect(untracked.filter((f) => !f.startsWith(`${rel}/workspace/`)), "untracked content files outside content/workspace").toEqual([]);
+    const allowedFiles = Object.keys(ALLOWED_HINT_EDITS).map((d) => `${rel}/daily/days/${d}.json`);
+    expect(changed.filter((f) => !allowedFiles.includes(f)), "tracked content files changed outside the allowed hint edits").toEqual([]);
+    for (const f of changed) {
+      const day = path.basename(f, ".json");
+      const before = JSON.parse(execFileSync("git", ["show", `HEAD:${f}`], { cwd: top, encoding: "utf8" }));
+      const after = JSON.parse(read(path.join(top, f)));
+      for (const e of [...(after.guided ?? [])]) if (ALLOWED_HINT_EDITS[day].includes(e.id)) e.hints[2] = "<edited>";
+      for (const e of [...(before.guided ?? [])]) if (ALLOWED_HINT_EDITS[day].includes(e.id)) e.hints[2] = "<edited>";
+      expect(after, `${f}: something other than the allowed hint changed`).toEqual(before);
+    }
+  });
+  it("no guided hint is the complete solution any more (same normalisation as the workspace's leaksSolution)", () => {
+    const norm = (s: string) => s.toLowerCase().replace(/[`*_]/g, "").replace(/\s+/g, " ").replace(/\s*([(),;=<>+\-*/])\s*/g, "$1").replace(/;+$/, "").trim();
+    const dir = path.join(frontend, "src/site/content/daily/days");
+    const leaks: string[] = [];
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+      const j = JSON.parse(read(path.join(dir, f))) as { guided?: { id: string; kind: string; hints?: string[]; solution?: string }[]; independent?: { id: string; kind: string; hints?: string[]; solution?: string }[] };
+      for (const e of [...(j.guided ?? []), ...(j.independent ?? [])]) {
+        const sol = norm(e.solution ?? "");
+        if (e.kind === "written" || sol.length < 12) continue;
+        (e.hints ?? []).forEach((h, i) => { if (norm(h).includes(sol)) leaks.push(`${f.slice(0, -5)}#${e.id} hint ${i + 1}`); });
+      }
+    }
+    expect(leaks).toEqual([]);
   });
 });
 

@@ -8,6 +8,8 @@ import { Seo, breadcrumbs, canonical } from "../lib/seo";
 import { useProgress } from "../lib/progress";
 import { registerDataset } from "../lib/browserDb";
 import { AFTER_SOLVE } from "../lib/scenarios";
+import { LinkedExerciseList } from "../components/learn/WorkspacePractice";
+import { exercisesForScenario } from "../lib/workspaceLinks";
 import { VizView } from "../components/VizView";
 import { addSession } from "../lib/vizHistory";
 import type { Question } from "../types";
@@ -150,6 +152,7 @@ export function ScenarioPage() {
           {noteLinks.length > 0 && (
             <p className="text-sm text-ink-muted">Related notes: {noteLinks.map((n, i) => <span key={n.slug}><Link to={`/notes/${n.slug}`} className="text-accent hover:underline">{n.title}</Link>{i < noteLinks.length - 1 ? ", " : ""}</span>)}</p>
           )}
+          <LinkedExerciseList items={exercisesForScenario(s.slug)} label="Practise the concept first" testId="scenario-practice" />
         </article>
 
         <div data-help="scenario-editor" className="min-w-0 lg:sticky lg:top-20 lg:self-start">

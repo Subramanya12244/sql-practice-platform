@@ -33,6 +33,8 @@ import { validateVirtualPath, VFS_LIMITS } from "../lib/virtualFs";
 import { Badge, IconButton, Skeleton } from "./ui";
 import { HelpTooltip } from "../help/HelpTooltip";
 import { useHelpExample } from "../help/exampleBridge";
+import { explainPythonFailure, taskFailureFeedback } from "../workspace/adapters/python/failure";
+import type { FeedbackItem } from "../workspace/types";
 import type { HelpExample } from "../help/types";
 
 const CodeEditor = lazy(() => import("./CodeEditor"));
@@ -62,6 +64,19 @@ function getFileIcon(name: string) {
   if (name.endsWith(".json")) return <FileJson className="h-4 w-4 text-warn" />;
   if (name.endsWith(".csv")) return <FileSpreadsheet className="h-4 w-4 text-success" />;
   return <FileText className="h-4 w-4 text-ink-faint" />;
+}
+
+/** The diagnoser's reading of a failed run or check: what it is, where, and what to look at. Same text the workspace panel shows. */
+function FailureHelp({ items }: { items: FeedbackItem[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="mt-2 space-y-1.5 rounded-lg border border-surface-border bg-surface-soft p-2 font-sans text-xs text-ink" data-testid="py-failure-help">
+      <p className="font-semibold">Why it failed</p>
+      {items.slice(0, 3).map((f, i) => (
+        <p key={i} className="text-ink-muted"><span className="font-semibold text-ink">{f.category}{f.line ? `, line ${f.line}` : ""}.</span> {f.message}{f.suggestion ? ` ${f.suggestion}` : ""}</p>
+      ))}
+    </div>
+  );
 }
 
 export function PythonWorkspace({
@@ -130,6 +145,8 @@ export function PythonWorkspace({
   const [testResult, setTestResult] = useState<(TaskResult & { counts?: Record<string, TestCounts> }) | null>(null);
   const [lastMs, setLastMs] = useState<number | null>(null);
   const [errorLine, setErrorLine] = useState<number | null>(null);
+  // "Why it failed": the Python adapter's diagnoser (lib/visual/pyDiagnose) on this run's real error. Display only; grading is unchanged.
+  const [failureHelp, setFailureHelp] = useState<FeedbackItem[]>([]);
   const [fullScreen, setFullScreen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -312,6 +329,7 @@ export function PythonWorkspace({
     setTerminalOutput("");
     setTestResult(null);
     setErrorLine(null);
+    setFailureHelp([]);
   };
 
   // Execution: Script Mode (runs active file or main.py directly)
@@ -320,6 +338,7 @@ export function PythonWorkspace({
     setRuntimeStatus("running");
     setActiveBottomTab("output");
     setErrorLine(null);
+    setFailureHelp([]);
 
     const activeCode = files[activeFile] ?? "";
     const otherFiles: Record<string, string> = { ...files };
@@ -329,6 +348,10 @@ export function PythonWorkspace({
     setLastMs(r.ms ?? null);
     if (!r.ok && r.errorLine) {
       setErrorLine(r.errorLine);
+    }
+    // Only an error raised by this file's own code is explained (a frame in another file would point at the wrong source).
+    if (!r.ok && r.phase === "code" && r.error && [...r.error.matchAll(/File "([^"]*)"/g)].pop()?.[1] === "<exec>") {
+      setFailureHelp(explainPythonFailure({ code: activeCode, errorText: r.error, line: r.errorLine }));
     }
     setRuntimeStatus(r.phase === "load" ? "failed" : "ready");
     onRunResult?.(r, activeCode);
@@ -342,6 +365,7 @@ export function PythonWorkspace({
     setRuntimeStatus("running");
     setActiveBottomTab("tests");
     setErrorLine(null);
+    setFailureHelp([]);
 
     const solutionCode = files["solution.py"] ?? "";
     const otherFiles: Record<string, string> = { ...files };
@@ -359,12 +383,14 @@ export function PythonWorkspace({
     }
 
     let reportedLine: number | undefined;
+    let phase: string | undefined;
     const res = await runPythonTask(
       task,
       solutionCode,
       (c, t) =>
         runPython(c, t, PY_TIMEOUT_MS, stdin, otherFiles).then((r) => {
           reportedLine = r.errorLine;
+          phase = r.phase;
           return r;
         }),
       { count: true }
@@ -373,6 +399,12 @@ export function PythonWorkspace({
     setTestResult(res);
     setLastMs(res.ms ?? null);
     if (reportedLine) setErrorLine(reportedLine);
+    if (!res.ok && phase !== "load" && phase !== "timeout" && phase !== "stopped") {
+      const help = taskFailureFeedback({ code: solutionCode, tests: task.tests, message: res.message, output: res.output, phase });
+      setFailureHelp(help);
+      // A runtime error inside the learner's own function while the tests ran: mark that line (never a line of the tests).
+      if (!reportedLine) { const l = help.find((f) => f.line)?.line; if (l) setErrorLine(l); }
+    }
     setRuntimeStatus(res.ok || (res as { phase?: string }).phase !== "load" ? "ready" : "failed");
     onCheckResult?.(res, solutionCode);
     if (res.ok) {
@@ -736,6 +768,7 @@ export function PythonWorkspace({
                   {terminalOutput || <span className="text-ink-faint">Press &ldquo;Run Script&rdquo; to execute the active file.</span>}
                 </pre>
               )}
+              {activeBottomTab === "output" && <FailureHelp items={failureHelp} />}
 
               {activeBottomTab === "tests" && (
                 <div className="space-y-2">
@@ -763,6 +796,7 @@ export function PythonWorkspace({
                           {testResult.output}
                         </pre>
                       )}
+                      {!testResult.ok && <FailureHelp items={failureHelp} />}
                     </>
                   ) : (
                     <p className="text-ink-muted">Press &ldquo;Check Tests&rdquo; to run the test harness against solution.py.</p>

@@ -9,6 +9,7 @@ import { SqlEditor, type RunRequest } from "../../components/SqlEditor";
 import { ResultsPanel } from "../../components/ResultsPanel";
 import type { ResultTab, ResultTarget, SubmitResult, TableSchema } from "../../types";
 import type { Question } from "../types";
+import type { PolicyOption } from "../workspace/adapters/sql/policy";
 import { getDb, getSchemas, runQuery, submitQuery } from "../lib/browserDb";
 import { completeExercise, getProgress, recordAttempt, recordMistake, recordSession, saveDraft, useProgress } from "../lib/progress";
 import { classifySqlMistake } from "../lib/mistakes";
@@ -141,11 +142,25 @@ export default function PracticePanel({
     [question.number, lessonKey],
   );
 
+  // Graded question pages run under the capability policy derived from the question's own reference query (docs/WORKSPACE_SQL_SAFETY.md):
+  // a read-only question refuses DML and DDL before anything reaches the database. The Playground and lessons stay unrestricted.
+  // If the policy cannot be derived the page behaves as before (it never refuses on a failure of the checker itself).
+  const policies = useRef(new Map<number, Promise<{ policy: PolicyOption } | Record<string, never>>>());
+  const policyOpts = useCallback(() => {
+    if (playground || lessonKey || !question.referenceQuery) return Promise.resolve({});
+    let p = policies.current.get(question.number);
+    if (!p) {
+      p = import("../workspace/adapters/sql/policy").then((m) => m.derivePolicy(question.referenceQuery)).then((d) => ({ policy: d.spec as PolicyOption })).catch(() => ({}));
+      policies.current.set(question.number, p);
+    }
+    return p;
+  }, [playground, lessonKey, question.number, question.referenceQuery]);
+
   const onRun = useCallback(
     async ({ sql: text, scope }: RunRequest) => {
       setRunning(true);
       setSubmitResult(null);
-      const result = await runQuery(text, dataset);
+      const result = await runQuery(text, dataset, await policyOpts());
       logRun("run", text, result.success, result.success ? result.row_count ?? result.rows.length : undefined);
       onRan?.(text, result);
       if (!lessonKey && !playground) {
@@ -173,7 +188,7 @@ export default function PracticePanel({
     if (!body) return setPlan({ node: null, error: "Write a query first, then explain it." });
     if (body.includes(";")) return setPlan({ node: null, error: "EXPLAIN works on a single statement." });
     setPlan({ node: null, busy: true });
-    const res = await runQuery(`EXPLAIN (FORMAT JSON) ${body}`, dataset);
+    const res = await runQuery(`EXPLAIN (FORMAT JSON) ${body}`, dataset, await policyOpts());
     setPlan(res.success ? { node: parsePlan(res.rows[0]?.[0]) } : { node: null, error: res.message ?? "Could not explain this query." });
   }, [current, dataset]);
 
@@ -184,7 +199,7 @@ export default function PracticePanel({
     setSubmitting(true);
     const sql = current;
     setSubmittedSql(sql);
-    const result = await submitQuery(sql, question.referenceQuery, question.sortRequired, question.orderBy ?? null, dataset);
+    const result = await submitQuery(sql, question.referenceQuery, question.sortRequired, question.orderBy ?? null, dataset, await policyOpts());
     if (lessonKey) {
       if (result.correct) completeExercise(lessonKey);
     } else {

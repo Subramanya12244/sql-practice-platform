@@ -1,0 +1,789 @@
+{
+  "version": 1,
+  "items": {
+    "daily:d065#i1": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Each of the three items has its own price and quantity, so the line total is a pairing of the two arrays element by element, not a single number for the whole invoice."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`*` multiplies arrays element by element and keeps the shape. `np.round(x, 2)` rounds every value. A comparison like `line >= 40` gives a boolean array whose `.sum()` counts the True values."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Multiply unit by quantity, round, add 20% to the rounded line totals and round again, flag the lines that reach 40, and print the four results."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nline = np.round(unit ... qty, 2)\ntaxed = np.round(line * ..., 2)\nbig = line >= ...\nprint(line.tolist())\nprint(taxed.tolist())\nprint(big.tolist())\nprint(big.sum())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "matmul",
+          "symptom": "One number `118.96000000000001` is printed instead of three line totals.",
+          "cause": "`unit @ qty` or `np.dot(unit, qty)` is a dot product (sum of the pairwise products), not the element-wise product.",
+          "fix": "Use `*` when you want one result per line, and `@` only when you want the sum of products."
+        },
+        {
+          "category": "types",
+          "symptom": "`line` prints `[39.96, 49.0, 30.0]` but `taxed` is off by a cent for some lines.",
+          "cause": "The tax was applied to unrounded totals, or the first rounding was skipped, so the cents accumulate differently.",
+          "fix": "Round the line totals first, then apply the tax to them and round again."
+        },
+        {
+          "category": "filtering",
+          "symptom": "`big` marks the 39.96 line as True.",
+          "cause": "The threshold was applied after tax (`taxed >= 40`).",
+          "fix": "Compare the pre-tax line totals with 40."
+        }
+      ],
+      "constraints": [
+        "Three arrays printed as lists, then a count.",
+        "Pre-tax totals decide the 40 threshold."
+      ],
+      "realWorld": "Invoice lines are an element-wise product; the dot product of the same arrays gives the invoice total, so the two operations are easy to confuse.",
+      "commonMistakes": [
+        "Using `@` or `np.dot` for per-line totals."
+      ]
+    },
+    "daily:d065#i2": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A multiplication table is every row number combined with every column number. If one number array is a column and the other a row, broadcasting makes all the combinations without a loop."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A column of shape (4, 1) times a row of shape (5,) gives a (4, 5) table. `np.where(condition, a, b)` picks between two values per cell. `@` is a matrix product, a different operation."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Make the row numbers a column with a new axis, multiply by the column numbers, then label each product with `np.where` and print the first and last label rows."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nrows = np.arange(1, 5)...      # a column, shape (4, 1)\ncols = np.arange(1, 6)\ngrid = rows ... cols\nlabels = np.where(grid > 10, 'big', 'small')\nprint(grid.tolist())\nprint(labels[0].tolist())\nprint(labels[-1].tolist())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "matmul",
+          "symptom": "`ValueError: matmul: Input operand 1 has a mismatch in its core dimension 0 ... (size 5 is different from 1)`.",
+          "cause": "The product was written with `@`, which is a matrix multiplication: a (4, 1) by (5,) needs matching inner sizes.",
+          "fix": "Use `*`: broadcasting stretches the column against the row."
+        },
+        {
+          "category": "broadcasting",
+          "symptom": "The grid has shape (4,) or `ValueError: operands could not be broadcast together with shapes (4,) (5,)`.",
+          "cause": "Both arrays are 1-D, so there is nothing to stretch against.",
+          "fix": "Add a new axis to the row numbers (`[:, None]`) so they become a column."
+        },
+        {
+          "category": "shape",
+          "symptom": "The labels print as a flat list of 20 strings.",
+          "cause": "The grid was flattened (`ravel`, `flatten`) before labelling.",
+          "fix": "Keep the 2-D shape, then take `labels[0]` and `labels[-1]` as rows."
+        }
+      ],
+      "constraints": [
+        "No loops, no matrix product.",
+        "Products above 10 are 'big', others 'small'."
+      ],
+      "realWorld": "All-pairs tables (price times quantity levels, distance between points, a grid of scenarios) are built with broadcasting; a matrix product is a different, sum-based operation.",
+      "commonMistakes": [
+        "Reaching for `np.dot` or `@` whenever two arrays meet."
+      ],
+      "alternatives": [
+        {
+          "title": "np.outer",
+          "code": "import numpy as np\n\ngrid = np.outer(np.arange(1, 5), np.arange(1, 6))\nprint(grid.tolist())\nlabels = np.where(grid > 10, \"big\", \"small\")\nprint(labels[0].tolist())\nprint(labels[-1].tolist())\n",
+          "note": "np.outer is the named operation for 'every pair product of two vectors' and needs no new axis. Broadcasting generalises to any operation (sum, comparison, maximum), while outer is only multiplication, so learn broadcasting first and use outer when you mean exactly that."
+        }
+      ]
+    },
+    "daily:d067#i2": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Z-scores say how many standard deviations a value is from its column's average. Missing values must be ignored when computing the average and the spread, and they stay missing afterwards."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`np.nanmean` and `np.nanstd` with `axis=0` give per-column statistics that skip NaN. `np.allclose(a, b)` compares arrays with a tolerance. `np.abs(z) > 1.5` makes a boolean table."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Compute the z-score table with the NaN-aware statistics, check the mean and std of the z columns, count the cells beyond 1.5, and list the rows that contain at least one such cell."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nz = (clean - np.nanmean(clean, axis=...)) / np.nanstd(clean, axis=...)\nprint(np.allclose(np.nanmean(z, axis=0), 0), np.allclose(np.nanstd(z, axis=0), 1))\nbig = np.abs(z) > 1.5\nprint(int(big.sum()))\nprint([i for i, row in enumerate(big) if row.any()])\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "missing-data",
+          "symptom": "The check prints `False False` and the counts are 0.",
+          "cause": "`np.mean` and `np.std` return NaN when a column has a missing value, so every z-score becomes NaN.",
+          "fix": "Use `np.nanmean` and `np.nanstd`."
+        },
+        {
+          "category": "axis",
+          "symptom": "Subtracting `np.nanmean(clean, axis=1)` from the table fails with a shape error (20 values against 3 columns).",
+          "cause": "Statistics were taken across each row (`axis=1`).",
+          "fix": "Use `axis=0` for one statistic per column."
+        },
+        {
+          "category": "transformation",
+          "symptom": "The `std` check is `False` although the mean check is `True`.",
+          "cause": "The sample standard deviation (`ddof=1`) was used to scale, so the z-scores have a population std slightly below 1.",
+          "fix": "Use the population standard deviation (`ddof=0`, the default)."
+        }
+      ],
+      "constraints": [
+        "Population standard deviation.",
+        "NaN cells are never counted as outliers."
+      ],
+      "realWorld": "Z-score outlier flags are the first anomaly check on sensor and metric data; NaN handling decides whether the check works at all.",
+      "commonMistakes": [
+        "Using `np.mean` on data that still contains NaN."
+      ]
+    },
+    "daily:a104#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Under independence each cell's expected count is (its row total times its column total) divided by the grand total. That is a table built from every row total paired with every column total."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`np.outer(a, b)` returns the (len(a), len(b)) table of all products. Totals come from `table.sum(axis=1)` (per row) and `table.sum(axis=0)` (per column). A DataFrame needs the original labels to print them."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Take the row totals and column totals as arrays, form their outer product, divide by the grand total, wrap the result in a DataFrame with the table's index and columns, round to one decimal and print."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nrow_totals = table.sum(axis=...).to_numpy()\ncol_totals = table.sum(axis=...).to_numpy()\nexpected = pd.DataFrame(np.outer(..., ...) / grand_total, index=table.index, columns=table.columns)\nprint(expected.round(1).to_string())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "matmul",
+          "symptom": "`ValueError: Shape of passed values is (2, 1), indices imply (2, 2)`.",
+          "cause": "`row_totals * col_totals` multiplies element by element and gives only 2 numbers; the exercise needs every combination.",
+          "fix": "Use `np.outer` (or a column times a row) to get the 2-by-2 table."
+        },
+        {
+          "category": "matmul",
+          "symptom": "A single number `80000` appears.",
+          "cause": "`np.dot(row_totals, col_totals)` sums the products into one scalar.",
+          "fix": "Use the outer product, which keeps every pair."
+        },
+        {
+          "category": "axis",
+          "symptom": "Row and column totals are swapped and the table is wrong.",
+          "cause": "`axis=0` and `axis=1` were exchanged: `axis=1` gives one total per row.",
+          "fix": "Row totals use `axis=1`, column totals `axis=0`."
+        }
+      ],
+      "constraints": [
+        "Round to 1 decimal.",
+        "Keep the original labels."
+      ],
+      "realWorld": "Expected counts under independence are the baseline of a chi-square test; comparing observed with expected shows which segments differ.",
+      "commonMistakes": [
+        "Confusing outer product, element-wise product and dot product."
+      ]
+    },
+    "daily:d041#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'No order in 1997' includes customers with no orders at all, so the join must keep them, and the year test must be part of the matching, not a filter applied after it."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "In a LEFT JOIN, conditions in `ON` decide which orders match; conditions in `WHERE` run afterwards and can delete the NULL-extended rows. `o.order_id IS NULL` then finds customers with no matching 1997 order."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Join customers to orders on the customer id and the 1997 date range together, keep only French customers, and keep rows where no order matched."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT c.customer_id, c.company_name\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.customer_id\n                  AND ___  -- the 1997 date range\nWHERE c.country = 'France'\n  AND o.order_id IS NULL\nORDER BY c.customer_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "filter",
+          "symptom": "The result set is empty, although French customers exist.",
+          "cause": "The date range is in WHERE together with `o.order_id IS NULL`; a row cannot be both inside 1997 and have no order.",
+          "fix": "Move the date range into the ON clause."
+        },
+        {
+          "category": "join",
+          "symptom": "Customers who ordered in 1997 are listed.",
+          "cause": "The filter `o.order_date < '1997-01-01'` (or another one-sided test) was used, matching customers who had an earlier order.",
+          "fix": "Test for the absence of any order in the 1997 range."
+        },
+        {
+          "category": "null",
+          "symptom": "Customers with no orders at all are missing.",
+          "cause": "An INNER JOIN or a WHERE condition on `o.order_date` removed the NULL rows.",
+          "fix": "LEFT JOIN with the date range in ON."
+        }
+      ],
+      "constraints": [
+        "French customers only.",
+        "Date range 1997-01-01 up to but not including 1998-01-01.",
+        "Ordered by customer_id."
+      ],
+      "realWorld": "'Customers with no activity in period X' (lapsed users, accounts with no invoice) is the standard anti-join with a time window.",
+      "commonMistakes": [
+        "Putting the period filter in WHERE."
+      ],
+      "alternatives": [
+        {
+          "title": "NOT EXISTS",
+          "code": "SELECT c.customer_id, c.company_name\nFROM customers c\nWHERE c.country = 'France'\n  AND NOT EXISTS (\n      SELECT 1 FROM orders o\n      WHERE o.customer_id = c.customer_id\n        AND o.order_date >= '1997-01-01' AND o.order_date < '1998-01-01'\n  )\nORDER BY c.customer_id;\n",
+          "note": "States the rule directly and avoids the ON-versus-WHERE trap altogether. The LEFT JOIN form is what the lesson practises; NOT EXISTS is usually what experienced people write for this question."
+        }
+      ]
+    },
+    "daily:d043#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'Highest in its own category' compares each product with the maximum of its own category, not with the maximum of the whole table."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A correlated subquery refers to the outer row: `WHERE p2.category_id = p.category_id` ties the inner MAX to the current product's category."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Keep a product when its price equals the maximum price of products that share its category id."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT p.product_id, p.product_name, p.category_id, p.unit_price\nFROM products p\nWHERE p.unit_price = (SELECT MAX(p2.unit_price) FROM products p2 WHERE ___)\nORDER BY p.category_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "grouping",
+          "symptom": "Only one product (the most expensive overall) is returned.",
+          "cause": "The subquery has no link to the outer row, so it computes one global maximum.",
+          "fix": "Add `p2.category_id = p.category_id` inside the subquery."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Writing `WHERE p.unit_price = MAX(p.unit_price)` is rejected as an aggregate in WHERE.",
+          "cause": "The MAX was written directly in the condition.",
+          "fix": "Put the MAX in a subquery."
+        },
+        {
+          "category": "filter",
+          "symptom": "A category appears twice.",
+          "cause": "Two products tie at the highest price and both qualify, which is the correct result for ties.",
+          "fix": "Keep both unless the question asks for one row per category."
+        }
+      ],
+      "constraints": [
+        "Correlated subquery with MAX.",
+        "Ties at the top price are all returned."
+      ],
+      "realWorld": "'Top row per group' is the most reused SQL pattern; correlated MAX, window functions and DISTINCT ON are three ways to write it.",
+      "commonMistakes": [
+        "Forgetting to correlate."
+      ]
+    },
+    "daily:d049#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Each row should keep its own identity and also show a statistic of its group. A GROUP BY would collapse rows; a window leaves them in place."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`MAX(col) OVER (PARTITION BY group)` adds the group maximum to every row. Window expressions can be used inside arithmetic, so the gap is the same window minus the row's price."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Filter to the three categories with WHERE, add the category maximum with a window, and compute the gap from that same window expression."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT product_id, category_id, unit_price,\n       MAX(unit_price) OVER (PARTITION BY ___) AS max_in_category,\n       ___ - unit_price AS gap\nFROM products\nWHERE category_id IN (1, 2, 3)\nORDER BY product_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "grouping",
+          "symptom": "`ERROR: column \"products.product_id\" must appear in the GROUP BY clause`.",
+          "cause": "GROUP BY was used for the maximum, which removes row-level columns.",
+          "fix": "Use a window function so rows are kept."
+        },
+        {
+          "category": "window",
+          "symptom": "`max_in_category` is the same on every row.",
+          "cause": "`PARTITION BY` is missing, so the window covers the whole result.",
+          "fix": "Partition by the category."
+        },
+        {
+          "category": "window",
+          "symptom": "`ERROR: column \"max_in_category\" does not exist` in the gap expression.",
+          "cause": "A select-list alias cannot be reused in the same SELECT.",
+          "fix": "Repeat the window expression or compute it in a subquery."
+        }
+      ],
+      "constraints": [
+        "Rows for categories 1, 2 and 3 only, one per product.",
+        "Filter with WHERE; windows are computed after it."
+      ],
+      "realWorld": "Gap to the leader, difference from the group average and share of group total are everyday window use cases.",
+      "commonMistakes": [
+        "Using GROUP BY and losing row detail."
+      ]
+    },
+    "daily:d050#g1": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Numbering rows inside each customer means restarting the count for every customer, ordered by date."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date, order_id)` numbers rows 1, 2, 3 within each partition. The second sort key breaks ties."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Select the three customers' orders with WHERE and add a ROW_NUMBER window partitioned by customer and ordered by date then order id; sort the final result by customer and sequence."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT customer_id, order_id, order_date,\n       ROW_NUMBER() OVER (PARTITION BY ___ ORDER BY ___, ___) AS order_seq\nFROM orders\nWHERE customer_id IN ('ALFKI', 'ANATR', 'ANTON')\nORDER BY customer_id, order_seq;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "window",
+          "symptom": "The numbers run 1, 2, 3 ... across all three customers.",
+          "cause": "`PARTITION BY` was left out.",
+          "fix": "Partition by `customer_id`."
+        },
+        {
+          "category": "window",
+          "symptom": "The sequence does not follow the order dates.",
+          "cause": "The window has no ORDER BY, or the ORDER BY is only in the outer query.",
+          "fix": "Order inside the OVER clause."
+        },
+        {
+          "category": "filter",
+          "symptom": "Two orders on the same day come out in a random order.",
+          "cause": "There is no tie-breaker.",
+          "fix": "Add `order_id` as a second sort key."
+        }
+      ],
+      "constraints": [
+        "Oldest order gets 1.",
+        "Ties on date broken by order id."
+      ],
+      "realWorld": "Order sequence per customer (first order, second order, ...) feeds cohort and repeat-purchase analysis.",
+      "commonMistakes": [
+        "Ordering the output but not the window."
+      ],
+      "alternatives": [
+        {
+          "title": "Correlated count",
+          "code": "SELECT o.customer_id, o.order_id, o.order_date,\n       (SELECT COUNT(*) FROM orders o2\n        WHERE o2.customer_id = o.customer_id\n          AND (o2.order_date, o2.order_id) <= (o.order_date, o.order_id)) AS order_seq\nFROM orders o\nWHERE o.customer_id IN ('ALFKI', 'ANATR', 'ANTON')\nORDER BY o.customer_id, order_seq;\n",
+          "note": "Counts how many of the customer's orders are not later than this one, using a row comparison. It gives the same numbers but re-scans orders for every row (quadratic), so ROW_NUMBER is the right tool; the subquery form is useful for understanding what ROW_NUMBER computes."
+        }
+      ]
+    },
+    "daily:d055#g2": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Keeping one row per person means grouping by a cleaned key (email without case differences) and picking the best row inside each group by a rule."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`lower(email)` normalises case. `ROW_NUMBER() OVER (PARTITION BY lower(email) ORDER BY started_on DESC, sub_id DESC)` numbers rows within each cleaned email, latest first. The number can only be filtered one query level up."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Rank the subscriptions per cleaned email, then in the outer query keep rank 1 and order by `sub_id`."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT sub_id, email, plan\nFROM (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY ___ ORDER BY ___ DESC, ___ DESC) AS rn\n  FROM subscriptions\n) AS t\nWHERE rn = 1\nORDER BY sub_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "window",
+          "symptom": "`KIM@x.com` and `kim@x.com` are both returned.",
+          "cause": "The partition uses the raw email, so different capitalisation forms different groups.",
+          "fix": "Partition by `lower(email)`."
+        },
+        {
+          "category": "window",
+          "symptom": "Filtering `rn = 1` in the same SELECT that defines `rn` fails: the alias is unknown there.",
+          "cause": "`WHERE ROW_NUMBER() OVER (...) = 1` or the alias was used in the SELECT that creates it.",
+          "fix": "Compute the number in a subquery and filter outside."
+        },
+        {
+          "category": "filter",
+          "symptom": "For moe@x.com the older subscription survives.",
+          "cause": "The two rows share the same date and no tie-breaker was given.",
+          "fix": "Add `sub_id DESC` as the second sort key."
+        }
+      ],
+      "constraints": [
+        "One row per email, ignoring case.",
+        "Latest `started_on`, ties by higher `sub_id`."
+      ],
+      "realWorld": "De-duplicating customer, subscription or event records by keeping the latest is one of the most frequent cleaning steps.",
+      "commonMistakes": [
+        "Skipping the tie-breaker and getting non-deterministic output."
+      ],
+      "alternatives": [
+        {
+          "title": "DISTINCT ON",
+          "code": "WITH subscriptions (sub_id, email, plan, started_on) AS (\n  VALUES (1, 'kim@x.com', 'basic', DATE '2024-01-10'),\n         (2, 'KIM@x.com', 'pro', DATE '2024-05-02'),\n         (3, 'lee@x.com', 'basic', DATE '2024-02-14'),\n         (4, 'moe@x.com', 'basic', DATE '2024-03-01'),\n         (5, 'moe@x.com', 'pro', DATE '2024-03-01'),\n         (6, 'ned@x.com', 'pro', DATE '2024-06-20')\n)\nSELECT sub_id, email, plan\nFROM (\n  SELECT DISTINCT ON (lower(email)) sub_id, email, plan\n  FROM subscriptions\n  ORDER BY lower(email), started_on DESC, sub_id DESC\n) AS t\nORDER BY sub_id;\n",
+          "note": "PostgreSQL's DISTINCT ON keeps the first row per key in the stated sort, with no row numbers to filter. It is shorter but PostgreSQL-only, and the sort must start with the DISTINCT ON expression, so the final ORDER BY needs an outer query."
+        }
+      ]
+    },
+    "daily:d036#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "One row summarising a filtered set: how many, how old, how much. Each of the three is an aggregate over the rows that survive the filter."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`COUNT(*)` counts rows; `COUNT(column)` counts non-NULL values of that column. `MIN` gives the earliest date and `SUM` the total."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Filter to unshipped orders with `IS NULL`, then select the row count, the minimum order date and the sum of freight, with the aliases the exercise names."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT ___ AS unshipped,\n       ___(order_date) AS oldest,\n       ___(freight) AS total_freight\nFROM orders\nWHERE shipped_date IS NULL;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "null",
+          "symptom": "`unshipped` is 0 although there are unshipped orders.",
+          "cause": "`COUNT(shipped_date)` counts non-NULL shipped dates, and the filter keeps only NULL ones.",
+          "fix": "Count rows with `COUNT(*)`."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "`ERROR: column \"orders.order_date\" must appear in the GROUP BY clause`.",
+          "cause": "A plain column was selected next to aggregates.",
+          "fix": "Use only aggregates in this one-row summary."
+        },
+        {
+          "category": "filter",
+          "symptom": "The numbers cover all orders.",
+          "cause": "The WHERE clause was missing or used `= NULL`.",
+          "fix": "Filter with `shipped_date IS NULL`."
+        }
+      ],
+      "constraints": [
+        "One row with three columns in the given order."
+      ],
+      "realWorld": "Backlog summaries (how many, how old, how much) are the first numbers on an operations dashboard.",
+      "commonMistakes": [
+        "COUNT(col) on a column you just filtered to NULL."
+      ]
+    },
+    "daily:d012#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A loop normally visits every item. `break` ends it early, so code after the loop runs only once the loop is over."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`for v in values:` visits each value, `if v < 0:` tests it, and `break` leaves the loop immediately. Code that is not indented under the loop runs after it ends."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Walk through the values, and at the first negative print it and stop. Then, outside the loop, print the word finished."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nvalues = [4, 9, -3, 7, -8]\nfor v in values:\n    if ...:\n        print(v)\n        ...      # stop the loop\nprint('finished')\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "control-flow",
+          "symptom": "Both `-3` and `-8` are printed.",
+          "cause": "The loop never stops because `break` is missing.",
+          "fix": "Add `break` after printing the first negative."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "`finished` is printed several times.",
+          "cause": "The final print is indented inside the loop.",
+          "fix": "Dedent it so it runs once, after the loop."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`IndentationError: expected an indented block after 'for' statement`.",
+          "cause": "The loop body is not indented.",
+          "fix": "Indent the body by four spaces."
+        }
+      ],
+      "constraints": [
+        "First negative only.",
+        "`finished` printed once, last."
+      ],
+      "realWorld": "Search loops stop at the first match; scanning a whole file or table after the answer is known wastes time.",
+      "commonMistakes": [
+        "Using `continue` when `break` is meant."
+      ],
+      "alternatives": [
+        {
+          "title": "next() with a generator",
+          "code": "values = [4, 9, -3, 7, -8]\nfirst = next((v for v in values if v < 0), None)\nif first is not None:\n    print(first)\nprint(\"finished\")\n",
+          "note": "next() on a generator expression stops at the first match without writing a loop and returns a default when nothing matches. It is compact, but an explicit for/break is easier for beginners to trace and to extend with extra work inside the loop."
+        }
+      ]
+    },
+    "daily:d014#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A function can end early. Handling the special case first keeps the main path simple."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`if not items:` is true for an empty list. `return` ends the function immediately, and `return None` is also what happens when no return is reached. `items[0]` is the first element."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "At the top of the function return None when the list is empty. Otherwise return the first item. Call it twice and print each result."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef first_or_none(items):\n    if ...:\n        return None\n    return ...\n\nprint(first_or_none(['a', 'b']))\nprint(first_or_none([]))\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "runtime",
+          "symptom": "`IndexError: list index out of range` for the empty list.",
+          "cause": "`items[0]` ran before the emptiness check.",
+          "fix": "Test for an empty list first and return None."
+        },
+        {
+          "category": "functions",
+          "symptom": "Both prints show `None`.",
+          "cause": "The function never returns the first item (a missing `return` before `items[0]`).",
+          "fix": "Return the item."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`NameError: name 'first_or_none' is not defined`.",
+          "cause": "The calls come before the definition, or the function was not defined.",
+          "fix": "Define the function above the prints."
+        }
+      ],
+      "constraints": [
+        "An empty list gives None.",
+        "Use an early return."
+      ],
+      "realWorld": "Lookup helpers that return None for 'nothing there' are everywhere in data code; callers then decide what a missing value means.",
+      "commonMistakes": [
+        "Returning an empty string or 0 instead of None."
+      ],
+      "alternatives": [
+        {
+          "title": "Ask forgiveness with try/except",
+          "code": "def first_or_none(items):\n    try:\n        return items[0]\n    except IndexError:\n        return None\n\nprint(first_or_none([\"a\", \"b\"]))\nprint(first_or_none([]))\n",
+          "note": "EAFP style: try the operation and handle the failure. It also works for any sequence, but the early-return check is clearer when the empty case is common and exceptions are comparatively slow."
+        }
+      ]
+    },
+    "daily:d017#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Sorting by a rule needs a function that turns each item into the value to sort on. The sort then compares those values, not the items."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`sorted(items, key=function)` calls the function once per item. `lambda w: w[-1]` takes the last character; `key=len` uses the length; `reverse=True` flips the order and keeps ties in their original sequence."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Sort the words by their last letter with a lambda. Then sort again by length with `reverse=True`. Print both lists."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nprint(sorted(words, key=lambda w: ...))\nprint(sorted(words, key=..., reverse=...))\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "functions",
+          "symptom": "`TypeError: 'str' object is not callable`.",
+          "cause": "`key=w[-1]` passes a value, not a function.",
+          "fix": "Wrap it in a lambda: `key=lambda w: w[-1]`."
+        },
+        {
+          "category": "functions",
+          "symptom": "`TypeError: 'int' object is not callable`.",
+          "cause": "`key=len(words)` calls len immediately and passes the number 4.",
+          "fix": "Pass the function itself: `key=len`."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "The longest-first list reads `['python', 'loop', 'data', 'sql']`.",
+          "cause": "The list was sorted ascending and reversed with `[::-1]`, which also reverses the order of ties.",
+          "fix": "Use `reverse=True`, which keeps tied items in their original order."
+        }
+      ],
+      "constraints": [
+        "Two printed lists.",
+        "Ties keep the original order."
+      ],
+      "realWorld": "Sorting records by a computed key (last name, length, rating) is a daily need, and the stable tie behaviour makes multi-key sorting predictable.",
+      "commonMistakes": [
+        "Calling the key function instead of passing it."
+      ],
+      "alternatives": [
+        {
+          "title": "In-place sort on copies",
+          "code": "words = [\"data\", \"sql\", \"python\", \"loop\"]\nby_last = words.copy()\nby_last.sort(key=lambda w: w[-1])\nprint(by_last)\nby_len = words.copy()\nby_len.sort(key=len, reverse=True)\nprint(by_len)\n",
+          "note": "list.sort() sorts in place and returns None, so it saves memory but would destroy the original order if you did not copy first (and `print(words.sort())` prints None). sorted() returns a new list and leaves the original intact, which is safer."
+        }
+      ]
+    },
+    "daily:d013#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Building a filtered list means starting with an empty one and adding only the items that pass a test. The invalid count is then what is left over."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`if '@' in text` tests whether a character occurs in a string. `list.append(x)` adds an item. `len(a) - len(b)` is the difference of two counts."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Create an empty list, loop over the emails, append those that contain an at-sign, print the list, then print how many emails were not kept."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nvalid = []\nfor email in emails:\n    if ...:\n        valid.append(...)\nprint(valid)\nprint(len(emails) - ...)\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "filtering",
+          "symptom": "The list contains `'bad.address'` and `'no-at-sign'`.",
+          "cause": "The condition was inverted (`not in`) or missing.",
+          "fix": "Keep an email only when it contains the at-sign."
+        },
+        {
+          "category": "variables",
+          "symptom": "The loop skips some emails.",
+          "cause": "Items were removed from `emails` while looping over it, which shifts the positions.",
+          "fix": "Build a new list instead of changing the one you iterate over."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "The last line prints 3, the number of valid emails.",
+          "cause": "`len(valid)` was printed where the invalid count is wanted.",
+          "fix": "Subtract the valid count from the total."
+        }
+      ],
+      "constraints": [
+        "Original order preserved.",
+        "Second line is the invalid count."
+      ],
+      "realWorld": "A first-pass validity filter before a more expensive check (or a bounce report) is the same pattern.",
+      "commonMistakes": [
+        "Modifying a list during iteration."
+      ],
+      "alternatives": [
+        {
+          "title": "List comprehension",
+          "code": "emails = [\"a@x.com\", \"bad.address\", \"b@y.org\", \"no-at-sign\", \"c@z.net\"]\nvalid = [e for e in emails if \"@\" in e]\nprint(valid)\nprint(len(emails) - len(valid))\n",
+          "note": "The same filter in one expression. It is the usual Python style for simple filters; use the explicit loop when the body needs several statements, logging, or counting rejects as you go."
+        }
+      ]
+    }
+  }
+}

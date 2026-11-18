@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "items": {
+    "sql:q01-product-revenue": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Revenue is a per-line amount (price times quantity, reduced by the discount) that you then add up per product. Think row-level arithmetic first, group-level total second."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`SUM(...)` with `GROUP BY` collapses lines to one row per product. The discount is a fraction, so the kept share of a line is `1 - discount`. `ROUND(x, 2)` needs a numeric value in PostgreSQL."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Join `products` to `order_details`, compute the net amount from the order line's own price, quantity and discount, sum it per product, and sort the totals from largest to smallest."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT p.product_id, p.product_name,\n       ROUND(SUM(___)::numeric, 2) AS total_revenue   -- net amount of each line\nFROM products p\nJOIN order_details od ON ___\nGROUP BY ___\nORDER BY total_revenue DESC;\n```\nEvery non-aggregated column in the SELECT list must also appear in GROUP BY."
+        }
+      ],
+      "debugging": [
+        {
+          "category": "aggregation",
+          "symptom": "Totals look too high for products that were often discounted.",
+          "cause": "The `(1 - discount)` factor is missing, so each line counts at full price.",
+          "fix": "Multiply the line amount by the share left after the discount."
+        },
+        {
+          "category": "grouping",
+          "symptom": "`ERROR: column \"p.product_name\" must appear in the GROUP BY clause or be used in an aggregate function`.",
+          "cause": "A selected column is neither aggregated nor listed in GROUP BY.",
+          "fix": "Add every non-aggregated selected column to GROUP BY."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: function round(double precision, integer) does not exist`.",
+          "cause": "PostgreSQL only has two-argument ROUND for numeric values and this sum is a floating-point type.",
+          "fix": "Cast the sum to numeric before rounding."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Revenue differs from the finance report when a product's list price changed over time.",
+          "cause": "The query used `products.unit_price`, the current list price, instead of the price stored on each order line.",
+          "fix": "Use the line's own `order_details.unit_price`."
+        }
+      ],
+      "constraints": [
+        "One row per product that has been ordered (an inner join).",
+        "Revenue is net of the line discount and rounded to 2 decimals.",
+        "Sorted by revenue, highest first."
+      ],
+      "realWorld": "Product performance reviews and discontinuation decisions rest on net revenue per product, computed from the price actually charged on each order line.",
+      "commonMistakes": [
+        "Counting lines (COUNT) when the question asks for money.",
+        "Using the current catalogue price for historical orders."
+      ],
+      "interviewRelevance": "Revenue per product with a discount factor is a standard first aggregation question; the follow-up is usually products with no sales (a LEFT JOIN)."
+    }
+  }
+}

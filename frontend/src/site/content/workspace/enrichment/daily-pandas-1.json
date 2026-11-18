@@ -1,0 +1,404 @@
+{
+  "version": 1,
+  "items": {
+    "daily:d067#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Min-max scaling squeezes each column into the range 0 to 1 using that column's own lowest and highest value. Missing values must not disturb those two numbers."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`np.nanmin` and `np.nanmax` ignore NaN, and `axis=0` gives one value per column. A (20,) vector cannot broadcast against a (20, 3) table, but a (3,) vector can."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Find the column minima and maxima while ignoring NaN, then rescale the whole table with one expression and report the first row, the column minima and the column maxima of the result."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nlo = np.nanmin(clean, axis=...)\nhi = np.nanmax(clean, axis=...)\nscaled = (clean - ...) / (... - ...)\nprint(np.round(scaled[0], 3).tolist())\nprint(np.nanmin(scaled, axis=0).tolist())\nprint(np.nanmax(scaled, axis=0).tolist())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "missing-data",
+          "symptom": "Every scaled value (and the min and max lines) prints `nan`.",
+          "cause": "`np.min` and `np.max` propagate NaN, so lo and hi are NaN for any column that has a missing value.",
+          "fix": "Use the NaN-aware versions `np.nanmin` and `np.nanmax`."
+        },
+        {
+          "category": "broadcasting",
+          "symptom": "`ValueError: operands could not be broadcast together with shapes (20,3) (20,)`.",
+          "cause": "The minima were computed per row (`axis=1`), giving 20 values for a table with 3 columns.",
+          "fix": "Compute statistics per column with `axis=0`."
+        },
+        {
+          "category": "types",
+          "symptom": "`RuntimeWarning: All-NaN slice encountered`.",
+          "cause": "A column became entirely NaN, for example because the cleaning mask was too broad.",
+          "fix": "Check the cleaned array with `np.isnan(clean).sum(axis=0)` before scaling."
+        }
+      ],
+      "constraints": [
+        "Each column is scaled with its own minimum and maximum.",
+        "NaN values stay NaN in the output."
+      ],
+      "realWorld": "Features on different scales (spend, visits, time) are min-max scaled before distance-based models; dropped sensor readings must not corrupt the scale.",
+      "commonMistakes": [
+        "Scaling with global minimum and maximum instead of per column."
+      ]
+    },
+    "daily:d068#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "pandas adds Series by label, not by position. A label present in only one Series has no partner, so the result is missing there."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`a + b` aligns on the union of both indexes and gives NaN where one side is absent. `isna().sum()` counts the missing values. Integers become floats once NaN appears."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Add the Series, print the result with `to_string()` and print the number of missing entries. Predict which labels survive before you run it."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ntotal = ...            # add the two Series\nprint(total.to_string())\nprint(total.isna().sum())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "join",
+          "symptom": "`ValueError: operands could not be broadcast together with shapes (3,) (2,)`.",
+          "cause": "The underlying arrays were added (`a.values + b.values`), which ignores labels and expects equal lengths.",
+          "fix": "Add the Series themselves so pandas aligns the labels."
+        },
+        {
+          "category": "missing-data",
+          "symptom": "The missing count is 0 although `x`, `z` and `w` appear only once.",
+          "cause": "`fill_value=0` (via `a.add(b, fill_value=0)`) or `fillna` was applied before counting.",
+          "fix": "Count NaN on the plain sum."
+        },
+        {
+          "category": "types",
+          "symptom": "`y` prints `7.0` and not `7`.",
+          "cause": "A NaN in a column forces the integer values into float64.",
+          "fix": "That is expected; use `astype('Int64')` only if you need nullable integers."
+        }
+      ],
+      "constraints": [
+        "Plain addition, no fill value.",
+        "The index of the result is the union of both indexes, sorted."
+      ],
+      "realWorld": "Adding monthly figures from two systems silently misaligns when a month is missing on one side; alignment shows up as NaN, which is a useful signal.",
+      "commonMistakes": [
+        "Expecting positional addition like a list."
+      ],
+      "alternatives": [
+        {
+          "title": "Explicit reindex before adding",
+          "code": "import pandas as pd\n\na = pd.Series([1, 2, 3], index=[\"x\", \"y\", \"z\"])\nb = pd.Series([5, 6], index=[\"y\", \"w\"])\nlabels = a.index.union(b.index)\ntotal = a.reindex(labels) + b.reindex(labels)\nprint(total.to_string())\nprint(total.isna().sum())\n",
+          "note": "Makes the alignment step visible: both Series are first stretched to the union of labels (missing ones become NaN) and then added element by element. `a + b` does exactly this internally; use the explicit form when you want to choose the label set yourself, for example only the labels of `a`."
+        }
+      ]
+    },
+    "daily:d069#g2": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A text file is not always a standard CSV. Tell the reader about its separator, its missing header, and which text means 'no value' instead of cleaning afterwards."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`pd.read_csv` accepts `sep=`, `header=None`, `names=[...]` and `na_values=[...]`. A text buffer is passed with `io.StringIO(text)`."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Wrap the text in StringIO, read it with the semicolon separator and no header, give the two column names, and declare the question mark as missing. Then print the price column as a list and count its missing values."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndf = pd.read_csv(io.StringIO(raw), sep=..., header=..., names=[...], na_values=[...])\nprint(df['price'].tolist())\nprint(df['price'].isna().sum())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "syntax",
+          "symptom": "The data frame has one column named `pen;1.5` and 2 rows.",
+          "cause": "The default separator is a comma and the first line was used as the header.",
+          "fix": "Set `sep=';'` and `header=None` with explicit `names`."
+        },
+        {
+          "category": "types",
+          "symptom": "The prices print as `['1.5', '?', '3.25']` (strings).",
+          "cause": "The question mark was not declared as missing, so the whole column stays text.",
+          "fix": "Pass `na_values=['?']` so the column is numeric."
+        },
+        {
+          "category": "missing-data",
+          "symptom": "The missing count is 0.",
+          "cause": "The count was taken on a column where `?` is still an ordinary string.",
+          "fix": "Declare `?` as a missing marker before counting."
+        }
+      ],
+      "constraints": [
+        "Columns are `item` and `price`.",
+        "Three data rows, one missing price."
+      ],
+      "realWorld": "Exports from legacy systems use odd separators, no header and placeholders like `?` or `N/A`; telling the reader up front avoids silent string columns.",
+      "commonMistakes": [
+        "Cleaning after the read instead of declaring missing markers in the read."
+      ],
+      "alternatives": [
+        {
+          "title": "Read as text, then coerce",
+          "code": "import io\nimport pandas as pd\n\nraw = \"pen;1.5\\nink;?\\npad;3.25\\n\"\ndf = pd.read_csv(io.StringIO(raw), sep=\";\", header=None, names=[\"item\", \"price\"])\ndf[\"price\"] = pd.to_numeric(df[\"price\"], errors=\"coerce\")\nprint(df[\"price\"].tolist())\nprint(df[\"price\"].isna().sum())\n",
+          "note": "Reads everything as text first and converts afterwards. `errors='coerce'` turns every unparseable value into NaN, which also hides genuine data errors such as '1,5' or 'abc'. Declaring the one expected marker with `na_values` fails loudly on anything unexpected."
+        }
+      ]
+    },
+    "daily:d071#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A DataFrame can be addressed by label or by position, and the two slices follow different end rules."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`loc` slices by labels and includes the end label. `iloc` slices by integer position and excludes the end position, like a Python list."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Select the rows from `e2` to `e4` by label and count them, then select positions 1 up to (not including) 4 and count those. Use the label slice on the `name` column for line 3."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nprint(len(df.loc[...:...]))\nprint(len(df.iloc[...:...]))\nprint(df.loc[...:..., 'name'].tolist())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "indexing",
+          "symptom": "You predicted 2 rows for `df.loc['e2':'e4']`, but it returns 3.",
+          "cause": "The end label was assumed to be excluded, as with a Python list, but `loc` includes it.",
+          "fix": "Remember: loc is inclusive of the end label."
+        },
+        {
+          "category": "indexing",
+          "symptom": "You predicted 4 rows for `df.iloc[1:4]`, but it returns 3.",
+          "cause": "The slice end was treated as inclusive; iloc stops before the end position.",
+          "fix": "Use position 4 as the exclusive end to get positions 1, 2 and 3."
+        },
+        {
+          "category": "types",
+          "symptom": "`TypeError: cannot do slice indexing on Index with these indexers [1] of type int`.",
+          "cause": "Integers were passed to `loc` on a string index.",
+          "fix": "Use `iloc` for positions and `loc` for labels."
+        }
+      ],
+      "constraints": [
+        "Three printed values.",
+        "Both selections cover rows e2, e3 and e4."
+      ],
+      "realWorld": "Mixing up label and position slices is behind many off-by-one bugs in time-series work, where the index is a date and positions shift after sorting.",
+      "commonMistakes": [
+        "Using `df[1:4]`, whose meaning depends on the index type."
+      ]
+    },
+    "daily:d071#g4": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A safe edit changes the working copy and leaves the source untouched. The assignment must happen through one indexer that pandas can write through."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`df.copy()` makes an independent table. `work.loc[row_label, column_label] = value` writes by label; `work.iloc[row_pos, col_pos] = value` writes by position, with both positions inside one pair of brackets."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Copy the table, edit the salary by label, edit the department by position, then print the two changed values from the copy and the same two cells from the original."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nwork = df.copy()\nwork.loc[..., ...] = 4100\nwork.iloc[..., ...] = 'Dev'\nprint(work.loc['e4', 'salary'])\nprint(work.iloc[0]['dept'])\nprint(df.loc['e4', 'salary'])\nprint(df.iloc[0]['dept'])\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "variables",
+          "symptom": "The original `df` shows 4100 too.",
+          "cause": "`work = df` makes a second name for the same object; no copy was made.",
+          "fix": "Create the working table with `df.copy()`."
+        },
+        {
+          "category": "indexing",
+          "symptom": "`work.iloc[0]['dept'] = 'Dev'` raises `SettingWithCopyWarning` and the table still says `IT`.",
+          "cause": "`iloc[0]` returns a temporary row, so the assignment lands on that temporary object.",
+          "fix": "Assign in one step with `work.iloc[0, 1] = 'Dev'`."
+        },
+        {
+          "category": "types",
+          "symptom": "`ValueError: Location based indexing can only have [integer, integer slice ...] types`.",
+          "cause": "A column name was passed to `iloc`, which only takes positions.",
+          "fix": "Use `loc` with labels or `iloc` with an integer column position."
+        }
+      ],
+      "constraints": [
+        "The original table must be unchanged.",
+        "Use `loc` for the label edit and `iloc` for the position edit."
+      ],
+      "realWorld": "Cleaning scripts should never edit the raw table in place; a copy plus one-step assignments avoids silent no-op edits and lets you diff before and after.",
+      "commonMistakes": [
+        "Chained indexing such as `df['a']['b'] = x`."
+      ],
+      "alternatives": [
+        {
+          "title": "Scalar accessors at and iat",
+          "code": "import pandas as pd\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\"], \"salary\": [5000, 4200, 5300, 3900, 4500]}, index=[\"e1\", \"e2\", \"e3\", \"e4\", \"e5\"])\nwork = df.copy()\nwork.at[\"e4\", \"salary\"] = 4100\nwork.iat[0, 1] = \"Dev\"\nprint(work.loc[\"e4\", \"salary\"])\nprint(work.iloc[0][\"dept\"])\nprint(df.loc[\"e4\", \"salary\"])\nprint(df.iloc[0][\"dept\"])\n",
+          "note": "`at` and `iat` are the label and position versions restricted to a single cell. They are faster in loops and cannot accidentally select a slice, but they only handle one cell; `loc` and `iloc` also write many cells at once."
+        }
+      ]
+    },
+    "daily:d072#g2": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Each condition produces a column of True/False. Combining conditions means combining those columns element by element, not asking Python for one answer."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Use `&` for and, `|` for or, and put each comparison in parentheses, because `&` and `|` bind more tightly than `==` or `<`. Then index the DataFrame with the combined mask."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Build the first mask from department and age, the second from department or salary, filter with each, select the `name` column and convert to a list."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nprint(df[(df['dept'] == 'IT') ... (df['age'] < 40)]['name'].tolist())\nprint(df[(df['dept'] == 'HR') ... (df['salary'] > 6000)]['name'].tolist())\n```\nThe dots stand for the correct element-wise operator."
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`ValueError: The truth value of a Series is ambiguous`.",
+          "cause": "Python's `and` / `or` were used between two Series.",
+          "fix": "Use `&` and `|`."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`TypeError: Cannot perform 'rand_' with a dtyped [int64] array and scalar of type [bool]`.",
+          "cause": "The parentheses are missing, so `\"IT\" & df['age']` is evaluated before the comparisons.",
+          "fix": "Wrap every comparison in parentheses."
+        },
+        {
+          "category": "filtering",
+          "symptom": "The second line includes only 'Flo'.",
+          "cause": "`&` was used where the rule says 'or'.",
+          "fix": "Use `|` for either condition."
+        }
+      ],
+      "constraints": [
+        "Names in original row order.",
+        "Both outputs are lists."
+      ],
+      "realWorld": "Almost every report filter combines two or three conditions; the parentheses habit prevents the most common pandas error.",
+      "commonMistakes": [
+        "Forgetting parentheses around comparisons."
+      ],
+      "alternatives": [
+        {
+          "title": "DataFrame.query",
+          "code": "import pandas as pd\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"IT\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 6100], \"age\": [31, 45, 29, 52, 38, 41]})\nprint(df.query(\"dept == 'IT' and age < 40\")[\"name\"].tolist())\nprint(df.query(\"dept == 'HR' or salary > 6000\")[\"name\"].tolist())\n",
+          "note": "query takes a string where `and` / `or` do work and no parentheses are needed, which reads closer to SQL. The cost: column names live inside a string (no editor checks), names with spaces need backticks, and local variables need an `@` prefix."
+        }
+      ]
+    },
+    "daily:d072#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Membership in a list and membership in a range are common enough that pandas has a method for each, so you do not chain many comparisons."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`Series.isin(list)` tests membership in a list. `Series.between(low, high)` is inclusive on both ends by default."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "For the first line call isin with the two departments, for the second call between with the two salary bounds, and index the frame with each result."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nprint(df[df['dept'].isin([..., ...])]['name'].tolist())\nprint(df[df['salary'].between(..., ...)]['name'].tolist())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`TypeError: Series.isin() takes 2 positional arguments but 3 were given`.",
+          "cause": "The values were passed as separate arguments.",
+          "fix": "Pass one list."
+        },
+        {
+          "category": "filtering",
+          "symptom": "Salary exactly 4200 or 5300 is missing from the result.",
+          "cause": "The range was written with strict `>` and `<`, or `inclusive='neither'` was set.",
+          "fix": "`between` includes both ends by default; keep that."
+        },
+        {
+          "category": "types",
+          "symptom": "`TypeError: only list-like objects are allowed to be passed to isin()`.",
+          "cause": "A single string was passed instead of a list.",
+          "fix": "Wrap it in a list."
+        }
+      ],
+      "constraints": [
+        "Use isin and between.",
+        "Both bounds of the salary range are included."
+      ],
+      "realWorld": "Filtering to a list of regions or a price band is routine; isin also replaces long chains of `|` conditions.",
+      "commonMistakes": [
+        "Using Python's `in` operator on a Series."
+      ],
+      "alternatives": [
+        {
+          "title": "Explicit boolean comparisons",
+          "code": "import pandas as pd\n\ndf = pd.DataFrame({\"name\": [\"Ana\", \"Ben\", \"Cy\", \"Di\", \"Ed\", \"Flo\"], \"dept\": [\"IT\", \"HR\", \"IT\", \"Ops\", \"HR\", \"IT\"], \"salary\": [5000, 4200, 5300, 3900, 4500, 6100], \"age\": [31, 45, 29, 52, 38, 41]})\nprint(df[(df[\"dept\"] == \"HR\") | (df[\"dept\"] == \"Ops\")][\"name\"].tolist())\nprint(df[(df[\"salary\"] >= 4200) & (df[\"salary\"] <= 5300)][\"name\"].tolist())\n",
+          "note": "The same masks spelled out. It makes the boundaries (>= and <=) explicit, but gets long as the list grows and invites the missing-parenthesis error; isin and between are shorter and harder to get wrong."
+        }
+      ]
+    }
+  }
+}

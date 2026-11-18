@@ -10,11 +10,12 @@ import { studySec } from "../site/lib/dailyStudy";
 const page = vi.hoisted(() => ({ value: { data: {} as Record<string, unknown>, params: {} as Record<string, string> } }));
 const py = vi.hoisted(() => ({ result: { ok: true, stdout: "", error: "", ms: 1 } as { ok: boolean; stdout: string; error: string; ms: number } }));
 vi.mock("../site/SiteApp", () => ({ usePage: () => page.value }));
-vi.mock("../site/lib/pyRunner", () => ({ PY_TIMEOUT_MS: 1000, runPython: async () => py.result }));
+vi.mock("../site/lib/pyRunner", () => ({ PY_TIMEOUT_MS: 1000, runPython: async () => py.result, stopPython: () => undefined }));
 vi.mock("../site/components/CodeEditor", () => ({ default: ({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) => <textarea aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} /> }));
 import { DailyLessonPage } from "../site/pages/DailyPages";
 
-window.matchMedia ??= ((q: string) => ({ matches: false, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false })) as never;
+window.matchMedia = ((q: string) => ({ matches: !/prefers-reduced-motion/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false })) as never;
+(globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} };
 (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver ??= class { observe() {} disconnect() {} unobserve() {} };
 
 beforeEach(() => {
@@ -61,13 +62,24 @@ describe("Daily lesson failed checks reach the Mistake Notebook", () => {
     fireEvent.click(within(steps).getByRole("button", { name: /Guided/ }));
   };
 
+  // The lesson now shows the exercise as the embedded workspace: open it, then Submit. The workspace reuses the last run of unchanged code,
+  // and this stand-in changes its answer between checks, so each check edits the code first (a real program would not change its output).
+  let tries = 0;
+  const submit = async () => {
+    const card = screen.getAllByLabelText(/^Exercise 1:/)[0];
+    const open = within(card).queryByRole("button", { name: "Open the exercise" });
+    if (open) fireEvent.click(open);
+    const box = await within(card).findByRole("textbox");
+    fireEvent.change(box, { target: { value: `print("try ${++tries}")` } });
+    fireEvent.click(within(card).getByRole("button", { name: /^Submit/ }));
+  };
+
   it("records a wrong answer as one counted entry, then marks it solved on a pass; no code is stored", async () => {
     py.result = { ok: true, stdout: "definitely wrong output\n", error: "", ms: 1 };
     await goGuided();
-    const check = screen.getAllByRole("button", { name: "Check answer" })[0];
-    fireEvent.click(check);
+    await submit();
     await waitFor(() => expect(getProgress().mistakes?.["daily:d001#g1"]?.count).toBe(1));
-    fireEvent.click(check);
+    await submit();
     await waitFor(() => expect(getProgress().mistakes?.["daily:d001#g1"]?.count).toBe(2));
     expect(Object.keys(getProgress().mistakes!)).toEqual(["daily:d001#g1"]);
     const stored = JSON.stringify(getProgress().mistakes);
@@ -76,7 +88,7 @@ describe("Daily lesson failed checks reach the Mistake Notebook", () => {
 
     const day = await loadDay("d001");
     py.result = { ok: true, stdout: `${day!.guided[0].expected}\n`, error: "", ms: 1 };
-    fireEvent.click(check);
+    await submit();
     await waitFor(() => expect(getProgress().mistakes!["daily:d001#g1"].solved).toBeTruthy());
     expect(getProgress().mistakes!["daily:d001#g1"].count).toBe(2); // history kept
     expect(getProgress().daily!.days.d001.passed).toContain("g1");
@@ -86,7 +98,7 @@ describe("Daily lesson failed checks reach the Mistake Notebook", () => {
     const day = await loadDay("d001");
     py.result = { ok: true, stdout: `${day!.guided[0].expected}\n`, error: "", ms: 1 };
     await goGuided();
-    fireEvent.click(screen.getAllByRole("button", { name: "Check answer" })[0]);
+    await submit();
     await waitFor(() => expect(getProgress().daily!.days.d001.passed).toContain("g1"));
     expect(getProgress().mistakes ?? {}).toEqual({});
   });

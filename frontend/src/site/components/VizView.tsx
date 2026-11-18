@@ -37,7 +37,8 @@ function clauseRange(v: Visualization, stage: Stage): [number, number] | undefin
 
 export { HighlightedSql };
 
-function StageView({ s }: { s: Stage }) {
+/** The per-stage counts, join tables and sample rows. Also used by the exercise workspace's SQL visualizer. */
+export function StageView({ s }: { s: Stage }) {
   const hasIn = s.rowsIn !== undefined;
   const hasOut = s.rowsOut !== undefined;
   const inCount = s.rowsIn ?? 0;

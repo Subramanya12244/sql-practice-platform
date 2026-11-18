@@ -1,14 +1,18 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { AlertCircle, Check, CheckCircle2, Circle, Eye, Lightbulb, Loader2, Play, RotateCcw, Sparkles } from "lucide-react";
 import { Badge, Button, Card, ProgressBar, Skeleton } from "../ui";
 import { Markdown, InlineMarkdown } from "../Markdown";
 import { SampleTable } from "../SampleTable";
 import type { Block, Check as CheckQ, Exercise } from "../../lib/daily";
 import { firstDifference, renderResultText, sameOutput } from "../../lib/daily";
-import { MAX_DRAFT_CHARS, checkScore, completionOf, masteryOf, withCheckResult, withId, type DayRecord } from "../../lib/dailyProgress";
+import { checkScore, completionOf, masteryOf, withCheckResult, withId, type DayRecord } from "../../lib/dailyProgress";
 import type { DayExtras } from "../../lib/daily";
-import { completeExercise, markMistakeSolved, recordMistake, scheduleDayReview, updateDay } from "../../lib/progress";
-import { classifyPyMistake, classifySqlMistake, dailyMistake } from "../../lib/mistakes";
+import { completeExercise, scheduleDayReview, updateDay } from "../../lib/progress";
+import { classifyPyMistake } from "../../lib/mistakes";
+import { SOLUTION_LOCKED_NOTE, canRevealSolution, recordDailyCheck, trackDailyRun } from "../../lib/dailyExercise";
+import { dailyEmbedDecision } from "../../workspace/dailyPort";
+import { EmbeddedDailyExercise } from "./EmbeddedDailyExercise";
+import { useDraftSaver } from "./useDraftSaver";
 import { explainError } from "../../lib/errorHelp";
 import { friendlyPyError } from "../../lib/pyErrors";
 import { track } from "../../lib/activity";
@@ -149,8 +153,17 @@ function BrowserExample({ dayId, ex, done }: { dayId: string; ex: ExampleBlock; 
 }
 
 // ── Exercise ─────────────────────────────────────────────────────────────
-export function ExerciseRunner(props: { dayId: string; ex: Exercise; guided: boolean; rec: DayRecord | undefined; index: number }) {
-  return props.ex.kind === "written" ? <WrittenExercise {...props} /> : <GradedExercise {...props} />;
+/**
+ * One exercise of a lesson. Written exercises keep their self-assessed card. A graded exercise the unified workspace can really run
+ * (see `dailyEmbedDecision`) is shown as the embedded workspace; one it cannot run keeps the in-page runner. Both write the same
+ * store records through lib/dailyExercise.ts.
+ */
+export function ExerciseRunner(props: { dayId: string; ex: Exercise; guided: boolean; rec: DayRecord | undefined; index: number; /** Force the in-page runner (parity tests). */ legacy?: boolean }) {
+  const { legacy, ...p } = props;
+  if (p.ex.kind === "written") return <WrittenExercise {...p} />;
+  const decision = legacy ? null : dailyEmbedDecision(p.dayId, p.ex, p.guided ? "guided" : "independent");
+  if (!decision?.embed) return <GradedExercise {...p} />;
+  return <EmbeddedDailyExercise {...p} decision={decision} fallback={<GradedExercise {...p} />} />;
 }
 
 /** Self-assessed exercise for work the browser cannot run (a chart, a spreadsheet, a dashboard). The learner compares their work with the model answer and ticks the rubric. */
@@ -160,12 +173,7 @@ function WrittenExercise({ dayId, ex, guided, rec, index }: { dayId: string; ex:
   const [ticked, setTicked] = useState<boolean[]>(() => (ex.rubric ?? []).map(() => false));
   const [model, setModel] = useState(false);
   const done = !!rec?.passed?.includes(ex.id);
-  const lastSaved = useRef(saved);
-  useEffect(() => {
-    if (text === lastSaved.current) return;
-    const t = setTimeout(() => { lastSaved.current = text; updateDay(dayId, (r) => ({ ...r, drafts: { ...r.drafts, [ex.id]: text.slice(0, MAX_DRAFT_CHARS) } })); }, 900);
-    return () => clearTimeout(t);
-  }, [text, dayId, ex.id]);
+  useDraftSaver(dayId, ex.id, text, saved);
   const allTicked = ticked.every(Boolean);
   function finish() {
     updateDay(dayId, (r) => ({ ...r, attempted: withId(r.attempted, ex.id), passed: withId(r.passed, ex.id) }), true);
@@ -209,18 +217,10 @@ function GradedExercise({ dayId, ex, guided, rec, index }: { dayId: string; ex: 
   const passed = !!rec?.passed?.includes(ex.id);
   const attempted = passed || !!rec?.attempted?.includes(ex.id);
   const optional = ex.required === false;
-  const lastSaved = useRef(saved ?? ex.starter);
-  const canReveal = passed || fails >= 2 || (guided && hints >= (ex.hints?.length ?? 0) && hints > 0);
+  const canReveal = canRevealSolution({ passed, fails, guided, hintsOpened: hints, hintsTotal: ex.hints?.length ?? 0 });
 
   // Save the learner's code a moment after they stop typing, so they can continue later.
-  useEffect(() => {
-    if (code === lastSaved.current) return;
-    const t = setTimeout(() => {
-      lastSaved.current = code;
-      updateDay(dayId, (r) => ({ ...r, drafts: { ...r.drafts, [ex.id]: code.slice(0, MAX_DRAFT_CHARS) } }));
-    }, 900);
-    return () => clearTimeout(t);
-  }, [code, dayId, ex.id]);
+  useDraftSaver(dayId, ex.id, code, saved ?? ex.starter);
 
   async function run() {
     setBusy(true);
@@ -228,7 +228,7 @@ function GradedExercise({ dayId, ex, guided, rec, index }: { dayId: string; ex: 
     const r = await execute(kind, code, ex.stdin);
     setBusy(false);
     setOut(r);
-    track(kind === "python" ? "python_executed" : "sql_executed", `daily:${dayId}:${ex.id}`);
+    trackDailyRun(kind, dayId, ex.id);
   }
 
   async function check() {
@@ -256,18 +256,8 @@ function GradedExercise({ dayId, ex, guided, rec, index }: { dayId: string; ex: 
     }
     setBusy(false);
     setVerdict({ ok, message, details });
-    track(kind === "python" ? "python_submitted" : "sql_submitted", `daily:${dayId}:${ex.id}`, { passed: ok });
-    const mistake = dailyMistake(dayId, ex.id, kind);
-    if (ok) {
-      markMistakeSolved(mistake.ref);
-      updateDay(dayId, (r) => ({ ...r, attempted: withId(r.attempted, ex.id), passed: withId(r.passed, ex.id), drafts: { ...r.drafts, [ex.id]: code.slice(0, MAX_DRAFT_CHARS) } }), true);
-      completeExercise(`daily:${dayId}#${ex.id}`);
-    } else {
-      // A failed graded check goes into the Mistake Notebook: a count and a category, never the learner's code.
-      recordMistake({ ...mistake, category: kind === "python" ? pyCategory : classifySqlMistake(explainError(errorText)?.title, mistake.topicHint), graded: true });
-      setFails((n) => n + 1);
-      updateDay(dayId, (r) => ({ ...r, attempted: withId(r.attempted, ex.id) }));
-    }
+    recordDailyCheck({ dayId, exId: ex.id, kind, ok, code, pyCategory, sqlErrorText: errorText });
+    if (!ok) setFails((n) => n + 1);
   }
 
   return (
@@ -319,7 +309,7 @@ function GradedExercise({ dayId, ex, guided, rec, index }: { dayId: string; ex: 
             <Button size="sm" variant="ghost" onClick={() => setSolution((v) => !v)} aria-expanded={solution}><Eye className="h-4 w-4" aria-hidden /> {solution ? "Hide" : "Show"} a solution</Button>
             {solution && <div className="mt-2"><Markdown source={fence(kind, ex.solution)} /><p className="text-xs text-ink-faint">Looking at the solution does not pass the exercise. Type your own version and check it.</p></div>}
           </>
-        ) : <p className="text-xs text-ink-faint">{guided ? "A solution unlocks after you have used all the hints or tried twice." : "No hints on independent exercises. A solution unlocks after two checks that did not pass."}</p>}
+        ) : <p className="text-xs text-ink-faint">{SOLUTION_LOCKED_NOTE(guided)}</p>}
       </div>
     </Card>
   );

@@ -66,7 +66,7 @@ const Q = ({ title, children }: { title: string; children: ReactNode }) => (
   </div>
 );
 
-export function QueryCinema({ viz, trace, sql, pb, steps, reduced, refining, details, tools, extra }: {
+export function QueryCinema({ viz, trace, sql, pb, steps, reduced, refining, details, tools, extra, hideControls, scrollIntoView = true }: {
   viz: Visualization;
   trace?: RowTrace;
   sql: string;
@@ -80,11 +80,15 @@ export function QueryCinema({ viz, trace, sql, pb, steps, reduced, refining, det
   tools?: ReactNode;
   /** Stage-specific extras shown under the answers (the set-operation view). */
   extra?: (stage: Stage) => ReactNode;
+  /** The host (the exercise workspace) shows its own player: leave out the sticky controls. Keys and the rail still work. */
+  hideControls?: boolean;
+  /** Bring the cinema to the top of the screen when it first appears (the visualizer page does; an embedded panel should not). */
+  scrollIntoView?: boolean;
 }) {
   void trace;
   const root = useRef<HTMLElement>(null);
   // When the cinema first appears, bring it to the top of the screen so the animation, not the form above it, is what is seen.
-  useEffect(() => { root.current?.scrollIntoView?.({ block: "start", behavior: reduced ? "auto" : "smooth" }); // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (scrollIntoView) root.current?.scrollIntoView?.({ block: "start", behavior: reduced ? "auto" : "smooth" }); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const index = Math.min(pb.index, Math.max(0, steps.length - 1));
   const step = steps[index];
@@ -135,10 +139,12 @@ export function QueryCinema({ viz, trace, sql, pb, steps, reduced, refining, det
         </aside>
       </div>
 
-      <div className="sticky bottom-2 z-10 space-y-1 rounded-xl bg-surface/90 p-1 backdrop-blur" data-testid="cinema-controls">
-        <PlaybackBar pb={pb} labels={steps.map((x) => x.title)} />
-        <p className="hidden px-1 text-[11px] text-ink-faint sm:block">Keys: Space play or pause · ← → step · Home restart · End last stage. Pause on any stage to look at its rows.</p>
-      </div>
+      {!hideControls && (
+        <div className="sticky bottom-2 z-10 space-y-1 rounded-xl bg-surface/90 p-1 backdrop-blur" data-testid="cinema-controls">
+          <PlaybackBar pb={pb} labels={steps.map((x) => x.title)} />
+          <p className="hidden px-1 text-[11px] text-ink-faint sm:block">Keys: Space play or pause · ← → step · Home restart · End last stage. Pause on any stage to look at its rows.</p>
+        </div>
+      )}
 
       {extra?.(stage)}
 

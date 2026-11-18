@@ -14,6 +14,8 @@ import type { Progress } from "./progress";
 import type { QuestionSummary } from "../types";
 import { noteStatus } from "./noteStatus";
 import { hasActivity, isDone, type DailyState } from "./dailyProgress";
+import { DAILY_EXERCISE_TITLES, DAILY_TOPIC_EXERCISES } from "./workspaceLinksData";
+import { domainOfId, pickPractice, practiceDifficulty, sqlId, pyId, type PracticeItem } from "./workspaceLinks";
 
 export type Subject = "sql" | "python" | "analytics" | "engineering";
 
@@ -334,6 +336,8 @@ export interface TopicBundle {
   projects: { slug: string; title: string; level: string; minutes: number }[];
   /** Daily Learning phases that teach the topic. `href` opens the phase's first lesson. */
   daily: { id: string; title: string; path: string; firstDay: number; lastDay: number; lessons: number; minutes: number; href: string; days: string[] }[];
+  /** A few real exercises the unified workspace opens for this topic (3 to 5 when the topic has that many), easiest first. Empty when none exist. */
+  workspace: PracticeItem[];
   /** The note's own "Interview questions" section and any interview sets that contain the topic's questions. */
   interview: { href: string; label: string; sets: { slug: string; title: string; shared: number }[] } | null;
 }
@@ -369,6 +373,17 @@ export function buildBundle(id: string, i: BundleInputs): TopicBundle | null {
   const unlocks = i.topics.filter((t) => t.prerequisites.includes(topic.id)).map((t) => ref(t.id)!);
   // A topic already listed as read-first or leads-to is not listed again as related.
   const placed = new Set([...prerequisites, ...unlocks].map((r) => r.id));
+  const exercises = topic.exercises.map((s) => i.exercises.find((e) => e.slug === s)).filter((e): e is PyExerciseMeta => !!e);
+  const dailyItems: PracticeItem[] = (DAILY_TOPIC_EXERCISES[topic.id] ?? []).flatMap((id) => {
+    const domain = domainOfId(id);
+    const title = DAILY_EXERCISE_TITLES[id];
+    return domain && title ? [{ id, title, difficulty: id.includes("#g") ? ("Easy" as const) : ("Medium" as const), domain }] : [];
+  });
+  const workspace = pickPractice(
+    questions.map((q) => ({ id: sqlId(q.slug), title: q.title, difficulty: practiceDifficulty(q.difficulty), domain: "sql" as const })),
+    exercises.map((e) => ({ id: pyId(e.slug), title: e.title, difficulty: practiceDifficulty(e.difficulty), domain: "python" as const })),
+    dailyItems,
+  );
   return {
     topic,
     prerequisites,
@@ -385,6 +400,7 @@ export function buildBundle(id: string, i: BundleInputs): TopicBundle | null {
       const days = phaseDays(pid);
       return p && days.length ? [{ id: p.id, title: p.title, path: p.path, firstDay: p.firstDay, lastDay: p.lastDay, lessons: days.length, minutes: days.reduce((s, d) => s + d.minutes, 0), href: dayHref(days[0]), days: days.map((d) => d.id) }] : [];
     }),
+    workspace,
     interview,
   };
 }

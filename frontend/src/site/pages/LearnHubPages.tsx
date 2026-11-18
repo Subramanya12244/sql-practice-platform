@@ -8,6 +8,7 @@ import { LearnHero } from "../components/learn/LearnHero";
 import { PathCards, pathProgressLabel } from "../components/learn/PathCards";
 import { TopicLibrary, useTopicFilter } from "../components/learn/TopicLibrary";
 import { CurriculumRoadmap } from "../components/learn/CurriculumRoadmap";
+import { PathWorkspaceStep, WorkspacePracticeBlock } from "../components/learn/WorkspacePractice";
 import { PracticeProjects, ResourceShelf } from "../components/learn/PracticeResources";
 import { SUBJECT_STYLE, StatusPill, SubjectIcon, TopicDuration, useLearnModel } from "../components/learn/shared";
 import { Seo, breadcrumbs, canonical } from "../lib/seo";
@@ -262,7 +263,8 @@ export function LearnPathPage() {
           <Card as="section" aria-labelledby="practice-heading" data-help="path-practice">
             <h2 id="practice-heading" className="font-display text-h2 text-ink">Practical exercises</h2>
             <p className="mt-0.5 text-sm text-ink-muted">Practice that goes with this path.</p>
-            <ul className="mt-3 space-y-2">
+            <div className="mt-3"><PathWorkspaceStep days={m.stages.flatMap((s) => s.days)} daily={view.state} /></div>
+            <ul className="space-y-2">
               {def.practice.map((p) => (
                 <li key={p.to}>
                   <Link to={p.to} className="group flex items-center justify-between gap-3 rounded-lg border border-surface-border px-3 py-2.5 transition-colors duration-fast hover:border-accent/40">
@@ -419,6 +421,8 @@ export function LearnTopicPage() {
               </>
             )}
           </Section>
+
+          <WorkspacePracticeBlock items={b.workspace ?? []} />
 
           {b.interview && (
             <Section id="interview-heading" title="Interview questions" help="topic-interview">

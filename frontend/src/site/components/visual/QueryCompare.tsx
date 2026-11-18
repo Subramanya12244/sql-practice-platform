@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import type { ExecuteResult } from "../../../types";
 import { runQuery } from "../../lib/browserDb";
 import { visualize, type Visualization } from "../../lib/visualize";
 import { compareSolutions, type Comparison } from "../../lib/compareSolutions";
@@ -12,7 +13,7 @@ const area = "w-full rounded-lg border border-surface-border bg-surface-soft p-2
  * Compare your query with an alternative (and optionally the expected solution): same output? same logical steps? what did
  * PostgreSQL's plan cost? All figures come from really running the queries here; plan costs are the planner's estimates.
  */
-export function QueryCompare({ initialA = "", initialB = "", expected }: { initialA?: string; initialB?: string; expected?: string }) {
+export function QueryCompare({ initialA = "", initialB = "", expected, run = runQuery }: { initialA?: string; initialB?: string; expected?: string; /** Where the queries run. Default: the practice database worker (Northwind). The exercise workspace passes its own dataset. */ run?: (sql: string) => Promise<ExecuteResult> }) {
   const [a, setA] = useState(initialA);
   const [b, setB] = useState(initialB);
   const [busy, setBusy] = useState(false);
@@ -22,10 +23,10 @@ export function QueryCompare({ initialA = "", initialB = "", expected }: { initi
   async function go() {
     setBusy(true); setErr(null);
     try {
-      const cmp = await compareSolutions(a, b, runQuery);
-      const [va, vb] = await Promise.all([visualize(a, runQuery), visualize(b, runQuery)]);
+      const cmp = await compareSolutions(a, b, run);
+      const [va, vb] = await Promise.all([visualize(a, run), visualize(b, run)]);
       let vs: { match: boolean; message: string } | undefined;
-      if (expected) { const c = await compareSolutions(a, expected, runQuery); vs = { match: c.equivalent, message: c.message }; }
+      if (expected) { const c = await compareSolutions(a, expected, run); vs = { match: c.equivalent, message: c.message }; }
       setOut({ cmp, va, vb, vs });
     } catch (e) { setErr(e instanceof Error ? e.message : "Comparison failed"); }
     setBusy(false);

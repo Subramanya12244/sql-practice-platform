@@ -7,6 +7,7 @@ import { applyOverride, overrideKey, useContent } from "../lib/contentOverrides"
 import { Seo, breadcrumbs } from "../lib/seo";
 import { useProgress } from "../lib/progress";
 import { HelpTooltip } from "../help/HelpTooltip";
+import { NextQuestionLink } from "../components/learn/WorkspacePractice";
 
 const LEVELS = ["All", "Easy", "Medium", "Hard"] as const;
 
@@ -64,6 +65,8 @@ export function QuestionsPage() {
         intro={`${data.index.length} questions grouped by topic. Pick any one — your query runs on a real PostgreSQL copy of Northwind in your browser.`}
       />
       <p className="-mt-4 mb-4 text-sm"><Link to="/study-notes" className="font-semibold text-accent hover:underline">Download study notes</Link> <span className="text-ink-muted">· PDFs of the questions you've solved, with schema and query-flow diagrams</span></p>
+
+      <NextQuestionLink questions={index} className="-mt-2 mb-4" />
 
       <Card className="mb-4 grid gap-5 sm:grid-cols-[1.2fr_2fr] sm:items-center">
         <div>

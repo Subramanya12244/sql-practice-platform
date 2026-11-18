@@ -15,6 +15,10 @@ export interface PlanNode {
   "Index Cond"?: string;
   "Sort Key"?: string[];
   "Group Key"?: string[];
+  /** Measured values: present only in `EXPLAIN (ANALYZE, FORMAT JSON)` output. "Plan Rows" and "Total Cost" are always the planner's estimates. */
+  "Actual Rows"?: number;
+  "Actual Loops"?: number;
+  "Actual Total Time"?: number;
   Plans?: PlanNode[];
 }
 
@@ -53,6 +57,11 @@ function Node({ n }: { n: PlanNode }) {
       <span className="ml-2 text-ink-faint">
         cost {n["Total Cost"]?.toFixed(1)} · ~{n["Plan Rows"]} rows
       </span>
+      {n["Actual Rows"] !== undefined && (
+        <span className="ml-2 text-success" data-testid="plan-actual" title="Measured while the query ran (EXPLAIN ANALYZE). The cost and ~rows next to it are the planner's estimates.">
+          actual {n["Actual Rows"]} rows{n["Actual Loops"] !== undefined && n["Actual Loops"] !== 1 ? ` × ${n["Actual Loops"]} loops` : ""}{n["Actual Total Time"] !== undefined ? ` · ${n["Actual Total Time"]} ms` : ""}
+        </span>
+      )}
       {d && <div className="font-mono text-[11px] text-ink-muted">{d}</div>}
       {help && <details className="text-[11px] text-ink-muted"><summary className="cursor-pointer text-accent">What is this?</summary><p className="mt-0.5">{help}</p></details>}
       {n.Plans && (

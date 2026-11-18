@@ -21,7 +21,7 @@
       "hints": [
         "You need all columns, so you do not have to list them by name. There is a one-character shorthand for 'all columns'.",
         "The query shape is SELECT <columns> FROM <table> ORDER BY <column>. The table is categories and the sort column is its primary key.",
-        "SELECT * FROM categories ORDER BY category_id; is the whole answer."
+        "Run it and check the column headings: `category_id` must come first. Then confirm the rows are in ascending `category_id` order."
       ]
     },
     {
@@ -35,7 +35,7 @@
       "hints": [
         "The starter is missing one column and does not say which five rows count as 'first'.",
         "Add unit_price to the column list, and put ORDER BY product_id before LIMIT so the first five rows are well defined.",
-        "SELECT product_id, product_name, unit_price FROM products ORDER BY product_id LIMIT 5;"
+        "After editing, run it and confirm exactly five rows with three columns. If the ids are not 1 to 5, check where `ORDER BY` sits relative to `LIMIT`."
       ]
     },
     {
@@ -63,7 +63,7 @@
       "hints": [
         "LIMIT 4 just cuts the list of all key columns in the database after four rows. What you need is a filter on the table name.",
         "Add WHERE table_name = 'orders' and then sort by constraint_name followed by column_name.",
-        "SELECT column_name, constraint_name FROM information_schema.key_column_usage WHERE table_name = 'orders' ORDER BY constraint_name, column_name;"
+        "Run it and check that every row belongs to a key of `orders`. If two rows are in the wrong order, remember that the second sort key decides ties on the first."
       ]
     }
   ],

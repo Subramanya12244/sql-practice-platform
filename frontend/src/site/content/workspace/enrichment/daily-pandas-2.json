@@ -1,0 +1,411 @@
+{
+  "version": 1,
+  "items": {
+    "daily:d074#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Missing values need a rule per column: a typical value for scores, a neutral zero for a bonus, and a visible label for a missing name. One rule for all columns would corrupt some of them."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`df.fillna({...})` accepts a dictionary of column name to fill value. `Series.median()` ignores missing values. `isna().sum().sum()` totals the missing cells of a whole table."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Compute the median of the score column first, build the dictionary with one entry per column, fill, then print the table and count what is still missing."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nmedian = df['score'].median()\nfilled = df.fillna({'score': ..., 'bonus': ..., 'name': ...})\nprint(filled)\nprint(int(filled.isna()...))   # total of missing cells left\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "missing-data",
+          "symptom": "The filled score for Ben is 78.33 instead of 80.0.",
+          "cause": "The mean was used where the exercise asks for the median; one score is a lot lower than the others, so they differ.",
+          "fix": "Use `df['score'].median()`."
+        },
+        {
+          "category": "types",
+          "symptom": "The name column contains the number 0 in row 2.",
+          "cause": "`df.fillna(0)` fills every column with the same value, including text.",
+          "fix": "Pass a dictionary so each column gets its own fill value."
+        },
+        {
+          "category": "shape",
+          "symptom": "The last line prints a three-row table instead of a single number.",
+          "cause": "`filled.isna().sum()` counts per column; the table total needs one more `.sum()`.",
+          "fix": "Add a second sum and wrap it in `int()`."
+        }
+      ],
+      "constraints": [
+        "One fillna call with a dictionary.",
+        "The final line is a plain integer."
+      ],
+      "realWorld": "Imputation policies differ by column; documenting them in a single dictionary makes the cleaning step reviewable.",
+      "commonMistakes": [
+        "Filling with the mean without checking outliers."
+      ]
+    },
+    "daily:d075#g2": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Duplicates come in two kinds: rows that are identical in every column, and rows that share a key but differ elsewhere. Each needs a different question."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`drop_duplicates()` compares whole rows; `subset=[...]` compares only the listed columns, and `keep='first'` or `keep='last'` chooses which row survives."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "For the first result use the default behaviour. For the second restrict the comparison to the id and keep the last row of each id. Print the three lengths on one line and the cities of the second result."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\na = df.drop_duplicates()\nb = df.drop_duplicates(subset=[...], keep=...)\nprint(len(df), len(a), len(b))\nprint(b['city'].tolist())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "filtering",
+          "symptom": "`b` has 5 rows instead of 4.",
+          "cause": "`subset` was omitted, so only fully identical rows count as duplicates and the two rows with id 4 both stay.",
+          "fix": "Restrict the comparison to the id column."
+        },
+        {
+          "category": "filtering",
+          "symptom": "The cities are `['Oslo', 'Rome', 'Lima', 'Oslo']`, the first id-4 row.",
+          "cause": "The default `keep='first'` keeps the earliest row of each id.",
+          "fix": "Set `keep='last'` to keep the most recent."
+        },
+        {
+          "category": "variables",
+          "symptom": "`TypeError: object of type 'NoneType' has no len()`.",
+          "cause": "`inplace=True` returns None, so the result variable holds None (and the original was also modified).",
+          "fix": "Drop `inplace` and assign the returned DataFrame."
+        }
+      ],
+      "constraints": [
+        "`df` must not be modified.",
+        "Output: one line of three lengths, one list."
+      ],
+      "realWorld": "Customer and event tables carry repeated deliveries; choosing which copy survives is a business rule, and 'latest wins' is the usual one.",
+      "commonMistakes": [
+        "Assuming the last duplicate survives by default."
+      ],
+      "alternatives": [
+        {
+          "title": "duplicated mask",
+          "code": "import pandas as pd\n\ndf = pd.DataFrame({\"id\": [1, 2, 2, 3, 4, 4], \"city\": [\"Oslo\", \"Rome\", \"Rome\", \"Lima\", \"Oslo\", \"Kyiv\"], \"amount\": [10.0, 20.0, 20.0, 30.0, 5.0, 8.0]})\na = df[~df.duplicated()]\nb = df[~df.duplicated(subset=[\"id\"], keep=\"last\")]\nprint(len(df), len(a), len(b))\nprint(b[\"city\"].tolist())\n",
+          "note": "`duplicated()` returns a True/False mask you can inspect or combine with other conditions (for example keep rows that are duplicates AND recent). `drop_duplicates` is shorter when you only want the drop."
+        }
+      ]
+    },
+    "daily:d076#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A text column can be split into several columns in one step, so each part can be used separately."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "The `.str` accessor applies string methods to every value. `.str.split('@', expand=True)` returns a DataFrame with one column per part, numbered 0 and 1. `.str.lower()` normalises case."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Lower-case the emails, split at the at-sign with expansion, print the two-column table, then read the second column and convert it to a list."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nparts = df['email'].str.lower().str.split(..., expand=...)\nprint(parts)\nprint(parts[...].tolist())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`AttributeError: 'list' object has no attribute 'tolist'`.",
+          "cause": "Without `expand=True` the split returns a Series of lists, so `parts[1]` is the second row's list, not a column.",
+          "fix": "Pass `expand=True` to get a DataFrame."
+        },
+        {
+          "category": "transformation",
+          "symptom": "The domains print as `'Shop.com'` and `'shop.COM'`.",
+          "cause": "The case was not normalised before splitting.",
+          "fix": "Apply `.str.lower()` first."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`AttributeError: Can only use .str accessor with string values!`.",
+          "cause": "`.str` was used on a column that is not text (for example all numbers or all NaN).",
+          "fix": "Check `df['email'].dtype` and convert or clean the column first."
+        }
+      ],
+      "constraints": [
+        "Two columns named 0 and 1.",
+        "Domains in row order."
+      ],
+      "realWorld": "Splitting emails into user and domain is the first step of domain-level analysis and of corporate versus free-mail segmentation.",
+      "commonMistakes": [
+        "Forgetting that columns of an expanded split are named by number."
+      ],
+      "alternatives": [
+        {
+          "title": "Python loop over the values",
+          "code": "import pandas as pd\n\ndf = pd.DataFrame({\"name\": [\"  ana SILVA\", \"Bob king \", \"CY lopez\", \"ana silva\"], \"email\": [\"Ana@Shop.com\", \"bob@shop.COM\", \"cy@mail.org\", \"ana@shop.com\"]})\nparts = pd.DataFrame([e.lower().split(\"@\") for e in df[\"email\"]])\nprint(parts)\nprint(parts[1].tolist())\n",
+          "note": "Produces the same two columns but splits one string at a time in Python. It is slower on large tables and, unlike `.str`, it raises on a missing value (None has no `.lower`), whereas `.str` methods pass NaN through. Prefer the vectorised `.str` accessor."
+        }
+      ]
+    },
+    "daily:d077#g1": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Text that looks like a date is just text until you tell pandas how it is written. '05/03/2024' means 5 March here, but the same text could mean 3 May elsewhere."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`pd.to_datetime(series, format='...')` parses with an explicit pattern: `%d` day, `%m` month, `%Y` four-digit year. Datetime values have `.min()`, and a Timestamp has `.date()`."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Write the pattern in the order the text is written (day, month, year, slash separated), convert the whole series, take the minimum and print only its date part."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndates = pd.to_datetime(raw, format='%...%...%...')\nprint(dates.min().date())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`ValueError: time data \"20/03/2024\" doesn't match format \"%m/%d/%Y\"`.",
+          "cause": "Without a format pandas assumes month first and fails on day 20.",
+          "fix": "Pass `format='%d/%m/%Y'`."
+        },
+        {
+          "category": "types",
+          "symptom": "The printed value is `02/04/2024`.",
+          "cause": "The strings were never converted, so `min()` compares text alphabetically.",
+          "fix": "Convert to datetimes before taking the minimum."
+        },
+        {
+          "category": "syntax",
+          "symptom": "The output is `2024-03-05 00:00:00`.",
+          "cause": "`print(dates.min())` shows a Timestamp with a time part.",
+          "fix": "Call `.date()` to print only the date."
+        }
+      ],
+      "constraints": [
+        "Day-first dates.",
+        "Single output line."
+      ],
+      "realWorld": "European exports use day-first dates; guessing the format silently swaps days and months for every date where both are at most 12.",
+      "commonMistakes": [
+        "Leaving the date as text and sorting alphabetically."
+      ],
+      "alternatives": [
+        {
+          "title": "dayfirst flag",
+          "code": "import pandas as pd\n\nraw = pd.Series([\"05/03/2024\", \"20/03/2024\", \"02/04/2024\"])\ndates = pd.to_datetime(raw, dayfirst=True)\nprint(dates.min().date())\n",
+          "note": "`dayfirst=True` tells the parser to prefer day-first when text is ambiguous. It is shorter but looser: it still accepts several formats, so one malformed value may be parsed differently from the rest. An explicit `format` rejects anything that does not match, which is safer for production loads."
+        }
+      ]
+    },
+    "daily:d078#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A row-by-row function call repeats Python work for every row. Column arithmetic does the same work on the whole column at once, and it is also easier to read."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Columns are Series and support `+`, `-`, `*`, `/` element by element. `Series.tolist()` and `Series.sum()` work as before. Revenue is a product, not a sum."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Delete the apply call, multiply the two columns directly, keep the name `revenue`, and leave the two print lines as they are."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nrevenue = df[...] ... df[...]   # one column times the other\nprint(revenue.tolist())\nprint(revenue.sum())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "Output is `[5.5, 11.0, 5.25]`.",
+          "cause": "The starter formula adds quantity and price (`+`) instead of multiplying them.",
+          "fix": "Multiply the columns."
+        },
+        {
+          "category": "axis",
+          "symptom": "`KeyError: 'qty'` after changing `axis=1` to `axis=0`.",
+          "cause": "With `axis=0` the function receives whole columns, so `r['qty']` looks for a row label.",
+          "fix": "Do not use apply at all; multiply the columns."
+        },
+        {
+          "category": "transformation",
+          "symptom": "The code is correct but slow on a million rows.",
+          "cause": "`apply(axis=1)` calls a Python function per row.",
+          "fix": "Use vectorised column arithmetic."
+        }
+      ],
+      "constraints": [
+        "No apply.",
+        "Printed list and total must match the expected numbers."
+      ],
+      "realWorld": "Replacing row-wise apply with column arithmetic is the single most common speed-up in pandas code review.",
+      "commonMistakes": [
+        "Starting with apply because it feels like a loop."
+      ],
+      "alternatives": [
+        {
+          "title": "Drop to NumPy arrays",
+          "code": "import pandas as pd\ndf = pd.DataFrame({\"qty\": [3, 1, 4], \"price\": [2.5, 10.0, 1.25]})\nrevenue = df[\"qty\"].to_numpy() * df[\"price\"].to_numpy()\nprint(revenue.tolist())\nprint(revenue.sum())\n",
+          "note": "Multiplying the underlying arrays is slightly faster and skips index alignment, but you lose the index: the result no longer lines up with the DataFrame's labels, and a mismatch in length raises instead of aligning. Keep Series arithmetic unless you have measured that this matters."
+        }
+      ]
+    },
+    "daily:d079#g1": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Totals per group is split, add, combine: pandas splits the rows by city, adds each part, and returns one value per city."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`df.groupby('key')['value'].sum()` groups, selects the column to add and sums it. Selecting a single column gives a Series, which prints without a header line."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Group the orders by city, pick the amount column, sum, and print with `to_string()`."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ntotals = orders.groupby(...)[...].sum()\nprint(totals.to_string())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "grouping",
+          "symptom": "The output starts with an extra `amount` header line.",
+          "cause": "`groupby('city').sum()` returns a DataFrame, which prints its column name.",
+          "fix": "Select the amount column before summing to get a Series."
+        },
+        {
+          "category": "grouping",
+          "symptom": "The output is a single number such as `80`.",
+          "cause": "The grouping step is missing and the whole column was summed.",
+          "fix": "Call `groupby` on the city column first."
+        },
+        {
+          "category": "grouping",
+          "symptom": "Output shows counts (`3` and `2`) rather than totals.",
+          "cause": "`count()` or `size()` was used in place of `sum()`.",
+          "fix": "Use `sum()` to add the amounts."
+        }
+      ],
+      "constraints": [
+        "A Series indexed by city.",
+        "Printed with `to_string()`."
+      ],
+      "realWorld": "Revenue per region, tickets per team and errors per service are all one groupby-sum.",
+      "commonMistakes": [
+        "Summing a DataFrame and getting columns you did not want."
+      ],
+      "alternatives": [
+        {
+          "title": "pivot_table",
+          "code": "import pandas as pd\norders = pd.DataFrame({\"city\": [\"Oslo\", \"Rome\", \"Oslo\", \"Rome\", \"Oslo\"], \"amount\": [10, 5, 20, 15, 30]})\ntotals = orders.pivot_table(index=\"city\", values=\"amount\", aggfunc=\"sum\")[\"amount\"]\nprint(totals.to_string())\n",
+          "note": "pivot_table is built for several aggregations across row and column keys and returns a DataFrame, so you select the column afterwards. For one key and one measure groupby is simpler and faster; pivot_table pays off when you need a second dimension."
+        }
+      ]
+    },
+    "daily:d079#g3": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Grouping by two keys normally moves them into a MultiIndex. The result you want keeps them as ordinary columns so that the table is flat."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Pass the keys as one list: `groupby(['region', 'product'])`. `as_index=False` keeps the keys as columns; `reset_index()` moves them back after the fact."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Group by both keys with `as_index=False`, select the amount column, sum it, and print with `to_string()`."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nflat = sales.groupby([..., ...], as_index=...)['amount'].sum()\nprint(flat.to_string())\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "grouping",
+          "symptom": "The output has `region` and `product` as an indented two-level index with no `0 1 2` row labels.",
+          "cause": "The default `as_index=True` puts the keys in a MultiIndex.",
+          "fix": "Use `as_index=False` (or call `reset_index()`)."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`ValueError: No axis named product for object type DataFrame`.",
+          "cause": "The keys were passed as two arguments (`groupby('region', 'product')`), and the second argument means axis.",
+          "fix": "Pass one list of keys."
+        },
+        {
+          "category": "shape",
+          "symptom": "The result has only the `region` column and one row per region.",
+          "cause": "Only one key was used.",
+          "fix": "Group by both columns."
+        }
+      ],
+      "constraints": [
+        "Columns `region`, `product`, `amount`.",
+        "Default integer row labels."
+      ],
+      "realWorld": "Flat group results feed straight into a merge, a chart or a CSV export, which MultiIndex frames make awkward.",
+      "commonMistakes": [
+        "Forgetting that a plain groupby returns the keys as the index."
+      ],
+      "alternatives": [
+        {
+          "title": "reset_index after the sum",
+          "code": "import pandas as pd\nsales = pd.DataFrame({\"region\": [\"N\", \"S\", \"N\", \"S\", \"N\"], \"product\": [\"pen\", \"pen\", \"ink\", \"pen\", \"pen\"], \"amount\": [1, 2, 3, 4, 5]})\nflat = sales.groupby([\"region\", \"product\"])[\"amount\"].sum().reset_index()\nprint(flat.to_string())\n",
+          "note": "Same table, built in two steps. reset_index is more general, because it also fixes results that came from earlier operations or from several aggregations, while as_index=False must be decided when you group."
+        }
+      ]
+    }
+  }
+}

@@ -10,7 +10,7 @@ import routesSource from "../site/routes.tsx?raw";
 import { CATEGORIES, CATEGORY_LABEL, PRESETS, QUESTIONS, answerLines, byCategory, questionById, type Cell, type Snippet } from "../site/lib/visual/interview";
 
 const VENV_PYTHON = resolve(process.cwd(), "../.venv-daily/bin/python");
-const PYTHON = existsSync(VENV_PYTHON) ? VENV_PYTHON : "python3";
+const PYTHON = process.env.DAILY_PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : "python3");
 
 const allSnippets = (): { id: string; where: string; s: Snippet }[] =>
   QUESTIONS.flatMap((q) => [

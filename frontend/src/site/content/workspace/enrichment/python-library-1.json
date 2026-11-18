@@ -1,0 +1,746 @@
+{
+  "version": 1,
+  "items": {
+    "py:cast-record-schema": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Converting a row is all-or-nothing: if any one field of the schema cannot be produced, the whole row is rejected and only counted."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A type such as `int` is itself callable, so `schema[field](raw_value)` converts. A try/except around the whole row builds in the rejection rule."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "For each row, try to build the converted dictionary for every schema field. If building it raises, increase the bad counter. If it succeeds, append the dictionary. Extra input fields never enter the output."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef cast_rows(rows, schema):\n    good, bad = [], 0\n    for r in rows:\n        try:\n            good.append(...)  # one dict comprehension over schema.items()\n        except (...):\n            bad += 1\n    return good, bad\n```\nName the exception types that a missing key, a bad string and a None each raise."
+        }
+      ],
+      "debugging": [
+        {
+          "category": "runtime",
+          "symptom": "`KeyError: 'amt'` stops the whole run on the first row that lacks a field.",
+          "cause": "Looking up `r[field]` raises for a missing key, and nothing catches it, so the exception leaves the function.",
+          "fix": "Wrap the per-row conversion in try/except and count the row as bad."
+        },
+        {
+          "category": "types",
+          "symptom": "`cast_rows([{'a': None}], {'a': int})` crashes with `TypeError: int() argument must be ... not 'NoneType'`.",
+          "cause": "None fails differently from a bad string. `int('x')` is a ValueError, `int(None)` is a TypeError, a missing key is a KeyError.",
+          "fix": "Catch all three exception types together for the row."
+        },
+        {
+          "category": "filtering",
+          "symptom": "Good rows contain extra keys such as `z`, so the equality test fails.",
+          "cause": "The row was copied as it is instead of being rebuilt from the schema's fields.",
+          "fix": "Build the output dict by iterating the schema, not the input row."
+        }
+      ],
+      "constraints": [
+        "Output dicts contain exactly the schema fields, in schema order.",
+        "A row with any missing or unconvertible schema field is counted once and is not partially kept.",
+        "Returns a `(good, bad_count)` tuple."
+      ],
+      "realWorld": "Loading a CSV extract means rows arrive as strings. Pipelines cast to the target schema and quarantine rows that fail, rather than stopping the whole load.",
+      "commonMistakes": [
+        "Catching bare `except:` and hiding real bugs.",
+        "Appending a half-converted dict before a later field fails."
+      ],
+      "interviewRelevance": "Schema validation with a reject counter is a standard data-engineering screening task; interviewers look for the all-or-nothing row rule and a narrow except clause."
+    },
+    "py:collect-field-errors": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Validation should not stop at the first problem: you gather every complaint for every record and report them together, keyed by the record's position."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`enumerate(records)` gives the index, `sorted(validators)` gives the field names in order, and `str(e)` turns a caught exception into its message."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "For each record build a list of messages by calling each validator on `record.get(field)` inside try/except ValueError. Add the record's index to the result only when its list is not empty."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef collect_errors(records, validators):\n    out = {}\n    for i, rec in enumerate(records):\n        errs = []\n        for field in sorted(validators):\n            try:\n                ...  # run this field's validator on the value, or None if absent\n            except ValueError as e:\n                errs.append(...)  # 'field: message'\n        if errs:\n            ...\n    return out\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "runtime",
+          "symptom": "`KeyError: 'sku'` when a record lacks a field.",
+          "cause": "`rec[field]` raises for an absent key, but the exercise says a missing field is passed to the validator as None.",
+          "fix": "Use `rec.get(field)` so the validator itself decides that None is invalid."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "Records without errors appear in the result as `{0: []}`.",
+          "cause": "The index is stored before checking whether the message list is empty.",
+          "fix": "Store the entry only when at least one message was collected."
+        },
+        {
+          "category": "types",
+          "symptom": "Messages come out in a different order than `['price: ...', 'sku: ...']`.",
+          "cause": "Iterating `validators` directly follows insertion order, not alphabetical order.",
+          "fix": "Iterate over `sorted(validators)`."
+        }
+      ],
+      "constraints": [
+        "Only ValueError is swallowed; any other exception from a validator propagates.",
+        "Messages inside one record are ordered by field name.",
+        "Records with no errors are absent from the result."
+      ],
+      "realWorld": "Form and API validation layers return all field errors at once, so a user fixes everything in one pass instead of discovering problems one per submit.",
+      "commonMistakes": [
+        "Stopping at the first error with an early `return` or `break`.",
+        "Catching `Exception`, which would also hide a TypeError caused by a bug in a validator."
+      ]
+    },
+    "py:count-event-types": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Counting by label is a tally: one entry per label, each starting at zero and growing by one. Missing and None labels share a bucket called unknown."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`dict.get(key, default)` reads a value without raising. The expression `a or b` returns `b` when `a` is falsy, and both None and a missing key are falsy."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Walk the events, work out each event's label (its type, or 'unknown'), then store the previous count plus one under that label."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef count_events(events):\n    counts = {}\n    for e in events:\n        label = ...  # type, or 'unknown' when absent or None\n        counts[label] = ...  # previous count (default 0) plus one\n    return counts\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "runtime",
+          "symptom": "`KeyError: 'click'` on the first event.",
+          "cause": "`counts[label] += 1` assumes the key already exists.",
+          "fix": "Read the old value with `.get(label, 0)` and write back the increment."
+        },
+        {
+          "category": "missing-data",
+          "symptom": "Events with `{'type': None}` appear under a `None` key instead of `'unknown'`.",
+          "cause": "`e.get('type', 'unknown')` only supplies the default for a missing key, not for a present key whose value is None.",
+          "fix": "Use `e.get('type') or 'unknown'`."
+        }
+      ],
+      "constraints": [
+        "Output keys are the type strings plus 'unknown'.",
+        "An empty list returns `{}`."
+      ],
+      "realWorld": "Product analytics dashboards start with exactly this tally: how many clicks, views and purchases arrived, with malformed events visible in their own bucket.",
+      "commonMistakes": [
+        "Initialising only some labels, which breaks on an unseen type.",
+        "Using the `type` name as a variable and shadowing the built-in."
+      ],
+      "alternatives": [
+        {
+          "title": "collections.Counter",
+          "code": "from collections import Counter\n\ndef count_events(events):\n    return Counter(e.get('type') or 'unknown' for e in events)\n",
+          "note": "Shortest form. It returns a Counter, a dict subclass: it still compares equal to a plain dict, but it prints as Counter(...) and a missing key reads as 0 instead of raising, which can hide typos downstream. Use it when you also need most_common()."
+        }
+      ]
+    },
+    "py:custom-exception-hierarchy": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Exceptions form a tree. A shared parent lets callers catch the whole family with one clause, while subclasses let them tell the cases apart."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A subclass is declared with `class Child(Parent):`. `raise NewError(...) from err` records the original exception as `__cause__`."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Define the two subclasses under `OrderError`. In `process`, check the quantity first, then look the product up, translating a `KeyError` into your own error with `from`."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nclass OrderError(Exception):\n    pass\n\nclass InvalidQuantity(...):\n    pass\n\nclass UnknownProduct(...):\n    pass\n\ndef process(order, catalogue):\n    ...  # reject quantity <= 0\n    try:\n        price = ...  # catalogue lookup\n    except KeyError as err:\n        raise ... from err\n    return ...\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`issubclass(InvalidQuantity, OrderError)` fails.",
+          "cause": "The subclasses were declared as `class InvalidQuantity(Exception)`, so they sit beside OrderError, not under it.",
+          "fix": "Make each subclass inherit from `OrderError`."
+        },
+        {
+          "category": "functions",
+          "symptom": "The `__cause__` check fails even though UnknownProduct is raised.",
+          "cause": "Raising inside `except` without `from err` sets `__context__` implicitly, but `__cause__` stays None.",
+          "fix": "Use `raise UnknownProduct(...) from err`."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "A zero quantity for an unknown product raises UnknownProduct instead of InvalidQuantity.",
+          "cause": "The catalogue lookup runs before the quantity check.",
+          "fix": "Validate the quantity first."
+        }
+      ],
+      "constraints": [
+        "Both errors must be catchable with `except OrderError`.",
+        "UnknownProduct must chain the original KeyError.",
+        "A valid order returns quantity times price."
+      ],
+      "realWorld": "Libraries expose a base exception per package so that callers can write one handler for 'anything this service raised' and still branch on the specific failure.",
+      "commonMistakes": [
+        "Raising a bare `Exception` and forcing callers to parse the message.",
+        "Swallowing the KeyError and losing the original traceback."
+      ],
+      "interviewRelevance": "Designing an exception hierarchy and using `raise ... from` is a common Python-depth question for backend and data-platform roles."
+    },
+    "py:deep-merge-dicts": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A merge of nested dictionaries is a recursion: when both sides hold a dictionary under the same key, the answer for that key is itself a merge."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`isinstance(x, dict)` tells you whether to recurse. `copy.deepcopy` protects the inputs from later mutation."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Copy the base first. Then for each key in the override, merge recursively if both values are dicts, otherwise let the override value replace the base value."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\nimport copy\n\ndef deep_merge(base, override):\n    out = copy.deepcopy(base)\n    for k, v in override.items():\n        if ...:  # both out.get(k) and v are dicts\n            out[k] = ...  # recursive call\n        else:\n            out[k] = ...  # the override wins, as a copy\n    return out\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "variables",
+          "symptom": "The original `a` dict changes after the merge.",
+          "cause": "A shallow `dict(base)` shares nested dicts with the input, so writing into a nested level mutates the caller's data.",
+          "fix": "Deep-copy the base (and copy override values you store)."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "`deep_merge({'k': {'a': 1}}, {'k': 5})` raises `AttributeError` or returns a mixed dict.",
+          "cause": "The code recurses when only the base side is a dict. An override that is not a dict should simply replace it.",
+          "fix": "Recurse only when both values are dicts."
+        },
+        {
+          "category": "types",
+          "symptom": "Lists are merged or concatenated when the override list should replace the base list.",
+          "cause": "The rule only applies to dicts; a list is an ordinary value.",
+          "fix": "Do not special-case lists."
+        }
+      ],
+      "constraints": [
+        "Neither input may be modified.",
+        "Mutating the result must not change either input.",
+        "Non-dict values: the override always wins."
+      ],
+      "realWorld": "Layered configuration (defaults, environment, local overrides) is merged this way, which is why a single setting can be overridden without restating the whole section.",
+      "commonMistakes": [
+        "Using `dict.update`, which replaces a whole nested section instead of merging into it.",
+        "Returning the base object itself when the override is empty."
+      ],
+      "interviewRelevance": "Recursive merge of config dicts is a recurring interview exercise; the follow-up is usually about aliasing and mutation of the inputs."
+    },
+    "py:format-sku-codes": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Each value either converts to a non-negative integer or is dropped. Formatting is the second step, only for values that survived the first."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`int(v)` accepts numbers and padded strings but raises ValueError or TypeError otherwise. The format spec `:05d` pads an integer with zeros to width 5."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Loop through the values, try to convert each one, skip it on failure or when it is negative, and append the formatted code."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef format_skus(values):\n    out = []\n    for v in values:\n        try:\n            n = ...\n        except (...):\n            continue\n        if ...:  # keep zero and positive numbers\n            out.append(f'SKU-{...}')\n    return out\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`format_skus([None])` raises `TypeError: int() argument must be a string...`.",
+          "cause": "Only ValueError was caught, but None raises TypeError.",
+          "fix": "Catch both exception types."
+        },
+        {
+          "category": "filtering",
+          "symptom": "`-3` produces `SKU--0003`.",
+          "cause": "The negative number is converted and formatted without the non-negative check.",
+          "fix": "Skip any number below zero after converting."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`ValueError: Invalid format specifier` or output `SKU-42` without padding.",
+          "cause": "The width is written in the wrong place or the `d` or `0` is missing; the format spec is `0` then the width then `d`.",
+          "fix": "Use `{n:05d}` inside the f-string."
+        }
+      ],
+      "constraints": [
+        "Numbers wider than 5 digits keep all their digits.",
+        "Input order is preserved.",
+        "Zero is valid and gives `SKU-00000`."
+      ],
+      "realWorld": "Catalogue imports normalise identifiers from spreadsheets, where the same SKU may appear as 42, ' 42 ' or '042', before they are joined to the product table.",
+      "commonMistakes": [
+        "Using `str.zfill` on a negative or non-numeric value.",
+        "Assuming `int(' 7 ')` fails because of the spaces."
+      ]
+    },
+    "py:average-ignoring-none": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A missing reading and a reading of zero are different things. Only the missing ones are excluded from the average."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "The test `v is not None` keeps zero. Plain truthiness (`if v`) would throw zeros away. `sum()` and `len()` give the pieces of a mean."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Filter the list down to present values, stop early with None when nothing is left, then divide the sum by the count and round to 2 decimals."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef mean_present(values):\n    present = [v for v in values if ...]  # real readings only\n    if ...:  # nothing present\n        return None\n    return round(... / ..., 2)\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "filtering",
+          "symptom": "`mean_present([0, 0, None, 3])` returns 3.0 instead of 1.0.",
+          "cause": "The filter was `if v`, which removes the zeros as well as the None values.",
+          "fix": "Filter with `v is not None`."
+        },
+        {
+          "category": "runtime",
+          "symptom": "`ZeroDivisionError: division by zero` for `[None, None]`.",
+          "cause": "After filtering nothing is left and the code divides by `len([])`.",
+          "fix": "Return None before dividing when the filtered list is empty."
+        },
+        {
+          "category": "types",
+          "symptom": "`TypeError: unsupported operand type(s) for +: 'int' and 'NoneType'`.",
+          "cause": "`sum(values)` was called on the unfiltered list.",
+          "fix": "Sum only the filtered values."
+        }
+      ],
+      "constraints": [
+        "0 is a real value.",
+        "Return None, not 0, when no value is present.",
+        "Round to 2 decimals."
+      ],
+      "realWorld": "SQL's AVG skips NULLs; matching that rule in Python means a pipeline and the warehouse report the same average for the same sensor feed.",
+      "commonMistakes": [
+        "Using truthiness to detect missing values.",
+        "Dividing by the length of the original list."
+      ],
+      "alternatives": [
+        {
+          "title": "Single pass, no intermediate list",
+          "code": "def mean_present(values):\n    total = 0\n    count = 0\n    for v in values:\n        if v is not None:\n            total += v\n            count += 1\n    return round(total / count, 2) if count else None\n",
+          "note": "Uses constant extra memory and also works on a generator of readings, which the list version would have to materialise. The list version reads more declaratively; pick this one for large or streamed feeds."
+        }
+      ],
+      "complexity": {
+        "time": "O(n)",
+        "space": "O(n) for the list version, O(1) for the single pass"
+      }
+    },
+    "py:invert-dict": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Inverting turns values into keys, which only works if the values are unique. Two keys with the same value would collide and one would silently disappear."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A dict comprehension `{v: k for k, v in mapping.items()}` builds the inverse; a `set` of the values reveals whether any value repeats."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Decide whether the inversion is safe before you build it (or while building it), and raise ValueError when it is not."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef invert(mapping):\n    if ...:  # the number of distinct values differs from the number of keys\n        raise ValueError('values are not unique')\n    return {...}\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "control-flow",
+          "symptom": "`invert({'a': 1, 'b': 1})` returns `{1: 'b'}` and no error is raised.",
+          "cause": "The comprehension overwrites the earlier key with the later one, so the collision is hidden.",
+          "fix": "Check uniqueness first and raise ValueError."
+        },
+        {
+          "category": "types",
+          "symptom": "`invert({'x': [1]})` fails with `TypeError: unhashable type: 'list'`.",
+          "cause": "Dictionary keys must be hashable and a list is not.",
+          "fix": "That input is outside the contract; tuples and None work, as the hidden tests show."
+        }
+      ],
+      "constraints": [
+        "Raise ValueError on duplicate values; never drop data silently.",
+        "Values may be any hashable object, including None and tuples."
+      ],
+      "realWorld": "Reverse lookups (code to name, id to label) are built from mappings that are supposed to be one-to-one. A loud failure at build time beats a wrong lookup in production.",
+      "commonMistakes": [
+        "Assuming values are unique without checking.",
+        "Catching the problem with a bare `except`."
+      ],
+      "alternatives": [
+        {
+          "title": "Detect the collision while building",
+          "code": "def invert(mapping):\n    out = {}\n    for k, v in mapping.items():\n        if v in out:\n            raise ValueError('values are not unique')\n        out[v] = k\n    return out\n",
+          "note": "Stops at the first collision and the offending value `v` is at hand, so the error message can name it. The comprehension-plus-set version is shorter but needs a second pass over the values."
+        }
+      ]
+    },
+    "py:mask-customer-emails": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Masking keeps just enough of the address to recognise it. The first character of the local part and the whole domain stay; the rest of the local part is hidden."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`str.rpartition('@')` splits at the last at-sign into local part, separator and domain. `isinstance(x, str)` guards non-strings. An f-string joins the pieces."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Return None for non-strings and for strings that have no usable local part or domain. Otherwise combine the first local character, three stars and the domain."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef mask_email(email):\n    if not isinstance(email, str) or ...:  # no at-sign\n        return None\n    local, _, domain = email.rpartition('@')\n    if ...:  # empty local part or empty domain\n        return None\n    return f'{...}***@{...}'\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "types",
+          "symptom": "`mask_email(42)` raises `TypeError: argument of type 'int' is not iterable`.",
+          "cause": "The `'@' in email` check runs before the type check.",
+          "fix": "Test `isinstance(email, str)` first (the `or` short-circuits)."
+        },
+        {
+          "category": "indexing",
+          "symptom": "`mask_email('@x.com')` raises `IndexError: string index out of range`.",
+          "cause": "`local[0]` is read from an empty local part.",
+          "fix": "Reject empty local parts before indexing."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "`mask_email('a@b@c.com')` keeps `a@b` visible.",
+          "cause": "`split('@')` or `partition('@')` splits at the first at-sign, while the expected behaviour treats the last one as the domain separator.",
+          "fix": "Split at the last at-sign with `rpartition`."
+        }
+      ],
+      "constraints": [
+        "Anything that is not a string returns None.",
+        "Exactly one star group `***` regardless of local-part length.",
+        "The last `@` separates local part and domain."
+      ],
+      "realWorld": "Support tools and logs show masked emails so staff can recognise a customer without exposing personal data (a common GDPR hygiene step).",
+      "commonMistakes": [
+        "Revealing the length of the local part by masking one star per character.",
+        "Forgetting inputs that are None because the column had nulls."
+      ],
+      "alternatives": [
+        {
+          "title": "One regular expression",
+          "code": "import re\n\ndef mask_email(email):\n    if not isinstance(email, str):\n        return None\n    m = re.fullmatch(r'(.+)@([^@]+)', email)\n    if not m:\n        return None\n    return f'{m.group(1)[0]}***@{m.group(2)}'\n",
+          "note": "The pattern states the whole shape (non-empty local part, last @, non-empty domain) in one place. The costs: a regex is harder to read than three explicit branches, and `.` does not match a newline, so an address containing one is rejected."
+        }
+      ]
+    },
+    "py:merge-dicts-sum": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A merge with a rule for clashes: keys that exist on one side are copied, keys on both sides combine by addition."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`dict(a)` makes a shallow copy so the input is untouched. `out.get(k, 0)` reads a count that may not exist yet."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Start from a copy of `a`, then walk `b` and add each value onto whatever `out` already holds for that key, defaulting to 0."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef merge_counts(a, b):\n    out = dict(a)\n    for k, v in b.items():\n        out[k] = ...  # existing value (default 0) plus v\n    return out\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "variables",
+          "symptom": "After the call, the caller's `a` has the summed values.",
+          "cause": "The function wrote into `a` itself (`a[k] += v`) instead of into a copy.",
+          "fix": "Create `out = dict(a)` and write only into `out`."
+        },
+        {
+          "category": "runtime",
+          "symptom": "`KeyError` for a key that exists only in `b`.",
+          "cause": "`out[k] += v` requires the key to be present already.",
+          "fix": "Read with `out.get(k, 0)`."
+        },
+        {
+          "category": "types",
+          "symptom": "`{'n': -1}` plus `{'n': 1}` is missing the key `n` in the answer.",
+          "cause": "Using `Counter(a) + Counter(b)` drops every key whose total is zero or negative.",
+          "fix": "Merge with plain dict arithmetic, which keeps zero totals."
+        }
+      ],
+      "constraints": [
+        "Inputs are not modified.",
+        "A key whose values cancel out (total 0) stays in the result."
+      ],
+      "realWorld": "Combining partial tallies from two partitions or two days of events (word counts, error counts) is this exact operation in map-reduce style pipelines.",
+      "commonMistakes": [
+        "Mutating an argument.",
+        "Using `Counter` addition and losing non-positive totals."
+      ],
+      "alternatives": [
+        {
+          "title": "Dict comprehension over the key union",
+          "code": "def merge_counts(a, b):\n    return {k: a.get(k, 0) + b.get(k, 0) for k in a.keys() | b.keys()}\n",
+          "note": "Reads as a definition of the result and never mutates anything. Because `|` builds a set, key order in the result is arbitrary (equality ignores order), whereas the loop version keeps a's order first. It also costs two lookups per key."
+        }
+      ]
+    },
+    "py:nested-get": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Walking a path is stepping down a tree one key at a time. If any step is missing, or the current node is not a dictionary, the walk ends with the default."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`path.split('.')` gives the keys. `isinstance(node, dict)` and `key in node` guard each step. Returning from inside a loop ends the walk early."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Keep a `node` variable that starts at the data. For every key, give up with the default if the step is impossible, otherwise move `node` down one level. Return what you reach."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef get_path(data, path, default=None):\n    node = data\n    for key in path.split('.'):\n        if ...:  # node is not a dict, or key is not in it\n            return default\n        node = ...\n    return node\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "missing-data",
+          "symptom": "`get_path({'a': {'b': None}}, 'a.b', 'x')` returns `'x'` but the stored value is None.",
+          "cause": "The code tests `if node.get(key)` (or compares with None), which treats a real None or 0 as missing.",
+          "fix": "Test key presence with `key in node`, not the value's truthiness."
+        },
+        {
+          "category": "runtime",
+          "symptom": "`TypeError: argument of type 'int' is not iterable` for `{'a': 1}` and path `'a.b'`.",
+          "cause": "After `a` the node is the integer 1 and `'b' in 1` fails.",
+          "fix": "Check `isinstance(node, dict)` before the membership test."
+        },
+        {
+          "category": "variables",
+          "symptom": "The function always returns the default or the whole input.",
+          "cause": "The loop never reassigns `node`, so every key is looked up in the original dictionary.",
+          "fix": "Update `node` after each successful step."
+        }
+      ],
+      "constraints": [
+        "A stored value that is None or 0 is returned as it is, not replaced by the default.",
+        "Non-dict nodes in the middle of a path give the default."
+      ],
+      "realWorld": "JSON from APIs is deeply nested and fields come and go. Safe dotted lookup keeps a pipeline from crashing on the one record that lacks `user.address`.",
+      "commonMistakes": [
+        "Chained `[]` lookups that raise on the first gap.",
+        "Using `or default`, which also replaces 0, False and empty strings."
+      ],
+      "alternatives": [
+        {
+          "title": "Recursive on the head of the path",
+          "code": "def get_path(data, path, default=None):\n    head, _, rest = path.partition('.')\n    if not isinstance(data, dict) or head not in data:\n        return default\n    return data[head] if not rest else get_path(data[head], rest, default)\n",
+          "note": "Expresses the definition directly: look up the head, then recurse on the rest. It is as correct as the loop, but each level adds a stack frame and a string copy, so for deep paths the iterative version is cheaper."
+        }
+      ]
+    },
+    "py:order-size-tier": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Tiers are ranges on a number line with boundaries that belong to exactly one side. The interesting inputs are the boundaries themselves: 0, 50 and 500."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "An `if / elif / else` ladder checks conditions from the top and takes the first that is true. Check the invalid cases before the ranges."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "First reject None and negative amounts. Then test the lowest range, then the middle, and let everything else fall through to 'large'. Decide which operator (`<` or `<=`) matches 'up to but not including'."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef order_tier(amount):\n    if ...:  # None or below zero\n        return 'invalid'\n    if amount < ...:\n        return 'small'\n    elif amount < ...:\n        return 'medium'\n    return 'large'\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "control-flow",
+          "symptom": "`order_tier(50)` returns 'small'.",
+          "cause": "The boundary uses `<= 50`, but 50 belongs to the medium tier.",
+          "fix": "Use a strict `< 50` for small."
+        },
+        {
+          "category": "types",
+          "symptom": "`TypeError: '<' not supported between instances of 'NoneType' and 'int'`.",
+          "cause": "The None check comes after the comparison, or is missing.",
+          "fix": "Handle None first."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "`order_tier(0)` returns 'invalid'.",
+          "cause": "The guard is `amount <= 0` but only negative amounts are invalid.",
+          "fix": "Use `amount < 0`."
+        }
+      ],
+      "constraints": [
+        "small: 0 up to but not including 50; medium: 50 up to but not including 500; large: 500 and above.",
+        "None or any negative amount returns 'invalid'."
+      ],
+      "realWorld": "Shipping, discount and approval rules are tiered by order value, and most production bugs in them are off-by-one on the boundary amount.",
+      "commonMistakes": [
+        "Mixing `<` and `<=` between tiers.",
+        "Putting the 'large' condition first and shadowing the others."
+      ],
+      "alternatives": [
+        {
+          "title": "Thresholds as data with bisect",
+          "code": "from bisect import bisect_right\n\nTIERS = ['small', 'medium', 'large']\n\ndef order_tier(amount):\n    if amount is None or amount < 0:\n        return 'invalid'\n    return TIERS[bisect_right([50, 500], amount)]\n",
+          "note": "The cut points live in one list, so adding a tier is a data change. `bisect_right` puts a value equal to a boundary into the upper tier, matching 'up to but not including'. For three tiers the plain ladder is easier to read; this pays off with many tiers or thresholds loaded from config."
+        }
+      ]
+    },
+    "py:percent-change": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Percent change compares a new value to the old one as a share of the old one. If the old value is zero the share is undefined."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "The formula is `(new - old) / old * 100`. `round(x, 1)` keeps one decimal. A guard with `if old == 0` avoids division by zero."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Check for the zero baseline first and return None. Otherwise compute the relative difference, scale by 100 and round once."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```python\ndef percent_change(old, new):\n    if ...:  # no baseline\n        return None\n    return round(... * 100, 1)\n```\nThe missing piece is the relative difference in the middle."
+        }
+      ],
+      "debugging": [
+        {
+          "category": "runtime",
+          "symptom": "`ZeroDivisionError: division by zero` for `percent_change(0, 5)`.",
+          "cause": "The division happens before the zero check.",
+          "fix": "Return None for `old == 0` before dividing."
+        },
+        {
+          "category": "control-flow",
+          "symptom": "`percent_change(-10, -5)` returns 50.0 instead of -50.0.",
+          "cause": "Dividing by `abs(old)` or flipping the sign changes the answer for a negative baseline; the exercise defines change relative to `old` itself.",
+          "fix": "Divide by `old` exactly as given."
+        },
+        {
+          "category": "types",
+          "symptom": "`percent_change(3, 4)` returns 33.33333333333333 instead of 33.3.",
+          "cause": "The result was never rounded, or `round` was applied before multiplying by 100 (which rounds the ratio 0.333 to 0.3 and gives about 30).",
+          "fix": "Multiply by 100 first and round the final number to one decimal."
+        }
+      ],
+      "constraints": [
+        "Round to 1 decimal.",
+        "Return None, not 0, when `old` is 0.",
+        "A negative baseline uses the formula as written."
+      ],
+      "realWorld": "Month-over-month growth cards on dashboards use this calculation. Showing 'n/a' for a zero baseline is the same decision as returning None here.",
+      "commonMistakes": [
+        "Returning 0 or infinity for a zero baseline.",
+        "Forgetting that the result is a percentage, not a ratio."
+      ]
+    }
+  }
+}

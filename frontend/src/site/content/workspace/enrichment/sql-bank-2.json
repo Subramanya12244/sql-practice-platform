@@ -1,0 +1,1232 @@
+{
+  "version": 1,
+  "items": {
+    "sql:q147-latest-order-per-customer": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'Latest per customer' is a ranking inside each customer's own set of orders. Number the orders newest first per customer and keep number one."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`ROW_NUMBER() OVER (PARTITION BY customer ORDER BY date DESC, tie-breaker DESC)` numbers rows per group. A window function cannot be filtered in the same SELECT, so wrap it in a CTE or subquery."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Rank each customer's orders (date descending, with the order id as tie-breaker), then keep rank 1 and join customer details."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH ranked_orders AS (\n    SELECT o.customer_id, o.order_id, o.order_date, o.employee_id,\n           ROW_NUMBER() OVER (PARTITION BY ___ ORDER BY ___ DESC, ___ DESC) AS rn\n    FROM orders o\n)\nSELECT r.customer_id, c.company_name, r.order_id AS latest_order_id,\n       r.order_date AS latest_order_date, r.employee_id\nFROM ranked_orders r JOIN customers c ON ___\nWHERE r.rn = 1\nORDER BY customer_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "window",
+          "symptom": "`ERROR: window functions are not allowed in WHERE`.",
+          "cause": "`WHERE ROW_NUMBER() OVER (...) = 1` filters before window functions are computed.",
+          "fix": "Compute the number in a CTE or subquery and filter in the outer query."
+        },
+        {
+          "category": "window",
+          "symptom": "Only one row is returned for the whole table.",
+          "cause": "`PARTITION BY` was left out, so all orders form one group.",
+          "fix": "Partition by the customer id."
+        },
+        {
+          "category": "window",
+          "symptom": "A customer appears twice for the same latest date.",
+          "cause": "`RANK()` gives tied same-day orders the same rank 1.",
+          "fix": "Use ROW_NUMBER with a unique tie-breaker such as the order id."
+        }
+      ],
+      "constraints": [
+        "Exactly one row per customer that has orders.",
+        "Ties on date are broken by the highest order id."
+      ],
+      "realWorld": "Account-management snapshots (last order, last login, last invoice per account) are the most common use of per-group ranking.",
+      "commonMistakes": [
+        "No tie-breaker, so the 'latest' row is non-deterministic."
+      ],
+      "interviewRelevance": "Top-1 per group with ROW_NUMBER, and its alternatives (DISTINCT ON, correlated MAX), is among the most frequent SQL interview questions.",
+      "alternatives": [
+        {
+          "title": "DISTINCT ON (PostgreSQL)",
+          "code": "SELECT DISTINCT ON (o.customer_id)\n       o.customer_id,\n       c.company_name,\n       o.order_id   AS latest_order_id,\n       o.order_date AS latest_order_date,\n       o.employee_id\nFROM orders o\nJOIN customers c ON c.customer_id = o.customer_id\nORDER BY o.customer_id, o.order_date DESC, o.order_id DESC;\n",
+          "note": "Keeps the first row of each customer in the stated sort order, with no CTE and no window. It is PostgreSQL-specific (not portable to MySQL or SQL Server) and the required ORDER BY prefix must match the DISTINCT ON column, so the window version is the portable choice."
+        }
+      ]
+    },
+    "sql:q148-rank-vs-dense-rank-product-prices": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Ranking has a policy for ties. Showing two policies side by side makes the difference visible exactly where prices are equal."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`RANK()` leaves gaps after a tie (1, 1, 3). `DENSE_RANK()` does not (1, 1, 2). Both need `OVER (PARTITION BY ... ORDER BY ...)`."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Partition by category, order by price from highest to lowest, and compute both functions as separate columns. Sort the final result by category, rank and product id."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT c.category_name, p.product_id, p.product_name, p.unit_price,\n       RANK()       OVER (PARTITION BY c.category_id ORDER BY ___ DESC) AS price_rank,\n       DENSE_RANK() OVER (PARTITION BY ___ ORDER BY ___ DESC) AS price_dense_rank\nFROM products p JOIN categories c ON ___\nORDER BY category_name, price_rank, product_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "window",
+          "symptom": "The cheapest product is ranked 1.",
+          "cause": "The window ORDER BY is ascending.",
+          "fix": "Order by price descending."
+        },
+        {
+          "category": "window",
+          "symptom": "Ranks restart nowhere: they run across all categories.",
+          "cause": "`PARTITION BY` is missing, so one ranking covers the whole table.",
+          "fix": "Partition by category."
+        },
+        {
+          "category": "window",
+          "symptom": "Both rank columns are identical in every row.",
+          "cause": "The data used has no tied prices in that group, or `ROW_NUMBER()` was used for both.",
+          "fix": "Check a group that has a tie; RANK leaves a gap after it and DENSE_RANK does not."
+        }
+      ],
+      "constraints": [
+        "Ranking within each category.",
+        "Highest price gets rank 1.",
+        "Final sort: category, rank, product id."
+      ],
+      "realWorld": "Pricing tables ranked within category drive 'top 3 most expensive' widgets, and the tie policy decides whether the widget shows 3 or 4 items.",
+      "commonMistakes": [
+        "Using ROW_NUMBER when tied products should share a rank."
+      ]
+    },
+    "sql:q149-top-3-products-by-revenue-per-category": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Rank products by revenue inside each category, then keep ranks one to three. Revenue per product must be computed before the ranking."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`DENSE_RANK() OVER (PARTITION BY category ORDER BY revenue DESC)` ranks within a category and lets tied products share a position. Window results can only be filtered one query level up."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Step one: revenue per product. Step two: rank per category. Step three: filter `rank <= 3` and join category names."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH product_revenue AS (\n    SELECT p.category_id, p.product_id, p.product_name, SUM(___) AS revenue\n    FROM order_details od JOIN products p ON ___\n    GROUP BY p.category_id, p.product_id, p.product_name\n),\nranked AS (\n    SELECT pr.*, DENSE_RANK() OVER (PARTITION BY ___ ORDER BY ___ DESC) AS revenue_rank\n    FROM product_revenue pr\n)\nSELECT c.category_name, r.revenue_rank, r.product_id, r.product_name, ROUND(r.revenue::numeric, 2) AS revenue\nFROM ranked r JOIN categories c ON ___\nWHERE r.revenue_rank <= 3\nORDER BY category_name, revenue_rank, product_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "window",
+          "symptom": "`ERROR: column \"revenue_rank\" does not exist` when filtering.",
+          "cause": "A window alias cannot be used in WHERE of the same SELECT.",
+          "fix": "Move the ranking into a CTE and filter outside it."
+        },
+        {
+          "category": "window",
+          "symptom": "A product tied for third place is missing.",
+          "cause": "`ROW_NUMBER()` gave the tied products different numbers, and the second one fell outside 3.",
+          "fix": "Use DENSE_RANK (or RANK) so ties share a position."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Rankings look arbitrary and products appear several times.",
+          "cause": "The ranking ran over raw order lines instead of per-product totals.",
+          "fix": "Aggregate to one row per product first."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Two products that are not really tied rank equally.",
+          "cause": "Revenue was rounded before ranking, which creates artificial ties.",
+          "fix": "Round only in the final SELECT."
+        }
+      ],
+      "constraints": [
+        "Ties share a position and all are kept.",
+        "Revenue is net of discount, rounded for display only."
+      ],
+      "realWorld": "Category managers decide stock and promotions from top sellers per category, which is exactly top-N per group.",
+      "commonMistakes": [
+        "Choosing ROW_NUMBER and silently dropping tied products."
+      ]
+    },
+    "sql:q150-running-total-of-monthly-revenue": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A running total is a sum over 'everything up to and including this row' in date order. First reduce the data to one row per month."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`SUM(x) OVER (ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)` accumulates in order. `DATE_TRUNC('month', date)` buckets dates to month starts."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Aggregate revenue per month in a CTE, then run the cumulative window over those monthly rows and round at the end."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH monthly AS (\n    SELECT DATE_TRUNC('month', o.order_date)::date AS order_month,\n           SUM(___) AS revenue\n    FROM orders o JOIN order_details od ON ___\n    GROUP BY DATE_TRUNC('month', o.order_date)\n)\nSELECT order_month, ROUND(revenue::numeric, 2) AS monthly_revenue,\n       ROUND(SUM(revenue) OVER (ORDER BY ___ ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)::numeric, 2) AS running_revenue\nFROM monthly ORDER BY order_month;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "window",
+          "symptom": "Every row shows the grand total.",
+          "cause": "`OVER ()` has no ORDER BY, so the frame is the whole partition.",
+          "fix": "Add the month ordering inside OVER."
+        },
+        {
+          "category": "window",
+          "symptom": "Running total jumps by several months at once.",
+          "cause": "The default frame is RANGE, which treats rows with equal sort keys as one block.",
+          "fix": "State `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` and sort on a unique key."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "The running figure is off by a few cents from the sum of the monthly column.",
+          "cause": "Each month was rounded before it was summed.",
+          "fix": "Round only the final output."
+        }
+      ],
+      "constraints": [
+        "One row per month with sales.",
+        "Running total accumulates the unrounded monthly revenue."
+      ],
+      "realWorld": "Cumulative revenue and year-to-date charts are built exactly like this.",
+      "commonMistakes": [
+        "Windowing over order lines instead of monthly totals."
+      ],
+      "alternatives": [
+        {
+          "title": "Correlated sum instead of a window",
+          "code": "WITH monthly AS (\n    SELECT DATE_TRUNC('month', o.order_date)::date AS order_month,\n           SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue\n    FROM orders o\n    JOIN order_details od ON od.order_id = o.order_id\n    GROUP BY DATE_TRUNC('month', o.order_date)\n)\nSELECT m.order_month,\n       ROUND(m.revenue::numeric, 2) AS monthly_revenue,\n       ROUND((SELECT SUM(m2.revenue) FROM monthly m2 WHERE m2.order_month <= m.order_month)::numeric, 2) AS running_revenue\nFROM monthly m\nORDER BY m.order_month;\n",
+          "note": "Works on engines without window functions, but every output row re-sums all earlier months, so the cost grows quadratically with the number of months. The window version makes one ordered pass."
+        }
+      ]
+    },
+    "sql:q152-month-over-month-revenue-change": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Month-over-month compares each month with the month before it, so every row needs access to its predecessor's value."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`LAG(revenue) OVER (ORDER BY month)` reads the previous row. `NULLIF(x, 0)` turns a zero divisor into NULL, and `100.0 *` keeps the division decimal."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Build monthly revenue, add the previous month's revenue with LAG, then compute difference and percentage change relative to the previous month."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH monthly AS (...),   -- one row per month\nwith_prev AS (\n    SELECT order_month, revenue, LAG(revenue) OVER (ORDER BY ___) AS prev_revenue FROM monthly\n)\nSELECT order_month,\n       ROUND(revenue::numeric, 2) AS monthly_revenue,\n       ROUND(prev_revenue::numeric, 2) AS prev_month_revenue,\n       ROUND((revenue - prev_revenue)::numeric, 2) AS revenue_change,\n       ROUND((100.0 * (___) / NULLIF(prev_revenue, 0))::numeric, 2) AS pct_change\nFROM with_prev ORDER BY order_month;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "aggregation",
+          "symptom": "`ERROR: division by zero`.",
+          "cause": "The previous month's revenue can be zero and is used as a divisor directly.",
+          "fix": "Wrap the divisor in NULLIF(prev, 0)."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Percentages are whole numbers such as 0 or 1.",
+          "cause": "Integer arithmetic truncates the quotient.",
+          "fix": "Multiply by 100.0 so the calculation is decimal."
+        },
+        {
+          "category": "window",
+          "symptom": "The percentage has the wrong sign.",
+          "cause": "The formula was (previous - current) / previous.",
+          "fix": "Use (current - previous) / previous."
+        },
+        {
+          "category": "null",
+          "symptom": "The first month shows NULL for the change.",
+          "cause": "LAG has no previous row for the first month.",
+          "fix": "That is correct: no previous month means no change; do not fill it with 0."
+        }
+      ],
+      "constraints": [
+        "The first month has no previous value.",
+        "Percentage rounded to 2 decimals."
+      ],
+      "realWorld": "Month-over-month change is the standard KPI card on revenue dashboards; null for the first period is the honest value.",
+      "commonMistakes": [
+        "Calling the previous row 'last month' when a month is missing from the series."
+      ]
+    },
+    "sql:q153-days-until-next-customer-order": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "For each order you want a peek at the customer's next order, so you need a function that reads the following row inside the customer's own timeline."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`LEAD(col) OVER (PARTITION BY customer ORDER BY date, id)` reads the next row. Subtracting two `date` values gives an integer number of days."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Define one window per customer ordered by date and order id, take the next order id and date with LEAD, and subtract the dates."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT customer_id, order_id, order_date,\n       LEAD(order_id)   OVER w AS next_order_id,\n       LEAD(order_date) OVER w AS next_order_date,\n       ___ AS days_until_next_order\nFROM orders\nWINDOW w AS (PARTITION BY ___ ORDER BY order_date, order_id)\nORDER BY customer_id, order_date, order_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "window",
+          "symptom": "The next order belongs to a different customer.",
+          "cause": "`PARTITION BY customer_id` is missing.",
+          "fix": "Partition the window by the customer."
+        },
+        {
+          "category": "window",
+          "symptom": "The 'next' order is wrong when two orders share a date.",
+          "cause": "The window sorts on the date only, so same-day order is arbitrary.",
+          "fix": "Add the order id as a tie-breaker in the window ORDER BY."
+        },
+        {
+          "category": "filter",
+          "symptom": "Some orders show no next order although one exists.",
+          "cause": "A WHERE filter removed rows before the window looked at them.",
+          "fix": "Filter after computing the window, in an outer query."
+        },
+        {
+          "category": "syntax",
+          "symptom": "The result is an interval such as `3 days 00:00:00`.",
+          "cause": "Timestamps were subtracted instead of dates.",
+          "fix": "Subtract date values to get an integer."
+        }
+      ],
+      "constraints": [
+        "The last order of each customer has NULL for the next order and the gap.",
+        "Order within a customer by date, then order id."
+      ],
+      "realWorld": "Time-to-next-purchase distributions feed retention analysis and replenishment reminders.",
+      "commonMistakes": [
+        "Computing gaps with a self-join, which is slower and trickier with ties."
+      ]
+    },
+    "sql:q154-customer-share-of-total-revenue": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A share is a part divided by a whole. The part is per customer; the whole is the sum over all customers, which you want next to every row without collapsing them."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`SUM(x) OVER ()` is a window over all rows: a grand total repeated on each row. `100.0 * part / whole` keeps decimals."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Compute revenue per customer, then in the same SELECT show the revenue, the grand total and the percentage, sorted by share."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH customer_revenue AS (\n    SELECT o.customer_id, SUM(___) AS revenue\n    FROM orders o JOIN order_details od ON ___\n    GROUP BY o.customer_id\n)\nSELECT cr.customer_id, c.company_name,\n       ROUND(cr.revenue::numeric, 2) AS customer_revenue,\n       ROUND((SUM(cr.revenue) OVER ())::numeric, 2) AS total_revenue,\n       ROUND((100.0 * ___ / SUM(cr.revenue) OVER ())::numeric, 2) AS revenue_share_pct\nFROM customer_revenue cr JOIN customers c ON ___\nORDER BY revenue_share_pct DESC, customer_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "aggregation",
+          "symptom": "Most shares are 0.",
+          "cause": "Integer division; the operands were not decimal.",
+          "fix": "Multiply by 100.0 first."
+        },
+        {
+          "category": "grouping",
+          "symptom": "`ERROR: column ... must appear in the GROUP BY clause`.",
+          "cause": "A plain SUM was mixed with non-aggregated columns.",
+          "fix": "Use `SUM(...) OVER ()` for the grand total."
+        },
+        {
+          "category": "filter",
+          "symptom": "Shares add up to more than 100% after adding a WHERE filter.",
+          "cause": "The window only sees rows that survive WHERE, so the denominator changes unexpectedly (or the filter was applied after the share was calculated).",
+          "fix": "Decide whether the denominator is the company total or the filtered total, and compute it in the matching step."
+        }
+      ],
+      "constraints": [
+        "Shares add up to about 100%.",
+        "Rounded to 2 decimals after division."
+      ],
+      "realWorld": "Revenue concentration (who makes up how much of the business) is a basic risk metric.",
+      "commonMistakes": [
+        "Dividing by a rounded total."
+      ],
+      "alternatives": [
+        {
+          "title": "Scalar total joined with CROSS JOIN",
+          "code": "WITH customer_revenue AS (\n    SELECT o.customer_id,\n           SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue\n    FROM orders o\n    JOIN order_details od ON od.order_id = o.order_id\n    GROUP BY o.customer_id\n),\ntotal AS (\n    SELECT SUM(revenue) AS total_revenue FROM customer_revenue\n)\nSELECT cr.customer_id,\n       c.company_name,\n       ROUND(cr.revenue::numeric, 2) AS customer_revenue,\n       ROUND(t.total_revenue::numeric, 2) AS total_revenue,\n       ROUND((100.0 * cr.revenue / t.total_revenue)::numeric, 2) AS revenue_share_pct\nFROM customer_revenue cr\nCROSS JOIN total t\nJOIN customers c ON c.customer_id = cr.customer_id\nORDER BY revenue_share_pct DESC, customer_id;\n",
+          "note": "Computes the grand total as its own one-row table and joins it in, which works in databases without window functions and makes the denominator explicit. The OVER () version is shorter and states the same idea without the extra CTE."
+        }
+      ]
+    },
+    "sql:q199-customers-making-up-80-of-revenue-pareto": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Sort customers from biggest to smallest, accumulate their revenue, and stop at the customer whose addition crosses 80% of the total."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A running `SUM(...) OVER (ORDER BY rev DESC ...)` gives the cumulative revenue and `SUM(rev) OVER ()` the total. The customer who crosses the line must be included, so test the running total before adding that customer."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Compute revenue per customer, add cumulative and total columns, then keep customers whose cumulative revenue before them is still below 80% of the total."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH revenue AS (...),   -- customer_id, rev\nranked AS (\n    SELECT customer_id, rev,\n           SUM(rev) OVER (ORDER BY rev DESC, customer_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running,\n           SUM(rev) OVER () AS total\n    FROM revenue\n)\nSELECT ... FROM ranked\nWHERE ___ < 0.8 * total   -- the cumulative revenue before this customer\nORDER BY rev DESC, customer_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "filter",
+          "symptom": "The list stops one customer short of reaching 80%.",
+          "cause": "The filter is `running <= 0.8 * total`, which excludes the customer who crosses the threshold.",
+          "fix": "Compare the running total before adding this customer (`running - rev`) with the threshold."
+        },
+        {
+          "category": "window",
+          "symptom": "Tied customers show the same running total.",
+          "cause": "The default RANGE frame groups rows with equal sort keys.",
+          "fix": "Use `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` and add a unique tie-breaker to ORDER BY."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Percentages are 0 or 100.",
+          "cause": "Integer arithmetic or rounding before the division.",
+          "fix": "Use numeric values and round only at the end."
+        }
+      ],
+      "constraints": [
+        "Customers are taken in descending revenue order.",
+        "The customer who crosses 80% is included."
+      ],
+      "realWorld": "Pareto (80/20) analysis tells you how few customers carry most of the revenue, which shapes account-management priorities.",
+      "commonMistakes": [
+        "Using <= so the threshold-crossing customer is lost."
+      ],
+      "interviewRelevance": "The cumulative-percentage Pareto query tests window frames and the 'include the crossing row' off-by-one in one question."
+    },
+    "sql:q182-average-order-value-with-nullif-and-coalesce": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Zero orders must give zero revenue but a blank average. Those are two different rules for the same missing data."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`COALESCE(x, 0)` replaces NULL with a default; `NULLIF(x, 0)` turns a zero divisor into NULL so the division returns NULL instead of an error. Count a right-hand column, not `*`, after a LEFT JOIN."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Start from customers (filtered to Germany), left join orders and order lines, compute the revenue with COALESCE, the average with NULLIF, and label customers with no orders."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT c.customer_id, c.company_name,\n       COUNT(DISTINCT o.order_id) AS order_count,\n       ROUND(COALESCE(SUM(___), 0)::numeric, 2) AS total_revenue,\n       ROUND((SUM(___) / NULLIF(COUNT(DISTINCT o.order_id), 0))::numeric, 2) AS avg_order_value,\n       CASE WHEN COUNT(___) = 0 THEN 'no orders' ELSE 'active' END AS status\nFROM customers c\nLEFT JOIN orders o ON ___\nLEFT JOIN order_details od ON ___\nWHERE c.country = 'Germany'\nGROUP BY c.customer_id, c.company_name ORDER BY c.customer_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "null",
+          "symptom": "`avg_order_value` shows 0 for a customer with no orders.",
+          "cause": "COALESCE was applied to the average, which pretends a zero-value order existed.",
+          "fix": "Leave the average NULL for customers without orders."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Customers with no orders show status 'active' or an order count of 1.",
+          "cause": "`COUNT(*)` counts the NULL-extended row of the outer join.",
+          "fix": "Count a column from the orders side."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "A customer with no orders makes the whole query fail with a division error.",
+          "cause": "The order count is zero for customers with no orders.",
+          "fix": "Divide by NULLIF(count, 0)."
+        }
+      ],
+      "constraints": [
+        "Only German customers.",
+        "Customers without orders stay in the result.",
+        "Revenue 0 and average NULL for them."
+      ],
+      "realWorld": "Account managers need the full list, with empty values meaning 'no data' rather than a misleading zero.",
+      "commonMistakes": [
+        "Using COALESCE everywhere; it hides the difference between zero and unknown."
+      ]
+    },
+    "sql:q163-unshipped-orders-older-than-30-days": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "An aging report combines two tests: the order has not shipped, and it was placed long enough ago. Both depend on how you compare dates and on how NULL behaves."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`IS NULL` tests for a missing shipped date. Subtracting two dates gives a number of days, and `date - 30` is 30 days earlier. A fixed 'today' of DATE '1998-12-31' keeps the report reproducible."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Filter orders with no shipped date and an order date strictly earlier than today minus 30 days. Compute days open as today minus order date and a flag for already being past the required date."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT o.order_id, o.customer_id, o.order_date, o.required_date,\n       (DATE '1998-12-31' - o.order_date) AS days_open,\n       (DATE '1998-12-31' > o.required_date) AS past_required_date\nFROM orders o\nWHERE o.shipped_date ___\n  AND o.order_date < ___\nORDER BY days_open DESC, order_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "null",
+          "symptom": "`WHERE shipped_date = NULL` returns no rows.",
+          "cause": "Equality with NULL is never true.",
+          "fix": "Use IS NULL."
+        },
+        {
+          "category": "filter",
+          "symptom": "Orders placed exactly 30 days ago are included (or missing).",
+          "cause": "`<` and `<=` were mixed up: 'older than 30 days' is strictly before the cut-off.",
+          "fix": "Use a strict `<`."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: function datediff(unknown, date, date) does not exist`.",
+          "cause": "DATEDIFF is SQL Server or MySQL syntax; PostgreSQL has no such function.",
+          "fix": "Subtract the dates directly."
+        },
+        {
+          "category": "performance",
+          "symptom": "Results change from day to day.",
+          "cause": "`CURRENT_DATE` or `NOW()` was used instead of the fixed date the question specifies.",
+          "fix": "Use the fixed DATE literal."
+        }
+      ],
+      "constraints": [
+        "Treat 31 Dec 1998 as today.",
+        "Not shipped, and placed more than 30 days before today."
+      ],
+      "realWorld": "Warehouse aging reports surface stuck orders; tests need a fixed 'today' so that the result does not drift.",
+      "commonMistakes": [
+        "Comparing NULL with `=`."
+      ]
+    },
+    "sql:q161-late-shipments-with-days-late": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A late shipment has a shipped date later than the required date. Orders that have not shipped yet have no shipped date and are a different case."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Subtracting one `date` from another gives an integer count of days in PostgreSQL. A comparison involving NULL is never true, so unshipped orders drop out of `shipped_date > required_date` automatically, but stating `IS NOT NULL` makes the intent explicit."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Select orders where the shipped date is after the required date, compute the difference in days, and sort by lateness (worst first), then by order id."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT o.order_id, o.customer_id, o.order_date, o.required_date, o.shipped_date,\n       (___ - ___) AS days_late\nFROM orders o\nWHERE o.shipped_date IS NOT NULL AND o.shipped_date ___ o.required_date\nORDER BY days_late DESC, order_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: function datediff(...) does not exist`.",
+          "cause": "DATEDIFF is not PostgreSQL.",
+          "fix": "Use date subtraction."
+        },
+        {
+          "category": "filter",
+          "symptom": "On-time orders shipped on the required date are listed with 0 days late.",
+          "cause": "The comparison is `>=` instead of `>`.",
+          "fix": "Use strict `>`."
+        },
+        {
+          "category": "null",
+          "symptom": "Unshipped orders appear (or vanish) unexpectedly after rewriting the filter.",
+          "cause": "NULL behaves differently in `NOT (a <= b)` style conditions than in `a > b`.",
+          "fix": "State the unshipped rule explicitly with IS NOT NULL."
+        }
+      ],
+      "constraints": [
+        "Late means shipped after the required date.",
+        "Sorted by days late, descending."
+      ],
+      "realWorld": "Service-level reports list late shipments with their delay so customer service can prioritise the worst.",
+      "commonMistakes": [
+        "Subtracting timestamps, which gives an interval instead of an integer."
+      ]
+    },
+    "sql:q79-customer-and-supplier-contact-directory": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Two unrelated tables stacked into one list is not a join; it is a set operation that appends rows."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`UNION` appends and removes duplicate rows, `UNION ALL` appends and keeps them. The column count and compatible types must match."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Select the contact name from customers and from suppliers and combine them with UNION so that a name appearing in both tables is listed once."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT c.contact_name FROM customers c\n___\nSELECT s.contact_name FROM suppliers s;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: each UNION query must have the same number of columns`.",
+          "cause": "One SELECT lists more or fewer columns than the other.",
+          "fix": "Select the same number of columns in the same order."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Duplicate names appear twice.",
+          "cause": "UNION ALL was used.",
+          "fix": "Use UNION, which de-duplicates."
+        },
+        {
+          "category": "join",
+          "symptom": "The result is empty or tiny.",
+          "cause": "A JOIN between customers and suppliers was attempted, but they share no key.",
+          "fix": "Stack the rows with UNION."
+        }
+      ],
+      "constraints": [
+        "A single column of names.",
+        "Duplicates removed."
+      ],
+      "realWorld": "Master contact lists combine records from several systems into one directory, and set operators are the tool.",
+      "commonMistakes": [
+        "Expecting the output column to be named after the second SELECT."
+      ],
+      "alternatives": [
+        {
+          "title": "DISTINCT over UNION ALL",
+          "code": "SELECT DISTINCT contact_name\nFROM (\n    SELECT contact_name FROM customers\n    UNION ALL\n    SELECT contact_name FROM suppliers\n) u;\n",
+          "note": "Makes the two steps explicit: append everything, then de-duplicate. UNION does exactly this internally. Prefer plain UNION; the explicit form is useful if you later need to keep a source column or count duplicates before removing them."
+        }
+      ]
+    },
+    "sql:q80-product-and-category-name-list": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "One output column that holds two kinds of names is a vertical stack of two queries."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "The column name of a UNION result comes from the first SELECT. Both SELECTs must return the same number of columns."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Select product names, select category names, combine with UNION and let the first query name the column."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT p.product_name FROM products p\n___\nSELECT c.category_name FROM categories c;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "syntax",
+          "symptom": "The output column is called `product_name`, not `category_name`.",
+          "cause": "UNION takes its column names from the first SELECT only.",
+          "fix": "Alias the first SELECT if a different name is wanted."
+        },
+        {
+          "category": "syntax",
+          "symptom": "Adding `unit_price` to the product query gives a column-count error for the UNION.",
+          "cause": "An extra column such as `unit_price` was added to one side.",
+          "fix": "Keep the column lists the same length."
+        },
+        {
+          "category": "join",
+          "symptom": "A JOIN produces category names repeated per product.",
+          "cause": "Products and categories are related, so a JOIN is possible but gives pairs, not a combined list.",
+          "fix": "Stack the rows with UNION."
+        }
+      ],
+      "constraints": [
+        "One column.",
+        "A name that appears both as a product and as a category is listed once."
+      ],
+      "realWorld": "Search-suggestion lists merge names from several entity tables into one picklist.",
+      "commonMistakes": [
+        "Assuming UNION keeps duplicates."
+      ]
+    },
+    "sql:q204-products-shipped-to-germany-and-the-usa-but-not-france": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Three market conditions on the same set of products: sold in Germany, sold in the USA, never sold in France. That is intersection and difference of three sets of product ids."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`INTERSECT` keeps ids in both sets, `EXCEPT` removes ids found in the second. INTERSECT binds tighter than EXCEPT. Alternatively group by product and test each country with `COUNT(*) FILTER (WHERE ...)`."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Build the set of product ids per country through order lines and orders, intersect Germany with USA, subtract France, and join to products for the names."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT p.product_id, p.product_name\nFROM products p\nWHERE p.product_id IN (\n    SELECT d.product_id FROM order_details d JOIN orders o ON ___ WHERE o.ship_country = 'Germany'\n    INTERSECT\n    SELECT ... WHERE o.ship_country = 'USA'\n    EXCEPT\n    SELECT ... WHERE o.ship_country = 'France'\n)\nORDER BY p.product_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "syntax",
+          "symptom": "The result contains products that did ship to France.",
+          "cause": "Operator precedence was misread: INTERSECT is evaluated before EXCEPT, so the grouping is not what you assumed.",
+          "fix": "Use parentheses to state the intended grouping."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Duplicate product ids are expected but absent.",
+          "cause": "INTERSECT and EXCEPT remove duplicates unless ALL is added.",
+          "fix": "That is the desired behaviour for sets of ids."
+        },
+        {
+          "category": "join",
+          "symptom": "No rows are returned.",
+          "cause": "The branches select product names, so names are compared instead of ids (or different columns).",
+          "fix": "Select the same single id column in every branch."
+        }
+      ],
+      "constraints": [
+        "Ship country comes from the order.",
+        "Sold in both Germany and the USA, never in France."
+      ],
+      "realWorld": "Launch targeting asks 'where does the product already sell and where is it absent', which is exactly set algebra on markets.",
+      "commonMistakes": [
+        "Assuming left-to-right evaluation of set operators."
+      ],
+      "alternatives": [
+        {
+          "title": "One pass with conditional counts",
+          "code": "SELECT p.product_id, p.product_name\nFROM products p\nJOIN order_details d ON d.product_id = p.product_id\nJOIN orders o ON o.order_id = d.order_id\nGROUP BY p.product_id, p.product_name\nHAVING COUNT(*) FILTER (WHERE o.ship_country = 'Germany') > 0\n   AND COUNT(*) FILTER (WHERE o.ship_country = 'USA') > 0\n   AND COUNT(*) FILTER (WHERE o.ship_country = 'France') = 0\nORDER BY p.product_id;\n",
+          "note": "Scans the order lines once instead of three times and adding a market is one more line in HAVING. The set-operator version reads as set algebra and is closer to the business statement; this one scales better as conditions pile up."
+        }
+      ]
+    },
+    "sql:q92-countries-with-more-customers-than-employees-and-suppliers": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Three tables hold a country each. Stack them with a label, then count per country and label, and compare one count to the sum of the other two."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`UNION ALL` stacks rows and keeps every one (you need real counts). `SUM(CASE WHEN label = ... THEN 1 ELSE 0 END)` counts rows per label inside one GROUP BY."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Combine the three country lists with a tag, group by country with one conditional count per tag, and filter in HAVING where customers exceed employees plus suppliers."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH cte AS (\n    SELECT country, 'employee' AS entity FROM employees\n    UNION ALL SELECT country, 'suppliers' FROM suppliers\n    UNION ALL SELECT country, 'customers' FROM customers\n)\nSELECT country,\n       SUM(CASE WHEN entity = 'employee' THEN 1 ELSE 0 END) AS total_employees,\n       ...\nFROM cte GROUP BY country\nHAVING ___ > ___ + ___\nORDER BY total_customers DESC, country ASC;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: column \"total_customers\" does not exist` in HAVING.",
+          "cause": "Output aliases cannot be used in HAVING.",
+          "fix": "Repeat the full SUM(CASE ...) expressions."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Counts are too low.",
+          "cause": "UNION instead of UNION ALL removed duplicate (country, label) rows.",
+          "fix": "Use UNION ALL when you need to count rows."
+        },
+        {
+          "category": "grouping",
+          "symptom": "Rows sorted by customers only appear in random order within ties.",
+          "cause": "The ORDER BY lacks the second key.",
+          "fix": "Add `country ASC` as the tie-breaker."
+        }
+      ],
+      "constraints": [
+        "Descending by customers, then country ascending.",
+        "Customers strictly greater than employees plus suppliers."
+      ],
+      "realWorld": "Coverage analysis compares demand (customers) to supply and staffing by region.",
+      "commonMistakes": [
+        "De-duplicating with UNION before counting."
+      ]
+    },
+    "sql:q208-weekly-revenue-for-q1-1997-with-a-sargable-filter": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Two requirements pull in different directions: empty weeks must appear (so you need a calendar), and the date filter must not prevent the use of an index on the date column."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`GENERATE_SERIES(start, end, interval)` builds the weeks. A filter written as a half-open range on the bare column (`>= start AND < next_start`) is sargable; wrapping the column in a function is not. LEFT JOIN the revenue to the calendar and COALESCE the gaps."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Generate the week starts, aggregate revenue for the quarter using the range filter and `DATE_TRUNC('week', ...)`, then left join and replace missing weeks with 0."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH weeks AS (\n    SELECT w::date AS week_start\n    FROM GENERATE_SERIES(DATE '1996-12-30', DATE '1997-03-24', INTERVAL '7 days') AS w\n),\nq1 AS (\n    SELECT DATE_TRUNC('week', o.order_date)::date AS week_start, SUM(___)::numeric AS revenue\n    FROM orders o JOIN order_details d ON ___\n    WHERE o.order_date >= DATE '1997-01-01' AND o.order_date < ___\n    GROUP BY 1\n)\nSELECT w.week_start, COALESCE(ROUND(q1.revenue, 2), 0) AS revenue\nFROM weeks w LEFT JOIN q1 ON ___ ORDER BY w.week_start;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "performance",
+          "symptom": "The query scans the whole orders table even with an index on `order_date`.",
+          "cause": "`WHERE EXTRACT(QUARTER FROM order_date) = 1 AND EXTRACT(YEAR FROM order_date) = 1997` applies a function to the column, so the index cannot be used.",
+          "fix": "Filter with a half-open range on the bare column."
+        },
+        {
+          "category": "filter",
+          "symptom": "Orders on 31 March are missing from the last week.",
+          "cause": "`BETWEEN '1997-01-01' AND '1997-03-31'` stops at midnight when the column holds a timestamp.",
+          "fix": "Use `< DATE '1997-04-01'` as the upper bound."
+        },
+        {
+          "category": "join",
+          "symptom": "Weeks with no sales are missing.",
+          "cause": "Only the orders were grouped; there is no calendar of weeks to join back.",
+          "fix": "Generate the weeks and LEFT JOIN the revenue onto them."
+        },
+        {
+          "category": "null",
+          "symptom": "Empty weeks show NULL revenue.",
+          "cause": "The left join produces NULL when a week has no orders.",
+          "fix": "COALESCE the revenue to 0."
+        }
+      ],
+      "constraints": [
+        "Every week of Q1 1997 appears, even without sales.",
+        "The date filter must be sargable."
+      ],
+      "realWorld": "Weekly revenue series for charts must include zero weeks, and the filter must stay index-friendly as the orders table grows to millions of rows.",
+      "commonMistakes": [
+        "Wrapping the indexed column in a function."
+      ],
+      "interviewRelevance": "Spotting the non-sargable filter and filling gaps with a generated calendar are two classic 'senior' SQL follow-ups."
+    },
+    "sql:q167-customers-inactive-in-last-six-months": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "'No order since the cut-off' is a statement about a customer's latest order, and a customer with no orders at all also qualifies."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "Aggregate with `MAX(order_date)` per customer from a LEFT JOIN. A NULL maximum means never ordered, and `NULL < date` is not true, so test `IS NULL` explicitly."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Left join customers to orders, group to get each customer's latest order date, and keep customers whose date is NULL or older than six months before the fixed 'today'."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH last_orders AS (\n    SELECT c.customer_id, c.company_name, c.country,\n           MAX(o.order_date) AS last_order_date, COUNT(o.order_id) AS lifetime_orders\n    FROM customers c LEFT JOIN orders o ON ___\n    GROUP BY c.customer_id, c.company_name, c.country\n)\nSELECT ..., (DATE '1998-12-31' - last_order_date) AS days_since_last_order\nFROM last_orders\nWHERE last_order_date IS NULL OR last_order_date < ___\nORDER BY last_order_date NULLS FIRST, customer_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "null",
+          "symptom": "Customers who never ordered are missing.",
+          "cause": "`last_order_date < cutoff` is not true when the date is NULL.",
+          "fix": "Add `OR last_order_date IS NULL`."
+        },
+        {
+          "category": "filter",
+          "symptom": "Customers who ordered recently are listed because they also have an old order.",
+          "cause": "The date filter was applied to rows before grouping.",
+          "fix": "Group first, then filter on the customer's latest date."
+        },
+        {
+          "category": "join",
+          "symptom": "Customers with no orders are not listed.",
+          "cause": "INNER JOIN removed them.",
+          "fix": "LEFT JOIN from customers."
+        },
+        {
+          "category": "performance",
+          "symptom": "The list changes every day.",
+          "cause": "`CURRENT_DATE` was used instead of the fixed 'today' of 1998-12-31.",
+          "fix": "Use the fixed DATE literal."
+        }
+      ],
+      "constraints": [
+        "No order on or after 1998-06-30.",
+        "Never-ordered customers included."
+      ],
+      "realWorld": "Churn lists drive win-back campaigns and need a reproducible reference date.",
+      "commonMistakes": [
+        "Filtering rows rather than customers."
+      ]
+    },
+    "sql:q177-product-price-bands": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Turning a number into a label is a decision with ordered ranges. Order and boundaries matter because the first true branch wins."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`CASE WHEN cond THEN value ... ELSE value END` evaluates the branches top to bottom. Comparison with `<` makes the boundaries exclusive."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Check the lowest range first with `< 20`, then `< 50`, and let everything else be 'Premium' through ELSE."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT product_id, product_name, unit_price,\n       CASE\n           WHEN unit_price < ___ THEN 'Budget'\n           WHEN unit_price < ___ THEN 'Mid-range'\n           ELSE 'Premium'\n       END AS price_band\nFROM products ORDER BY product_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "filter",
+          "symptom": "Every cheap product is labelled 'Mid-range'.",
+          "cause": "The branch `< 50` was written before `< 20`, so it matches first.",
+          "fix": "Order the branches from the smallest range upwards."
+        },
+        {
+          "category": "filter",
+          "symptom": "The price 50 lands in the wrong band.",
+          "cause": "`BETWEEN 20 AND 50` is inclusive at both ends and overlaps the next band.",
+          "fix": "Use `< 50` for Mid-range."
+        },
+        {
+          "category": "syntax",
+          "symptom": "`ERROR: syntax error at or near \"AS\"`.",
+          "cause": "`END` is missing before the alias.",
+          "fix": "Close the CASE with END, then write the alias."
+        }
+      ],
+      "constraints": [
+        "Budget: under 20; Mid-range: 20 to under 50; Premium: 50 and above."
+      ],
+      "realWorld": "Price bands, age groups and score tiers are all CASE expressions, and boundary mistakes are the most common bug.",
+      "commonMistakes": [
+        "Overlapping ranges."
+      ]
+    },
+    "sql:q180-pivot-category-revenue-by-year": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "A pivot turns the values of a column (years) into separate columns: one conditional sum per year, grouped by category only."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`SUM(x) FILTER (WHERE year = 1996)` or `SUM(CASE WHEN year = 1996 THEN x END)` add only the matching rows. `COALESCE(..., 0)` handles a year with no sales."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Join categories to products, order lines and orders, group by category, and compute one conditional sum for each year plus a total."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT c.category_name,\n       ROUND(COALESCE(SUM(___) FILTER (WHERE EXTRACT(YEAR FROM o.order_date) = 1996), 0)::numeric, 2) AS rev_1996,\n       ...,\n       ROUND(SUM(___)::numeric, 2) AS rev_total\nFROM categories c JOIN products p ON ___ JOIN order_details od ON ___ JOIN orders o ON ___\nGROUP BY c.category_id, c.category_name ORDER BY c.category_name;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "grouping",
+          "symptom": "The result has one row per category and year again.",
+          "cause": "`year` was added to GROUP BY, which un-pivots the table.",
+          "fix": "Group by category only; put the year inside the conditional sums."
+        },
+        {
+          "category": "null",
+          "symptom": "A year with no sales shows NULL and breaks later arithmetic.",
+          "cause": "SUM of no rows is NULL.",
+          "fix": "Wrap the conditional sum in COALESCE(..., 0)."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Revenue totals are the same in every year column.",
+          "cause": "The condition is missing or always true, so each column sums everything.",
+          "fix": "Apply the year condition inside each aggregate."
+        }
+      ],
+      "constraints": [
+        "Columns for 1996, 1997, 1998 and a total.",
+        "Years are hard-coded."
+      ],
+      "realWorld": "Board packs and spreadsheets want one column per period; a pivot query produces them without a pivot table tool.",
+      "commonMistakes": [
+        "Forgetting that new years need a query change."
+      ],
+      "alternatives": [
+        {
+          "title": "Portable CASE instead of FILTER",
+          "code": "SELECT\n    c.category_name,\n    ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM o.order_date) = 1996 THEN od.unit_price * od.quantity * (1 - od.discount) END), 0)::numeric, 2) AS rev_1996,\n    ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM o.order_date) = 1997 THEN od.unit_price * od.quantity * (1 - od.discount) END), 0)::numeric, 2) AS rev_1997,\n    ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM o.order_date) = 1998 THEN od.unit_price * od.quantity * (1 - od.discount) END), 0)::numeric, 2) AS rev_1998,\n    ROUND(SUM(od.unit_price * od.quantity * (1 - od.discount))::numeric, 2) AS rev_total\nFROM categories c\nJOIN products p ON p.category_id = c.category_id\nJOIN order_details od ON od.product_id = p.product_id\nJOIN orders o ON o.order_id = od.order_id\nGROUP BY c.category_id, c.category_name\nORDER BY c.category_name;\n",
+          "note": "SUM(CASE ...) works on every SQL database; FILTER is standard SQL but missing from MySQL and SQL Server. FILTER is tidier in PostgreSQL because the condition is not nested inside the expression."
+        }
+      ]
+    },
+    "sql:q159-orders-per-year-and-month": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Grouping by calendar month needs both year and month in the key, otherwise January 1996 and January 1997 merge."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`EXTRACT(YEAR FROM date)` and `EXTRACT(MONTH FROM date)` pull the parts; cast them to `int` for clean output. `COUNT(*)` counts orders per group."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Group orders by the extracted year and month, count them, and sort by year then month using numeric values."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT EXTRACT(YEAR FROM order_date)::int  AS order_year,\n       EXTRACT(MONTH FROM order_date)::int AS order_month,\n       COUNT(*) AS order_count\nFROM orders\nGROUP BY ___, ___\nORDER BY order_year, order_month;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "grouping",
+          "symptom": "Each month shows the total across all years.",
+          "cause": "GROUP BY month only.",
+          "fix": "Group by year and month."
+        },
+        {
+          "category": "syntax",
+          "symptom": "Months come out as January, April, August... in alphabetical order.",
+          "cause": "`TO_CHAR(order_date, 'Month')` produces text, which sorts alphabetically.",
+          "fix": "Sort by the numeric month."
+        },
+        {
+          "category": "performance",
+          "symptom": "A filter added later on the same column is slow.",
+          "cause": "Grouping and filtering with EXTRACT hides the column from indexes; range filters on the raw column are index-friendly.",
+          "fix": "Filter with date ranges and keep EXTRACT for output only."
+        }
+      ],
+      "constraints": [
+        "One row per year-month that has orders.",
+        "Months without orders do not appear."
+      ],
+      "realWorld": "Monthly activity counts are the backbone of seasonality charts; filling in zero months needs a generated calendar.",
+      "commonMistakes": [
+        "Expecting months with zero orders to appear."
+      ]
+    },
+    "sql:q205-median-and-90th-percentile-order-value-per-employee": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Percentiles are computed over the distribution of order values, so you first need one total per order, then group those totals by employee."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "`PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value)` interpolates a percentile; `PERCENTILE_DISC` returns an actual value. They are ordered-set aggregates used with GROUP BY."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Step one: order total per order. Step two: per employee, count, mean, median and 90th percentile of those totals. Round after casting to numeric."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nWITH order_values AS (\n    SELECT o.order_id, o.employee_id, SUM(___)::numeric AS order_value\n    FROM orders o JOIN order_details d ON ___\n    GROUP BY o.order_id, o.employee_id\n)\nSELECT e.employee_id, e.first_name, e.last_name, COUNT(*) AS orders,\n       ROUND(AVG(order_value), 2) AS mean_value,\n       ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ___)::numeric, 2) AS median_value,\n       ...\nFROM order_values ov JOIN employees e ON ___\nGROUP BY e.employee_id, e.first_name, e.last_name\nORDER BY median_value DESC, e.employee_id;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "aggregation",
+          "symptom": "The median is the median line amount, not the median order.",
+          "cause": "Percentiles were computed over `order_details` rows instead of per-order totals.",
+          "fix": "Aggregate to one value per order first."
+        },
+        {
+          "category": "syntax",
+          "symptom": "ROUND on a PERCENTILE_CONT result fails with `function round(double precision, integer) does not exist`.",
+          "cause": "PERCENTILE_CONT returns double precision and ROUND(x, 2) needs numeric.",
+          "fix": "Cast to numeric before rounding."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "The 90th percentile is a value that does not occur in the data.",
+          "cause": "PERCENTILE_CONT interpolates between neighbouring values; that is its definition.",
+          "fix": "Use PERCENTILE_DISC if an actual observed value is required."
+        }
+      ],
+      "constraints": [
+        "Percentiles over per-order totals.",
+        "Sorted by median descending, then employee id."
+      ],
+      "realWorld": "Averages hide outliers; medians and p90 describe a typical and a high-end order, which is how sales and latency metrics are normally reported.",
+      "commonMistakes": [
+        "Mixing up CONT and DISC."
+      ]
+    },
+    "sql:q206-product-pairs-frequently-bought-together": {
+      "hints": [
+        {
+          "level": 1,
+          "title": "Concept",
+          "body": "Pairs of products in the same order come from joining the order lines table to itself on the order id, then counting how many orders each pair shares."
+        },
+        {
+          "level": 2,
+          "title": "Syntax or concept to use",
+          "body": "A self-join with two aliases of `order_details`. Requiring `b.product_id > a.product_id` makes each pair appear once and removes pairs of a product with itself."
+        },
+        {
+          "level": 3,
+          "title": "Approach",
+          "body": "Join order lines to order lines on the same order with the greater-than condition, add product names with two more joins, group by the pair, count, and keep pairs with at least two orders."
+        },
+        {
+          "level": 4,
+          "title": "Structured steps",
+          "body": "```sql\nSELECT a.product_id AS product_a, pa.product_name AS name_a,\n       b.product_id AS product_b, pb.product_name AS name_b,\n       COUNT(*) AS orders_together\nFROM order_details a\nJOIN order_details b ON b.order_id = a.order_id AND b.product_id ___ a.product_id\nJOIN products pa ON ___\nJOIN products pb ON ___\nGROUP BY a.product_id, pa.product_name, b.product_id, pb.product_name\nHAVING COUNT(*) >= 2\nORDER BY orders_together DESC, product_a, product_b;\n```"
+        }
+      ],
+      "debugging": [
+        {
+          "category": "join",
+          "symptom": "Every pair appears twice, once in each direction.",
+          "cause": "The join used `<>` between the product ids.",
+          "fix": "Use `>` (or `<`) so only one direction survives."
+        },
+        {
+          "category": "join",
+          "symptom": "The counts are huge and pairs are unrelated.",
+          "cause": "The self-join was on `product_id` instead of `order_id`.",
+          "fix": "Join the two aliases on the same order."
+        },
+        {
+          "category": "aggregation",
+          "symptom": "Counts are inflated if a product repeats within an order.",
+          "cause": "COUNT(*) counts every pair of lines, not every order.",
+          "fix": "Count distinct order ids if a product can repeat."
+        }
+      ],
+      "constraints": [
+        "Each unordered pair appears once.",
+        "Only pairs found in at least two orders."
+      ],
+      "realWorld": "Market-basket analysis behind 'frequently bought together' recommendations starts from exactly this self-join.",
+      "commonMistakes": [
+        "Not removing mirror pairs."
+      ],
+      "interviewRelevance": "Product pairs in the same basket is a popular analytics interview question; the follow-up asks about performance on large order tables."
+    }
+  }
+}

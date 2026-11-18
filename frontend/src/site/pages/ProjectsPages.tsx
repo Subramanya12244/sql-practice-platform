@@ -20,6 +20,8 @@ import { track } from "../lib/activity";
 import { ProjectCelebration } from "../components/ProjectCelebration";
 import { PythonWorkspace } from "../components/PythonWorkspace";
 import { HelpTooltip } from "../help/HelpTooltip";
+import { LinkedExerciseList } from "../components/learn/WorkspacePractice";
+import { exercisesForTask } from "../lib/workspaceLinks";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
 
@@ -156,6 +158,7 @@ function TaskPanel({ task, project, progress, onChange, mounted, next }: {
         <span className="text-[11px] uppercase tracking-wider text-ink-faint">{task.type === "sql" ? `SQL · ${project.dataset}` : task.type === "python" ? "Python" : task.type === "decision" ? "Design decision" : "Manual step"}</span>
       </div>
       <Markdown source={task.instructions} className="mt-2 text-sm" />
+      {(task.type === "sql" || task.type === "python") && <LinkedExerciseList items={exercisesForTask(project.slug, task.id)} />}
       {task.type === "decision" ? (
         <DecisionBlock task={task} result={result} onAnswer={(ok) => record({ ok, message: ok ? "Good choice." : "Not the best fit here: read why below." })} />
       ) : task.type === "checklist" ? (

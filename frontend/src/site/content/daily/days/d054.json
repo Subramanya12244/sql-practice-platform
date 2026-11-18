@@ -39,7 +39,7 @@
       "hints": [
         "The anchor member is SELECT 1; the recursive member adds 1 to the previous n.",
         "Stop the recursion with WHERE n < 8 in the recursive member. Compute n * n in the final SELECT.",
-        "WITH RECURSIVE nums (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM nums WHERE n < 8) SELECT n, n * n AS square FROM nums ORDER BY n."
+        "Run it and check that you get eight rows with `n` from 1 to 8. If the recursion never stops or stops one row early, look at the condition in the recursive member."
       ]
     },
     {

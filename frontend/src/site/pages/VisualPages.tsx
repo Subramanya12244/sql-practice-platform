@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Container, PageHeader, Skeleton } from "../components/ui";
 import { Seo, breadcrumbs } from "../lib/seo";
 import { PythonTimeMachine } from "../components/visual/PythonTimeMachine";
+import { DataStudio } from "../components/visual/DataStudio";
 import { ApiStudio } from "../components/visual/ApiStudio";
 import { EtlPlayback } from "../components/visual/EtlPlayback";
 import { ChartExplorer } from "../components/visual/ChartExplorer";
@@ -80,17 +81,6 @@ const PY_PRESETS: Preset[] = [
   { label: "Stack and queue", code: "from collections import deque\nstack = []\nstack.append(1)\nstack.append(2)\ntop = stack.pop()\nqueue = deque([1, 2, 3])\nfirst = queue.popleft()\n" },
 ];
 
-const DATA_PRESETS: Preset[] = [
-  { label: "Filter and sort", code: "import pandas as pd\ndf = pd.DataFrame({'city': ['Oslo', 'Rome', 'Lima', 'Kyiv'], 'sales': [120, 75, 200, 90]})\nbig = df[df['sales'] > 80]\nbig = big.sort_values('sales', ascending=False)\n" },
-  { label: "GroupBy and aggregate", code: "import pandas as pd\ndf = pd.DataFrame({'team': ['a', 'b', 'a', 'b', 'a'], 'pts': [3, 5, 4, 1, 2]})\ntotals = df.groupby('team')['pts'].sum()\navg = df.groupby('team')['pts'].mean().reset_index()\n" },
-  { label: "Merge", code: "import pandas as pd\nusers = pd.DataFrame({'id': [1, 2, 3], 'name': ['Ana', 'Ben', 'Chen']})\norders = pd.DataFrame({'user_id': [1, 1, 3], 'amount': [10, 20, 5]})\njoined = users.merge(orders, left_on='id', right_on='user_id', how='left')\n" },
-  { label: "Missing values and types", code: "import pandas as pd\ndf = pd.DataFrame({'a': ['1', '2', 'x'], 'b': [1.5, None, 3.0]})\ndf['b'] = df['b'].fillna(0)\ndf['a'] = pd.to_numeric(df['a'], errors='coerce')\nclean = df.dropna()\n" },
-  { label: "Pivot and melt", code: "import pandas as pd\nlong = pd.DataFrame({'m': ['Jan', 'Jan', 'Feb', 'Feb'], 'k': ['x', 'y', 'x', 'y'], 'v': [1, 2, 3, 4]})\nwide = long.pivot(index='m', columns='k', values='v')\nback = wide.reset_index().melt(id_vars='m')\n" },
-  { label: "Duplicates and concat", code: "import pandas as pd\na = pd.DataFrame({'id': [1, 2, 2], 'v': [10, 20, 20]})\nb = pd.DataFrame({'id': [3], 'v': [30]})\nall_rows = pd.concat([a, b], ignore_index=True)\nunique = all_rows.drop_duplicates()\n" },
-  { label: "NumPy broadcasting", code: "import numpy as np\na = np.arange(6).reshape(2, 3)\nb = np.array([10, 20, 30])\nc = a + b\ncol = np.array([[100], [200]])\nd = a + col\n" },
-  { label: "Masks, slicing, aggregation", code: "import numpy as np\nx = np.array([[1, 5, 9], [2, 6, 3]])\nmask = x > 4\nbig = x[mask]\nrow = x[0, :]\ncol_sums = x.sum(axis=0)\nflat = x.reshape(6)\n" },
-];
-
 function Page({ title, path, description, help, children }: { title: string; path: string; description: string; help: HelpId; children: React.ReactNode }) {
   return (
     <Container wide>
@@ -107,11 +97,14 @@ export const PythonVisualPage = () => (
     <CodeLab presets={PY_PRESETS} mode="variables" intro="Edit the code or pick an example, then press Explain visually. The trace is recorded from a real run in your browser; the memory view is a simplified teaching model." />
   </Page>
 );
-export const DataVisualPage = () => (
-  <Page title="Pandas and NumPy Visual Studio" path="/visual/data" help="data" description="Watch DataFrames and arrays change step by step, with before and after tables, changed cells, shapes, dtypes and missing values.">
-    <CodeLab presets={DATA_PRESETS} mode="data" intro="Each step shows the real table or array your code produced. Changed cells are highlighted, with shape and dtype changes explained." />
-  </Page>
-);
+export const DataVisualPage = () => {
+  const preset = usePreset(); // old and new preset ids both resolve (workspace/adapters/data/presets.ts)
+  return (
+    <Page title="Pandas and NumPy Visual Studio" path="/visual/data" help="data" description="Watch DataFrames and arrays change step by step, with before and after tables, changed cells, shapes, dtypes and missing values.">
+      <DataStudio key={preset ?? "default"} presetParam={preset} />
+    </Page>
+  );
+};
 export const ApiVisualPage = () => (
   <Page title="API Request and Response Studio" path="/visual/api" help="api" description="Follow a request from URL and headers to response, status, JSON parsing, pagination, retries and backoff on a safe mock server.">
     <div className="pb-16"><ApiStudio /></div>
@@ -129,10 +122,17 @@ export const ChartsVisualPage = () => (
 );
 
 /** The lesson links a tool with ?preset=<id> to start on the example that matches it. */
-const usePreset = () => useSearchParams()[0].get("preset") ?? undefined;
+// The prerendered page has no query string, so the first client render must not read it either (React would report a hydration
+// mismatch, #418/#425). The value appears after mount, and callers key their content on it so the tool restarts on the right example.
+const usePreset = () => {
+  const q = useSearchParams()[0].get("preset") ?? undefined;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted ? q : undefined;
+};
 function PresetPage({ title, path, help, description, children }: { title: string; path: string; help: HelpId; description: string; children: (preset?: string) => React.ReactNode }) {
   const preset = usePreset();
-  return <Page title={title} path={path} help={help} description={description}><div className="pb-16">{children(preset)}</div></Page>;
+  return <Page title={title} path={path} help={help} description={description}><div key={preset ?? "default"} className="pb-16">{children(preset)}</div></Page>;
 }
 export const TreeVisualPage = () => <PresetPage title="Tree Explorer" path="/visual/tree" help="tree" description="Build binary and binary search trees, then watch insertion, search, deletion and traversals step by step.">{(p) => <TreeExplorer preset={p} />}</PresetPage>;
 export const GraphVisualPage = () => <PresetPage title="Graph Explorer" path="/visual/graph" help="graph" description="Run BFS, DFS, shortest paths, cycle detection and connected components, with the queue or stack and visited set on screen.">{(p) => <GraphExplorer preset={p} />}</PresetPage>;
