@@ -176,6 +176,10 @@ Fix: the card is the flat ink card with the blue rule and the lockup (`docs/imag
 
 Both are in commit `301d86f`.
 
+**Defect 3. The 150 per-question social cards typed the brand name as system-font text.**
+Found after the first deployment, from a screenshot of the live card next to the live question page: the card had the mark alone at the top right and "DataForge" as plain text in whatever font the build machine had (Arial-style on CI), so it did not match the header lockup. It was missed in this review because the review looked at the default card and the mark, not the typed text on the per-question cards.
+Fix: `scripts/build-site.mjs` now draws the same outlined lockup as the header and the default card, top-left, with "SQL practice · Q#" on the right. A unit test checks that the card template draws the outlined wordmark and has no typed brand name. The rebuilt card was inspected (Q1) and 150 images were generated. This fix was made after the first deployment (`d5a27d0`), in a second commit.
+
 **Not fixed, existing, unrelated:** the 2 px overflow on `/projects-lab` at 1024 px, the large-text overflow on Learn Hub and Projects Lab cards, and the eight Firefox and WebKit regression failures. All were reproduced on production's old build.
 
 ## 11. Checks run

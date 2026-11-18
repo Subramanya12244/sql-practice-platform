@@ -178,6 +178,14 @@ describe("manifest, HTML head and tokens agree", () => {
     expect(BRAND.colors.primary).toBe(C.blue);
   });
 
+  it("the per-question social cards draw the outlined lockup, so the brand name never depends on the build machine's fonts", () => {
+    const s = read("scripts/build-site.mjs");
+    expect(s).toContain("WORDMARK.data");
+    expect(s).toContain("WORDMARK.forge");
+    expect(s).toContain("lockupMetrics()");
+    expect(s).not.toMatch(/>DataForge/); // no typed brand name in the card template
+  });
+
   it("the old gradient identity is gone", () => {
     for (const f of ["public/manifest.webmanifest", "public/favicon.svg", "src/components/BrandMark.tsx", "src/brand.ts", "scripts/build-site.mjs"]) {
       const s = read(f).toLowerCase();
