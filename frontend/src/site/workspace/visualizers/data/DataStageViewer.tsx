@@ -1,10 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { PlaybackBar, ProvenanceBadge, usePlayback } from "../../../components/visual/Playback";
 import { DataFrameView } from "../../../components/visual/DataFrameView";
 import { ArrayView } from "../../../components/visual/ArrayView";
 import { BroadcastView } from "../../../components/visual/BroadcastView";
 import { rowMarks, isTabular, type DataModelData, type DataSnap, type DataStage, type StageAnalysis } from "../../../lib/visual/dataframe";
 import { crossCheckBroadcast, numpyShape, pyShape } from "../../../lib/visual/broadcast";
+import { beatAt, buildDataBeats } from "../../../lib/visual/dataBeats";
+import { StoryPanel } from "../../../components/visual/StoryPanel";
+import { PandasBeatView } from "../../../components/visual/PandasBeatView";
+import { NumpyBeatView } from "../../../components/visual/NumpyBeatView";
 import type { VisualizerProps } from "../../types";
 
 const box = "rounded-xl border border-surface-border bg-surface-raised p-3";
@@ -69,7 +73,8 @@ function Facts({ st, an }: { st: DataStage; an: StageAnalysis }) {
   );
 }
 
-function StageBody({ st, an, reducedMotion }: { st: DataStage; an: StageAnalysis; reducedMotion: boolean }) {
+/** `explain` is false when the story panel above already says the same sentence (the story's "what" is the analysis explanation). */
+function StageBody({ st, an, reducedMotion, explain = true }: { st: DataStage; an: StageAnalysis; reducedMotion: boolean; explain?: boolean }) {
   const before = st.kind === "change" ? st.inputs[0] : null;
   const names = st.inputs.map((_, i) => (st.inputs.length > 1 ? `operand ${i + 1}` : `input`));
   return (
@@ -81,7 +86,7 @@ function StageBody({ st, an, reducedMotion }: { st: DataStage; an: StageAnalysis
         {st.stmt !== st.expr && <p className="mt-0.5 text-[11px] text-ink-faint">Statement: <code>{st.stmt}</code></p>}
       </div>
       {st.error && <p role="alert" className="rounded-lg border border-danger/30 bg-danger-dim px-3 py-2 text-sm text-danger"><span className="font-semibold">{st.error.type}: </span>{st.error.msg}</p>}
-      <p className="text-sm text-ink" data-explanation>{an.explanation}</p>
+      {explain && <p className="text-sm text-ink" data-explanation>{an.explanation}</p>}
       <Facts st={st} an={an} />
       {an.nd?.broadcast && <div className={box}><p className={h}>Broadcasting</p><BroadcastView table={an.nd.broadcast} names={names} errorText={st.error?.msg} check={crossCheckBroadcast(an.nd.broadcast, st.error ? { errorText: st.error.msg } : { resultShape: st.output?.shape })} /></div>}
       {an.nd?.matmul && (
@@ -120,30 +125,48 @@ function StageBody({ st, an, reducedMotion }: { st: DataStage; an: StageAnalysis
   );
 }
 
-/** Steps through the stages of a DataModelData with the shared player. Controlled by `step`. */
+/**
+ * Steps through the beats of a DataModelData with the shared player. Controlled by `step`. A beat is one idea of one stage (see
+ * lib/visual/dataBeats.ts): the story panel gives the four answers for it, the beat's own picture shows the real data it uses, and the
+ * full stage (code, shapes, every table) stays one click away. Stages without a dedicated picture show the generic stage.
+ */
 export function DataStageViewer({ model, step, onStepChange, reducedMotion, hostPlayer }: VisualizerProps) {
   const data = model.data as DataModelData;
-  const count = data.stages.length;
+  const beats = useMemo(() => buildDataBeats(data), [data]);
+  const count = beats.length;
   const pb = usePlayback(count);
   // `sent` is the last step both sides agree on. The player starts at 0; each side only pushes a value the other has not seen, so the two never ping-pong.
   const sent = useRef(0);
   useEffect(() => { if (pb.index !== sent.current) { sent.current = pb.index; onStepChange(pb.index); } }, [pb.index]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (step !== sent.current) { sent.current = step; pb.dispatch({ type: "seek", index: step }); } }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
   const i = Math.max(0, Math.min(count - 1, step));
-  const st = data.stages[i], an = data.analyses[i];
+  const beat = beatAt(beats, i);
+  const st = beat ? data.stages[beat.stage] : undefined, an = beat ? data.analyses[beat.stage] : undefined;
+  const picture = beat && st && an ? (beat.view.owner === "pandas" ? PandasBeatView({ beat, stage: st, analysis: an, reducedMotion }) : beat.view.owner === "numpy" ? NumpyBeatView({ beat, stage: st, analysis: an, reducedMotion }) : null) : null;
   return (
     <div className="min-w-0 space-y-3" data-data-visualizer={data.domain}>
       <div className="flex flex-wrap items-center gap-2">
         <ProvenanceBadge p={model.provenance} />
         <span className="text-xs text-ink-faint">Real values from running your code in Pyodide{data.libs.numpy ? ` · numpy ${data.libs.numpy}` : ""}{data.libs.pandas ? ` · pandas ${data.libs.pandas}` : ""}</span>
       </div>
-      {count === 0 ? (
+      {count === 0 || !beat || !st || !an ? (
         <p className="text-sm text-ink-muted">Your code ran, but it created no DataFrame, Series or array to show.</p>
       ) : (
         <>
-          {!hostPlayer && <PlaybackBar pb={pb} labels={data.analyses.map((a) => a.title)} />}
-          <p className="text-sm font-semibold text-ink" aria-live="polite">Stage {i + 1} of {count}: <code className="font-mono font-normal">{an.title}</code></p>
-          <StageBody key={i} st={st} an={an} reducedMotion={reducedMotion} />
+          {!hostPlayer && <PlaybackBar pb={pb} labels={beats.map((b) => (b.of > 1 ? `${data.analyses[b.stage].title}: ${b.title}` : b.title))} />}
+          <p className="text-sm font-semibold text-ink" aria-live="polite">Stage {beat.stage + 1} of {data.stages.length}: <code className="font-mono font-normal">{an.title}</code>{beat.of > 1 && <span className="ml-2 text-xs font-normal text-ink-muted" data-beat={beat.id}>part {beat.beat + 1} of {beat.of}: {beat.title}</span>}</p>
+          <StoryPanel story={beat.story} stepKey={beat.id} step={i + 1} total={count} reduced={reducedMotion} />
+          {picture ? (
+            <>
+              <div data-testid="beat-picture" data-beat-type={beat.view.type} className="min-w-0">{picture}</div>
+              <details className="text-xs" data-testid="stage-details">
+                <summary className="cursor-pointer text-ink-muted">Code, shapes and every table for this stage</summary>
+                <div className="mt-2"><StageBody key={beat.stage} st={st} an={an} reducedMotion={reducedMotion} /></div>
+              </details>
+            </>
+          ) : (
+            <StageBody key={beat.stage} st={st} an={an} reducedMotion={reducedMotion} explain={beat.view.owner !== "generic"} />
+          )}
         </>
       )}
       {data.seeds.seeds.length > 0 && <p className="text-xs text-ink-muted">Random numbers are seeded with {data.seeds.seeds.join(", ")}, so every run gives the same values.</p>}

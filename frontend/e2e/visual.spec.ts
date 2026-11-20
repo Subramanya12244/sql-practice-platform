@@ -53,7 +53,7 @@ test("Pandas studio: real DataFrames, changed cells highlighted", async ({ page 
   await page.getByRole("group", { name: "Playback controls" }).focus();
   await page.keyboard.press("End");
   await expect(page.getByRole("tab", { name: "Tables and arrays" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("table", { name: /Current value|After|Before/ }).first()).toBeVisible();
+  await expect(page.getByRole("table", { name: /Current value|After|Before|Result/ }).first()).toBeVisible(); // a result beat draws the real DataFrame under the story
 });
 
 test("API studio, ETL playback and chart explorer respond", async ({ page }) => {

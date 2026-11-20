@@ -122,10 +122,12 @@ describe("stages and the player", () => {
     render(<SqlVisualizer model={{ provenance: "executed", data: { nope: 1 } }} step={0} onStepChange={() => undefined} reducedMotion />);
     expect(screen.getByRole("status").textContent).toMatch(/no SQL data/);
   });
-  it("the lazy component the adapter module exports renders the same visualizer", async () => {
+  it("the component the adapter module exports is the original Query Cinema view, marked standalone (own player and layout)", async () => {
+    expect((Visualizer as { standalone?: boolean }).standalone).toBe(true);
     const m = await modelFor(JOIN);
-    render(<SqlBackendContext.Provider value={backend}><Visualizer model={m} step={0} onStepChange={() => undefined} reducedMotion /></SqlBackendContext.Provider>);
-    await waitFor(() => expect(screen.getByTestId("sql-visualizer")).toBeTruthy(), { timeout: 15_000 });
+    const { unmount } = render(<Visualizer model={m} step={0} onStepChange={() => undefined} reducedMotion />);
+    expect(screen.getByRole("status").textContent).toMatch(/Loading the query visualizer/); // the lazy original view (VizView) loads next
+    unmount();
   });
 });
 

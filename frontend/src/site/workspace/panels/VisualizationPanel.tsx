@@ -30,11 +30,13 @@ export function VisualizationPanel({ exercise: ex, adapter, Visualizer, session:
   }
   const v = s.visual;
   const model = v.status === "ready" ? v.model : null;
+  // A standalone visualizer (the SQL Query Cinema) draws its own player, badge, notes and layout: the panel adds none of them.
+  const standalone = !!(Visualizer as { standalone?: boolean } | undefined)?.standalone;
   return (
     <div className="space-y-3 text-sm" data-testid="workspace-visual">
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" className={btnSecondary} onClick={() => void s.visualize()} disabled={s.busy}><Eye className="h-4 w-4" aria-hidden />{model ? "Rebuild from my code" : "Visualize my run"}</button>
-        <MotionToggle className="ml-auto" />
+        {!standalone && <MotionToggle className="ml-auto" />}
       </div>
       {ex.visualization?.note && <p className="text-xs text-ink-muted">{ex.visualization.note}</p>}
       {v.status === "idle" && <p className="text-ink-muted">Run your code, then press Visualize to see it step by step. The view is built from your own run, never from a canned example.</p>}
@@ -42,16 +44,16 @@ export function VisualizationPanel({ exercise: ex, adapter, Visualizer, session:
       {(v.status === "unavailable" || v.status === "error") && <p role="status" className="rounded-lg bg-surface-soft p-3 text-ink-muted">{v.status === "error" ? `The view could not be built: ${v.message}` : v.message}</p>}
       {model && (
         <>
-          <div className="flex flex-wrap items-center gap-2"><ProvenanceBadge p={model.provenance} />{s.stale && <span className="text-xs text-ink-faint">Built from an earlier version of your code.</span>}</div>
-          {model.notes?.length ? <ul className="list-disc space-y-0.5 pl-5 text-xs text-ink-muted">{model.notes.map((n, i) => <li key={i}>{n}</li>)}</ul> : null}
+          <div className="flex flex-wrap items-center gap-2">{!standalone && <ProvenanceBadge p={model.provenance} />}{s.stale && <span className="text-xs text-ink-faint">Built from an earlier version of your code.</span>}</div>
+          {!standalone && model.notes?.length ? <ul className="list-disc space-y-0.5 pl-5 text-xs text-ink-muted">{model.notes.map((n, i) => <li key={i}>{n}</li>)}</ul> : null}
           {Visualizer ? (
             <PanelBoundary label="The visualization">
-              <div className="max-h-[60vh] overflow-auto rounded-lg border border-surface-border bg-surface p-2" data-testid="visualizer-box">
-                <Visualizer model={model} step={s.pb.index} onStepChange={(i) => s.pb.dispatch({ type: "seek", index: i })} reducedMotion={s.reducedMotion} hostPlayer={s.steppable} />
+              <div className={standalone ? "min-w-0" : "max-h-[60vh] overflow-auto rounded-lg border border-surface-border bg-surface p-2"} data-testid="visualizer-box">
+                <Visualizer model={model} step={s.pb.index} onStepChange={(i) => s.pb.dispatch({ type: "seek", index: i })} reducedMotion={s.reducedMotion} hostPlayer={s.steppable && !standalone} />
               </div>
             </PanelBoundary>
           ) : <p className="text-ink-muted">This engine built the steps but has no viewer for them yet.</p>}
-          {s.steppable && <PlaybackBar pb={s.pb} />}
+          {s.steppable && !standalone && <PlaybackBar pb={s.pb} />}
         </>
       )}
       {limits}

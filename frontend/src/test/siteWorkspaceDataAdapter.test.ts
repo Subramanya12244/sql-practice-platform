@@ -6,6 +6,7 @@ import { createDataAdapter, adapterModule, NUMPY_CAPABILITIES, PANDAS_CAPABILITI
 import { normalizeModule } from "../site/workspace/registry";
 import type { ExerciseDef, RunContext } from "../site/workspace/types";
 import type { DataModelData } from "../site/lib/visual/dataframe";
+import { buildDataBeats } from "../site/lib/visual/dataBeats";
 import { cpythonRun, hasDataPython } from "./siteWorkspaceDataPy";
 
 const ex = (over: Partial<ExerciseDef> = {}): ExerciseDef => ({
@@ -58,7 +59,9 @@ describe.skipIf(!hasDataPython)("pandas adapter on real CPython", () => {
     expect(vm).not.toBeNull();
     expect(vm!.provenance).toBe("executed");
     const d = vm!.data as DataModelData;
-    expect(vm!.steps).toBe(d.stages.length);
+    // A step is a beat (one idea of one stage), and a stage is at least one beat: the filter stage is five beats now.
+    expect(vm!.steps).toBe(buildDataBeats(d).length);
+    expect(vm!.steps).toBeGreaterThanOrEqual(d.stages.length);
     expect(d.domain).toBe("pandas");
     expect(d.consistent).toBe(true);
     expect(d.analyses.find((x) => x.rowsRemoved === 1)).toBeDefined();

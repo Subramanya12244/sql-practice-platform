@@ -7,6 +7,9 @@ import { describeDataChange, diffGrids, gridOf } from "../../lib/visual/dataDiff
 import { analyzeSource } from "../../lib/visual/pyBranches";
 import { diagnoseAll } from "../../lib/visual/pyDiagnose";
 import { BranchPanel, DiagnosisCard, StepControls, TraceLimitations, useStepNote } from "./PyTracePanels";
+import { PyStoryBlock } from "./PyScene";
+import { pyStepStory } from "../../lib/visual/pyStory";
+import { useReducedMotion } from "../../lib/visual/motion";
 
 const cellCls = "border border-surface-border px-1.5 py-0.5 text-xs tabular-nums";
 
@@ -274,6 +277,10 @@ export function TraceViewer({ code, trace, mode = "variables" }: { code: string;
   // The same engines the workspace's Python visualizer uses (pyStepper, pyBranches, pyDiagnose): no second implementation here.
   const srcMap = useMemo(() => analyzeSource(code), [code]);
   const diagnoses = useMemo(() => (trace.error ? diagnoseAll({ source: code, trace }) : []), [code, trace]);
+  // The same four-part story and picture as the workspace's Python visualizer (lib/visual/pyStory.ts).
+  const reduced = useReducedMotion();
+  const storyCtx = useMemo(() => ({ code, source: srcMap, diagnoses }), [code, srcMap, diagnoses]);
+  const story = useMemo(() => (step ? pyStepStory(trace, i, storyCtx) : null), [trace, i, step, storyCtx]);
   if (!step) return <p className="text-sm text-ink-muted">The program recorded no steps (nothing to run).</p>;
   const last = trace.steps.length - 1;
   const exact = trace.counts ? trace.counts.exact : !trace.truncated;
@@ -301,6 +308,7 @@ export function TraceViewer({ code, trace, mode = "variables" }: { code: string;
 
   const right = (
     <>
+      {story && <PyStoryBlock result={story} step={i + 1} total={trace.steps.length} reducedMotion={reduced} />}
       <SampledNotice t={trace} />
       <div className="space-y-1.5">
         <p className="text-xs tabular-nums text-ink-muted" data-testid="step-position">{stepPosition(trace, i)}</p>

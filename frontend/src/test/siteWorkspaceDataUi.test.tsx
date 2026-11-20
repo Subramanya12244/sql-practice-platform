@@ -8,6 +8,7 @@ import { BroadcastView } from "../site/components/visual/BroadcastView";
 import { DataVisualizer, NumpyVisualizer, PandasVisualizer } from "../site/workspace/visualizers/data";
 import { Visualizer as LazyVisualizer } from "../site/workspace/visualizers/data/LazyDataVisualizer";
 import { alignShapes } from "../site/lib/visual/broadcast";
+import { buildDataBeats } from "../site/lib/visual/dataBeats";
 import { buildDataModel, runDataProbe, type DataModelData, type DataProbeResult, type DataStage } from "../site/lib/visual/dataframe";
 import type { VisualModel } from "../site/workspace/types";
 import { cpythonRun, hasDataPython } from "./siteWorkspaceDataPy";
@@ -19,6 +20,8 @@ async function modelOf(domain: "pandas" | "numpy", code: string): Promise<{ vm: 
   return { vm: { provenance: "executed", data, steps: p.stages.length }, p };
 }
 const stage = (p: DataProbeResult, op: string, n = 0): DataStage => p.stages.filter((s) => s.op === op)[n];
+/** The player step of a stage's first beat. A stage can be several beats now, so a step is no longer a stage index. */
+const firstBeat = (vm: VisualModel, stageIndex: number): number => buildDataBeats(vm.data as DataModelData).findIndex((b) => b.stage === stageIndex);
 
 function Host({ vm, reduced = false, start = 0, spy }: { vm: VisualModel; reduced?: boolean; start?: number; spy?: (n: number) => void }) {
   const [step, setStep] = useState(start);
@@ -161,15 +164,17 @@ describe.skipIf(!hasDataPython)("DataVisualizer steps through real stages", () =
   });
   it("merge: both tables with matched/no match words, the output with its origin, and the unmatched keys", async () => {
     const { vm } = await modelOf("pandas", "import pandas as pd\nu = pd.DataFrame({'id': [1, 2, 3]})\no = pd.DataFrame({'uid': [1, 3, 9]})\nr = u.merge(o, left_on='id', right_on='uid', how='outer')\n");
-    render(<Host vm={vm} start={2} />);
-    expect(screen.getByText("Left table")).toBeTruthy();
-    expect(screen.getByText("Right table")).toBeTruthy();
-    expect(screen.getAllByText("no match")).toHaveLength(2);
-    expect(screen.getByText("left only")).toBeTruthy();
-    expect(screen.getByText("right only")).toBeTruthy();
-    expect(screen.getByText("Left only").nextSibling!.textContent).toContain("keys 2");
-    expect(screen.getByText("Right only").nextSibling!.textContent).toContain("keys 9");
-    expect(screen.getByText(/outer merge on id \(left\) = uid \(right\)/)).toBeTruthy();
+    // The merge stage is four beats now; its full stage (both tables, origin marks, unmatched keys) is the collapsed details block of any of them.
+    render(<Host vm={vm} start={firstBeat(vm, 2)} />);
+    const full = within(screen.getByTestId("stage-details"));
+    expect(full.getByText("Left table")).toBeTruthy();
+    expect(full.getByText("Right table")).toBeTruthy();
+    expect(full.getAllByText("no match")).toHaveLength(2);
+    expect(full.getByText("left only")).toBeTruthy();
+    expect(full.getByText("right only")).toBeTruthy();
+    expect(full.getByText("Left only").nextSibling!.textContent).toContain("keys 2");
+    expect(full.getByText("Right only").nextSibling!.textContent).toContain("keys 9");
+    expect(full.getByText(/outer merge on id \(left\) = uid \(right\)/)).toBeTruthy();
   });
   it("groupby: the groups are shown before the aggregation", async () => {
     const { vm } = await modelOf("pandas", "import pandas as pd\ndf = pd.DataFrame({'k': ['a', 'b', 'a'], 'v': [1, 2, 3]})\nt = df.groupby('k')['v'].sum()\n");
@@ -180,7 +185,7 @@ describe.skipIf(!hasDataPython)("DataVisualizer steps through real stages", () =
   });
   it("numpy: broadcasting stage shows the table, the result array and a passed consistency check", async () => {
     const { vm } = await modelOf("numpy", "import numpy as np\na = np.arange(6).reshape(2, 3)\nb = np.array([10, 20, 30])\nc = a + b\n");
-    render(<Host vm={vm} start={3} />);
+    render(<Host vm={vm} start={firstBeat(vm, 3)} />); // changed with the NumPy beats: stage 3 is now several beats, step 3 is no longer that stage
     expect(screen.getByRole("table", { name: /Broadcasting/ })).toBeTruthy();
     expect(screen.getAllByText(/Shapes \(2,3\) and \(3,\) are compatible/).length).toBeGreaterThan(0);
     expect(screen.getByText("Output shape").nextSibling!.textContent).toBe("(2,3)");

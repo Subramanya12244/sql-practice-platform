@@ -143,7 +143,10 @@ test.describe("/visual/data on the shared data adapter", () => {
     await expect(page.getByRole("list", { name: "Source code" })).toBeVisible({ timeout: 240_000 });
     await expect(bar(page)).toBeVisible();
   };
-  const goToStage = async (page: Page, i: number) => { for (let k = await stepOf(page); k < i; k++) await page.getByRole("button", { name: "Next step" }).click(); };
+  // A stage can be several beats now (a step is a beat), so go by the stage heading, not by the step number.
+  const goToStage = async (page: Page, i: number) => { for (let k = 0; k < 80 && !(await page.getByText(new RegExp(`Stage ${i} of \\d+`)).first().isVisible()); k++) await page.getByRole("button", { name: "Next step" }).click(); };
+  // Beats that have their own picture keep the full stage (every table, the merge keys, the shapes) in a collapsed block.
+  const openDetails = async (page: Page) => { const d = page.getByTestId("stage-details"); if ((await d.count()) && !(await d.evaluate((e) => (e as HTMLDetailsElement).open))) await d.locator("summary").click(); };
 
   test("old ?preset= ids, new ids and aliases open on the right example", async ({ page }) => {
     const expectCode = async (q: string, snippet: string) => {
@@ -182,10 +185,12 @@ test.describe("/visual/data on the shared data adapter", () => {
     const n = await totalOf(page);
     let seen = false;
     for (let i = 0; i < n && !seen; i++) {
-      seen = await page.getByText("Matched keys").first().isVisible();
+      seen = (await page.getByText("Matched keys").count()) > 0; // in the merge stage's full panel (collapsed under its pictures)
       if (!seen) await page.getByRole("button", { name: "Next step" }).click();
     }
     expect(seen).toBe(true);
+    await openDetails(page);
+    await expect(page.getByText("Matched keys").first()).toBeVisible();
     await expect(page.getByText("Left only").first()).toBeVisible();
     await expect(page.getByText("Right only").first()).toBeVisible();
     await expect(page.getByText(/keys 2, 4/).first()).toBeVisible(); // users 2 and 4 have no order
@@ -196,11 +201,12 @@ test.describe("/visual/data on the shared data adapter", () => {
     await page.goto("/visual/data");
     await runStudio(page);
     await goToStage(page, 3);
+    await openDetails(page);
     await expect(page.getByText(/4 in, 3 retained, 1 removed, 3 out/).first()).toBeVisible();
     await expect(page.getByRole("tab", { name: "Tables and arrays" })).toHaveAttribute("aria-selected", "true");
     await bar(page).focus();
     await page.keyboard.press("End");
-    await expect(page.getByRole("table", { name: /Current value|After|Before/ }).first()).toBeVisible();
+    await expect(page.getByRole("table", { name: /Current value|After|Before|Result/ }).first()).toBeVisible();
   });
 
   test("invalid broadcast: the failing stage shows the conflicting axis and NumPy's real error text", async ({ page }) => {
@@ -227,7 +233,8 @@ test.describe("/visual/data on the shared data adapter", () => {
   test("invalid matmul shows the inner-dimension rule and NumPy's real error", async ({ page }) => {
     await page.goto("/visual/data?preset=np-matmul-bad");
     await runStudio(page);
-    await expect(page.locator("[data-matmul-valid='false']")).toBeVisible();
+    // The NumPy beat picture and the (collapsed) stage details both carry the marker; the visible one is the one the learner sees.
+    await expect(page.locator("[data-matmul-valid='false']:visible")).toBeVisible();
     await expect(page.getByText(/NumPy said:/).first()).toBeVisible();
     await expect(page.getByText(/matmul: Input operand 1 has a mismatch in its core dimension 0/).first()).toBeVisible();
   });

@@ -223,7 +223,8 @@ describe.skipIf(!hasPython)("PythonTraceVisualizer: motion and fallbacks", () =>
   const m = modelOf(CALLS);
   it("reduced motion: no transition classes and no smooth scrolling", () => {
     const scroll = vi.fn();
-    Element.prototype.scrollIntoView = scroll;
+    // The source pane now scrolls only itself (scrollTo on the list), so the story above it never scrolls out of view.
+    (Element.prototype as { scrollTo?: unknown }).scrollTo = scroll;
     const { container } = view(m, 3, { reducedMotion: true });
     expect(screen.getByTestId("python-visualizer").getAttribute("data-reduced-motion")).toBe("true");
     expect(container.innerHTML).not.toContain("transition-colors");

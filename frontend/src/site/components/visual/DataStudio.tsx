@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { PlaybackBar, ProvenanceBadge, usePlayback } from "./Playback";
 import { Skeleton } from "../ui";
 import { useReducedMotion } from "../../lib/visual/motion";
+import { beatAt, buildDataBeats } from "../../lib/visual/dataBeats";
 import { DATA_PRESETS, LEGACY_DATA_PRESETS, resolveDataPreset, type DataPreset } from "../../workspace/adapters/data/presets";
 import { numpyAdapter, pandasAdapter, type DataDomain } from "../../workspace/adapters/data/adapter";
 import { Visualizer } from "../../workspace/visualizers/data/LazyDataVisualizer";
@@ -164,7 +165,8 @@ export function DataStudio({ presetParam, run }: { presetParam?: string; run?: {
   const pick = (p: DataPreset) => { setCode(p.code); };
   const domain = dataDomainOf(code, DATA_PRESETS.find((p) => p.code === code));
   const limitations = adapters[domain].limitations ?? [];
-  const st = data?.stages[Math.min(pb.index, Math.max(0, (data?.stages.length ?? 1) - 1))];
+  const beats = useMemo(() => (data ? buildDataBeats(data) : []), [data]);
+  const st = data ? data.stages[beatAt(beats, pb.index)?.stage ?? 0] : undefined;
 
   return (
     <div className="space-y-3 pb-16">
@@ -210,7 +212,7 @@ export function DataStudio({ presetParam, run }: { presetParam?: string; run?: {
               <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
                 <div className="min-w-0 space-y-2">
                   <SourceList code={code} line={st?.line ?? 0} />
-                  <PlaybackBar pb={pb} labels={data.analyses.map((a) => a.title)} />
+                  <PlaybackBar pb={pb} labels={beats.map((b) => (b.of > 1 ? `${data.analyses[b.stage].title}: ${b.title}` : b.title))} />
                 </div>
                 <div className="min-w-0">
                   <Suspense fallback={<Skeleton className="h-[220px]" />}>

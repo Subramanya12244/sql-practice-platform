@@ -7,6 +7,7 @@
  *    with consistency checks of every derived number against the real result. Returns null when there is nothing real to show.
  *  - explainFailure: rule-based, from the real error text and the real final values.
  */
+import { buildDataBeats } from "../../../lib/visual/dataBeats";
 import type { Capability, Domain, ExecutionAdapter, ExerciseDef, FeedbackItem, RunContext, RunOutcome, TestResult, ValidationOutcome, VisualModel } from "../../types";
 import { PY_TIMEOUT_MS, runPython, stopPython, type PyResult } from "../../../lib/pyRunner";
 import { runPythonTask, type PythonTask } from "../../../lib/tasks";
@@ -168,7 +169,7 @@ export function createDataAdapter(domain: DataDomain, opts: DataAdapterOptions =
       const data = buildDataModel(domain, probe, code);
       const notes = [...data.notes];
       if (!data.consistent) notes.push("A derived number did not match the real result; the values shown are still the real ones.");
-      return { provenance: "executed", data, steps: probe.stages.length, notes };
+      return { provenance: "executed", data, steps: buildDataBeats(data).length, notes };
     },
 
     explainFailure(code, outcome, validation): FeedbackItem[] {

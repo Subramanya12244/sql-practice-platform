@@ -55,11 +55,13 @@ describe.skipIf(!hasDataPython)("the page runs your code through the shared data
     expect(await screen.findByRole("list", { name: "Source code" }, { timeout: 60_000 })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Tables and arrays" })).toHaveAttribute("aria-selected", "true");
     await screen.findByText(/^Stage 1 of /);
-    const n = Number(/of (\d+)/.exec(status().textContent ?? "")?.[1]);
+    const n = Number(/of (\d+)/.exec(status().textContent ?? "")?.[1]); // steps: a step is a beat now, a stage can be several
     expect(n).toBeGreaterThan(3);
     fireEvent.keyDown(screen.getByRole("group", { name: "Playback controls" }), { key: "End" });
-    expect(await screen.findByText(new RegExp(`^Stage ${n} of ${n}`))).toBeTruthy();
-    expect(screen.getAllByRole("table", { name: /Current value|After|Before/ }).length).toBeGreaterThan(0);
+    // The last step belongs to the last stage ("Stage K of K").
+    const [, k, total] = /^Stage (\d+) of (\d+)/.exec((await screen.findAllByText(/^Stage \d+ of \d+/))[0].textContent ?? "")!;
+    expect(k).toBe(total);
+    expect(screen.getAllByRole("table", { name: /Current value|After|Before|Result/ }).length).toBeGreaterThan(0); // a result beat draws the real DataFrame under its story
     expect(screen.getAllByText(/shape \(/).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Trace again" })).toBeTruthy();
     // The highlighted source line follows the stage.

@@ -422,6 +422,39 @@ def _argsnaps(vals):
 def _reprs(a, k):
     return {"argsRepr": [_clip(_short(x), 40) for x in a[:6]], "kwargsRepr": {str(n): _clip(_short(v), 40) for n, v in list(k.items())[:8]}}
 
+_SAFECALL = ("mean", "median", "min", "max", "sum", "std", "var", "count", "nunique", "quantile", "abs", "round", "isna", "notna", "isnull", "notnull", "isin", "between", "lower", "upper", "strip", "len", "contains", "startswith", "endswith", "isnumeric", "isalpha")
+_IMPURE = (_ast.Lambda, _ast.NamedExpr, _ast.Await, _ast.Yield, _ast.YieldFrom, _ast.ListComp, _ast.SetComp, _ast.DictComp, _ast.GeneratorExp, _ast.JoinedStr)
+def _purex(n):
+    for x in _ast.walk(n):
+        if isinstance(x, _IMPURE): return False
+        if isinstance(x, _ast.Call) and not (isinstance(x.func, _ast.Attribute) and x.func.attr in _SAFECALL): return False
+    return True
+def _flat(n, op):
+    if isinstance(n, _ast.BinOp) and isinstance(n.op, op): return _flat(n.left, op) + _flat(n.right, op)
+    return [n]
+def _opnd(v): return _snap(v) if (_isdata(v) or _kind(v) != "other" or _mod(v).startswith("numpy")) else _plain(v)
+def _cond(sl):
+    """The pieces of a row condition inside df[...]: each comparison with its operands and its own True/False column. Only call-free expressions are evaluated again (a few safe methods such as mean() are allowed), so nothing with a side effect ever runs twice."""
+    try:
+        joiner = None; leaves = [sl]
+        if isinstance(sl, _ast.BinOp) and isinstance(sl.op, (_ast.BitAnd, _ast.BitOr)):
+            op = type(sl.op); joiner = "&" if op is _ast.BitAnd else "|"; leaves = _flat(sl, op)
+        if len(leaves) > 4: return None
+        out = []
+        for lf in leaves:
+            if not _purex(lf): return None
+            if isinstance(lf, _ast.Compare) and len(lf.ops) == 1 and type(lf.ops[0]) in _CMP:
+                fn, sym = _CMP[type(lf.ops[0])]
+                lv = _ev(lf.left); rv = _ev(lf.comparators[0]); mk = fn(lv, rv)
+                if not (_isser(mk) and str(mk.dtype) == "bool"): return None
+                out.append({"text": _clip(_seg(lf), 120), "op": sym, "leftText": _clip(_seg(lf.left), 80), "rightText": _clip(_seg(lf.comparators[0]), 80), "left": _opnd(lv), "right": _opnd(rv), "mask": _snap(mk)})
+            else:
+                mk = _ev(lf)
+                if not (_isser(mk) and str(mk.dtype) == "bool"): return None
+                out.append({"text": _clip(_seg(lf), 120), "mask": _snap(mk)})
+        return {"joiner": joiner, "leaves": out}
+    except Exception: return None
+
 def _apply(st, cur, csnap, ctx, last):
     pend = ctx.get("pend")
     data_in, in_snap, codes = cur, csnap, []
@@ -457,6 +490,9 @@ def _apply(st, cur, csnap, ctx, last):
     d = dict(base); d["kind"] = "call" if method else "attr" if key is _NOKEY else "select"; d["output"] = osnap
     rf = _rowflow(data_in, out) if in_data and (_isdf(data_in) or _isser(data_in)) else None
     if rf: d["rows"] = rf
+    if key is not _NOKEY and isinstance(st, _ast.Subscript) and in_data and (_isdf(data_in) or _isser(data_in)):
+        cd = _cond(st.slice)
+        if cd: d["cond"] = cd
     if _isnd(data_in):
         d.update(_nd_extra(data_in, out, op, a, k, key, method))
     if method and op in ("merge", "join") and _isdf(data_in) and _isdf(out):

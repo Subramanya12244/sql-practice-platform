@@ -189,3 +189,17 @@ Details: `docs/WORKSPACE_SQL_SAFETY.md` (section 12).
 1. `lib/browserDb.ts` (coordinator): add `opts?: { policy?: PolicyOption }` to `runQuery` and `submitQuery` and pass it to `execute` / `submit` (from `lib/sqlRunner`). Today `adapters/sql/backend.ts` `browserBackend` reproduces the 8 s limit itself when a policy is given.
 2. Source repo `northwind-sql-practice` and `backend/app/services/repo_parser.py` / `scripts/build_public_data.py` (not owned by any worker): `find_sql_for_md` uses a prefix glob, so Q19 picked Q197's `.sql`. Exact-number match plus an assertion are specified in section 9.5. Until the generator is fixed, regenerating `public/data/q/**` brings the Q19 bug back and overwrites the patches in Q19, Q32, Q33, Q36, Q62, Q96, Q97.
 3. Pages that call `lib/sqlRunner` themselves (`components/daily/*`, `components/PracticePanel.tsx`) are unchanged and have no policy; pass `{ policy: await policyOf(exercise) }` (exported from `workspace/adapters/sql`) to get it.
+
+## Visualization interface requests
+
+### Agent D (Pandas), 2026-11-19
+
+1. Coordinator, `components/visual/DataStudio.tsx` (line ~215): `<PlaybackBar pb={pb} labels={data.analyses.map((a) => a.title)} />` labels steps by stage, but a step is a beat now, so a stage with several beats leaves the timeline labels shifted and shorter than the step count. Use the same labels as `DataStageViewer` (`beats.map((b) => (b.of > 1 ? \`${data.analyses[b.stage].title}: ${b.title}\` : b.title))`, `beats` is already computed in that file).
+2. Coordinator, `workspace/visualizers/data/DataStageViewer.tsx`: the "Code, shapes and every table for this stage" block is collapsed for beats that have a picture. The pandas e2e tests that looked for a table named `Current value|After|Before` or for the text `N in, M retained, K removed` read the stage's own panels, which are inside that collapsed block; they were adjusted (see the Pandas section of `WORKSPACE_VISUALIZATION_QUALITY_REPORT.md`). If you would rather keep those tests untouched, open the block by default on the last beat of a stage.
+3. Agent N / anyone: `dataProbeProgram.ts` gained one additive field, `DataStage.cond` (the parts of a `df[<condition>]` filter: each comparison with its two operands and its own True/False column). It is only recorded for call-free conditions (a few safe methods such as `mean()` are allowed). `_opnd` also records a numpy scalar as its Python value. No existing field changed.
+
+### Agent P (Python story), interface requests
+
+1. Coordinator, `components/visual/StoryPanel.tsx`: add an optional `reduced?: boolean` prop and drop the `df-step` class when it is true. Today only the OS-level `prefers-reduced-motion` CSS silences the entrance, so a learner who turns on the in-app "Reduce motion" switch still gets that one slide of the story text (`siteStoryPythonUi.test.tsx` documents it). Python would then pass `reducedMotion`.
+2. Coordinator, `components/visual/story.ts`: `storyProblems` treats the words `null`, `undefined`, `NaN`, `Infinity` as broken text (case-insensitive), so a Python story that quotes a real `nan` or `inf` float would be flagged. Python stories do not hit this today (the formula reader refuses `nan` and `inf`); an `allowNaN`-style option for `inf` would make it safe to quote them.
+3. Coordinator, `site.css`: no change needed. The picture uses the existing `df-cell` (pop) and `df-step` keyframes plus Tailwind `transition-[...]`; a dedicated `df-highlight` keyframe would let the current list item pulse once instead of fading.

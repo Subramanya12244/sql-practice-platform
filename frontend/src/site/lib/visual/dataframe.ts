@@ -128,6 +128,11 @@ export interface ConcatInfo {
 
 export interface AxisInfo { op: "reduce" | "along"; axis: number[] | null; keepdims: boolean }
 
+/** One comparison (or other True/False test) inside `df[...]`, with the operands it really used and its own True/False column. */
+export interface CondLeaf { text: string; mask: DataSnap; op?: string; leftText?: string; rightText?: string; left?: DataSnap; right?: DataSnap }
+/** The row condition of a boolean filter, split at `&` / `|` (null `joiner` for a single test). Only recorded for call-free expressions. */
+export interface CondInfo { joiner: "&" | "|" | null; leaves: CondLeaf[] }
+
 export interface DataStage {
   i: number;
   kind: StageKind;
@@ -156,6 +161,8 @@ export interface DataStage {
   /** An in-place call that left the data exactly as it was. */
   unchanged?: boolean;
   rows?: RowFlow;
+  /** For `df[<condition>]`: the condition's parts (additive; absent when the expression had calls or the condition was a variable). */
+  cond?: CondInfo | null;
   merge?: MergeInfo | null;
   concat?: ConcatInfo | null;
   axis?: AxisInfo;

@@ -77,6 +77,21 @@ describe("capability-gated controls", () => {
     expect(screen.queryByLabelText("Playback speed")).toBeNull();
   });
 
+  it("a standalone visualizer (the original SQL Query Cinema) keeps its own player and layout: the panel adds no player, badge, notes or height-limited box", async () => {
+    const Own = Object.assign((_p: VisualizerProps) => <div data-testid="own-visual"><button type="button">Play</button></div>, { standalone: true as const });
+    view(<ExerciseWorkspace exercise={EX} adapter={adapterWith(["run", "trace"])} Visualizer={Own} layout="stack" editor="plain" progress={null} />);
+    type("a = 1\n");
+    click(/^Run/);
+    await screen.findByText(/Ran without errors/);
+    click(/^Visualize/);
+    await screen.findByTestId("own-visual");
+    expect(screen.queryByRole("group", { name: "Playback controls" })).toBeNull(); // only the visualizer's own Play exists
+    expect(screen.getAllByRole("button", { name: "Play" })).toHaveLength(1);
+    expect(screen.queryByText("Executed")).toBeNull(); // the panel's badge
+    expect(screen.queryByLabelText(/Animations/)).toBeNull(); // the panel's motion switch
+    expect(screen.getByTestId("visualizer-box").className).not.toMatch(/max-h-/);
+  });
+
   it("a trace adapter gets the shared player; stepping moves the visualizer's step", async () => {
     view(<ExerciseWorkspace exercise={EX} adapter={adapterWith(["run", "trace"])} Visualizer={FakeVisualizer} layout="stack" editor="plain" progress={null} />);
     type("a = 1\nb = 2\nc = 3\n");
