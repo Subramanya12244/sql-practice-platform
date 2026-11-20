@@ -101,7 +101,7 @@ test("query visualizer: Format SQL tidies the query in the editor", async ({ pag
   await expect(page.getByTestId("format-error")).toHaveCount(0);
   // the first preset is one clause per line already; the formatter keeps keywords upper-case and the text still runs
   await page.getByRole("button", { name: "Visualize", exact: true }).click();
-  await expect(page.getByTestId("cinema")).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByRole("group", { name: "Playback controls" })).toBeVisible({ timeout: 120_000 });
 });
 
 test("data profiler: the sample shows its problems, and a real file is profiled in the browser", async ({ page }, info) => {

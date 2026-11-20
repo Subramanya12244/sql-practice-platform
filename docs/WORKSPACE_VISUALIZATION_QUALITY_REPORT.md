@@ -284,3 +284,14 @@ Request: the SQL visualizer in the exercise workspace should be the previous ver
 - Like the question page, the original view runs its own read-only EXPLAIN and row-trace queries for the statement (rolled back); it never changes data.
 - Tests: `siteWorkspaceCoreUi` gained a panel test for standalone visualizers (no panel player, no panel badge, no height limit); `siteWorkspaceSqlVisualizer` "the lazy component..." now asserts the export is standalone and loads the original view. Browser (prerendered build): `workspace`, `daily-workspace`, `query-cinema`, `smoke`, `workspace-discovery`: 110 passed, 2 skipped, 0 failed.
 - Not available in the workspace SQL view any more: the wrapper's extra Details tab (CTE, subquery, window, group and NULL panels), its own plan tab with measured actuals, and the compare tab. They remain in code and tests if you want any of them back as an option.
+
+## 7. SQL visualizer: Query Cinema redesign of 2026-11-13 reverted (2026-11-20)
+
+Request: restore the SQL visualizer as it was before the 2026-11-13 Query Cinema redesign (commit `9be309e`, PR #8). Section 6 had only put the redesigned `VizView` back into the workspace, which is not what was asked for.
+
+What was done: `git revert 9be309e` applied by hand to the files that later work had also touched.
+- Restored to the pre-redesign state: `VizView.tsx` (stage buttons, the shared playback bar, `RowFlow`, no cinema rail), `RowFlow.tsx`, `lib/visual/rowFlow.ts`, `lib/visual/rowTrace.ts`, `QueryVisualizerPage.tsx` (the "Query execution visualizer" header, help block, side-by-side editor and result, original preset list), the SQL help text, and the `.cinema-dark` CSS block.
+- Removed: `QueryCinema.tsx`, `lib/visual/cinema.ts`, `HighlightedSql.tsx`, `siteQueryCinemaData.test.ts`, `siteQueryCinemaUi.test.tsx`, `e2e/query-cinema.spec.ts`, `docs/QUERY_VISUALIZER_UX_REPORT.md` and its screenshots.
+- Kept on purpose: the Format SQL button on `/query-visualizer` (added later, in the UX redesign phase 6). The Pandas boards use `GROUP_COLORS`, which moved to `components/visual/groupColors.ts` because it used to be exported by the redesigned `RowFlow.tsx`.
+- Workspace: the SQL adapter's model no longer builds Cinema steps (`steps` is the number of logical stages). The workspace-only wrapper `SqlVisualizer.tsx` and its Details and plan panels depended on the Cinema script and were removed, with their tests. The workspace shows the same `VizView` as `/query-visualizer` and the question page, marked `standalone` (section 6).
+- Tests: tsc and eslint clean; 36 unit test files (1215 tests) pass; browser tests for the workspace, query visualizer, visual engines and Format SQL pass on desktop and mobile.

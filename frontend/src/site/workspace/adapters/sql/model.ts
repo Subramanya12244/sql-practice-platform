@@ -1,11 +1,10 @@
 /**
- * Builds the SQL VisualModel from the existing Query Cinema engine: `visualize()` (stages with exact counts), `traceRows()` (real
- * rows with identity for the animations), `buildCinema()` (the step script), the parsed structure, and PostgreSQL's plan, plus
- * `buildExtras()` for what the cinema does not draw. Returns null when the engine cannot stage the query accurately.
+ * Builds the SQL VisualModel from the existing query visualizer engine: `visualize()` (stages with exact counts), `traceRows()` (real
+ * rows with identity for the animations), the parsed structure, and PostgreSQL's plan, plus
+ * `buildExtras()` for detail the stage view does not draw. Returns null when the engine cannot stage the query accurately.
  */
 import type { ExecuteResult } from "../../../../types";
 import { analyze, type Structure } from "../../../lib/sqlAst";
-import { buildCinema } from "../../../lib/visual/cinema";
 import { traceRows, type RowTrace } from "../../../lib/visual/rowTrace";
 import { visualize, SAMPLE, type Run, type Visualization } from "../../../lib/visualize";
 import { parsePlan, type PlanNode } from "../../../components/PlanTree";
@@ -27,7 +26,7 @@ export interface SqlVisualData {
   /** `EXPLAIN (FORMAT JSON)`: the planner's choice with its estimates. Measured actuals come only from EXPLAIN ANALYZE, on request. */
   plan: SqlPlanData;
   extras: SqlExtras;
-  /** Number of Query Cinema steps (equals `VisualModel.steps`). */
+  /** Number of logical stages (equals `VisualModel.steps`). */
   stepCount: number;
 }
 
@@ -60,8 +59,7 @@ export async function buildSqlVisualModel(sql: string, run: Run, dataset: string
   let extras = emptyExtras();
   try { extras = await buildExtras({ body, parsed: viz.parsed, structure, run, volatile }); } catch (e) { extras.notes.push(e instanceof Error ? e.message : String(e)); }
 
-  const steps = buildCinema(viz, trace, body);
-  if (!steps.length) return null;
+  const stepCount = viz.stages.length;
   const notes = [
     "Logical order: how SQL defines the result, one clause at a time. PostgreSQL may run the query differently (see Plan); the result is the same.",
     `Counts are exact. Boards draw a sample of at most ${SAMPLE} rows per stage.`,
@@ -69,8 +67,8 @@ export async function buildSqlVisualModel(sql: string, run: Run, dataset: string
     ...(trace?.notes ?? []),
     ...extras.notes,
   ];
-  const data: SqlVisualData = { version: 1, sql: body, dataset, viz, trace, structure, plan, extras, stepCount: steps.length };
-  return { provenance: volatile ? "parsed" : "executed", data, steps: steps.length, notes };
+  const data: SqlVisualData = { version: 1, sql: body, dataset, viz, trace, structure, plan, extras, stepCount };
+  return { provenance: volatile ? "parsed" : "executed", data, steps: stepCount, notes };
 }
 
 export const isSqlVisualData = (d: unknown): d is SqlVisualData =>

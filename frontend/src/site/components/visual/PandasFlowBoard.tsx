@@ -1,7 +1,7 @@
 import { memo, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { MOTION, EASE, STAGGER } from "../../lib/motion";
 import { TONE_GLYPH, TONE_WORD, type FlowBoardData, type FlowCard, type FlowPos, type FlowView, type Tone } from "../../lib/visual/pandasBeatParts";
-import { GROUP_COLORS } from "./RowFlow";
+import { GROUP_COLORS } from "./groupColors";
 
 /**
  * The pandas row board: the real rows of one stage drawn as cards that sit in a lane (the input, the result, the left or right table)

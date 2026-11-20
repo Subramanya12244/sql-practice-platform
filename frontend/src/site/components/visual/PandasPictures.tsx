@@ -3,7 +3,7 @@ import { MOTION } from "../../lib/motion";
 import { DataFrameView } from "./DataFrameView";
 import { rowMarks, type DataStage } from "../../lib/visual/dataframe";
 import { TONE_GLYPH, TONE_WORD, txt, type CalcView, type GridView, type GroupsView, type TableView, type Tone } from "../../lib/visual/pandasBeatParts";
-import { GROUP_COLORS } from "./RowFlow";
+import { GROUP_COLORS } from "./groupColors";
 
 /**
  * The other pandas pictures: a table whose columns or cells change colour (selection, new column, missing values), a per-row

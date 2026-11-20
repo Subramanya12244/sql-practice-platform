@@ -84,6 +84,8 @@ test.describe("Pandas visualization", () => {
     await bar(page).focus();
     await page.keyboard.press("End");
     await expect(page.getByRole("tab", { name: "Tables and arrays" })).toHaveAttribute("aria-selected", "true");
+    // The step story and picture come first; the full tables sit in the stage details, closed until asked for.
+    await page.getByText("Code, shapes and every table for this stage").click();
     await expect(page.getByRole("table", { name: /Current value|After|Before/ }).first()).toBeVisible();
     await expect(page.getByText(/shape \(/).first()).toBeVisible();
   });
@@ -97,6 +99,8 @@ test.describe("NumPy visualization", () => {
     await expect(page.getByRole("list", { name: "Source code" })).toBeVisible({ timeout: 380_000 });
     await bar(page).focus();
     await page.keyboard.press("End");
+    // The step story and picture come first; the full tables sit in the stage details, closed until asked for.
+    await page.getByText("Code, shapes and every table for this stage").click();
     await expect(page.getByRole("table", { name: /Current value|After|Before/ }).first()).toBeVisible();
     await expect(page.getByText(/dtype int/).first()).toBeVisible();
   });
