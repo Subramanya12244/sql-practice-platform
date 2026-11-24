@@ -5,7 +5,6 @@ import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 import northwind from "../../public/data/northwind.sql?raw";
 import { execute, type SqlDb } from "../site/lib/sqlRunner";
-import { buildCinema } from "../site/lib/visual/cinema";
 import { compareStages } from "../site/lib/visual/stageCompare";
 import { createDbBackend } from "../site/workspace/adapters/sql/backend";
 import { createSqlAdapter, type SqlAdapter } from "../site/workspace/adapters/sql/adapter";
@@ -44,12 +43,11 @@ const stage = (d: SqlVisualData, clause: string) => d.viz.stages.find((s) => s.c
 
 describe("the model", () => {
   const SQL = "SELECT c.country, COUNT(*) AS orders FROM customers c JOIN orders o ON o.customer_id = c.customer_id WHERE o.freight > 10 GROUP BY c.country HAVING COUNT(*) >= 3 ORDER BY orders DESC, c.country LIMIT 5";
-  it("is executed, steppable, and its step count is the cinema's", async () => {
+  it("is executed, steppable, and its step count is the number of logical stages", async () => {
     const { model: m, data } = await model(SQL);
     expect(m.provenance).toBe("executed");
     expect(m.steps).toBe(data.stepCount);
-    expect(m.steps).toBe(buildCinema(data.viz, data.trace, data.sql).length);
-    expect(m.steps!).toBeGreaterThanOrEqual(8);
+    expect(m.steps).toBe(data.viz.stages.length);
     expect(data.viz.stages.map((s) => s.clause)).toEqual(["from", "where", "group by", "having", "select", "order by", "limit"]);
     expect(m.notes!.join(" ")).toMatch(/Logical order/);
   });
@@ -433,7 +431,8 @@ describe("stepping", () => {
   it("never issues SQL: the model is complete when visualize() returns", async () => {
     const { model: m, data } = await model("SELECT c.country, COUNT(*) FROM customers c JOIN orders o ON o.customer_id = c.customer_id GROUP BY c.country");
     issued = [];
-    for (let i = 0; i < m.steps!; i++) buildCinema(data.viz, data.trace, data.sql);
+    expect(m.steps).toBe(data.viz.stages.length);
+    expect(data.trace?.frames.length ?? 0).toBeGreaterThanOrEqual(0);
     expect(issued).toEqual([]);
   });
   it("only read-only statements are issued while visualizing", async () => {

@@ -30,7 +30,7 @@ export function VisualizationPanel({ exercise: ex, adapter, Visualizer, session:
   }
   const v = s.visual;
   const model = v.status === "ready" ? v.model : null;
-  // A standalone visualizer (the SQL Query Cinema) draws its own player, badge, notes and layout: the panel adds none of them.
+  // A standalone visualizer (the SQL query visualizer) draws its own player, badge, notes and layout: the panel adds none of them.
   const standalone = !!(Visualizer as { standalone?: boolean } | undefined)?.standalone;
   return (
     <div className="space-y-3 text-sm" data-testid="workspace-visual">

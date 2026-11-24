@@ -2,7 +2,7 @@
  * The SQL ExecutionAdapter. It wraps what already exists and adds no engine of its own:
  *  - run: the existing PGlite runner (`execute`, every statement rolled back), through a `SqlBackend`.
  *  - validate: the existing grader (`submit`, with `compareResults`, `diagnose` and the hidden test rows).
- *  - visualize: the Query Cinema engine (`visualize`, `traceRows`, `buildCinema`) plus real detail queries (see extras.ts).
+ *  - visualize: the query visualizer engine (`visualize`, `traceRows`) plus real detail queries (see extras.ts).
  *  - explainFailure: categories from PostgreSQL's error text, the grader's result comparison and the SQL text (see failure.ts).
  */
 import type { ExecuteResult, SubmitResult } from "../../../../types";

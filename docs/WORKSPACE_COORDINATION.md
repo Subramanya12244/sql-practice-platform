@@ -102,7 +102,7 @@ Details and evidence are in `docs/WORKSPACE_CONTENT_AUDIT.md`.
 
 1. `ExerciseDef.readOnly?: boolean` (additive). The SQL adapter already reads it (`(ex as {readOnly?: boolean}).readOnly`); graded exercises (`validation.kind === "sql-result"`) are read-only without it.
 2. `ExecutionAdapter.reset?(ctx: RunContext): Promise<void>` (additive). The SQL adapter implements it (drops the dataset's PGlite so the next run starts fresh) and declares the `reset` capability; the workspace should call it from its Reset control when present.
-3. `VisualizerProps.hostPlayer?: boolean` (additive). When the workspace renders its own player, pass `true`: `SqlVisualizer` then hides its play/step/speed bar and follows `step`/`onStepChange` (it always stays in sync with them). Without it the visualizer shows its own controls.
+3. `VisualizerProps.hostPlayer?: boolean` (additive). When the workspace renders its own player, pass `true`: the SQL wrapper `SqlVisualizer` (removed on 2026-11-20, see docs/WORKSPACE_VISUALIZATION_QUALITY_REPORT.md section 7) hid its play/step/speed bar and followed `step`/`onStepChange` (it always stays in sync with them). Without it the visualizer shows its own controls.
 4. Wrap the visualizer in `SqlBackendContext.Provider` only in tests; the default is the app's PGlite worker. Custom datasets must be registered with `registerDataset` (lib/browserDb) by the host before an exercise on them runs.
 5. Wiring for the coordinator: `adapters/sql/index.ts` exports `adapterModule` (getAdapter + lazy-safe `Visualizer`), `adapter`, `sqlAdapter`, `createSqlAdapter`, `submitDetail(validation)` (the grader's SubmitResult with the row diff sample, for a diff table).
 
