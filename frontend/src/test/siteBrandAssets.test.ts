@@ -172,8 +172,8 @@ describe("manifest, HTML head and tokens agree", () => {
     const css = read("src/site/site.css");
     const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(" ");
     const values = [...css.matchAll(/--color-brand: ([\d ]+);/g)].map((m) => m[1]);
-    expect(values).toEqual([rgb(C.blue), rgb(C.blueOnDark), rgb(C.blueOnDark)]); // light, .dark, prefers-dark
-    expect(css.match(/--color-brand-ember: 255 122 47;/g)).toHaveLength(3);
+    expect(values).toEqual([rgb(C.blue), rgb(C.blueOnDark)]); // light, dark
+    expect(css.match(/--color-brand-ember: 255 122 47;/g)).toHaveLength(2);
     expect(read("tailwind.config.js")).toContain('"rgb(var(--color-brand) / <alpha-value>)"');
     expect(BRAND.colors.primary).toBe(C.blue);
   });
