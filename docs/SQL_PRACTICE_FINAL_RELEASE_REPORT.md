@@ -4,9 +4,9 @@ Branch `feature/sql-visualizer-restore`, worktree `sql-practice-platform-sqlviz`
 
 | | |
 | --- | --- |
-| Implementation commit | see "Release record" (filled in after the deploy) |
-| Pushed | see "Release record" |
-| Cloudflare version | see "Release record" |
+| Implementation commit | `37b2f09edba47985f34697db7cf45ab34a9deb15` |
+| Pushed | yes: `origin/feature/sql-visualizer-restore` (new branch; not merged to `main`) |
+| Cloudflare version | `2e9478c2-32ae-471a-8898-95278511c782` (2026-11-25 10:09 UTC) |
 
 ## 1. Where `main` stood
 
@@ -89,4 +89,20 @@ Added, docs: this report, `SQL_PRACTICE_RELEASE_VERIFICATION.md`, `SQL_PRACTICE_
 
 ## 8. Release record
 
-Filled in after the deploy.
+- **Commit:** `37b2f09edba47985f34697db7cf45ab34a9deb15` on `feature/sql-visualizer-restore`, on top of the merge with `origin/main` (`ff76e83`). Staged by explicit path (91 files); no secret, `.env`, generated file or local artifact; the Cinema work-in-progress stayed on the local branch `wip/sql-cinema-improvements` (`d52fd9c`, not pushed).
+- **Push:** `git push -u origin feature/sql-visualizer-restore`, a new branch, no force. Not merged to `main`.
+- **Deploy:** the repository's own workflow, "Deploy site", run `45589690350`, started with `workflow_dispatch` on the feature branch (the workflow also runs on a push to `main`). It built commit `37b2f09`, and every step succeeded: `npm ci`, TypeScript, lint, the Python environment for the Daily Learning tests, the frontend unit and integration tests, the backend tests, the Python examples check, prerender, the Suspense check and "Deploy to Cloudflare". It builds with the repository's Supabase, Search Console and analytics variables, which my earlier hand-built deploys had not included.
+- **Cloudflare version:** `2e9478c2-32ae-471a-8898-95278511c782`, worker `dataforge`.
+- **Caveat:** `main` does not contain this work. The next push to `main` redeploys `main` and replaces this version, unless the branch is merged first.
+
+### Production smoke tests
+
+Production URL: https://dataforge.dataforge-learn.workers.dev (Chromium, Chrome channel).
+
+| Check | Result |
+| --- | --- |
+| Sanity sweep of 13 pages: `/`, `/questions`, `/questions/q01-product-revenue`, `/login`, `/query-visualizer`, `/practice/python`, `/visual`, `/workspace`, `/learn`, `/progress`, `/scenarios`, `/study-notes`, and a bad URL | all as expected (200, the bad URL 404); no page error, console error or CSP violation; no horizontal page scroll; sign-in form present; the security policy header is served |
+| `sql-practice-original-visualizer.spec.ts`, `sql-practice-stale.spec.ts`: SQL Practice opens, the upgraded original visualizer is rendered (five tabs, playback, row board), no Cinema element, execution and final result match, stepping, stale and failed-query behaviour, desktop and mobile | 36 passed (22 + 14), 0 failed |
+| `sql-practice-release-matrix.spec.ts`, subset (HAVING, ORDER BY, Q01, stale data and editing, compact step bar), desktop and mobile, light and dark | 30 passed, 0 failed |
+
+These cover: SQL Practice opening, the original visualizer rendered and the Cinema absent, query execution, intermediate data compared with an independent reference, synchronised explanation and step state, playback, failed queries not showing a misleading stale visualization, desktop and mobile layouts, light and dark themes and no critical console errors. Firefox and WebKit were run on the production build before the deploy (section 5), not on the live site.
