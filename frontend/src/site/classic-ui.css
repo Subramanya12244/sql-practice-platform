@@ -1,0 +1,91 @@
+/* SQL Practice visualizer: layout and typography. OWNER: Agent 3 (UI and UX). Scoped to .vizc; uses the site theme tokens only.
+   The visualizer sits in a pane about 500px wide on a 1440px window and full width on a phone, so every layout decision below
+   follows the width of ITS container (container queries), never the width of the window. */
+.vizc { container: vizc / inline-size; min-width: 0; }
+
+/* Step rail: wraps, never scrolls the page sideways; arrows are quiet separators. */
+.vizc-rail { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.125rem; margin: 0; padding: 0; list-style: none; }
+.vizc-rail-item { display: inline-flex; align-items: center; gap: 0.125rem; }
+.vizc-rail-arrow { font-size: 0.75rem; padding: 0 0.125rem; }
+.vizc-step { min-height: 1.75rem; }
+.vizc-step:focus-visible { outline: 2px solid rgb(var(--color-accent)); outline-offset: 2px; }
+
+/* The query text wraps (a clause far to the right of a one-line scroller is invisible in a 500px pane) and stays short. */
+.vizc-sql pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 7.5rem; overflow-y: auto; }
+
+/* The stage area: one column by default (board, explanation, tables in reading order). */
+.vizc-stage { display: grid; gap: 0.75rem; grid-template-columns: minmax(0, 1fr); grid-template-areas: "board" "explain" "tables"; }
+.vizc-board { grid-area: board; }
+.vizc-explain { grid-area: explain; }
+.vizc-tables { grid-area: tables; }
+.vizc-board [data-testid="rowflow"] { margin-top: 0; }
+/* A 20-row board is 700px tall: in a short pane that pushes the explanation and the tables far out of sight. It scrolls inside itself instead. */
+.vizc-board [data-testid="rowflow-board"] { max-height: 18rem; overflow-y: auto; }
+.vizc-head-note { display: none; }
+
+/* The four answers: stacked on a phone; in a pane about 26rem or wider "What is happening?" leads across the full width and the other three sit side by side. */
+.vizc-answers { display: grid; gap: 0.5rem 0.875rem; margin: 0; }
+.vizc-answer { margin: 0; }
+.vizc-answer dd { margin-left: 0; }
+
+/* Tables: a labelled area under the board; side by side only when there is room for both. */
+.vizc-tables-head { margin: 0; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: rgb(var(--color-ink-faint)); }
+.vizc-explain .vizc-lead { font-size: 0.9375rem; line-height: 1.35; }
+.vizc-table-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
+.vizc-table { margin: 0; }
+.vizc-null { font-style: italic; color: rgb(var(--color-ink-faint)); letter-spacing: 0.02em; }
+.vizc-row-removed { background: rgb(var(--color-danger) / 0.08); }
+.vizc-row-removed td:first-child { box-shadow: inset 2px 0 0 rgb(var(--color-danger) / 0.7); }
+
+/* Playback sits right under the step rail, above the board: reachable without scrolling, and never over the rows. */
+.vizc-player { min-width: 0; }
+
+@container vizc (min-width: 44rem) { .vizc-head-note { display: inline; } }
+@container vizc (min-width: 26rem) {
+  .vizc-answers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vizc-answer:first-child { grid-column: 1 / -1; }
+}
+
+/* Roomy pane (about 640px and up): the explanation sits beside the board and the tables, so reading it never means scrolling past the board.
+   Below that it is one column in reading order: board, the answer to "what is happening", tables. */
+@container vizc (min-width: 40rem) {
+  .vizc-stage { grid-template-columns: minmax(0, 1fr) minmax(14rem, 18rem); grid-template-areas: "board explain" "tables explain"; align-items: start; }
+  .vizc-explain { position: sticky; top: 2.75rem; }
+  .vizc-board [data-testid="rowflow-board"] { max-height: 22rem; }
+  .vizc-answers { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Scrollable tables: the scroll is intentional, so it is shown. A slim always-visible scrollbar, a fade on the edge that has more
+   columns, a sticky first column so rows stay identifiable, and wrapping headers so none is cut. */
+.vizc-scrollwrap { position: relative; }
+.vizc-scroll { scrollbar-width: thin; scrollbar-color: rgb(var(--color-ink-faint)) rgb(var(--color-surface-soft)); overscroll-behavior-x: contain; }
+.vizc-scroll::-webkit-scrollbar { height: 0.625rem; width: 0.625rem; }
+.vizc-scroll::-webkit-scrollbar-track { background: rgb(var(--color-surface-soft)); }
+.vizc-scroll::-webkit-scrollbar-thumb { background: rgb(var(--color-ink-faint) / 0.65); border-radius: 999px; border: 2px solid rgb(var(--color-surface-soft)); }
+.vizc-scroll:focus-visible { outline: 2px solid rgb(var(--color-accent)); outline-offset: 1px; }
+.vizc-scrollwrap::after { content: ""; position: absolute; top: 1px; right: 1px; bottom: 0.75rem; width: 1.5rem; border-radius: 0 0.5rem 0.5rem 0; pointer-events: none; z-index: 4; opacity: 0;
+  background: linear-gradient(to left, rgb(var(--color-ink) / 0.22), transparent); transition: opacity var(--motion-fast) var(--ease-out); }
+.vizc-scrollwrap[data-more-right="true"]::after { opacity: 1; }
+.vizc-scrollwrap[data-more-left="true"] .vizc-col-first { box-shadow: 2px 0 0 rgb(var(--color-ink) / 0.14); }
+.vizc-scroll th, .vizc-scroll td { vertical-align: top; }
+.vizc-th { min-width: 6.5rem; max-width: 12rem; white-space: normal; overflow-wrap: break-word; word-break: normal; line-height: 1.2; }
+.vizc-col-first { position: sticky; left: 0; background-color: rgb(var(--color-surface)); }
+th.vizc-col-first { background-color: rgb(var(--color-surface-soft)); z-index: 3; }
+td.vizc-col-first { z-index: 2; }
+.vizc-row-removed td.vizc-col-first { background-image: linear-gradient(rgb(var(--color-danger) / 0.08), rgb(var(--color-danger) / 0.08)); }
+.vizc-scrollhint { margin: 0.25rem 0 0; font-size: 0.6875rem; color: rgb(var(--color-ink-faint)); }
+
+/* The step bar: a one-line copy of Previous, Play and Next plus the current step, shown only while the full player is out of view.
+   It is placed inside the root (the container is its containing block), takes no room in the page, and a script keeps it under the
+   top edge of whatever scrolls (see ClassicStepBar.tsx). */
+.vizc { position: relative; }
+.vizc-bar { position: absolute; top: 0; left: 0; right: 0; margin: 0 !important; z-index: 30; display: flex; align-items: center; gap: 0.375rem; height: 2.25rem; padding: 0 0.375rem; border-radius: 0.625rem;
+  border: 1px solid rgb(var(--color-surface-border)); background: rgb(var(--color-surface-raised)); box-shadow: 0 4px 12px rgb(var(--color-ink) / 0.14); }
+.vizc-bar[hidden] { display: none; }
+.vizc-bar-btn { display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; flex: none; border-radius: 0.5rem; border: 1px solid rgb(var(--color-surface-border)); color: rgb(var(--color-ink-muted)); }
+.vizc-bar-btn:hover:not(:disabled) { color: rgb(var(--color-ink)); }
+/* The filled (play) button keeps the theme's on-accent text: the muted colour above would otherwise win (1.56:1 in the light theme). */
+.vizc-bar-btn.bg-accent, .vizc-bar-btn.bg-accent:hover:not(:disabled) { color: rgb(var(--color-on-accent)); }
+.vizc-bar-btn:disabled { opacity: 0.4; }
+.vizc-bar-btn:focus-visible { outline: 2px solid rgb(var(--color-accent)); outline-offset: 1px; }
+.vizc-bar-label { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; font-variant-numeric: tabular-nums; color: rgb(var(--color-ink)); }

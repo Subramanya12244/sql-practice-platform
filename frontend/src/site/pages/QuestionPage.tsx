@@ -1,9 +1,11 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { sendTo } from "../lib/handoff";
-import { VizView } from "../components/VizView";
+import { VizViewClassic } from "../components/VizViewClassic";
 import { ExplainPanel } from "../components/visual/ExplainPanel";
 import { WorkspaceLink } from "../components/WorkspaceLink";
+import { ClassicStaleNotice } from "../components/visual/classic/ClassicStaleNotice";
+import { lastSuccessful, sameSql, vizSource, type VizPin } from "../lib/visual/classic/vizSource";
 import { addSession, getExecs, getSessions, highlightInEditor, type ExecRecord, type VizSession } from "../lib/vizHistory";
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, X } from "lucide-react";
 import { Icon } from "../components/Icon";
@@ -66,11 +68,14 @@ export function QuestionPage() {
   const histKey = `q${q.number}`;
   const [execs, setExecs] = useState<ExecRecord[]>([]);
   const [sessions, setSessions] = useState<VizSession[]>([]);
-  const [vizSql, setVizSql] = useState<string | null>(null);
+  // The Visualize panel shows the newest successful run (see lib/visual/classic/vizSource.ts); `pin` is an explicit pick that lasts until the next run.
+  const [vizStarted, setVizStarted] = useState(false);
+  const [vizPin, setVizPin] = useState<VizPin | null>(null);
   useEffect(() => {
     setExecs(getExecs(histKey));
     setSessions(getSessions(histKey));
-    setVizSql(null);
+    setVizStarted(false);
+    setVizPin(null);
     track("sql_opened", histKey);
   }, [histKey]);
   const latest = execs[0]?.sql ?? progress.questions[q.number]?.lastSql ?? "";
@@ -78,8 +83,15 @@ export function QuestionPage() {
   const onRan = useCallback(() => {
     setExecs(getExecs(histKey));
   }, [histKey, q.number]);
+  const viz = vizSource({ execs, draft: progress.questions[q.number]?.lastSql, started: vizStarted, pin: vizPin });
+  const pinTo = (sql: string) => {
+    const newest = execs[0];
+    setVizStarted(true);
+    // The newest successful run is what an unpinned panel follows; anything else is pinned until the next execution.
+    setVizPin(newest && sameSql(sql, lastSuccessful(execs)?.sql) ? null : { sql, after: newest?.at ?? "" });
+  };
   const visualizeNow = (sql: string) => {
-    setVizSql(sql);
+    pinTo(sql);
     setTab("visualize");
   };
   const panelRef = useRef<HTMLDivElement>(null);
@@ -269,31 +281,35 @@ export function QuestionPage() {
 
             <Panel id="visualize" active={tab}>
               {tab === "visualize" && (
-                !latest.trim() ? (
-                  <p className="text-sm text-ink-muted">Run or submit a query in the editor, then visualize it here: logical steps with real intermediate rows, its parsed structure, and PostgreSQL's plan.</p>
-                ) : (
-                  <div className="space-y-3">
+                <div className="space-y-3">
+                  <ClassicStaleNotice status={viz.status} reason={viz.reason} />
+                  {execs.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <button type="button" onClick={() => setVizSql(latest)} className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white">
-                        {vizSql ? "Visualize my latest query" : "Visualize my query"}
+                      <button type="button" onClick={() => pinTo(execs[0].sql)} className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white">
+                        {viz.sql ? "Visualize my latest query" : "Visualize my query"}
                       </button>
-                      <span className="text-xs text-ink-faint">{execs[0] ? `Last ${execs[0].kind} · attempt ${execs[0].attempt} · ${new Date(execs[0].at).toLocaleTimeString()}` : "Your current draft"}</span>
+                      {viz.sql && viz.lastSuccessfulSql && !sameSql(viz.sql, viz.lastSuccessfulSql) && (
+                        <button type="button" onClick={() => pinTo(viz.lastSuccessfulSql!)} className="rounded-lg border border-surface-border px-3 py-1.5 font-medium text-ink-muted hover:text-ink">
+                          Show my last successful run
+                        </button>
+                      )}
+                      <span className="text-xs text-ink-faint">{`Last ${execs[0].kind}${execs[0].ok ? "" : " (failed)"} · attempt ${execs[0].attempt} · ${new Date(execs[0].at).toLocaleTimeString()}`}</span>
                     </div>
-                    {vizSql && (
-                      <VizView
-                        key={vizSql}
-                        sql={vizSql}
-                        onClause={(r) => highlightInEditor(vizSql, r)}
-                        onDone={(summary) => {
-                          const attempt = execs.find((e) => e.sql === vizSql)?.attempt ?? getProgress().questions[q.number]?.attempts ?? 0;
-                          addSession(histKey, { sql: vizSql, attempt, dataset: "northwind", ...summary });
-                          setSessions(getSessions(histKey));
-                        }}
-                      />
-                    )}
-                    <ExplainPanel ctx={{ lang: "sql", code: latest, topic: q.topic, prompt: q.title }} />
-                  </div>
-                )
+                  )}
+                  {viz.sql && (
+                    <VizViewClassic
+                      key={viz.sql}
+                      sql={viz.sql}
+                      onClause={(r) => highlightInEditor(viz.sql!, r)}
+                      onDone={(summary) => {
+                        const attempt = execs.find((e) => e.sql === viz.sql)?.attempt ?? getProgress().questions[q.number]?.attempts ?? 0;
+                        addSession(histKey, { sql: viz.sql!, attempt, dataset: "northwind", ...summary });
+                        setSessions(getSessions(histKey));
+                      }}
+                    />
+                  )}
+                  {(viz.sql ?? latest).trim() && <ExplainPanel ctx={{ lang: "sql", code: viz.sql ?? latest, topic: q.topic, prompt: q.title }} />}
+                </div>
               )}
             </Panel>
 
@@ -433,7 +449,7 @@ export function QuestionPage() {
             <Link to={`/ai-tutor?q=${q.slug}`} className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink">Open in query helper</Link>
             <Link to={`/study-notes?add=${q.slug}`} className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink">Study notes (PDF)</Link>
             <button type="button" className="rounded-lg border border-surface-border px-2.5 py-1.5 text-ink-muted hover:text-ink"
-              onClick={() => visualizeNow(latest || q.solution)}>
+              onClick={() => { setVizStarted(true); setVizPin(null); setTab("visualize"); }}>
               Visualize ↗ tab
             </button>
             {solved && (

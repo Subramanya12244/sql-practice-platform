@@ -7,6 +7,8 @@ import { loadPage } from "./routes";
 import { loadIndex, loadTopics } from "./lib/data";
 import "../index.css";
 import "./site.css";
+import "./classic-ui.css";
+import "./classic-motion.css";
 
 const root = document.getElementById("root")!;
 

@@ -1,0 +1,105 @@
+/* SQL Practice visualizer: motion, interaction and accessibility. OWNER: Agent 4.
+ * Uses the --motion-* and --ease-* tokens of site.css. Only transform and opacity ever move; there is no `transition: all` and no
+ * infinite animation. Rows are moved by inline transform/opacity transitions set in RowFlowClassic.tsx (they depend on the
+ * playback speed); everything else that moves is here. Reduced motion (the OS setting and the in-page switch, which is read by
+ * useReducedMotion and written to data-reduced="true") shows the same information with nothing moving. */
+
+/* Group colours: one hue per join match group, GROUP BY bucket or window partition. Always paired with a number or a label, never
+ * the only signal. "R G B" like the site tokens; each pair holds 3:1 or more against its theme's surface. */
+:root,
+html.light {
+  --cx-g0: 29 78 216;
+  --cx-g1: 190 24 93;
+  --cx-g2: 4 120 87;
+  --cx-g3: 180 83 9;
+  --cx-g4: 109 40 217;
+  --cx-g5: 14 116 144;
+}
+html.dark {
+  --cx-g0: 124 155 255;
+  --cx-g1: 244 114 182;
+  --cx-g2: 52 211 153;
+  --cx-g3: 251 146 60;
+  --cx-g4: 167 139 250;
+  --cx-g5: 34 211 238;
+}
+.cx-g0 { --cx-c: var(--cx-g0); }
+.cx-g1 { --cx-c: var(--cx-g1); }
+.cx-g2 { --cx-c: var(--cx-g2); }
+.cx-g3 { --cx-c: var(--cx-g3); }
+.cx-g4 { --cx-c: var(--cx-g4); }
+.cx-g5 { --cx-c: var(--cx-g5); }
+
+/* ---------- row board ---------- */
+
+/* The board lays itself out by the width of its own box (about 500px in the left pane, the full width on a phone). */
+.cx-boardwrap { container-type: inline-size; min-width: 0; }
+.cx-card { cursor: pointer; touch-action: manipulation; }
+.cx-card:focus { outline: none; }
+.cx-chip { box-sizing: border-box; }
+.cx-has-g { box-shadow: inset 3px 0 0 rgb(var(--cx-c)); }
+.cx-card:focus-visible > .cx-chip,
+.cx-card[aria-current="true"] > .cx-chip { outline: 2px solid rgb(var(--color-accent)); outline-offset: -2px; }
+.cx-card[aria-current="true"]:not(:focus-visible) > .cx-chip { outline-style: dashed; }
+.cx-card[data-tone="removed"] .cx-text,
+.cx-card[data-tone="cut"] .cx-text,
+.cx-card[data-tone="dup"] .cx-text { text-decoration: line-through; text-decoration-thickness: 1px; }
+.cx-card[data-stale="true"] { pointer-events: none; }
+
+/* Badges and calculated values only show when the lane is wide enough to hold them (the row inspector always has them). */
+.cx-badge { display: none; max-width: 48%; }
+.cx-boardwrap [data-lanes="1"] .cx-badge { display: inline; }
+@container (min-width: 260px) { .cx-boardwrap [data-lanes="2"] .cx-badge { display: inline; } }
+@container (min-width: 390px) { .cx-boardwrap [data-lanes="3"] .cx-badge { display: inline; } }
+@container (min-width: 520px) { .cx-boardwrap [data-lanes="4"] .cx-badge { display: inline; } }
+
+.cx-link { fill: none; stroke: rgb(var(--cx-c)); stroke-linecap: round; }
+
+.cx-dot { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 9999px; background: rgb(var(--cx-c)); }
+
+/* ---------- row inspector ---------- */
+
+.cx-inspect { animation: cx-rise var(--motion-enter) var(--ease-out) both; }
+@keyframes cx-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ---------- query text ---------- */
+
+.cx-sql { position: relative; max-height: 14rem; overflow: auto; white-space: pre; overscroll-behavior: contain; tab-size: 2; }
+.cx-mark { color: rgb(var(--color-ink)); border-radius: 0.25rem; padding: 0 0.125rem; box-shadow: 0 0 0 1px rgb(var(--cx-c) / 0.55); background: rgb(var(--cx-c) / 0.18); animation: cx-mark-in var(--motion-enter) var(--ease-out) both; }
+@keyframes cx-mark-in { from { opacity: 0.35; } to { opacity: 1; } }
+.cx-mark[data-clause="from"] { --cx-c: var(--color-info); }
+.cx-mark[data-clause="where"] { --cx-c: var(--color-warn); }
+.cx-mark[data-clause="group by"] { --cx-c: var(--color-success); }
+.cx-mark[data-clause="having"] { --cx-c: var(--color-danger); }
+.cx-mark[data-clause="window"] { --cx-c: var(--color-secondary); }
+.cx-mark[data-clause="select"],
+.cx-mark[data-clause="distinct"] { --cx-c: var(--color-accent); }
+.cx-mark[data-clause="order by"] { --cx-c: var(--color-accent-muted); }
+.cx-mark[data-clause="limit"] { --cx-c: var(--color-ink-faint); }
+.cx-mark:not([data-clause]),
+.cx-mark[data-clause=""] { --cx-c: var(--color-accent); }
+
+/* ---------- playback controls ---------- */
+
+.cx-btn { min-height: 2.5rem; min-width: 2.5rem; }
+@media (min-width: 640px) and (pointer: fine) { .cx-btn { min-height: 2rem; min-width: 2rem; } }
+.cx-btn:focus-visible,
+.cx-player:focus-visible,
+.cx-select:focus-visible { outline: 2px solid rgb(var(--color-accent)); outline-offset: 2px; }
+.cx-track { position: relative; height: 2.5rem; display: flex; align-items: center; touch-action: pan-y; }
+.cx-track:has(input:focus-visible) { outline: 2px solid rgb(var(--color-accent)); outline-offset: 2px; border-radius: 0.5rem; }
+.cx-bar { position: relative; height: 0.5rem; width: 100%; overflow: hidden; border-radius: 9999px; background: rgb(var(--color-surface-soft)); }
+.cx-fill { position: absolute; inset: 0; transform-origin: left center; background: rgb(var(--color-accent)); transition: transform var(--motion-slow) var(--ease-out); }
+.cx-tick { position: absolute; top: 0; bottom: 0; width: 2px; background: rgb(var(--color-surface-raised)); }
+.cx-slider { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.cx-select { min-height: 2.5rem; }
+@media (min-width: 640px) and (pointer: fine) { .cx-select { min-height: 1.75rem; } }
+
+/* ---------- reduced motion: the same information, nothing moves ---------- */
+
+[data-reduced="true"] .cx-fill,
+[data-reduced="true"] .cx-mark,
+[data-reduced="true"] .cx-inspect { transition: none; animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .cx-fill, .cx-mark, .cx-inspect { transition: none; animation: none; }
+}
